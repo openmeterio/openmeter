@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	models "github.com/openmeterio/openmeter/pkg/models"
@@ -13,7 +13,7 @@ import (
 
 type (
 	GetSubscriptionRequest  = models.NamespacedID
-	GetSubscriptionResponse = api.BillingSubscription
+	GetSubscriptionResponse = apiv3models.BillingSubscription
 	GetSubscriptionParams   = string
 	GetSubscriptionHandler  httptransport.HandlerWithArgs[GetSubscriptionRequest, GetSubscriptionResponse, GetSubscriptionParams]
 )

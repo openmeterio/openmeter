@@ -13,14 +13,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 )
 
 func TestListCreditGrantsCurrencyFilterValidation(t *testing.T) {
 	// given: the production OpenAPI request validator and grant list schema
-	doc, err := api.GetSpec()
+	doc, err := apiv3.GetSpec()
 	require.NoError(t, err)
 	validationRouter, err := oasmiddleware.NewValidationRouter(t.Context(), doc, &oasmiddleware.ValidationRouterOpts{
 		DeleteServers: true,
@@ -65,7 +65,7 @@ func TestListCreditGrantsCurrencyFilterValidation(t *testing.T) {
 
 func TestCreateCreditGrantNumericValidation(t *testing.T) {
 	// given: the production OpenAPI request validator and grant create schema
-	doc, err := api.GetSpec()
+	doc, err := apiv3.GetSpec()
 	require.NoError(t, err)
 	validationRouter, err := oasmiddleware.NewValidationRouter(t.Context(), doc, &oasmiddleware.ValidationRouterOpts{
 		DeleteServers: true,

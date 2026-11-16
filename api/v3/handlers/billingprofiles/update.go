@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -21,14 +21,14 @@ type (
 		Profile   billing.UpdateProfileInput
 	}
 	UpdateBillingProfileParams   = string
-	UpdateBillingProfileResponse = api.BillingProfile
+	UpdateBillingProfileResponse = apiv3models.BillingProfile
 	UpdateBillingProfileHandler  httptransport.HandlerWithArgs[UpdateBillingProfileRequest, UpdateBillingProfileResponse, UpdateBillingProfileParams]
 )
 
 func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, profileID UpdateBillingProfileParams) (UpdateBillingProfileRequest, error) {
-			body := api.UpsertBillingProfileRequest{}
+			body := apiv3models.UpsertBillingProfileRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateBillingProfileRequest{}, err
 			}

@@ -9,9 +9,9 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
@@ -25,13 +25,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGrant, error) {
-	grant := api.BillingCreditGrant{
+func toAPIBillingCreditGrant(charge creditpurchase.Charge) (apiv3models.BillingCreditGrant, error) {
+	grant := apiv3models.BillingCreditGrant{
 		Id:            charge.ID,
 		Name:          charge.Intent.Name,
 		Description:   charge.Intent.Description,
 		Amount:        charge.Intent.CreditAmount.String(),
-		Currency:      api.BillingCurrencyCode(charge.Intent.Currency.GetCode()),
+		Currency:      apiv3models.BillingCurrencyCode(charge.Intent.Currency.GetCode()),
 		EffectiveAt:   charge.Intent.EffectiveAt,
 		ExpiresAt:     charge.Intent.ExpiresAt,
 		FundingMethod: toAPIBillingCreditFundingMethod(charge.Intent.Settlement),
@@ -45,7 +45,7 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 	}
 	grant.ValidationIssues = billingcommon.ToAPIValidationIssues(charge.ValidationIssues)
 	if charge.Intent.Currency.IsCustom() {
-		grant.CustomCurrency = &api.CurrencyCustomReference{Id: charge.Intent.Currency.ID}
+		grant.CustomCurrency = &apiv3models.CurrencyCustomReference{Id: charge.Intent.Currency.ID}
 	}
 
 	grant.Filters = toAPIBillingCreditGrantFilters(charge.Intent.Filters)
@@ -66,46 +66,46 @@ func toAPIBillingCreditGrant(charge creditpurchase.Charge) (api.BillingCreditGra
 	return grant, nil
 }
 
-func toAPIBillingCreditFundingMethod(settlement creditpurchase.Settlement) api.BillingCreditFundingMethod {
+func toAPIBillingCreditFundingMethod(settlement creditpurchase.Settlement) apiv3models.BillingCreditFundingMethod {
 	switch settlement.Type() {
 	case creditpurchase.SettlementTypeInvoice:
-		return api.BillingCreditFundingMethodInvoice
+		return apiv3models.BillingCreditFundingMethodInvoice
 	case creditpurchase.SettlementTypeExternal:
-		return api.BillingCreditFundingMethodExternal
+		return apiv3models.BillingCreditFundingMethodExternal
 	default:
-		return api.BillingCreditFundingMethodNone
+		return apiv3models.BillingCreditFundingMethodNone
 	}
 }
 
-func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) api.BillingCreditGrantStatus {
+func toAPIBillingCreditGrantStatus(charge creditpurchase.Charge) apiv3models.BillingCreditGrantStatus {
 	if charge.State.VoidedAt != nil {
-		return api.BillingCreditGrantStatusVoided
+		return apiv3models.BillingCreditGrantStatusVoided
 	}
 
 	if charge.Intent.ExpiresAt != nil && !charge.Intent.ExpiresAt.After(clock.Now()) {
-		return api.BillingCreditGrantStatusExpired
+		return apiv3models.BillingCreditGrantStatusExpired
 	}
 
 	switch charge.Status {
 	case creditpurchase.StatusActive, creditpurchase.StatusFinal:
-		return api.BillingCreditGrantStatusActive
+		return apiv3models.BillingCreditGrantStatusActive
 	case creditpurchase.StatusCreated:
-		return api.BillingCreditGrantStatusPending
+		return apiv3models.BillingCreditGrantStatusPending
 	case creditpurchase.StatusDeleted:
-		return api.BillingCreditGrantStatusVoided
+		return apiv3models.BillingCreditGrantStatusVoided
 	default:
-		return api.BillingCreditGrantStatusActive
+		return apiv3models.BillingCreditGrantStatusActive
 	}
 }
 
 // toAPICreditGrantPurchase builds the purchase block for funded grants (invoice or external).
 // Returns nil for promotional grants (funding_method=none). Amount and the resolved
 // cost basis are omitted while a dynamic cost basis is still unresolved.
-func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditGrantPurchase, error) {
+func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*apiv3models.BillingCreditGrantPurchase, error) {
 	settlement := charge.Intent.Settlement
 
-	var availabilityPolicy *api.BillingCreditAvailabilityPolicy
-	settlementStatus := api.BillingCreditPurchasePaymentSettlementStatusPending
+	var availabilityPolicy *apiv3models.BillingCreditAvailabilityPolicy
+	settlementStatus := apiv3models.BillingCreditPurchasePaymentSettlementStatusPending
 
 	switch settlement.Type() {
 	case creditpurchase.SettlementTypeInvoice:
@@ -144,8 +144,8 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 		return nil, fmt.Errorf("converting resolved cost basis: %w", err)
 	}
 
-	purchase := &api.BillingCreditGrantPurchase{
-		Currency:           api.CurrencyCode(fiatCurrency.GetFiatCode()),
+	purchase := &apiv3models.BillingCreditGrantPurchase{
+		Currency:           apiv3models.CurrencyCode(fiatCurrency.GetFiatCode()),
 		ResolvedCostBasis:  resolvedCostBasis,
 		AvailabilityPolicy: availabilityPolicy,
 		SettlementStatus:   &settlementStatus,
@@ -167,62 +167,62 @@ func toAPICreditGrantPurchase(charge creditpurchase.Charge) (*api.BillingCreditG
 	return purchase, nil
 }
 
-func toAPIBillingCreditPurchasePaymentSettlementStatus(status payment.Status) api.BillingCreditPurchasePaymentSettlementStatus {
+func toAPIBillingCreditPurchasePaymentSettlementStatus(status payment.Status) apiv3models.BillingCreditPurchasePaymentSettlementStatus {
 	switch status {
 	case payment.StatusAuthorized:
-		return api.BillingCreditPurchasePaymentSettlementStatusAuthorized
+		return apiv3models.BillingCreditPurchasePaymentSettlementStatusAuthorized
 	case payment.StatusSettled:
-		return api.BillingCreditPurchasePaymentSettlementStatusSettled
+		return apiv3models.BillingCreditPurchasePaymentSettlementStatusSettled
 	default:
-		return api.BillingCreditPurchasePaymentSettlementStatusPending
+		return apiv3models.BillingCreditPurchasePaymentSettlementStatusPending
 	}
 }
 
-func toAPIBillingCreditAvailabilityPolicy(status creditpurchase.InitialPaymentSettlementStatus) (api.BillingCreditAvailabilityPolicy, error) {
+func toAPIBillingCreditAvailabilityPolicy(status creditpurchase.InitialPaymentSettlementStatus) (apiv3models.BillingCreditAvailabilityPolicy, error) {
 	switch status {
 	case creditpurchase.CreatedInitialPaymentSettlementStatus:
-		return api.BillingCreditAvailabilityPolicyOnCreation, nil
+		return apiv3models.BillingCreditAvailabilityPolicyOnCreation, nil
 	default:
 		return "", fmt.Errorf("invalid availability policy: %s", status)
 	}
 }
 
-func toAPITaxCodeConfig(charge creditpurchase.Charge) *api.TaxCodeConfig {
+func toAPITaxCodeConfig(charge creditpurchase.Charge) *apiv3models.TaxCodeConfig {
 	cfg := charge.Intent.TaxConfig
 	if lo.IsEmpty(cfg) {
 		return nil
 	}
 
-	tc := &api.TaxCodeConfig{}
+	tc := &apiv3models.TaxCodeConfig{}
 
 	if cfg.Behavior != nil {
-		behavior := api.BillingTaxBehavior(*cfg.Behavior)
+		behavior := apiv3models.BillingTaxBehavior(*cfg.Behavior)
 		tc.Behavior = &behavior
 	}
 
 	if cfg.TaxCodeID != "" {
-		tc.Code = &api.TaxCodeReference{Id: cfg.TaxCodeID}
+		tc.Code = &apiv3models.TaxCodeReference{Id: cfg.TaxCodeID}
 	}
 
 	return tc
 }
 
-func toAPIBillingCreditGrantFilters(filters ledger.CreditFilters) *api.BillingCreditGrantFilters {
+func toAPIBillingCreditGrantFilters(filters ledger.CreditFilters) *apiv3models.BillingCreditGrantFilters {
 	if filters.IsEmpty() {
 		return nil
 	}
 
 	filters = filters.Normalize()
-	result := &api.BillingCreditGrantFilters{}
+	result := &apiv3models.BillingCreditGrantFilters{}
 	if len(filters.Features) > 0 {
 		result.Features = lo.ToPtr(filters.Features)
 	}
 
 	if len(filters.Plans) > 0 {
-		result.Plans = lo.ToPtr(lo.Map(filters.Plans, func(plan ledger.PlanFilter, _ int) api.BillingCreditGrantPlanFilter {
-			mapped := api.BillingCreditGrantPlanFilter{Key: plan.Key}
+		result.Plans = lo.ToPtr(lo.Map(filters.Plans, func(plan ledger.PlanFilter, _ int) apiv3models.BillingCreditGrantPlanFilter {
+			mapped := apiv3models.BillingCreditGrantPlanFilter{Key: plan.Key}
 			if v := plan.Version; v != nil {
-				mapped.Version = &api.VersionFilter{}
+				mapped.Version = &apiv3models.VersionFilter{}
 				if v.Eq != nil {
 					mapped.Version.Eq = lo.ToPtr(int32(*v.Eq))
 				}
@@ -247,27 +247,27 @@ func toAPIBillingCreditGrantFilters(filters ledger.CreditFilters) *api.BillingCr
 	return result
 }
 
-func fromAPIBillingCreditFundingMethod(fm api.BillingCreditFundingMethod) creditgrant.FundingMethod {
+func fromAPIBillingCreditFundingMethod(fm apiv3models.BillingCreditFundingMethod) creditgrant.FundingMethod {
 	switch fm {
-	case api.BillingCreditFundingMethodInvoice:
+	case apiv3models.BillingCreditFundingMethodInvoice:
 		return creditgrant.FundingMethodInvoice
-	case api.BillingCreditFundingMethodExternal:
+	case apiv3models.BillingCreditFundingMethodExternal:
 		return creditgrant.FundingMethodExternal
 	default:
 		return creditgrant.FundingMethodNone
 	}
 }
 
-func fromAPIBillingCreditAvailabilityPolicy(policy api.BillingCreditAvailabilityPolicy) (creditpurchase.InitialPaymentSettlementStatus, error) {
+func fromAPIBillingCreditAvailabilityPolicy(policy apiv3models.BillingCreditAvailabilityPolicy) (creditpurchase.InitialPaymentSettlementStatus, error) {
 	switch policy {
-	case api.BillingCreditAvailabilityPolicyOnCreation:
+	case apiv3models.BillingCreditAvailabilityPolicyOnCreation:
 		return creditpurchase.CreatedInitialPaymentSettlementStatus, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid availability policy: %s", policy))
 	}
 }
 
-func fromAPITaxCodeConfig(tc *api.CreateTaxCodeConfig) *productcatalog.TaxConfig {
+func fromAPITaxCodeConfig(tc *apiv3models.CreateTaxCodeConfig) *productcatalog.TaxConfig {
 	if tc == nil {
 		return nil
 	}
@@ -286,14 +286,14 @@ func fromAPITaxCodeConfig(tc *api.CreateTaxCodeConfig) *productcatalog.TaxConfig
 	return config
 }
 
-func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*creditgrant.GrantFilters, error) {
+func fromAPIBillingCreditGrantFilters(filters *apiv3models.CreateCreditGrantFilters) (*creditgrant.GrantFilters, error) {
 	if filters == nil {
 		return nil, nil
 	}
 
 	result := &creditgrant.GrantFilters{Features: lo.FromPtr(filters.Features)}
 	if filters.Plans != nil {
-		result.Plans = lo.Map(*filters.Plans, func(plan api.CreateCreditGrantPlanFilter, _ int) ledger.PlanFilter {
+		result.Plans = lo.Map(*filters.Plans, func(plan apiv3models.CreateCreditGrantPlanFilter, _ int) ledger.PlanFilter {
 			mapped := ledger.PlanFilter{Key: plan.Key}
 			if v := plan.Version; v != nil {
 				mapped.Version = &ledger.VersionFilter{}
@@ -324,15 +324,15 @@ func fromAPIBillingCreditGrantFilters(filters *api.CreateCreditGrantFilters) (*c
 	return result, nil
 }
 
-func fromAPIBillingCreditGrantStatus(status api.BillingCreditGrantStatus) (creditgrant.GrantStatus, error) {
+func fromAPIBillingCreditGrantStatus(status apiv3models.BillingCreditGrantStatus) (creditgrant.GrantStatus, error) {
 	switch status {
-	case api.BillingCreditGrantStatusActive:
+	case apiv3models.BillingCreditGrantStatusActive:
 		return creditgrant.GrantStatusActive, nil
-	case api.BillingCreditGrantStatusPending:
+	case apiv3models.BillingCreditGrantStatusPending:
 		return creditgrant.GrantStatusPending, nil
-	case api.BillingCreditGrantStatusVoided:
+	case apiv3models.BillingCreditGrantStatusVoided:
 		return creditgrant.GrantStatusVoided, nil
-	case api.BillingCreditGrantStatusExpired:
+	case apiv3models.BillingCreditGrantStatusExpired:
 		return creditgrant.GrantStatusExpired, nil
 	default:
 		return "", fmt.Errorf("unsupported credit grant status: %s", status)
@@ -387,7 +387,7 @@ func decodeBillingCreditTransactionCursor(cursor string, namespace string) (*led
 	return &ledgerCursor, nil
 }
 
-func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.CreateCreditGrantRequest) (creditgrant.CreateInput, error) {
+func fromAPICreateCreditGrantRequest(ns string, customerID apiv3models.ULID, body apiv3models.CreateCreditGrantRequest) (creditgrant.CreateInput, error) {
 	amount, err := alpacadecimal.NewFromString(body.Amount)
 	if err != nil {
 		return creditgrant.CreateInput{}, fmt.Errorf("invalid amount: %w", err)
@@ -403,7 +403,7 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 		EffectiveAt:   body.EffectiveAt,
 		FundingMethod: fromAPIBillingCreditFundingMethod(body.FundingMethod),
 		Priority:      body.Priority,
-		Labels:        lo.FromPtrOr(body.Labels, api.Labels{}),
+		Labels:        lo.FromPtrOr(body.Labels, apiv3models.Labels{}),
 		Key:           body.Key,
 	}
 
@@ -461,7 +461,7 @@ func fromAPICreateCreditGrantRequest(ns string, customerID api.ULID, body api.Cr
 	return req, nil
 }
 
-func fromAPICreateChargeCostBasis(in *api.CreateChargeCostBasis) (*creditpurchase.CostBasis, error) {
+func fromAPICreateChargeCostBasis(in *apiv3models.CreateChargeCostBasis) (*creditpurchase.CostBasis, error) {
 	if in == nil {
 		return nil, nil
 	}
@@ -471,7 +471,7 @@ func fromAPICreateChargeCostBasis(in *api.CreateChargeCostBasis) (*creditpurchas
 		return nil, fmt.Errorf("invalid cost basis: %w", err)
 	}
 
-	if costBasisType == string(api.BillingChargeCostBasisManualTypeManual) {
+	if costBasisType == string(apiv3models.BillingChargeCostBasisManualTypeManual) {
 		manual, err := in.AsCreateChargeCostBasisManual()
 		if err != nil {
 			return nil, fmt.Errorf("invalid manual cost basis: %w", err)
@@ -489,7 +489,7 @@ func fromAPICreateChargeCostBasis(in *api.CreateChargeCostBasis) (*creditpurchas
 		}
 	}
 
-	costBasis, err := billingcommon.FromAPIChargeCostBasis(new(api.BillingChargeCostBasis(*in)))
+	costBasis, err := billingcommon.FromAPIChargeCostBasis(new(apiv3models.BillingChargeCostBasis(*in)))
 	if err != nil {
 		return nil, err
 	}
@@ -499,9 +499,9 @@ func fromAPICreateChargeCostBasis(in *api.CreateChargeCostBasis) (*creditpurchas
 
 func fromAPIVoidCreditGrantRequest(
 	ns string,
-	customerID api.ULID,
-	creditGrantID api.ULID,
-	body api.VoidCreditGrantRequest,
+	customerID apiv3models.ULID,
+	creditGrantID apiv3models.ULID,
+	body apiv3models.VoidCreditGrantRequest,
 ) (creditgrant.VoidInput, error) {
 	paymentAdjustment, err := fromAPIBillingCreditGrantVoidPaymentAdjustment(body.PaymentAdjustment)
 	if err != nil {
@@ -518,9 +518,9 @@ func fromAPIVoidCreditGrantRequest(
 
 func fromAPIUpdateCreditGrantExternalSettlementRequest(
 	ns string,
-	customerID api.ULID,
-	creditGrantID api.ULID,
-	body api.UpdateCreditGrantExternalSettlementRequest,
+	customerID apiv3models.ULID,
+	creditGrantID apiv3models.ULID,
+	body apiv3models.UpdateCreditGrantExternalSettlementRequest,
 ) (creditgrant.UpdateExternalSettlementInput, error) {
 	targetStatus, err := fromAPIBillingCreditPurchasePaymentSettlementStatus(body.Status)
 	if err != nil {
@@ -535,33 +535,33 @@ func fromAPIUpdateCreditGrantExternalSettlementRequest(
 	}, nil
 }
 
-func fromAPIBillingCreditGrantVoidPaymentAdjustment(adjustment *api.BillingCreditGrantVoidPaymentAdjustment) (creditgrant.VoidPaymentAdjustment, error) {
+func fromAPIBillingCreditGrantVoidPaymentAdjustment(adjustment *apiv3models.BillingCreditGrantVoidPaymentAdjustment) (creditgrant.VoidPaymentAdjustment, error) {
 	if adjustment == nil {
 		return creditgrant.VoidPaymentAdjustmentNone, nil
 	}
 
 	switch *adjustment {
-	case api.BillingCreditGrantVoidPaymentAdjustmentNone:
+	case apiv3models.BillingCreditGrantVoidPaymentAdjustmentNone:
 		return creditgrant.VoidPaymentAdjustmentNone, nil
 	default:
 		return "", newCreditGrantVoidPaymentAdjustmentInvalid(string(*adjustment))
 	}
 }
 
-func fromAPIBillingCreditPurchasePaymentSettlementStatus(status api.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {
+func fromAPIBillingCreditPurchasePaymentSettlementStatus(status apiv3models.BillingCreditPurchasePaymentSettlementStatus) (payment.Status, error) {
 	switch status {
-	case api.BillingCreditPurchasePaymentSettlementStatusAuthorized:
+	case apiv3models.BillingCreditPurchasePaymentSettlementStatusAuthorized:
 		return payment.StatusAuthorized, nil
-	case api.BillingCreditPurchasePaymentSettlementStatusSettled:
+	case apiv3models.BillingCreditPurchasePaymentSettlementStatusSettled:
 		return payment.StatusSettled, nil
 	default:
 		return "", newCreditGrantExternalSettlementStatusInvalid(string(status))
 	}
 }
 
-func toAPICreditBalance(currency currencies.CurrencyReference, balance customerbalance.Balance) api.CreditBalance {
-	result := api.CreditBalance{
-		Currency:  api.BillingCurrencyCode(currency.GetCode()),
+func toAPICreditBalance(currency currencies.CurrencyReference, balance customerbalance.Balance) apiv3models.CreditBalance {
+	result := apiv3models.CreditBalance{
+		Currency:  apiv3models.BillingCurrencyCode(currency.GetCode()),
 		Booked:    balance.Booked().String(),
 		Settled:   balance.Booked().String(),
 		Spendable: balance.Spendable().String(),
@@ -569,28 +569,28 @@ func toAPICreditBalance(currency currencies.CurrencyReference, balance customerb
 		Pending:   balance.Pending().String(),
 	}
 	if currency.CustomCurrencyID != nil {
-		result.CustomCurrency = &api.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
+		result.CustomCurrency = &apiv3models.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
 	}
 
 	return result
 }
 
-func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionType) *customerbalance.CreditTransactionType {
+func fromAPIBillingCreditTransactionType(filter *apiv3models.BillingCreditTransactionType) *customerbalance.CreditTransactionType {
 	if filter == nil {
 		return nil
 	}
 
 	var txType customerbalance.CreditTransactionType
 	switch *filter {
-	case api.BillingCreditTransactionTypeFunded:
+	case apiv3models.BillingCreditTransactionTypeFunded:
 		txType = customerbalance.CreditTransactionTypeFunded
-	case api.BillingCreditTransactionTypeConsumed:
+	case apiv3models.BillingCreditTransactionTypeConsumed:
 		txType = customerbalance.CreditTransactionTypeConsumed
-	case api.BillingCreditTransactionTypeCorrection:
+	case apiv3models.BillingCreditTransactionTypeCorrection:
 		txType = customerbalance.CreditTransactionTypeCorrection
-	case api.BillingCreditTransactionTypeExpired:
+	case apiv3models.BillingCreditTransactionTypeExpired:
 		txType = customerbalance.CreditTransactionTypeExpired
-	case api.BillingCreditTransactionTypeVoided:
+	case apiv3models.BillingCreditTransactionTypeVoided:
 		txType = customerbalance.CreditTransactionTypeVoided
 	default:
 		return nil
@@ -599,8 +599,8 @@ func fromAPIBillingCreditTransactionType(filter *api.BillingCreditTransactionTyp
 	return &txType
 }
 
-func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) []api.BillingCreditTransaction {
-	out := make([]api.BillingCreditTransaction, 0, len(items))
+func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) []apiv3models.BillingCreditTransaction {
+	out := make([]apiv3models.BillingCreditTransaction, 0, len(items))
 
 	for _, item := range items {
 		out = append(out, toAPIBillingCreditTransaction(item))
@@ -609,27 +609,27 @@ func toAPIBillingCreditTransactions(items []customerbalance.CreditTransaction) [
 	return out
 }
 
-func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.BillingCreditTransaction {
+func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) apiv3models.BillingCreditTransaction {
 	currency := tx.CurrencyReference()
-	apiTx := api.BillingCreditTransaction{
+	apiTx := apiv3models.BillingCreditTransaction{
 		Id:          tx.ID.ID,
 		CreatedAt:   tx.CreatedAt,
 		BookedAt:    tx.BookedAt,
 		Type:        toAPIBillingCreditTransactionType(tx.Type),
-		Currency:    api.BillingCurrencyCode(tx.Currency),
+		Currency:    apiv3models.BillingCurrencyCode(tx.Currency),
 		Amount:      tx.Amount.String(),
 		Name:        tx.Name,
 		Description: tx.Description,
 		AvailableBalance: struct {
-			After  api.Numeric `json:"after"`
-			Before api.Numeric `json:"before"`
+			After  apiv3models.Numeric `json:"after"`
+			Before apiv3models.Numeric `json:"before"`
 		}{
 			Before: tx.Balance.Before.String(),
 			After:  tx.Balance.After.String(),
 		},
 	}
 	if currency.CustomCurrencyID != nil {
-		apiTx.CustomCurrency = &api.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
+		apiTx.CustomCurrency = &apiv3models.CurrencyCustomReference{Id: *currency.CustomCurrencyID}
 	}
 
 	labels := creditTransactionLabels(tx.Annotations)
@@ -638,25 +638,25 @@ func toAPIBillingCreditTransaction(tx customerbalance.CreditTransaction) api.Bil
 	}
 
 	if len(labels) > 0 {
-		apiLabels := api.Labels(labels)
+		apiLabels := apiv3models.Labels(labels)
 		apiTx.Labels = &apiLabels
 	}
 
 	return apiTx
 }
 
-func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionType) api.BillingCreditTransactionType {
+func toAPIBillingCreditTransactionType(txType customerbalance.CreditTransactionType) apiv3models.BillingCreditTransactionType {
 	switch txType {
 	case customerbalance.CreditTransactionTypeFunded:
-		return api.BillingCreditTransactionTypeFunded
+		return apiv3models.BillingCreditTransactionTypeFunded
 	case customerbalance.CreditTransactionTypeCorrection:
-		return api.BillingCreditTransactionTypeCorrection
+		return apiv3models.BillingCreditTransactionTypeCorrection
 	case customerbalance.CreditTransactionTypeExpired:
-		return api.BillingCreditTransactionTypeExpired
+		return apiv3models.BillingCreditTransactionTypeExpired
 	case customerbalance.CreditTransactionTypeVoided:
-		return api.BillingCreditTransactionTypeVoided
+		return apiv3models.BillingCreditTransactionTypeVoided
 	default:
-		return api.BillingCreditTransactionTypeConsumed
+		return apiv3models.BillingCreditTransactionTypeConsumed
 	}
 }
 

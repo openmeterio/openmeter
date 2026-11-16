@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -14,7 +14,7 @@ import (
 
 type (
 	CreateMeterRequest  = meter.CreateMeterInput
-	CreateMeterResponse = api.Meter
+	CreateMeterResponse = apiv3models.Meter
 	CreateMeterHandler  httptransport.Handler[CreateMeterRequest, CreateMeterResponse]
 )
 
@@ -22,7 +22,7 @@ type (
 func (h *handler) CreateMeter() CreateMeterHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateMeterRequest, error) {
-			body := api.CreateMeterRequest{}
+			body := apiv3models.CreateMeterRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateMeterRequest{}, err
 			}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -19,7 +19,7 @@ type MetadataAnnotations struct {
 	Annotations models.Annotations
 }
 
-func ToMetadataAnnotations(labels *api.Labels) (MetadataAnnotations, error) {
+func ToMetadataAnnotations(labels *apiv3models.Labels) (MetadataAnnotations, error) {
 	if labels == nil || len(*labels) == 0 {
 		return MetadataAnnotations{}, nil
 	}
@@ -55,8 +55,8 @@ func ToMetadataAnnotations(labels *api.Labels) (MetadataAnnotations, error) {
 	return MetadataAnnotations{metadata, annotations}, models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func FromMetadataAnnotations(metadata models.Metadata, annotations models.Annotations) *api.Labels {
-	labels := make(api.Labels, len(annotations)+len(metadata))
+func FromMetadataAnnotations(metadata models.Metadata, annotations models.Annotations) *apiv3models.Labels {
+	labels := make(apiv3models.Labels, len(annotations)+len(metadata))
 
 	for k, v := range metadata {
 		if err := ValidateLabel(k, v); err != nil {
@@ -97,17 +97,17 @@ func FromMetadataAnnotations(metadata models.Metadata, annotations models.Annota
 	return &labels
 }
 
-func FromMetadata[T ~map[string]string](metadata T) *api.Labels {
+func FromMetadata[T ~map[string]string](metadata T) *apiv3models.Labels {
 	return FromMetadataAnnotations(models.Metadata(metadata), nil)
 }
 
-func ToMetadata(labels *api.Labels) (models.Metadata, error) {
+func ToMetadata(labels *apiv3models.Labels) (models.Metadata, error) {
 	m, err := ToMetadataAnnotations(labels)
 
 	return m.Metadata, err
 }
 
-func ToMetadataPtr(labels *api.Labels) (*map[string]string, error) {
+func ToMetadataPtr(labels *apiv3models.Labels) (*map[string]string, error) {
 	if labels == nil {
 		return nil, nil
 	}

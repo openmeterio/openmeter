@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
@@ -20,8 +20,8 @@ import (
 
 type (
 	ListPricesRequest  = llmcost.ListPricesInput
-	ListPricesResponse = response.PagePaginationResponse[api.LLMCostPrice]
-	ListPricesParams   = api.ListLlmCostPricesParams
+	ListPricesResponse = response.PagePaginationResponse[apiv3models.LLMCostPrice]
+	ListPricesParams   = apiv3models.ListLlmCostPricesParams
 	ListPricesHandler  = httptransport.HandlerWithArgs[ListPricesRequest, ListPricesResponse, ListPricesParams]
 )
 
@@ -123,7 +123,7 @@ func (h *handler) ListPrices() ListPricesHandler {
 				return ListPricesResponse{}, fmt.Errorf("failed to list llm cost prices: %w", err)
 			}
 
-			items := lo.Map(result.Items, func(item llmcost.Price, _ int) api.LLMCostPrice {
+			items := lo.Map(result.Items, func(item llmcost.Price, _ int) apiv3models.LLMCostPrice {
 				return domainPriceToAPI(item)
 			})
 

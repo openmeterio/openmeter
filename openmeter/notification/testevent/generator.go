@@ -11,7 +11,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -72,8 +72,8 @@ func (t *Generator) newTestBalanceThresholdPayload() notification.EventPayload {
 	payload.Type = notification.EventTypeBalanceThreshold
 	payload.BalanceThreshold = &notification.BalanceThresholdPayload{
 		EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase(*payload.EntitlementReset),
-		Threshold: apimodels.NotificationRuleBalanceThresholdValue{
-			Type:  apimodels.NotificationRuleBalanceThresholdValueTypePercent,
+		Threshold: apiv1models.NotificationRuleBalanceThresholdValue{
+			Type:  apiv1models.NotificationRuleBalanceThresholdValueTypePercent,
 			Value: 50,
 		},
 	}
@@ -90,9 +90,9 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 		to        = now.Add(-12 * time.Hour)
 	)
 
-	day := &apimodels.RecurringPeriodInterval{}
+	day := &apiv1models.RecurringPeriodInterval{}
 
-	_ = day.FromRecurringPeriodIntervalEnum(apimodels.RecurringPeriodIntervalEnumDAY)
+	_ = day.FromRecurringPeriodIntervalEnum(apiv1models.RecurringPeriodIntervalEnumDAY)
 
 	return notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
@@ -100,9 +100,9 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 			Version: notification.EventPayloadVersionCurrent,
 		},
 		EntitlementReset: &notification.EntitlementResetPayload{
-			Entitlement: apimodels.EntitlementMetered{
+			Entitlement: apiv1models.EntitlementMetered{
 				CreatedAt: createdAt,
-				CurrentUsagePeriod: apimodels.Period{
+				CurrentUsagePeriod: apiv1models.Period{
 					From: from,
 					To:   to,
 				},
@@ -121,15 +121,15 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				},
 				PreserveOverageAtReset: lo.ToPtr(true),
 				SubjectKey:             "test-subject-1",
-				Type:                   apimodels.EntitlementMeteredTypeMetered,
+				Type:                   apiv1models.EntitlementMeteredTypeMetered,
 				UpdatedAt:              updatedAt,
-				UsagePeriod: apimodels.RecurringPeriod{
+				UsagePeriod: apiv1models.RecurringPeriod{
 					Anchor:      from,
 					Interval:    *day,
 					IntervalISO: "P1D",
 				},
 			},
-			Feature: apimodels.Feature{
+			Feature: apiv1models.Feature{
 				ArchivedAt: nil,
 				CreatedAt:  createdAt,
 				DeletedAt:  nil,
@@ -143,7 +143,7 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				Name:                "test-meter-1",
 				UpdatedAt:           updatedAt,
 			},
-			Subject: apimodels.Subject{
+			Subject: apiv1models.Subject{
 				CurrentPeriodEnd:   lo.ToPtr(from),
 				CurrentPeriodStart: lo.ToPtr(to),
 				DisplayName:        lo.ToPtr("Test Subject 1"),
@@ -154,13 +154,13 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				},
 				StripeCustomerId: lo.ToPtr("01J5AW2XS6DYHH7E9PNJSQJ341"),
 			},
-			Value: apimodels.EntitlementValue{
+			Value: apiv1models.EntitlementValue{
 				Balance:   lo.ToPtr(10_000.0),
 				HasAccess: true,
 				Overage:   lo.ToPtr(99.0),
 				Usage:     lo.ToPtr(5_001.0),
 			},
-			Customer: apimodels.Customer{
+			Customer: apiv1models.Customer{
 				BillingAddress:        nil,
 				CreatedAt:             createdAt,
 				Currency:              nil,
@@ -174,7 +174,7 @@ func (t *Generator) newTestEntitlementResetPayload() notification.EventPayload {
 				PrimaryEmail:          nil,
 				Subscriptions:         nil,
 				UpdatedAt:             updatedAt,
-				UsageAttribution: &apimodels.CustomerUsageAttribution{
+				UsageAttribution: &apiv1models.CustomerUsageAttribution{
 					SubjectKeys: []string{"test-subject-1"},
 				},
 			},

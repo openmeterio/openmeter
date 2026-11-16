@@ -14,8 +14,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	chargehandlers "github.com/openmeterio/openmeter/api/v3/handlers/customers/charges"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -82,7 +82,7 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 				featureID = usageFeature.Feature.ID
 			}
 
-			servicePeriod := api.ClosedPeriod{
+			servicePeriod := apiv3models.ClosedPeriod{
 				From: time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
 				To:   time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC),
 			}
@@ -95,30 +95,30 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 
 			for _, testCase := range []struct {
 				name       string
-				taxConfig  api.BillingTaxConfig
+				taxConfig  apiv3models.BillingTaxConfig
 				wantCodeID string
 				wantStatus int
 			}{
 				{
 					name: "tax code reference",
-					taxConfig: api.BillingTaxConfig{
-						TaxCode: &api.TaxCodeReference{Id: requestedTaxCode.ID},
+					taxConfig: apiv3models.BillingTaxConfig{
+						TaxCode: &apiv3models.TaxCodeReference{Id: requestedTaxCode.ID},
 					},
 					wantCodeID: requestedTaxCode.ID,
 					wantStatus: http.StatusCreated,
 				},
 				{
 					name: "Stripe code",
-					taxConfig: api.BillingTaxConfig{
-						Behavior: lo.ToPtr(api.BillingTaxBehaviorExclusive),
-						Stripe:   &api.BillingTaxConfigStripe{Code: "txcd_20000000"},
+					taxConfig: apiv3models.BillingTaxConfig{
+						Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorExclusive),
+						Stripe:   &apiv3models.BillingTaxConfigStripe{Code: "txcd_20000000"},
 					},
 					wantCodeID: requestedTaxCode.ID,
 					wantStatus: http.StatusCreated,
 				},
 				{
 					name: "deprecated ID remains supported",
-					taxConfig: api.BillingTaxConfig{
+					taxConfig: apiv3models.BillingTaxConfig{
 						TaxCodeId: lo.ToPtr(deprecatedTaxCode.ID),
 					},
 					wantCodeID: deprecatedTaxCode.ID,
@@ -126,8 +126,8 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 				},
 				{
 					name: "reference takes precedence over deprecated ID",
-					taxConfig: api.BillingTaxConfig{
-						TaxCode:   &api.TaxCodeReference{Id: requestedTaxCode.ID},
+					taxConfig: apiv3models.BillingTaxConfig{
+						TaxCode:   &apiv3models.TaxCodeReference{Id: requestedTaxCode.ID},
 						TaxCodeId: lo.ToPtr(deprecatedTaxCode.ID),
 					},
 					wantCodeID: requestedTaxCode.ID,
@@ -135,9 +135,9 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 				},
 				{
 					name: "reference takes precedence over Stripe code",
-					taxConfig: api.BillingTaxConfig{
-						TaxCode: &api.TaxCodeReference{Id: requestedTaxCode.ID},
-						Stripe:  &api.BillingTaxConfigStripe{Code: "txcd_30000000"},
+					taxConfig: apiv3models.BillingTaxConfig{
+						TaxCode: &apiv3models.TaxCodeReference{Id: requestedTaxCode.ID},
+						Stripe:  &apiv3models.BillingTaxConfigStripe{Code: "txcd_30000000"},
 					},
 					wantCodeID: requestedTaxCode.ID,
 					wantStatus: http.StatusCreated,
@@ -149,23 +149,23 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 				},
 				{
 					name: "behavior-only config uses organization default",
-					taxConfig: api.BillingTaxConfig{
-						Behavior: lo.ToPtr(api.BillingTaxBehaviorExclusive),
+					taxConfig: apiv3models.BillingTaxConfig{
+						Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorExclusive),
 					},
 					wantCodeID: defaults.InvoicingTaxCodeID,
 					wantStatus: http.StatusCreated,
 				},
 				{
 					name: "unknown reference is rejected",
-					taxConfig: api.BillingTaxConfig{
-						TaxCode: &api.TaxCodeReference{Id: ulid.Make().String()},
+					taxConfig: apiv3models.BillingTaxConfig{
+						TaxCode: &apiv3models.TaxCodeReference{Id: ulid.Make().String()},
 					},
 					wantStatus: http.StatusBadRequest,
 				},
 				{
 					name: "unknown reference does not fall back to deprecated ID",
-					taxConfig: api.BillingTaxConfig{
-						TaxCode:   &api.TaxCodeReference{Id: ulid.Make().String()},
+					taxConfig: apiv3models.BillingTaxConfig{
+						TaxCode:   &apiv3models.TaxCodeReference{Id: ulid.Make().String()},
 						TaxCodeId: lo.ToPtr(deprecatedTaxCode.ID),
 					},
 					wantStatus: http.StatusBadRequest,
@@ -183,12 +183,12 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 						"tax_config":      testCase.taxConfig,
 					}
 					if chargeType == meta.ChargeTypeFlatFee {
-						requestBody["amount_before_proration"] = api.BillingCurrencyAmount{Amount: "10", Currency: "USD"}
+						requestBody["amount_before_proration"] = apiv3models.BillingCurrencyAmount{Amount: "10", Currency: "USD"}
 						requestBody["payment_term"] = "in_arrears"
-						requestBody["proration_configuration"] = api.BillingRateCardProrationConfiguration{Mode: api.BillingRateCardProrationModeNoProration}
+						requestBody["proration_configuration"] = apiv3models.BillingRateCardProrationConfiguration{Mode: apiv3models.BillingRateCardProrationModeNoProration}
 					} else {
-						requestBody["feature"] = api.FeatureReference{Id: featureID}
-						requestBody["price"] = api.BillingPriceUnit{Type: api.BillingPriceUnitTypeUnit, Amount: "1"}
+						requestBody["feature"] = apiv3models.FeatureReference{Id: featureID}
+						requestBody["price"] = apiv3models.BillingPriceUnit{Type: apiv3models.BillingPriceUnitTypeUnit, Amount: "1"}
 					}
 
 					body, err := json.Marshal(requestBody)
@@ -208,8 +208,8 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 					}
 
 					var created struct {
-						ID        string                `json:"id"`
-						TaxConfig *api.BillingTaxConfig `json:"tax_config"`
+						ID        string                        `json:"id"`
+						TaxConfig *apiv3models.BillingTaxConfig `json:"tax_config"`
 					}
 					s.Require().NoError(json.Unmarshal(response.Body.Bytes(), &created))
 					s.Require().NotEmpty(created.ID)

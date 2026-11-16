@@ -6,17 +6,17 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 )
 
 // editOperation wraps a concrete edit operation model into the discriminated
 // union the handler decodes, so each subtest reads as the wire payload it maps.
-func editOperation(t *testing.T, set func(op *api.BillingSubscriptionEditOperation) error) api.BillingSubscriptionEditOperation {
+func editOperation(t *testing.T, set func(op *apiv3models.BillingSubscriptionEditOperation) error) apiv3models.BillingSubscriptionEditOperation {
 	t.Helper()
 
-	var op api.BillingSubscriptionEditOperation
+	var op apiv3models.BillingSubscriptionEditOperation
 	require.NoError(t, set(&op))
 
 	return op
@@ -25,14 +25,14 @@ func editOperation(t *testing.T, set func(op *api.BillingSubscriptionEditOperati
 func TestFromAPIBillingSubscriptionEditOperation(t *testing.T) {
 	t.Run("add_item maps to PatchAddItem with the rate card key", func(t *testing.T) {
 		// given: an add_item operation carrying a free flat-fee rate card
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceFree(api.BillingPriceFree{Type: "free"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceFree(apiv3models.BillingPriceFree{Type: "free"}))
 
-		op := editOperation(t, func(op *api.BillingSubscriptionEditOperation) error {
-			return op.FromBillingSubscriptionEditAddItem(api.BillingSubscriptionEditAddItem{
-				Type:     api.BillingSubscriptionEditAddItemTypeAddItem,
+		op := editOperation(t, func(op *apiv3models.BillingSubscriptionEditOperation) error {
+			return op.FromBillingSubscriptionEditAddItem(apiv3models.BillingSubscriptionEditAddItem{
+				Type:     apiv3models.BillingSubscriptionEditAddItemTypeAddItem,
 				PhaseKey: "trial",
-				RateCard: api.BillingRateCard{Key: "setup", Name: "Setup", Price: price},
+				RateCard: apiv3models.BillingRateCard{Key: "setup", Name: "Setup", Price: price},
 			})
 		})
 
@@ -50,9 +50,9 @@ func TestFromAPIBillingSubscriptionEditOperation(t *testing.T) {
 	})
 
 	t.Run("remove_item maps to PatchRemoveItem", func(t *testing.T) {
-		op := editOperation(t, func(op *api.BillingSubscriptionEditOperation) error {
-			return op.FromBillingSubscriptionEditRemoveItem(api.BillingSubscriptionEditRemoveItem{
-				Type:     api.BillingSubscriptionEditRemoveItemTypeRemoveItem,
+		op := editOperation(t, func(op *apiv3models.BillingSubscriptionEditOperation) error {
+			return op.FromBillingSubscriptionEditRemoveItem(apiv3models.BillingSubscriptionEditRemoveItem{
+				Type:     apiv3models.BillingSubscriptionEditRemoveItemTypeRemoveItem,
 				PhaseKey: "trial",
 				ItemKey:  "setup",
 			})
@@ -70,14 +70,14 @@ func TestFromAPIBillingSubscriptionEditOperation(t *testing.T) {
 
 	t.Run("add_phase maps to PatchAddPhase and parses durations", func(t *testing.T) {
 		// given: a new phase with both start_after and duration set
-		startAfter := api.ISO8601Duration("P1M")
-		duration := api.ISO8601Duration("P2M")
+		startAfter := apiv3models.ISO8601Duration("P1M")
+		duration := apiv3models.ISO8601Duration("P2M")
 		description := "Second phase"
 
-		op := editOperation(t, func(op *api.BillingSubscriptionEditOperation) error {
-			return op.FromBillingSubscriptionEditAddPhase(api.BillingSubscriptionEditAddPhase{
-				Type: api.BillingSubscriptionEditAddPhaseTypeAddPhase,
-				Phase: api.BillingSubscriptionPhaseCreate{
+		op := editOperation(t, func(op *apiv3models.BillingSubscriptionEditOperation) error {
+			return op.FromBillingSubscriptionEditAddPhase(apiv3models.BillingSubscriptionEditAddPhase{
+				Type: apiv3models.BillingSubscriptionEditAddPhaseTypeAddPhase,
+				Phase: apiv3models.BillingSubscriptionPhaseCreate{
 					Key:         "second",
 					Name:        "Second",
 					Description: &description,
@@ -106,13 +106,13 @@ func TestFromAPIBillingSubscriptionEditOperation(t *testing.T) {
 		// given: a phase with an explicit null start_after (subscription start) and
 		// duration omitted (last phase). start_after is required-but-nullable, so null
 		// is the wire form of "at subscription start", matching v1.
-		op := editOperation(t, func(op *api.BillingSubscriptionEditOperation) error {
-			return op.FromBillingSubscriptionEditAddPhase(api.BillingSubscriptionEditAddPhase{
-				Type: api.BillingSubscriptionEditAddPhaseTypeAddPhase,
-				Phase: api.BillingSubscriptionPhaseCreate{
+		op := editOperation(t, func(op *apiv3models.BillingSubscriptionEditOperation) error {
+			return op.FromBillingSubscriptionEditAddPhase(apiv3models.BillingSubscriptionEditAddPhase{
+				Type: apiv3models.BillingSubscriptionEditAddPhaseTypeAddPhase,
+				Phase: apiv3models.BillingSubscriptionPhaseCreate{
 					Key:        "final",
 					Name:       "Final",
-					StartAfter: nullable.NewNullNullable[api.ISO8601Duration](),
+					StartAfter: nullable.NewNullNullable[apiv3models.ISO8601Duration](),
 				},
 			})
 		})
@@ -129,11 +129,11 @@ func TestFromAPIBillingSubscriptionEditOperation(t *testing.T) {
 	})
 
 	t.Run("remove_phase maps the shift direction", func(t *testing.T) {
-		op := editOperation(t, func(op *api.BillingSubscriptionEditOperation) error {
-			return op.FromBillingSubscriptionEditRemovePhase(api.BillingSubscriptionEditRemovePhase{
-				Type:     api.BillingSubscriptionEditRemovePhaseTypeRemovePhase,
+		op := editOperation(t, func(op *apiv3models.BillingSubscriptionEditOperation) error {
+			return op.FromBillingSubscriptionEditRemovePhase(apiv3models.BillingSubscriptionEditRemovePhase{
+				Type:     apiv3models.BillingSubscriptionEditRemovePhaseTypeRemovePhase,
 				PhaseKey: "trial",
-				Shift:    api.BillingSubscriptionRemovePhaseShiftingNext,
+				Shift:    apiv3models.BillingSubscriptionRemovePhaseShiftingNext,
 			})
 		})
 
@@ -148,11 +148,11 @@ func TestFromAPIBillingSubscriptionEditOperation(t *testing.T) {
 	})
 
 	t.Run("stretch_phase parses the extend_by duration", func(t *testing.T) {
-		op := editOperation(t, func(op *api.BillingSubscriptionEditOperation) error {
-			return op.FromBillingSubscriptionEditStretchPhase(api.BillingSubscriptionEditStretchPhase{
-				Type:     api.BillingSubscriptionEditStretchPhaseTypeStretchPhase,
+		op := editOperation(t, func(op *apiv3models.BillingSubscriptionEditOperation) error {
+			return op.FromBillingSubscriptionEditStretchPhase(apiv3models.BillingSubscriptionEditStretchPhase{
+				Type:     apiv3models.BillingSubscriptionEditStretchPhaseTypeStretchPhase,
 				PhaseKey: "trial",
-				ExtendBy: api.ISO8601Duration("P1W"),
+				ExtendBy: apiv3models.ISO8601Duration("P1W"),
 			})
 		})
 
@@ -167,9 +167,9 @@ func TestFromAPIBillingSubscriptionEditOperation(t *testing.T) {
 	})
 
 	t.Run("unschedule_edit maps to PatchUnscheduleEdit", func(t *testing.T) {
-		op := editOperation(t, func(op *api.BillingSubscriptionEditOperation) error {
-			return op.FromBillingSubscriptionEditUnscheduleEdit(api.BillingSubscriptionEditUnscheduleEdit{
-				Type: api.BillingSubscriptionEditUnscheduleEditTypeUnscheduleEdit,
+		op := editOperation(t, func(op *apiv3models.BillingSubscriptionEditOperation) error {
+			return op.FromBillingSubscriptionEditUnscheduleEdit(apiv3models.BillingSubscriptionEditUnscheduleEdit{
+				Type: apiv3models.BillingSubscriptionEditUnscheduleEditTypeUnscheduleEdit,
 			})
 		})
 

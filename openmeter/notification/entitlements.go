@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -22,11 +22,11 @@ var (
 )
 
 type EntitlementValuePayloadBase struct {
-	Entitlement apimodels.EntitlementMetered `json:"entitlement"`
-	Feature     apimodels.Feature            `json:"feature"`
-	Subject     apimodels.Subject            `json:"subject"`
-	Value       apimodels.EntitlementValue   `json:"value"`
-	Customer    apimodels.Customer           `json:"customer"`
+	Entitlement apiv1models.EntitlementMetered `json:"entitlement"`
+	Feature     apiv1models.Feature            `json:"feature"`
+	Subject     apiv1models.Subject            `json:"subject"`
+	Value       apiv1models.EntitlementValue   `json:"value"`
+	Customer    apiv1models.Customer           `json:"customer"`
 }
 
 func (e EntitlementValuePayloadBase) ValidateWith(validators ...models.ValidatorFunc[EntitlementValuePayloadBase]) error {
@@ -45,7 +45,7 @@ var (
 type BalanceThresholdPayload struct {
 	EntitlementValuePayloadBase
 
-	Threshold apimodels.NotificationRuleBalanceThresholdValue `json:"threshold"`
+	Threshold apiv1models.NotificationRuleBalanceThresholdValue `json:"threshold"`
 }
 
 func (b BalanceThresholdPayload) ValidateWith(validators ...models.ValidatorFunc[BalanceThresholdPayload]) error {
@@ -58,16 +58,16 @@ func (b BalanceThresholdPayload) Validate() error {
 }
 
 const (
-	BalanceThresholdTypeNumber          = apimodels.NotificationRuleBalanceThresholdValueTypeNumber
-	BalanceThresholdTypePercent         = apimodels.NotificationRuleBalanceThresholdValueTypePercent
-	BalanceThresholdTypeUsagePercentage = apimodels.NotificationRuleBalanceThresholdValueTypeUsagePercentage
-	BalanceThresholdTypeBalanceValue    = apimodels.NotificationRuleBalanceThresholdValueTypeBalanceValue
-	BalanceThresholdTypeUsageValue      = apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue
+	BalanceThresholdTypeNumber          = apiv1models.NotificationRuleBalanceThresholdValueTypeNumber
+	BalanceThresholdTypePercent         = apiv1models.NotificationRuleBalanceThresholdValueTypePercent
+	BalanceThresholdTypeUsagePercentage = apiv1models.NotificationRuleBalanceThresholdValueTypeUsagePercentage
+	BalanceThresholdTypeBalanceValue    = apiv1models.NotificationRuleBalanceThresholdValueTypeBalanceValue
+	BalanceThresholdTypeUsageValue      = apiv1models.NotificationRuleBalanceThresholdValueTypeUsageValue
 )
 
 type (
-	FeatureMeta      = apimodels.FeatureMeta
-	BalanceThreshold = apimodels.NotificationRuleBalanceThresholdValue
+	FeatureMeta      = apiv1models.FeatureMeta
+	BalanceThreshold = apiv1models.NotificationRuleBalanceThresholdValue
 )
 
 var (

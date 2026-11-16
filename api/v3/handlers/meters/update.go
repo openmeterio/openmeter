@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -14,7 +14,7 @@ import (
 
 type (
 	UpdateMeterRequest  = meter.UpdateMeterInput
-	UpdateMeterResponse = api.Meter
+	UpdateMeterResponse = apiv3models.Meter
 	UpdateMeterParams   = string
 	UpdateMeterHandler  httptransport.HandlerWithArgs[UpdateMeterRequest, UpdateMeterResponse, UpdateMeterParams]
 )
@@ -23,7 +23,7 @@ type (
 func (h *handler) UpdateMeter() UpdateMeterHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, meterID UpdateMeterParams) (UpdateMeterRequest, error) {
-			body := api.UpdateMeterRequest{}
+			body := apiv3models.UpdateMeterRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateMeterRequest{}, err
 			}

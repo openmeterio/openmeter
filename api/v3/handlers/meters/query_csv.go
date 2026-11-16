@@ -10,9 +10,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/meters/query"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -45,7 +45,7 @@ func (h *handler) QueryMeterCSV() QueryMeterCSVHandler {
 				return QueryMeterCSVRequest{}, err
 			}
 
-			var body api.MeterQueryRequest
+			var body apiv3models.MeterQueryRequest
 			if err := request.ParseBody(r, &body); err != nil {
 				return QueryMeterCSVRequest{}, err
 			}

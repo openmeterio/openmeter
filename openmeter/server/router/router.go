@@ -12,7 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1 "github.com/openmeterio/openmeter/api"
 	v3apierrors "github.com/openmeterio/openmeter/api/v3/apierrors"
 	currencyhandler "github.com/openmeterio/openmeter/api/v3/handlers/currencies"
 	"github.com/openmeterio/openmeter/app/config"
@@ -300,7 +300,7 @@ type Router struct {
 }
 
 // Make sure we conform to ServerInterface
-var _ api.ServerInterface = (*Router)(nil)
+var _ apiv1.ServerInterface = (*Router)(nil)
 
 func NewRouter(config Config) (*Router, error) {
 	if err := config.Validate(); err != nil {

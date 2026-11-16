@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
@@ -21,8 +21,8 @@ import (
 // an omitted custom invoicing field leaves it unchanged; everything else is
 // mapped faithfully (zero values where absent) and upserted so the app service
 // reports validation issues. The returned value echoes the applied app data.
-func (h *handler) applyAppCustomerData(ctx context.Context, application app.App, customerID customer.CustomerID, data api.BillingAppCustomerData) (*api.BillingAppCustomerData, error) {
-	resp := &api.BillingAppCustomerData{}
+func (h *handler) applyAppCustomerData(ctx context.Context, application app.App, customerID customer.CustomerID, data apiv3models.BillingAppCustomerData) (*apiv3models.BillingAppCustomerData, error) {
+	resp := &apiv3models.BillingAppCustomerData{}
 	var appData app.CustomerData
 
 	switch application.GetType() {

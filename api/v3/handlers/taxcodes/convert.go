@@ -3,7 +3,7 @@ package taxcodes
 
 import (
 	"github.com/openmeterio/openmeter/api/v3/labels"
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -26,14 +26,14 @@ var (
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotations
-	FromAPICreateTaxCodeRequest func(namespace string, createTaxCodeRequest api.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)
+	FromAPICreateTaxCodeRequest func(namespace string, createTaxCodeRequest apiv3models.CreateTaxCodeRequest) (taxcode.CreateTaxCodeInput, error)
 
 	// goverter:context namespacedID
 	// goverter:map NamespacedID | ResolveNamespacedIDFromContext
 	// goverter:map Labels Metadata
 	// goverter:ignore Annotations
 	// goverter:ignore inputOptions
-	FromAPIUpsertTaxCodeRequest func(namespacedID models.NamespacedID, upsertTaxCodeRequest api.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
+	FromAPIUpsertTaxCodeRequest func(namespacedID models.NamespacedID, upsertTaxCodeRequest apiv3models.UpsertTaxCodeRequest) (taxcode.UpdateTaxCodeInput, error)
 
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
 	// goverter:map NamespacedID.ID Id
@@ -41,25 +41,25 @@ var (
 	// goverter:map ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedModel.DeletedAt DeletedAt
 	// goverter:map AppMappings | ToAPIBillingTaxCodeAppMappings
-	ToAPIBillingTaxCode func(taxcode.TaxCode) (api.BillingTaxCode, error)
+	ToAPIBillingTaxCode func(taxcode.TaxCode) (apiv3models.BillingTaxCode, error)
 
 	// goverter:map ManagedModel.CreatedAt CreatedAt
 	// goverter:map ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map InvoicingTaxCodeID InvoicingTaxCode | IDStringToTaxCodeReference
 	// goverter:map CreditGrantTaxCodeID CreditGrantTaxCode | IDStringToTaxCodeReference
-	ToAPIOrganizationDefaultTaxCodes func(taxcode.OrganizationDefaultTaxCodes) (api.OrganizationDefaultTaxCodes, error)
+	ToAPIOrganizationDefaultTaxCodes func(taxcode.OrganizationDefaultTaxCodes) (apiv3models.OrganizationDefaultTaxCodes, error)
 
 	// goverter:context namespace
 	// goverter:map Namespace | NamespaceFromContext
 	// goverter:map InvoicingTaxCode InvoicingTaxCodeID | TaxCodeReferenceToIDString
 	// goverter:map CreditGrantTaxCode CreditGrantTaxCodeID | TaxCodeReferenceToIDString
 	// goverter:ignore Expand
-	FromAPIUpdateOrganizationDefaultTaxCodesRequest func(namespace string, body api.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error)
+	FromAPIUpdateOrganizationDefaultTaxCodesRequest func(namespace string, body apiv3models.UpdateOrganizationDefaultTaxCodesRequest) (taxcode.UpsertOrganizationDefaultTaxCodesInput, error)
 )
 
 var ConvertLabelsToMetadata = labels.ToMetadata
 
-func ConvertMetadataAnnotationsToLabels(source taxcode.TaxCode) *api.Labels {
+func ConvertMetadataAnnotationsToLabels(source taxcode.TaxCode) *apiv3models.Labels {
 	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)
 }
 
@@ -75,7 +75,7 @@ func ResolveNamespacedIDFromContext(namespacedID models.NamespacedID) models.Nam
 
 // FromAPIBillingAppType maps API app types to domain app types.
 // Maps external_invoicing to custom_invoicing for backwards compatibility.
-func FromAPIBillingAppType(source api.BillingAppType) app.AppType {
+func FromAPIBillingAppType(source apiv3models.BillingAppType) app.AppType {
 	if source == "external_invoicing" {
 		return app.AppTypeCustomInvoicing
 	}
@@ -85,21 +85,21 @@ func FromAPIBillingAppType(source api.BillingAppType) app.AppType {
 
 // ToAPIBillingAppType maps domain app types to API app types.
 // Maps custom_invoicing to external_invoicing for API responses.
-func ToAPIBillingAppType(source app.AppType) api.BillingAppType {
+func ToAPIBillingAppType(source app.AppType) apiv3models.BillingAppType {
 	if source == app.AppTypeCustomInvoicing {
 		return "external_invoicing"
 	}
 
-	return api.BillingAppType(source)
+	return apiv3models.BillingAppType(source)
 }
 
-func IDStringToTaxCodeReference(id string) api.TaxCodeReference {
-	return api.TaxCodeReference{Id: id}
+func IDStringToTaxCodeReference(id string) apiv3models.TaxCodeReference {
+	return apiv3models.TaxCodeReference{Id: id}
 }
 
 // TaxCodeReferenceToIDString maps a nil reference to an empty ID; the service
 // input validation rejects empty IDs with resource_id_empty.
-func TaxCodeReferenceToIDString(ref *api.TaxCodeReference) string {
+func TaxCodeReferenceToIDString(ref *apiv3models.TaxCodeReference) string {
 	if ref == nil {
 		return ""
 	}
@@ -109,14 +109,14 @@ func TaxCodeReferenceToIDString(ref *api.TaxCodeReference) string {
 
 // ToAPIBillingTaxCodeAppMappings converts domain app mappings to API app mappings.
 // Ensures that nil is converted to an empty array instead of null.
-func ToAPIBillingTaxCodeAppMappings(source taxcode.TaxCodeAppMappings) []api.BillingTaxCodeAppMapping {
+func ToAPIBillingTaxCodeAppMappings(source taxcode.TaxCodeAppMappings) []apiv3models.BillingTaxCodeAppMapping {
 	if source == nil {
-		return []api.BillingTaxCodeAppMapping{}
+		return []apiv3models.BillingTaxCodeAppMapping{}
 	}
 
-	result := make([]api.BillingTaxCodeAppMapping, len(source))
+	result := make([]apiv3models.BillingTaxCodeAppMapping, len(source))
 	for i, mapping := range source {
-		result[i] = api.BillingTaxCodeAppMapping{
+		result[i] = apiv3models.BillingTaxCodeAppMapping{
 			AppType: ToAPIBillingAppType(mapping.AppType),
 			TaxCode: mapping.TaxCode,
 		}

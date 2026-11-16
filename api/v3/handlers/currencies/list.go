@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -21,8 +21,8 @@ import (
 
 type (
 	ListCurrenciesRequest  = currencies.ListCurrenciesInput
-	ListCurrenciesResponse = response.PagePaginationResponse[v3.BillingCurrency]
-	ListCurrenciesParams   = v3.ListCurrenciesParams
+	ListCurrenciesResponse = response.PagePaginationResponse[apiv3models.BillingCurrency]
+	ListCurrenciesParams   = apiv3models.ListCurrenciesParams
 	ListCurrenciesHandler  httptransport.HandlerWithArgs[ListCurrenciesRequest, ListCurrenciesResponse, ListCurrenciesParams]
 )
 
@@ -89,7 +89,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 				req.Code = code
 			}
 
-			if params.Expand != nil && slices.Contains(*params.Expand, v3.BillingCurrencyExpandCostBasis) {
+			if params.Expand != nil && slices.Contains(*params.Expand, apiv3models.BillingCurrencyExpandCostBasis) {
 				req.CostBasis = true
 			}
 
@@ -101,7 +101,7 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 				return ListCurrenciesResponse{}, err
 			}
 
-			items := make([]v3.BillingCurrency, 0, len(result.Items))
+			items := make([]apiv3models.BillingCurrency, 0, len(result.Items))
 			for _, c := range result.Items {
 				item, err := ToAPIBillingCurrency(c)
 				if err != nil {

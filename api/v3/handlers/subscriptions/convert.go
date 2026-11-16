@@ -8,10 +8,10 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -44,17 +44,17 @@ func FromAPISubscriptionSortField(ctx context.Context, field string) (subscripti
 // subscriptionBaseFields maps the subscription's own fields — everything except the
 // phases and current billing period, which are resolved from the view by
 // ToAPIBillingSubscription.
-func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.BillingSubscriptionBase {
-	costBasisPins := make([]api.BillingSubscriptionCostBasisPin, 0, len(sub.CostBasisPins))
+func subscriptionBaseFields(sub subscription.Subscription, now time.Time) apiv3models.BillingSubscriptionBase {
+	costBasisPins := make([]apiv3models.BillingSubscriptionCostBasisPin, 0, len(sub.CostBasisPins))
 	for _, pin := range sub.CostBasisPins {
-		costBasisPins = append(costBasisPins, api.BillingSubscriptionCostBasisPin{
+		costBasisPins = append(costBasisPins, apiv3models.BillingSubscriptionCostBasisPin{
 			CustomCurrencyId: pin.CustomCurrencyID,
 			InvoiceCurrency:  pin.InvoiceCurrency.String(),
 			CostBasisId:      pin.CostBasis.ID,
 		})
 	}
 
-	result := api.BillingSubscriptionBase{
+	result := apiv3models.BillingSubscriptionBase{
 		Id:              sub.ID,
 		Name:            sub.Name,
 		Description:     sub.Description,
@@ -62,16 +62,16 @@ func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.Bi
 		ActiveTo:        sub.ActiveTo,
 		CustomerId:      sub.CustomerId,
 		InvoiceCurrency: sub.InvoiceCurrency.String(),
-		CostBasisMode:   api.BillingSubscriptionCostBasisMode(sub.CostBasisMode.OrDefault()),
+		CostBasisMode:   apiv3models.BillingSubscriptionCostBasisMode(sub.CostBasisMode.OrDefault()),
 		CostBasisPins:   costBasisPins,
 		BillingCadence:  sub.BillingCadence.ISOString().String(),
 		BillingAnchor:   sub.BillingAnchor,
-		ProRatingConfig: &api.BillingSubscriptionProRatingConfig{
+		ProRatingConfig: &apiv3models.BillingSubscriptionProRatingConfig{
 			Enabled: sub.ProRatingConfig.Enabled,
-			Mode:    api.BillingRateCardProrationMode(sub.ProRatingConfig.Mode),
+			Mode:    apiv3models.BillingRateCardProrationMode(sub.ProRatingConfig.Mode),
 		},
-		SettlementMode: lo.ToPtr(api.BillingSettlementMode(sub.SettlementMode)),
-		Status:         api.BillingSubscriptionStatus(sub.GetStatusAt(now)),
+		SettlementMode: lo.ToPtr(apiv3models.BillingSettlementMode(sub.SettlementMode)),
+		Status:         apiv3models.BillingSubscriptionStatus(sub.GetStatusAt(now)),
 		Labels:         labels.FromMetadataAnnotations(sub.Metadata, sub.Annotations),
 		CreatedAt:      sub.CreatedAt,
 		UpdatedAt:      sub.UpdatedAt,
@@ -82,7 +82,7 @@ func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.Bi
 	if sub.PlanRef != nil {
 		// plan_id is deprecated in favor of plan, but retained for backwards compatibility.
 		result.PlanId = &sub.PlanRef.Id
-		result.Plan = &api.BillingSubscriptionPlanReference{
+		result.Plan = &apiv3models.BillingSubscriptionPlanReference{
 			Id:      sub.PlanRef.Id,
 			Key:     sub.PlanRef.Key,
 			Version: sub.PlanRef.Version,
@@ -97,19 +97,19 @@ func subscriptionBaseFields(sub subscription.Subscription, now time.Time) api.Bi
 // It serves callers that side-load subscriptions without their specs (e.g.
 // the customer charges subscription expand); the view-derived fields need
 // ToAPIBillingSubscription.
-func ToAPIBillingSubscriptionWithoutView(sub subscription.Subscription) api.BillingSubscription {
+func ToAPIBillingSubscriptionWithoutView(sub subscription.Subscription) apiv3models.BillingSubscription {
 	return mapSubscriptionBaseToFull(subscriptionBaseFields(sub, clock.Now()))
 }
 
 // ToAPIBillingSubscriptionBase maps the subscription's own fields without view data.
-func ToAPIBillingSubscriptionBase(sub subscription.Subscription) api.BillingSubscriptionBase {
+func ToAPIBillingSubscriptionBase(sub subscription.Subscription) apiv3models.BillingSubscriptionBase {
 	return subscriptionBaseFields(sub, clock.Now())
 }
 
 // The generated full model is flat, so its shared fields need an explicit mapping.
-func mapSubscriptionBaseToFull(fields api.BillingSubscriptionBase) api.BillingSubscription {
-	return api.BillingSubscription{
-		Phases:          []api.BillingSubscriptionPhase{},
+func mapSubscriptionBaseToFull(fields apiv3models.BillingSubscriptionBase) apiv3models.BillingSubscription {
+	return apiv3models.BillingSubscription{
+		Phases:          []apiv3models.BillingSubscriptionPhase{},
 		Id:              fields.Id,
 		Name:            fields.Name,
 		Description:     fields.Description,
@@ -133,7 +133,7 @@ func mapSubscriptionBaseToFull(fields api.BillingSubscriptionBase) api.BillingSu
 	}
 }
 
-func ToAPIBillingSubscription(view subscription.SubscriptionView) (api.BillingSubscription, error) {
+func ToAPIBillingSubscription(view subscription.SubscriptionView) (apiv3models.BillingSubscription, error) {
 	// Resolve a single "now" and thread it through status, the current period, and
 	// phase classification so every time-dependent field reflects the same instant.
 	now := clock.Now()
@@ -145,17 +145,17 @@ func ToAPIBillingSubscription(view subscription.SubscriptionView) (api.BillingSu
 	// an error, so that case leaves current_period unset.
 	if period, err := view.Spec.GetAlignedBillingPeriodAt(now); err != nil {
 		if !subscription.IsErrSubscriptionBillingPeriodQueriedBeforeSubscriptionStart(err) {
-			return api.BillingSubscription{}, err
+			return apiv3models.BillingSubscription{}, err
 		}
 	} else {
-		result.CurrentPeriod = &api.ClosedPeriod{From: period.From, To: period.To}
+		result.CurrentPeriod = &apiv3models.ClosedPeriod{From: period.From, To: period.To}
 	}
 
-	phases := make([]api.BillingSubscriptionPhase, 0, len(view.Phases))
+	phases := make([]apiv3models.BillingSubscriptionPhase, 0, len(view.Phases))
 	for _, phaseView := range view.Phases {
 		phase, err := toAPIBillingSubscriptionPhase(view, phaseView, now)
 		if err != nil {
-			return api.BillingSubscription{}, err
+			return apiv3models.BillingSubscription{}, err
 		}
 
 		phases = append(phases, phase)
@@ -176,14 +176,14 @@ const (
 	phaseRelationFuture
 )
 
-func toAPIBillingSubscriptionPhase(view subscription.SubscriptionView, phaseView subscription.SubscriptionPhaseView, now time.Time) (api.BillingSubscriptionPhase, error) {
+func toAPIBillingSubscriptionPhase(view subscription.SubscriptionView, phaseView subscription.SubscriptionPhaseView, now time.Time) (apiv3models.BillingSubscriptionPhase, error) {
 	phase := phaseView.SubscriptionPhase
 
 	// A phase present on the view must have a cadence in the spec; a lookup error is a
 	// spec/view inconsistency (not an open-ended phase), so surface it.
 	cadence, err := view.Spec.GetPhaseCadence(phase.Key)
 	if err != nil {
-		return api.BillingSubscriptionPhase{}, fmt.Errorf("failed to get cadence for phase %q: %w", phase.Key, err)
+		return apiv3models.BillingSubscriptionPhase{}, fmt.Errorf("failed to get cadence for phase %q: %w", phase.Key, err)
 	}
 
 	activeTo := cadence.ActiveTo
@@ -200,7 +200,7 @@ func toAPIBillingSubscriptionPhase(view subscription.SubscriptionView, phaseView
 	itemKeys := lo.Keys(phaseView.ItemsByKey)
 	slices.Sort(itemKeys)
 
-	items := make([]api.BillingSubscriptionItem, 0, len(itemKeys))
+	items := make([]apiv3models.BillingSubscriptionItem, 0, len(itemKeys))
 	for _, key := range itemKeys {
 		versions := phaseView.ItemsByKey[key]
 		if len(versions) == 0 {
@@ -228,13 +228,13 @@ func toAPIBillingSubscriptionPhase(view subscription.SubscriptionView, phaseView
 
 		item, err := toAPIBillingSubscriptionItem(*resolved)
 		if err != nil {
-			return api.BillingSubscriptionPhase{}, err
+			return apiv3models.BillingSubscriptionPhase{}, err
 		}
 
 		items = append(items, item)
 	}
 
-	return api.BillingSubscriptionPhase{
+	return apiv3models.BillingSubscriptionPhase{
 		Id:          phase.ID,
 		Key:         phase.Key,
 		Name:        phase.Name,
@@ -251,15 +251,15 @@ func toAPIBillingSubscriptionPhase(view subscription.SubscriptionView, phaseView
 
 // toAPIBillingSubscriptionItem maps a resolved item version to the API item,
 // reusing the shared v3 rate card converter.
-func toAPIBillingSubscriptionItem(itemView subscription.SubscriptionItemView) (api.BillingSubscriptionItem, error) {
+func toAPIBillingSubscriptionItem(itemView subscription.SubscriptionItemView) (apiv3models.BillingSubscriptionItem, error) {
 	item := itemView.SubscriptionItem
 
 	rateCard, err := plans.ToAPIBillingRateCard(item.RateCard)
 	if err != nil {
-		return api.BillingSubscriptionItem{}, fmt.Errorf("failed to map rate card for item %q: %w", item.Key, err)
+		return apiv3models.BillingSubscriptionItem{}, fmt.Errorf("failed to map rate card for item %q: %w", item.Key, err)
 	}
 
-	return api.BillingSubscriptionItem{
+	return apiv3models.BillingSubscriptionItem{
 		Id:         item.ID,
 		ActiveFrom: item.ActiveFrom,
 		ActiveTo:   item.ActiveTo,
@@ -267,7 +267,7 @@ func toAPIBillingSubscriptionItem(itemView subscription.SubscriptionItemView) (a
 	}, nil
 }
 
-func FromAPIBillingSubscriptionEditTimingEnum(t api.BillingSubscriptionEditTimingEnum) (subscription.Timing, error) {
+func FromAPIBillingSubscriptionEditTimingEnum(t apiv3models.BillingSubscriptionEditTimingEnum) (subscription.Timing, error) {
 	switch string(t) {
 	case "immediate":
 		return subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)}, nil
@@ -278,7 +278,7 @@ func FromAPIBillingSubscriptionEditTimingEnum(t api.BillingSubscriptionEditTimin
 	}
 }
 
-func FromAPIBillingSubscriptionEditTiming(t api.BillingSubscriptionEditTiming) (subscription.Timing, error) {
+func FromAPIBillingSubscriptionEditTiming(t apiv3models.BillingSubscriptionEditTiming) (subscription.Timing, error) {
 	// Try decoding as a custom RFC3339 datetime first, otherwise it would also decode as a "string enum"
 	// and we'd never be able to distinguish enum vs datetime.
 	if custom, err := t.AsDateTime(); err == nil {
@@ -297,7 +297,7 @@ func FromAPIBillingSubscriptionEditTiming(t api.BillingSubscriptionEditTiming) (
 // timing. Create timing is deliberately narrower than edit timing: only immediate
 // or a custom timestamp — next_billing_cycle is not a create value (a new
 // subscription has no current billing cycle), so it is not part of the type.
-func FromAPIBillingSubscriptionCreateTiming(t api.BillingSubscriptionCreateTiming) (subscription.Timing, error) {
+func FromAPIBillingSubscriptionCreateTiming(t apiv3models.BillingSubscriptionCreateTiming) (subscription.Timing, error) {
 	// Try decoding as a custom RFC3339 datetime first, otherwise it would also decode
 	// as a "string enum" and we'd never be able to distinguish enum vs datetime.
 	if custom, err := t.AsDateTime(); err == nil {
@@ -309,7 +309,7 @@ func FromAPIBillingSubscriptionCreateTiming(t api.BillingSubscriptionCreateTimin
 		return subscription.Timing{}, models.NewGenericValidationError(fmt.Errorf("invalid timing"))
 	}
 
-	if enum != api.BillingSubscriptionCreateTimingEnumImmediate {
+	if enum != apiv3models.BillingSubscriptionCreateTimingEnumImmediate {
 		return subscription.Timing{}, models.NewGenericValidationError(fmt.Errorf("invalid timing: %s", enum))
 	}
 
@@ -321,7 +321,7 @@ func FromAPIBillingSubscriptionCreate(
 	namespace string,
 	customerID customer.CustomerID,
 	subscriptionName string,
-	createSubscriptionRequest api.BillingSubscriptionCreate,
+	createSubscriptionRequest apiv3models.BillingSubscriptionCreate,
 ) (subscriptionworkflow.CreateSubscriptionWorkflowInput, error) {
 	metadata, err := labels.ToMetadata(createSubscriptionRequest.Labels)
 	if err != nil {
@@ -361,14 +361,14 @@ func FromAPIBillingSubscriptionCreate(
 // domain subscription patch that applies it to the target spec. The mapping mirrors
 // the v1 editSubscription handler; rate cards are converted via the shared plans
 // converter so add-item stays consistent with plan/subscription creation.
-func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOperation) (subscription.Patch, error) {
+func FromAPIBillingSubscriptionEditOperation(op apiv3models.BillingSubscriptionEditOperation) (subscription.Patch, error) {
 	disc, err := op.Discriminator()
 	if err != nil {
 		return nil, models.NewGenericValidationError(fmt.Errorf("failed to read edit operation type: %w", err))
 	}
 
 	switch disc {
-	case string(api.BillingSubscriptionEditAddItemTypeAddItem):
+	case string(apiv3models.BillingSubscriptionEditAddItemTypeAddItem):
 		apiP, err := op.AsBillingSubscriptionEditAddItem()
 		if err != nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode add_item operation: %w", err))
@@ -395,7 +395,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 			},
 		}, nil
 
-	case string(api.BillingSubscriptionEditRemoveItemTypeRemoveItem):
+	case string(apiv3models.BillingSubscriptionEditRemoveItemTypeRemoveItem):
 		apiP, err := op.AsBillingSubscriptionEditRemoveItem()
 		if err != nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode remove_item operation: %w", err))
@@ -406,7 +406,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 			ItemKey:  apiP.ItemKey,
 		}, nil
 
-	case string(api.BillingSubscriptionEditAddPhaseTypeAddPhase):
+	case string(apiv3models.BillingSubscriptionEditAddPhaseTypeAddPhase):
 		apiP, err := op.AsBillingSubscriptionEditAddPhase()
 		if err != nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode add_phase operation: %w", err))
@@ -452,7 +452,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 			},
 		}, nil
 
-	case string(api.BillingSubscriptionEditRemovePhaseTypeRemovePhase):
+	case string(apiv3models.BillingSubscriptionEditRemovePhaseTypeRemovePhase):
 		apiP, err := op.AsBillingSubscriptionEditRemovePhase()
 		if err != nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode remove_phase operation: %w", err))
@@ -460,9 +460,9 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 
 		var shift subscription.RemoveSubscriptionPhaseShifting
 		switch apiP.Shift {
-		case api.BillingSubscriptionRemovePhaseShiftingNext:
+		case apiv3models.BillingSubscriptionRemovePhaseShiftingNext:
 			shift = subscription.RemoveSubscriptionPhaseShiftNext
-		case api.BillingSubscriptionRemovePhaseShiftingPrev:
+		case apiv3models.BillingSubscriptionRemovePhaseShiftingPrev:
 			shift = subscription.RemoveSubscriptionPhaseShiftPrev
 		default:
 			return nil, models.NewGenericValidationError(fmt.Errorf("invalid remove_phase shift: %s", apiP.Shift))
@@ -475,7 +475,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 			},
 		}, nil
 
-	case string(api.BillingSubscriptionEditStretchPhaseTypeStretchPhase):
+	case string(apiv3models.BillingSubscriptionEditStretchPhaseTypeStretchPhase):
 		apiP, err := op.AsBillingSubscriptionEditStretchPhase()
 		if err != nil {
 			return nil, models.NewGenericValidationError(fmt.Errorf("failed to decode stretch_phase operation: %w", err))
@@ -491,7 +491,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 			Duration: d,
 		}, nil
 
-	case string(api.BillingSubscriptionEditUnscheduleEditTypeUnscheduleEdit):
+	case string(apiv3models.BillingSubscriptionEditUnscheduleEditTypeUnscheduleEdit):
 		return patch.PatchUnscheduleEdit{}, nil
 
 	default:
@@ -503,7 +503,7 @@ func FromAPIBillingSubscriptionEditOperation(op api.BillingSubscriptionEditOpera
 // create or change request into the domain plan create input. It performs pure
 // mapping only: plan validity, currency resolution, and the fiat/custom-currency
 // rules are enforced downstream by the subscription service and spec validation.
-func FromAPIBillingSubscriptionCustomPlan(namespace string, body api.BillingSubscriptionCustomPlan) (plan.CreatePlanInput, error) {
+func FromAPIBillingSubscriptionCustomPlan(namespace string, body apiv3models.BillingSubscriptionCustomPlan) (plan.CreatePlanInput, error) {
 	metadata, err := labels.ToMetadata(body.Labels)
 	if err != nil {
 		return plan.CreatePlanInput{}, fmt.Errorf("failed to convert label metadata: %w", err)
@@ -549,7 +549,7 @@ func FromAPIBillingSubscriptionCustomPlan(namespace string, body api.BillingSubs
 	return req, nil
 }
 
-func FromAPIBillingSubscriptionMigrate(id models.NamespacedID, body api.BillingSubscriptionMigrate) (plansubscription.MigrateSubscriptionRequest, error) {
+func FromAPIBillingSubscriptionMigrate(id models.NamespacedID, body apiv3models.BillingSubscriptionMigrate) (plansubscription.MigrateSubscriptionRequest, error) {
 	result := plansubscription.MigrateSubscriptionRequest{
 		ID:            id,
 		TargetVersion: body.TargetVersion,

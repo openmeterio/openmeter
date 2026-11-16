@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -19,7 +19,7 @@ import (
 
 type (
 	UpdateAppRequest  = app.UpdateAppInput
-	UpdateAppResponse = api.BillingApp
+	UpdateAppResponse = apiv3models.BillingApp
 	UpdateAppHandler  httptransport.HandlerWithArgs[UpdateAppRequest, UpdateAppResponse, string]
 )
 
@@ -31,7 +31,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				return UpdateAppRequest{}, err
 			}
 
-			var body api.UpdateAppJSONRequestBody
+			var body apiv3models.UpdateAppJSONRequestBody
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateAppRequest{}, err
 			}
@@ -47,7 +47,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				})
 			}
 
-			convertedType := api.BillingAppType(discType)
+			convertedType := apiv3models.BillingAppType(discType)
 
 			if !convertedType.Valid() {
 				err := fmt.Errorf("invalid app type: %s", discType)
@@ -67,7 +67,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 			}
 
 			switch convertedType {
-			case api.BillingAppTypeSandbox:
+			case apiv3models.BillingAppTypeSandbox:
 				sandbox, err := body.AsUpdateAppSandboxRequest()
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -97,7 +97,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 					Metadata:        metadata,
 					AppConfigUpdate: appsandbox.Configuration{},
 				}, nil
-			case api.BillingAppTypeStripe:
+			case apiv3models.BillingAppTypeStripe:
 				stripe, err := body.AsUpdateAppStripeRequest()
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -129,7 +129,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 						SecretAPIKey: stripe.SecretApiKey,
 					},
 				}, nil
-			case api.BillingAppTypeExternalInvoicing:
+			case apiv3models.BillingAppTypeExternalInvoicing:
 				externalInvoicing, err := body.AsUpdateAppExternalInvoicingRequest()
 				if err != nil {
 					return UpdateAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{

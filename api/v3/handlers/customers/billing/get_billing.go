@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -17,7 +17,7 @@ type (
 	GetCustomerBillingRequest struct {
 		CustomerID customer.CustomerID
 	}
-	GetCustomerBillingResponse = api.BillingCustomerData
+	GetCustomerBillingResponse = apiv3models.BillingCustomerData
 	GetCustomerBillingParams   = string
 	GetCustomerBillingHandler  httptransport.HandlerWithArgs[GetCustomerBillingRequest, GetCustomerBillingResponse, GetCustomerBillingParams]
 )
@@ -72,7 +72,7 @@ func (h *handler) GetCustomerBilling() GetCustomerBillingHandler {
 
 			profile := mapCustomerBillingProfileToAPI(override)
 
-			return api.BillingCustomerData{
+			return apiv3models.BillingCustomerData{
 				BillingProfile:          profile.BillingProfile,
 				EffectiveBillingProfile: profile.EffectiveBillingProfile,
 				AppData:                 apiAppData,

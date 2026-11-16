@@ -10,12 +10,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 )
 
 func TestCreateFlatFeeChargeRejectsUsageBasedPrice(t *testing.T) {
-	doc, err := api.GetSpec()
+	doc, err := apiv3.GetSpec()
 	require.NoError(t, err)
 
 	validationRouter, err := oasmiddleware.NewValidationRouter(t.Context(), doc, &oasmiddleware.ValidationRouterOpts{
@@ -61,7 +61,7 @@ func TestCreateFlatFeeChargeRejectsUsageBasedPrice(t *testing.T) {
 
 func TestInvoiceCustomerChargesRejectsLineIDs(t *testing.T) {
 	// given: the public action accepts collection settings without a line filter.
-	doc, err := api.GetSpec()
+	doc, err := apiv3.GetSpec()
 	require.NoError(t, err)
 
 	validationRouter, err := oasmiddleware.NewValidationRouter(t.Context(), doc, &oasmiddleware.ValidationRouterOpts{

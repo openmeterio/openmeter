@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -63,10 +63,10 @@ func TestFromPlan(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "01J8GFKQ0000000000000000", result.Id)
-		assert.Equal(t, api.ResourceKey("pro"), result.Key)
+		assert.Equal(t, apiv3models.ResourceKey("pro"), result.Key)
 		assert.Equal(t, "Pro Plan", result.Name)
-		assert.Equal(t, api.CurrencyCode("USD"), result.Currency)
-		assert.Equal(t, api.ISO8601Duration("P1M"), result.BillingCadence)
+		assert.Equal(t, apiv3models.CurrencyCode("USD"), result.Currency)
+		assert.Equal(t, apiv3models.ISO8601Duration("P1M"), result.BillingCadence)
 		assert.Equal(t, 1, result.Version)
 		assert.Equal(t, now, result.CreatedAt)
 		assert.Equal(t, now, result.UpdatedAt)
@@ -91,7 +91,7 @@ func TestFromPlan(t *testing.T) {
 		result, err := ToAPIBillingPlan(p)
 		require.NoError(t, err)
 		require.NotNil(t, result.Labels)
-		assert.Equal(t, api.Labels{"tier": "pro"}, *result.Labels)
+		assert.Equal(t, apiv3models.Labels{"tier": "pro"}, *result.Labels)
 	})
 
 	t.Run("maps deleted at", func(t *testing.T) {
@@ -148,27 +148,27 @@ func TestFromPlanStatus(t *testing.T) {
 		name          string
 		effectiveFrom *time.Time
 		effectiveTo   *time.Time
-		wantStatus    api.BillingPlanStatus
+		wantStatus    apiv3models.BillingPlanStatus
 	}{
 		{
 			name:       "draft — no effective dates",
-			wantStatus: api.BillingPlanStatusDraft,
+			wantStatus: apiv3models.BillingPlanStatusDraft,
 		},
 		{
 			name:          "active — started in past, no end",
 			effectiveFrom: lo.ToPtr(now.Add(-time.Hour)),
-			wantStatus:    api.BillingPlanStatusActive,
+			wantStatus:    apiv3models.BillingPlanStatusActive,
 		},
 		{
 			name:          "scheduled — starts in future",
 			effectiveFrom: lo.ToPtr(now.Add(24 * time.Hour)),
-			wantStatus:    api.BillingPlanStatusScheduled,
+			wantStatus:    apiv3models.BillingPlanStatusScheduled,
 		},
 		{
 			name:          "archived — both dates in past",
 			effectiveFrom: lo.ToPtr(now.Add(-48 * time.Hour)),
 			effectiveTo:   lo.ToPtr(now.Add(-time.Hour)),
-			wantStatus:    api.BillingPlanStatusArchived,
+			wantStatus:    apiv3models.BillingPlanStatusArchived,
 		},
 	}
 
@@ -204,12 +204,12 @@ func TestFromPlanPhase(t *testing.T) {
 		result, err := ToAPIBillingPlanPhase(phase)
 		require.NoError(t, err)
 
-		assert.Equal(t, api.ResourceKey("trial"), result.Key)
+		assert.Equal(t, apiv3models.ResourceKey("trial"), result.Key)
 		assert.Equal(t, "Trial Phase", result.Name)
 		require.NotNil(t, result.Description)
 		assert.Equal(t, "First 3 months", *result.Description)
 		require.NotNil(t, result.Duration)
-		assert.Equal(t, api.ISO8601Duration("P3M"), *result.Duration)
+		assert.Equal(t, apiv3models.ISO8601Duration("P3M"), *result.Duration)
 	})
 
 	t.Run("maps metadata to labels", func(t *testing.T) {
@@ -226,7 +226,7 @@ func TestFromPlanPhase(t *testing.T) {
 		result, err := ToAPIBillingPlanPhase(phase)
 		require.NoError(t, err)
 		require.NotNil(t, result.Labels)
-		assert.Equal(t, api.Labels{"stage": "trial"}, *result.Labels)
+		assert.Equal(t, apiv3models.Labels{"stage": "trial"}, *result.Labels)
 	})
 
 	t.Run("nil duration maps to nil", func(t *testing.T) {
@@ -304,8 +304,8 @@ func TestFromPlanWithPhases(t *testing.T) {
 		result, err := ToAPIBillingPlan(p)
 		require.NoError(t, err)
 		require.Len(t, result.Phases, 2)
-		assert.Equal(t, api.ResourceKey("p1"), result.Phases[0].Key)
-		assert.Equal(t, api.ResourceKey("p2"), result.Phases[1].Key)
+		assert.Equal(t, apiv3models.ResourceKey("p1"), result.Phases[0].Key)
+		assert.Equal(t, apiv3models.ResourceKey("p2"), result.Phases[1].Key)
 	})
 
 	t.Run("phase order is preserved", func(t *testing.T) {
@@ -319,9 +319,9 @@ func TestFromPlanWithPhases(t *testing.T) {
 		result, err := ToAPIBillingPlan(p)
 		require.NoError(t, err)
 		require.Len(t, result.Phases, 3)
-		assert.Equal(t, api.ResourceKey("first"), result.Phases[0].Key)
-		assert.Equal(t, api.ResourceKey("second"), result.Phases[1].Key)
-		assert.Equal(t, api.ResourceKey("third"), result.Phases[2].Key)
+		assert.Equal(t, apiv3models.ResourceKey("first"), result.Phases[0].Key)
+		assert.Equal(t, apiv3models.ResourceKey("second"), result.Phases[1].Key)
+		assert.Equal(t, apiv3models.ResourceKey("third"), result.Phases[2].Key)
 	})
 
 	t.Run("nil phases maps to empty slice", func(t *testing.T) {
@@ -337,10 +337,10 @@ func TestFromPlanWithPhases(t *testing.T) {
 
 func TestFromRateCard(t *testing.T) {
 	t.Run("unknown price type is a validation error", func(t *testing.T) {
-		var price api.BillingPrice
+		var price apiv3models.BillingPrice
 		require.NoError(t, json.Unmarshal([]byte(`{"type":"bogus"}`), &price))
 
-		_, err := FromAPIBillingRateCard(api.BillingRateCard{
+		_, err := FromAPIBillingRateCard(apiv3models.BillingRateCard{
 			Key:   "storage",
 			Name:  "Storage",
 			Price: price,
@@ -362,7 +362,7 @@ func TestFromRateCard(t *testing.T) {
 
 		apiRateCard, err := ToAPIBillingRateCard(rc)
 		require.NoError(t, err)
-		require.Equal(t, lo.ToPtr(api.BillingCurrencyCode(custom)), apiRateCard.Currency)
+		require.Equal(t, lo.ToPtr(apiv3models.BillingCurrencyCode(custom)), apiRateCard.Currency)
 
 		domainRateCard, err := FromAPIBillingRateCard(apiRateCard)
 		require.NoError(t, err)
@@ -404,7 +404,7 @@ func TestFromRateCard(t *testing.T) {
 		result, err := ToAPIBillingRateCard(rc)
 		require.NoError(t, err)
 		require.NotNil(t, result.Labels)
-		assert.Equal(t, api.Labels{"kind": "setup"}, *result.Labels)
+		assert.Equal(t, apiv3models.Labels{"kind": "setup"}, *result.Labels)
 	})
 
 	t.Run("flat fee — with price and cadence", func(t *testing.T) {
@@ -429,9 +429,9 @@ func TestFromRateCard(t *testing.T) {
 		require.NoError(t, err)
 
 		require.NotNil(t, result.BillingCadence)
-		assert.Equal(t, api.ISO8601Duration("P1M"), *result.BillingCadence)
+		assert.Equal(t, apiv3models.ISO8601Duration("P1M"), *result.BillingCadence)
 		require.NotNil(t, result.PaymentTerm)
-		assert.Equal(t, api.BillingPricePaymentTerm("in_advance"), *result.PaymentTerm)
+		assert.Equal(t, apiv3models.BillingPricePaymentTerm("in_advance"), *result.PaymentTerm)
 
 		disc, err := result.Price.Discriminator()
 		require.NoError(t, err)
@@ -439,7 +439,7 @@ func TestFromRateCard(t *testing.T) {
 
 		flat, err := result.Price.AsBillingPriceFlat()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("9.99"), flat.Amount)
+		assert.Equal(t, apiv3models.Numeric("9.99"), flat.Amount)
 	})
 
 	t.Run("usage based — with unit price", func(t *testing.T) {
@@ -469,11 +469,11 @@ func TestFromRateCard(t *testing.T) {
 		require.NoError(t, err)
 
 		require.NotNil(t, result.BillingCadence)
-		assert.Equal(t, api.ISO8601Duration("P1M"), *result.BillingCadence)
+		assert.Equal(t, apiv3models.ISO8601Duration("P1M"), *result.BillingCadence)
 
 		require.NotNil(t, result.Commitments)
-		assert.Equal(t, lo.ToPtr(api.Numeric("10")), result.Commitments.MinimumAmount)
-		assert.Equal(t, lo.ToPtr(api.Numeric("100")), result.Commitments.MaximumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("10")), result.Commitments.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("100")), result.Commitments.MaximumAmount)
 
 		disc, err := result.Price.Discriminator()
 		require.NoError(t, err)
@@ -481,7 +481,7 @@ func TestFromRateCard(t *testing.T) {
 
 		unit, err := result.Price.AsBillingPriceUnit()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("0.05"), unit.Amount)
+		assert.Equal(t, apiv3models.Numeric("0.05"), unit.Amount)
 	})
 
 	t.Run("usage based — with feature ID", func(t *testing.T) {
@@ -543,7 +543,7 @@ func TestFromBillingPrice(t *testing.T) {
 
 		flat, err := result.AsBillingPriceFlat()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("5"), flat.Amount)
+		assert.Equal(t, apiv3models.Numeric("5"), flat.Amount)
 	})
 
 	t.Run("unit price", func(t *testing.T) {
@@ -560,7 +560,7 @@ func TestFromBillingPrice(t *testing.T) {
 
 		unit, err := result.AsBillingPriceUnit()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("0.001"), unit.Amount)
+		assert.Equal(t, apiv3models.Numeric("0.001"), unit.Amount)
 	})
 
 	t.Run("graduated tiered price", func(t *testing.T) {
@@ -588,7 +588,7 @@ func TestFromBillingPrice(t *testing.T) {
 		graduated, err := result.AsBillingPriceGraduated()
 		require.NoError(t, err)
 		require.Len(t, graduated.Tiers, 2)
-		assert.Equal(t, lo.ToPtr(api.Numeric("1000")), graduated.Tiers[0].UpToAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("1000")), graduated.Tiers[0].UpToAmount)
 		assert.Nil(t, graduated.Tiers[1].UpToAmount)
 	})
 
@@ -620,7 +620,7 @@ func TestFromBillingPrice(t *testing.T) {
 
 		unit, err := result.AsBillingPriceUnit()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("1"), unit.Amount)
+		assert.Equal(t, apiv3models.Numeric("1"), unit.Amount)
 	})
 
 	t.Run("package price translates to unit price with package amount", func(t *testing.T) {
@@ -638,7 +638,7 @@ func TestFromBillingPrice(t *testing.T) {
 
 		unit, err := result.AsBillingPriceUnit()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("0.5"), unit.Amount)
+		assert.Equal(t, apiv3models.Numeric("0.5"), unit.Amount)
 	})
 }
 
@@ -653,7 +653,7 @@ func TestBillingPriceUsageBasedConversions(t *testing.T) {
 
 		unit, err := result.AsBillingPriceUnit()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("1"), unit.Amount)
+		assert.Equal(t, apiv3models.Numeric("1"), unit.Amount)
 	})
 
 	t.Run("flat price is outside the usage-based union", func(t *testing.T) {
@@ -667,15 +667,15 @@ func TestBillingPriceUsageBasedConversions(t *testing.T) {
 	})
 
 	t.Run("API unit price preserves commitments", func(t *testing.T) {
-		var price api.BillingPriceUsageBased
-		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{
+		var price apiv3models.BillingPriceUsageBased
+		require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{
 			Amount: "0.25",
-			Type:   api.BillingPriceUnitTypeUnit,
+			Type:   apiv3models.BillingPriceUnitTypeUnit,
 		}))
 
-		result, err := FromAPIBillingPriceUsageBased(price, &api.BillingSpendCommitments{
-			MinimumAmount: lo.ToPtr(api.Numeric("5")),
-			MaximumAmount: lo.ToPtr(api.Numeric("50")),
+		result, err := FromAPIBillingPriceUsageBased(price, &apiv3models.BillingSpendCommitments{
+			MinimumAmount: lo.ToPtr(apiv3models.Numeric("5")),
+			MaximumAmount: lo.ToPtr(apiv3models.Numeric("50")),
 		})
 		require.NoError(t, err)
 
@@ -720,8 +720,8 @@ func TestToAPIBillingUnitConfigFromLegacyPrice(t *testing.T) {
 		result, err := ToAPIBillingUnitConfigFromLegacyPrice(p)
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, api.BillingUnitConfigOperationMultiply, result.Operation)
-		assert.Equal(t, api.Numeric("1.2"), result.ConversionFactor)
+		assert.Equal(t, apiv3models.BillingUnitConfigOperationMultiply, result.Operation)
+		assert.Equal(t, apiv3models.Numeric("1.2"), result.ConversionFactor)
 		assert.Nil(t, result.Rounding)
 		assert.Nil(t, result.Precision)
 		assert.Nil(t, result.DisplayUnit)
@@ -736,10 +736,10 @@ func TestToAPIBillingUnitConfigFromLegacyPrice(t *testing.T) {
 		result, err := ToAPIBillingUnitConfigFromLegacyPrice(p)
 		require.NoError(t, err)
 		require.NotNil(t, result)
-		assert.Equal(t, api.BillingUnitConfigOperationDivide, result.Operation)
-		assert.Equal(t, api.Numeric("1000"), result.ConversionFactor)
+		assert.Equal(t, apiv3models.BillingUnitConfigOperationDivide, result.Operation)
+		assert.Equal(t, apiv3models.Numeric("1000"), result.ConversionFactor)
 		require.NotNil(t, result.Rounding)
-		assert.Equal(t, api.BillingUnitConfigRoundingModeCeiling, *result.Rounding)
+		assert.Equal(t, apiv3models.BillingUnitConfigRoundingModeCeiling, *result.Rounding)
 	})
 }
 
@@ -776,16 +776,16 @@ func TestFromRateCard_DynamicAndPackagePrices(t *testing.T) {
 
 		unit, err := result.Price.AsBillingPriceUnit()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("1"), unit.Amount)
+		assert.Equal(t, apiv3models.Numeric("1"), unit.Amount)
 
 		require.NotNil(t, result.UnitConfig)
-		assert.Equal(t, api.BillingUnitConfigOperationMultiply, result.UnitConfig.Operation)
-		assert.Equal(t, api.Numeric("1.2"), result.UnitConfig.ConversionFactor)
+		assert.Equal(t, apiv3models.BillingUnitConfigOperationMultiply, result.UnitConfig.Operation)
+		assert.Equal(t, apiv3models.Numeric("1.2"), result.UnitConfig.ConversionFactor)
 		assert.Nil(t, result.UnitConfig.Rounding)
 
 		require.NotNil(t, result.Commitments)
-		assert.Equal(t, lo.ToPtr(api.Numeric("10")), result.Commitments.MinimumAmount)
-		assert.Equal(t, lo.ToPtr(api.Numeric("100")), result.Commitments.MaximumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("10")), result.Commitments.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("100")), result.Commitments.MaximumAmount)
 	})
 
 	t.Run("package price renders as unit price plus divide unit config and preserves commitments", func(t *testing.T) {
@@ -816,16 +816,16 @@ func TestFromRateCard_DynamicAndPackagePrices(t *testing.T) {
 
 		unit, err := result.Price.AsBillingPriceUnit()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("0.5"), unit.Amount)
+		assert.Equal(t, apiv3models.Numeric("0.5"), unit.Amount)
 
 		require.NotNil(t, result.UnitConfig)
-		assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
-		assert.Equal(t, api.Numeric("1000"), result.UnitConfig.ConversionFactor)
+		assert.Equal(t, apiv3models.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+		assert.Equal(t, apiv3models.Numeric("1000"), result.UnitConfig.ConversionFactor)
 		require.NotNil(t, result.UnitConfig.Rounding)
-		assert.Equal(t, api.BillingUnitConfigRoundingModeCeiling, *result.UnitConfig.Rounding)
+		assert.Equal(t, apiv3models.BillingUnitConfigRoundingModeCeiling, *result.UnitConfig.Rounding)
 
 		require.NotNil(t, result.Commitments)
-		assert.Equal(t, lo.ToPtr(api.Numeric("5")), result.Commitments.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("5")), result.Commitments.MinimumAmount)
 		assert.Nil(t, result.Commitments.MaximumAmount)
 	})
 
@@ -851,10 +851,10 @@ func TestFromRateCard_DynamicAndPackagePrices(t *testing.T) {
 
 func TestUnitConfigMapping(t *testing.T) {
 	t.Run("FromAPI maps all five fields", func(t *testing.T) {
-		uc, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationDivide,
-			ConversionFactor: api.Numeric("1000"),
-			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+		uc, err := FromAPIBillingUnitConfig(apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationDivide,
+			ConversionFactor: apiv3models.Numeric("1000"),
+			Rounding:         lo.ToPtr(apiv3models.BillingUnitConfigRoundingModeCeiling),
 			Precision:        lo.ToPtr(2),
 			DisplayUnit:      lo.ToPtr("K"),
 		})
@@ -868,9 +868,9 @@ func TestUnitConfigMapping(t *testing.T) {
 	})
 
 	t.Run("FromAPI defaults rounding to none and precision to zero when omitted", func(t *testing.T) {
-		uc, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationMultiply,
-			ConversionFactor: api.Numeric("1.2"),
+		uc, err := FromAPIBillingUnitConfig(apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationMultiply,
+			ConversionFactor: apiv3models.Numeric("1.2"),
 		})
 		require.NoError(t, err)
 		require.NotNil(t, uc)
@@ -882,9 +882,9 @@ func TestUnitConfigMapping(t *testing.T) {
 	t.Run("FromAPI drops precision when rounding is omitted, mirroring ToAPI", func(t *testing.T) {
 		// Precision is inert without rounding; carrying it would make From/To
 		// disagree about what is stored across a round-trip.
-		uc, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationMultiply,
-			ConversionFactor: api.Numeric("1.2"),
+		uc, err := FromAPIBillingUnitConfig(apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationMultiply,
+			ConversionFactor: apiv3models.Numeric("1.2"),
 			Precision:        lo.ToPtr(3),
 		})
 		require.NoError(t, err)
@@ -894,9 +894,9 @@ func TestUnitConfigMapping(t *testing.T) {
 	})
 
 	t.Run("FromAPI rejects a non-numeric conversion factor", func(t *testing.T) {
-		_, err := FromAPIBillingUnitConfig(api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationDivide,
-			ConversionFactor: api.Numeric("not-a-number"),
+		_, err := FromAPIBillingUnitConfig(apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationDivide,
+			ConversionFactor: apiv3models.Numeric("not-a-number"),
 		})
 		require.Error(t, err)
 	})
@@ -907,17 +907,17 @@ func TestUnitConfigMapping(t *testing.T) {
 			ConversionFactor: decimal.NewFromFloat(1.2),
 			Precision:        3, // inert without rounding, must not surface
 		})
-		assert.Equal(t, api.BillingUnitConfigOperationMultiply, out.Operation)
-		assert.Equal(t, api.Numeric("1.2"), out.ConversionFactor)
+		assert.Equal(t, apiv3models.BillingUnitConfigOperationMultiply, out.Operation)
+		assert.Equal(t, apiv3models.Numeric("1.2"), out.ConversionFactor)
 		assert.Nil(t, out.Rounding)
 		assert.Nil(t, out.Precision)
 	})
 
 	t.Run("round-trips through FromAPI and ToAPI", func(t *testing.T) {
-		in := api.BillingUnitConfig{
-			Operation:        api.BillingUnitConfigOperationDivide,
-			ConversionFactor: api.Numeric("1000"),
-			Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+		in := apiv3models.BillingUnitConfig{
+			Operation:        apiv3models.BillingUnitConfigOperationDivide,
+			ConversionFactor: apiv3models.Numeric("1000"),
+			Rounding:         lo.ToPtr(apiv3models.BillingUnitConfigRoundingModeCeiling),
 			Precision:        lo.ToPtr(0),
 			DisplayUnit:      lo.ToPtr("GB"),
 		}
@@ -950,30 +950,30 @@ func TestUnitConfigMapping(t *testing.T) {
 		result, err := ToAPIBillingRateCard(rc)
 		require.NoError(t, err)
 		require.NotNil(t, result.UnitConfig)
-		assert.Equal(t, api.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
-		assert.Equal(t, api.Numeric("1000000000"), result.UnitConfig.ConversionFactor)
+		assert.Equal(t, apiv3models.BillingUnitConfigOperationDivide, result.UnitConfig.Operation)
+		assert.Equal(t, apiv3models.Numeric("1000000000"), result.UnitConfig.ConversionFactor)
 		require.NotNil(t, result.UnitConfig.Rounding)
-		assert.Equal(t, api.BillingUnitConfigRoundingModeCeiling, *result.UnitConfig.Rounding)
+		assert.Equal(t, apiv3models.BillingUnitConfigRoundingModeCeiling, *result.UnitConfig.Rounding)
 		assert.Equal(t, lo.ToPtr("GB"), result.UnitConfig.DisplayUnit)
 	})
 
 	t.Run("FromAPIBillingRateCard propagates unit_config into the rate card meta", func(t *testing.T) {
-		// Guards the authoring wiring directly: a unit_config on an api.BillingRateCard
+		// Guards the authoring wiring directly: a unit_config on an apiv3models.BillingRateCard
 		// must survive into meta.UnitConfig. Without this, dropping the propagation in
 		// FromAPIBillingRateCard would still leave the helper round-trip tests green.
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
 
-		bc := api.ISO8601Duration("P1M")
-		rc := api.BillingRateCard{
+		bc := apiv3models.ISO8601Duration("P1M")
+		rc := apiv3models.BillingRateCard{
 			Key:            "storage",
 			Name:           "Storage",
 			Price:          price,
 			BillingCadence: &bc,
-			UnitConfig: &api.BillingUnitConfig{
-				Operation:        api.BillingUnitConfigOperationDivide,
-				ConversionFactor: api.Numeric("1000000000"),
-				Rounding:         lo.ToPtr(api.BillingUnitConfigRoundingModeCeiling),
+			UnitConfig: &apiv3models.BillingUnitConfig{
+				Operation:        apiv3models.BillingUnitConfigOperationDivide,
+				ConversionFactor: apiv3models.Numeric("1000000000"),
+				Rounding:         lo.ToPtr(apiv3models.BillingUnitConfigRoundingModeCeiling),
 				Precision:        lo.ToPtr(0),
 				DisplayUnit:      lo.ToPtr("GB"),
 			},
@@ -1021,7 +1021,7 @@ func TestFromBillingDiscounts(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Nil(t, result.Percentage)
 		require.NotNil(t, result.Usage)
-		assert.Equal(t, lo.ToPtr(api.Numeric("100")), result.Usage)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("100")), result.Usage)
 	})
 
 	t.Run("both discounts", func(t *testing.T) {
@@ -1051,7 +1051,7 @@ func TestFromBillingCommitments(t *testing.T) {
 		result := ToAPIBillingSpendCommitments(productcatalog.Commitments{MinimumAmount: &min})
 
 		require.NotNil(t, result)
-		assert.Equal(t, lo.ToPtr(api.Numeric("10")), result.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("10")), result.MinimumAmount)
 		assert.Nil(t, result.MaximumAmount)
 	})
 
@@ -1061,7 +1061,7 @@ func TestFromBillingCommitments(t *testing.T) {
 
 		require.NotNil(t, result)
 		assert.Nil(t, result.MinimumAmount)
-		assert.Equal(t, lo.ToPtr(api.Numeric("500")), result.MaximumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("500")), result.MaximumAmount)
 	})
 
 	t.Run("both amounts", func(t *testing.T) {
@@ -1073,8 +1073,8 @@ func TestFromBillingCommitments(t *testing.T) {
 		})
 
 		require.NotNil(t, result)
-		assert.Equal(t, lo.ToPtr(api.Numeric("10")), result.MinimumAmount)
-		assert.Equal(t, lo.ToPtr(api.Numeric("500")), result.MaximumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("10")), result.MinimumAmount)
+		assert.Equal(t, lo.ToPtr(apiv3models.Numeric("500")), result.MaximumAmount)
 	})
 }
 
@@ -1103,10 +1103,10 @@ func TestFromPlanPhaseWithRateCards(t *testing.T) {
 
 func TestToUpdatePlanInput(t *testing.T) {
 	t.Run("maps scalar fields correctly", func(t *testing.T) {
-		body := api.UpsertPlanRequest{
+		body := apiv3models.UpsertPlanRequest{
 			Name:        "Updated Plan",
 			Description: lo.ToPtr("New description"),
-			Phases:      []api.BillingPlanPhase{},
+			Phases:      []apiv3models.BillingPlanPhase{},
 		}
 
 		result, err := FromAPIUpsertPlanRequest("test-ns", "plan-123", body)
@@ -1123,10 +1123,10 @@ func TestToUpdatePlanInput(t *testing.T) {
 	})
 
 	t.Run("labels map to metadata", func(t *testing.T) {
-		body := api.UpsertPlanRequest{
+		body := apiv3models.UpsertPlanRequest{
 			Name:   "Plan",
-			Labels: &api.Labels{"env": "prod"},
-			Phases: []api.BillingPlanPhase{},
+			Labels: &apiv3models.Labels{"env": "prod"},
+			Phases: []apiv3models.BillingPlanPhase{},
 		}
 
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
@@ -1136,9 +1136,9 @@ func TestToUpdatePlanInput(t *testing.T) {
 	})
 
 	t.Run("nil labels result in nil metadata", func(t *testing.T) {
-		body := api.UpsertPlanRequest{
+		body := apiv3models.UpsertPlanRequest{
 			Name:   "Plan",
-			Phases: []api.BillingPlanPhase{},
+			Phases: []apiv3models.BillingPlanPhase{},
 		}
 
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
@@ -1147,10 +1147,10 @@ func TestToUpdatePlanInput(t *testing.T) {
 	})
 
 	t.Run("pro rating enabled maps correctly", func(t *testing.T) {
-		body := api.UpsertPlanRequest{
+		body := apiv3models.UpsertPlanRequest{
 			Name:             "Plan",
 			ProRatingEnabled: lo.ToPtr(false),
-			Phases:           []api.BillingPlanPhase{},
+			Phases:           []apiv3models.BillingPlanPhase{},
 		}
 
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
@@ -1160,17 +1160,17 @@ func TestToUpdatePlanInput(t *testing.T) {
 	})
 
 	t.Run("phases with rate cards are converted", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
 
-		bc := api.ISO8601Duration("P1M")
-		body := api.UpsertPlanRequest{
+		bc := apiv3models.ISO8601Duration("P1M")
+		body := apiv3models.UpsertPlanRequest{
 			Name: "Plan",
-			Phases: []api.BillingPlanPhase{
+			Phases: []apiv3models.BillingPlanPhase{
 				{
 					Key:  "p1",
 					Name: "Phase 1",
-					RateCards: []api.BillingRateCard{
+					RateCards: []apiv3models.BillingRateCard{
 						{Key: "rc1", Name: "RC", Price: price, BillingCadence: &bc},
 					},
 				},
@@ -1187,10 +1187,10 @@ func TestToUpdatePlanInput(t *testing.T) {
 	})
 
 	t.Run("settlement mode maps correctly", func(t *testing.T) {
-		body := api.UpsertPlanRequest{
+		body := apiv3models.UpsertPlanRequest{
 			Name:           "Plan",
-			Phases:         []api.BillingPlanPhase{},
-			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+			Phases:         []apiv3models.BillingPlanPhase{},
+			SettlementMode: lo.ToPtr(apiv3models.BillingSettlementModeCreditOnly),
 		}
 
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
@@ -1200,9 +1200,9 @@ func TestToUpdatePlanInput(t *testing.T) {
 	})
 
 	t.Run("nil settlement mode leaves it unchanged", func(t *testing.T) {
-		body := api.UpsertPlanRequest{
+		body := apiv3models.UpsertPlanRequest{
 			Name:   "Plan",
-			Phases: []api.BillingPlanPhase{},
+			Phases: []apiv3models.BillingPlanPhase{},
 		}
 
 		result, err := FromAPIUpsertPlanRequest("ns", "id", body)
@@ -1213,7 +1213,7 @@ func TestToUpdatePlanInput(t *testing.T) {
 
 func TestToCreatePlanInput(t *testing.T) {
 	t.Run("maps scalar fields correctly", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro Plan",
 			Currency:       "USD",
@@ -1234,12 +1234,12 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("labels map to metadata", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro",
 			Currency:       "USD",
 			BillingCadence: "P1M",
-			Labels:         &api.Labels{"env": "prod"},
+			Labels:         &apiv3models.Labels{"env": "prod"},
 		}
 
 		result, err := FromAPICreatePlanRequest("ns", body)
@@ -1248,7 +1248,7 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("nil labels result in nil metadata", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro",
 			Currency:       "USD",
@@ -1261,7 +1261,7 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("invalid billing cadence returns error", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro",
 			Currency:       "USD",
@@ -1274,7 +1274,7 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("pro rating enabled true", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:              "pro",
 			Name:             "Pro",
 			Currency:         "USD",
@@ -1289,7 +1289,7 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("pro rating enabled false", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:              "pro",
 			Name:             "Pro",
 			Currency:         "USD",
@@ -1303,7 +1303,7 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("pro rating nil defaults to enabled", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro",
 			Currency:       "USD",
@@ -1316,14 +1316,14 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("phases are converted", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro",
 			Currency:       "USD",
 			BillingCadence: "P1M",
-			Phases: []api.BillingPlanPhase{
-				{Key: "p1", Name: "Phase 1", RateCards: []api.BillingRateCard{}},
-				{Key: "p2", Name: "Phase 2", RateCards: []api.BillingRateCard{}},
+			Phases: []apiv3models.BillingPlanPhase{
+				{Key: "p1", Name: "Phase 1", RateCards: []apiv3models.BillingRateCard{}},
+				{Key: "p2", Name: "Phase 2", RateCards: []apiv3models.BillingRateCard{}},
 			},
 		}
 
@@ -1335,12 +1335,12 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("settlement mode maps correctly", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro",
 			Currency:       "USD",
 			BillingCadence: "P1M",
-			SettlementMode: lo.ToPtr(api.BillingSettlementModeCreditOnly),
+			SettlementMode: lo.ToPtr(apiv3models.BillingSettlementModeCreditOnly),
 		}
 
 		result, err := FromAPICreatePlanRequest("ns", body)
@@ -1349,7 +1349,7 @@ func TestToCreatePlanInput(t *testing.T) {
 	})
 
 	t.Run("nil settlement mode maps to empty for service default", func(t *testing.T) {
-		body := api.CreatePlanRequest{
+		body := apiv3models.CreatePlanRequest{
 			Key:            "pro",
 			Name:           "Pro",
 			Currency:       "USD",
@@ -1364,14 +1364,14 @@ func TestToCreatePlanInput(t *testing.T) {
 
 func TestToPlanPhase(t *testing.T) {
 	t.Run("maps fields correctly", func(t *testing.T) {
-		dur := api.ISO8601Duration("P3M")
-		phase := api.BillingPlanPhase{
+		dur := apiv3models.ISO8601Duration("P3M")
+		phase := apiv3models.BillingPlanPhase{
 			Key:         "trial",
 			Name:        "Trial",
 			Description: lo.ToPtr("Free trial"),
 			Duration:    &dur,
-			Labels:      &api.Labels{"tier": "free"},
-			RateCards:   []api.BillingRateCard{},
+			Labels:      &apiv3models.Labels{"tier": "free"},
+			RateCards:   []apiv3models.BillingRateCard{},
 		}
 
 		result, err := FromAPIBillingPlanPhase(phase)
@@ -1387,10 +1387,10 @@ func TestToPlanPhase(t *testing.T) {
 	})
 
 	t.Run("nil duration maps to nil", func(t *testing.T) {
-		phase := api.BillingPlanPhase{
+		phase := apiv3models.BillingPlanPhase{
 			Key:       "main",
 			Name:      "Main",
-			RateCards: []api.BillingRateCard{},
+			RateCards: []apiv3models.BillingRateCard{},
 		}
 
 		result, err := FromAPIBillingPlanPhase(phase)
@@ -1401,10 +1401,10 @@ func TestToPlanPhase(t *testing.T) {
 
 func TestToRateCard(t *testing.T) {
 	t.Run("free price creates flat fee rate card with nil price", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceFree(api.BillingPriceFree{Type: "free"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceFree(apiv3models.BillingPriceFree{Type: "free"}))
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:   "setup",
 			Name:  "Setup",
 			Price: price,
@@ -1419,13 +1419,13 @@ func TestToRateCard(t *testing.T) {
 	})
 
 	t.Run("flat price creates flat fee rate card", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceFlat(api.BillingPriceFlat{Amount: "9.99", Type: "flat"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceFlat(apiv3models.BillingPriceFlat{Amount: "9.99", Type: "flat"}))
 
-		bc := api.ISO8601Duration("P1M")
-		pt := api.BillingPricePaymentTerm("in_advance")
+		bc := apiv3models.ISO8601Duration("P1M")
+		pt := apiv3models.BillingPricePaymentTerm("in_advance")
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:            "base",
 			Name:           "Base Fee",
 			Price:          price,
@@ -1447,12 +1447,12 @@ func TestToRateCard(t *testing.T) {
 	})
 
 	t.Run("unit price creates usage based rate card", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
 
-		bc := api.ISO8601Duration("P1M")
+		bc := apiv3models.ISO8601Duration("P1M")
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:            "api-calls",
 			Name:           "API Calls",
 			Price:          price,
@@ -1472,10 +1472,10 @@ func TestToRateCard(t *testing.T) {
 	})
 
 	t.Run("usage based without billing cadence converts with empty cadence", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:   "api-calls",
 			Name:  "API Calls",
 			Price: price,
@@ -1496,19 +1496,19 @@ func TestToRateCard(t *testing.T) {
 	})
 
 	t.Run("usage based with commitments", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceUnit(api.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceUnit(apiv3models.BillingPriceUnit{Amount: "0.05", Type: "unit"}))
 
-		bc := api.ISO8601Duration("P1M")
+		bc := apiv3models.ISO8601Duration("P1M")
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:            "api-calls",
 			Name:           "API Calls",
 			Price:          price,
 			BillingCadence: &bc,
-			Commitments: &api.BillingSpendCommitments{
-				MinimumAmount: lo.ToPtr(api.Numeric("10")),
-				MaximumAmount: lo.ToPtr(api.Numeric("100")),
+			Commitments: &apiv3models.BillingSpendCommitments{
+				MinimumAmount: lo.ToPtr(apiv3models.Numeric("10")),
+				MaximumAmount: lo.ToPtr(apiv3models.Numeric("100")),
 			},
 		}
 
@@ -1523,14 +1523,14 @@ func TestToRateCard(t *testing.T) {
 	})
 
 	t.Run("feature ID is mapped", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceFree(api.BillingPriceFree{Type: "free"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceFree(apiv3models.BillingPriceFree{Type: "free"}))
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:     "rc",
 			Name:    "RC",
 			Price:   price,
-			Feature: &api.FeatureReference{Id: "01FEATURE00000000"},
+			Feature: &apiv3models.FeatureReference{Id: "01FEATURE00000000"},
 		}
 
 		result, err := FromAPIBillingRateCard(rc)
@@ -1541,18 +1541,18 @@ func TestToRateCard(t *testing.T) {
 	})
 
 	t.Run("graduated price creates usage based rate card", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceGraduated(api.BillingPriceGraduated{
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceGraduated(apiv3models.BillingPriceGraduated{
 			Type: "graduated",
-			Tiers: []api.BillingPriceTier{
-				{UpToAmount: lo.ToPtr(api.Numeric("100")), UnitPrice: &api.BillingPriceUnit{Amount: "0.10", Type: "unit"}},
-				{UnitPrice: &api.BillingPriceUnit{Amount: "0.05", Type: "unit"}},
+			Tiers: []apiv3models.BillingPriceTier{
+				{UpToAmount: lo.ToPtr(apiv3models.Numeric("100")), UnitPrice: &apiv3models.BillingPriceUnit{Amount: "0.10", Type: "unit"}},
+				{UnitPrice: &apiv3models.BillingPriceUnit{Amount: "0.05", Type: "unit"}},
 			},
 		}))
 
-		bc := api.ISO8601Duration("P1M")
+		bc := apiv3models.ISO8601Duration("P1M")
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:            "usage",
 			Name:           "Usage",
 			Price:          price,
@@ -1571,15 +1571,15 @@ func TestToRateCard(t *testing.T) {
 	})
 
 	t.Run("volume price creates usage based rate card", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceVolume(api.BillingPriceVolume{
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceVolume(apiv3models.BillingPriceVolume{
 			Type:  "volume",
-			Tiers: []api.BillingPriceTier{},
+			Tiers: []apiv3models.BillingPriceTier{},
 		}))
 
-		bc := api.ISO8601Duration("P1M")
+		bc := apiv3models.ISO8601Duration("P1M")
 
-		rc := api.BillingRateCard{
+		rc := apiv3models.BillingRateCard{
 			Key:            "usage",
 			Name:           "Usage",
 			Price:          price,
@@ -1599,8 +1599,8 @@ func TestToRateCard(t *testing.T) {
 
 func TestToBillingPrice(t *testing.T) {
 	t.Run("free maps to nil", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceFree(api.BillingPriceFree{Type: "free"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceFree(apiv3models.BillingPriceFree{Type: "free"}))
 
 		result, err := FromAPIBillingPrice(price, nil)
 		require.NoError(t, err)
@@ -1608,10 +1608,10 @@ func TestToBillingPrice(t *testing.T) {
 	})
 
 	t.Run("flat with payment term", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceFlat(api.BillingPriceFlat{Amount: "5.00", Type: "flat"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceFlat(apiv3models.BillingPriceFlat{Amount: "5.00", Type: "flat"}))
 
-		pt := api.BillingPricePaymentTerm("in_arrears")
+		pt := apiv3models.BillingPricePaymentTerm("in_arrears")
 		result, err := FromAPIBillingPrice(price, &pt)
 		require.NoError(t, err)
 		require.NotNil(t, result)
@@ -1623,8 +1623,8 @@ func TestToBillingPrice(t *testing.T) {
 	})
 
 	t.Run("flat with nil payment term uses default", func(t *testing.T) {
-		var price api.BillingPrice
-		require.NoError(t, price.FromBillingPriceFlat(api.BillingPriceFlat{Amount: "5.00", Type: "flat"}))
+		var price apiv3models.BillingPrice
+		require.NoError(t, price.FromBillingPriceFlat(apiv3models.BillingPriceFlat{Amount: "5.00", Type: "flat"}))
 
 		result, err := FromAPIBillingPrice(price, nil)
 		require.NoError(t, err)
@@ -1638,14 +1638,14 @@ func TestToBillingPrice(t *testing.T) {
 
 func TestToBillingPriceTiers(t *testing.T) {
 	t.Run("maps tiers correctly", func(t *testing.T) {
-		tiers := []api.BillingPriceTier{
+		tiers := []apiv3models.BillingPriceTier{
 			{
-				UpToAmount: lo.ToPtr(api.Numeric("1000")),
-				FlatPrice:  &api.BillingPriceFlat{Amount: "5", Type: "flat"},
-				UnitPrice:  &api.BillingPriceUnit{Amount: "0.01", Type: "unit"},
+				UpToAmount: lo.ToPtr(apiv3models.Numeric("1000")),
+				FlatPrice:  &apiv3models.BillingPriceFlat{Amount: "5", Type: "flat"},
+				UnitPrice:  &apiv3models.BillingPriceUnit{Amount: "0.01", Type: "unit"},
 			},
 			{
-				UnitPrice: &api.BillingPriceUnit{Amount: "0.005", Type: "unit"},
+				UnitPrice: &apiv3models.BillingPriceUnit{Amount: "0.005", Type: "unit"},
 			},
 		}
 
@@ -1670,7 +1670,7 @@ func TestToBillingPriceTiers(t *testing.T) {
 func TestToBillingDiscounts(t *testing.T) {
 	t.Run("percentage discount", func(t *testing.T) {
 		pct := float32(20)
-		result, err := FromAPIBillingRateCardDiscounts(api.BillingRateCardDiscounts{Percentage: &pct})
+		result, err := FromAPIBillingRateCardDiscounts(apiv3models.BillingRateCardDiscounts{Percentage: &pct})
 		require.NoError(t, err)
 
 		require.NotNil(t, result.Percentage)
@@ -1679,7 +1679,7 @@ func TestToBillingDiscounts(t *testing.T) {
 	})
 
 	t.Run("usage discount", func(t *testing.T) {
-		result, err := FromAPIBillingRateCardDiscounts(api.BillingRateCardDiscounts{Usage: lo.ToPtr(api.Numeric("100"))})
+		result, err := FromAPIBillingRateCardDiscounts(apiv3models.BillingRateCardDiscounts{Usage: lo.ToPtr(apiv3models.Numeric("100"))})
 		require.NoError(t, err)
 
 		assert.Nil(t, result.Percentage)
@@ -1689,9 +1689,9 @@ func TestToBillingDiscounts(t *testing.T) {
 
 	t.Run("both discounts", func(t *testing.T) {
 		pct := float32(10)
-		result, err := FromAPIBillingRateCardDiscounts(api.BillingRateCardDiscounts{
+		result, err := FromAPIBillingRateCardDiscounts(apiv3models.BillingRateCardDiscounts{
 			Percentage: &pct,
-			Usage:      lo.ToPtr(api.Numeric("50")),
+			Usage:      lo.ToPtr(apiv3models.Numeric("50")),
 		})
 		require.NoError(t, err)
 
@@ -1722,8 +1722,8 @@ func TestFromPlanInvalidStatus(t *testing.T) {
 func roundTripStaticConfig(t *testing.T, config interface{}) interface{} {
 	t.Helper()
 
-	var apiEnt api.BillingRateCardEntitlement
-	require.NoError(t, apiEnt.FromBillingRateCardStaticEntitlement(api.BillingRateCardStaticEntitlement{
+	var apiEnt apiv3models.BillingRateCardEntitlement
+	require.NoError(t, apiEnt.FromBillingRateCardStaticEntitlement(apiv3models.BillingRateCardStaticEntitlement{
 		Type:   "static",
 		Config: config,
 	}))
@@ -1775,8 +1775,8 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 		// Subscription materialization (subscriptionspec.go) unwraps the stored
 		// config as a JSON string token containing JSON text. Pin that convention
 		// so v3-created static entitlements stay materializable.
-		var apiEnt api.BillingRateCardEntitlement
-		require.NoError(t, apiEnt.FromBillingRateCardStaticEntitlement(api.BillingRateCardStaticEntitlement{
+		var apiEnt apiv3models.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardStaticEntitlement(apiv3models.BillingRateCardStaticEntitlement{
 			Type:   "static",
 			Config: map[string]interface{}{"integrations": []interface{}{"github"}},
 		}))
@@ -1794,7 +1794,7 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 	})
 
 	t.Run("static — large integers survive without float64 precision loss", func(t *testing.T) {
-		var apiEnt api.BillingRateCardEntitlement
+		var apiEnt apiv3models.BillingRateCardEntitlement
 		require.NoError(t, json.Unmarshal([]byte(`{"type":"static","config":{"id":9007199254740993}}`), &apiEnt))
 
 		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
@@ -1823,10 +1823,10 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 	})
 
 	t.Run("metered — limit, soft limit, usage period round-trip", func(t *testing.T) {
-		usagePeriod := api.ISO8601Duration("P1M")
+		usagePeriod := apiv3models.ISO8601Duration("P1M")
 
-		var apiEnt api.BillingRateCardEntitlement
-		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
+		var apiEnt apiv3models.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(apiv3models.BillingRateCardMeteredEntitlement{
 			Type:        "metered",
 			IsSoftLimit: lo.ToPtr(true),
 			UsagePeriod: &usagePeriod,
@@ -1852,8 +1852,8 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 	})
 
 	t.Run("metered — usage period defaults to billing cadence when omitted", func(t *testing.T) {
-		var apiEnt api.BillingRateCardEntitlement
-		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
+		var apiEnt apiv3models.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(apiv3models.BillingRateCardMeteredEntitlement{
 			Type:  "metered",
 			Limit: lo.ToPtr(float64(5)),
 		}))
@@ -1870,9 +1870,9 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 	})
 
 	t.Run("metered — malformed usage period is a validation error", func(t *testing.T) {
-		bad := api.ISO8601Duration("not-a-duration")
-		var apiEnt api.BillingRateCardEntitlement
-		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
+		bad := apiv3models.ISO8601Duration("not-a-duration")
+		var apiEnt apiv3models.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(apiv3models.BillingRateCardMeteredEntitlement{
 			Type:        "metered",
 			UsagePeriod: &bad,
 		}))
@@ -1885,9 +1885,9 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 	})
 
 	t.Run("metered — omitted is_soft_limit round-trips as explicit false", func(t *testing.T) {
-		usagePeriod := api.ISO8601Duration("P1M")
-		var apiEnt api.BillingRateCardEntitlement
-		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(api.BillingRateCardMeteredEntitlement{
+		usagePeriod := apiv3models.ISO8601Duration("P1M")
+		var apiEnt apiv3models.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardMeteredEntitlement(apiv3models.BillingRateCardMeteredEntitlement{
 			Type:        "metered",
 			UsagePeriod: &usagePeriod,
 			Limit:       lo.ToPtr(float64(5)),
@@ -1906,7 +1906,7 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 	})
 
 	t.Run("unknown entitlement type is rejected", func(t *testing.T) {
-		var apiEnt api.BillingRateCardEntitlement
+		var apiEnt apiv3models.BillingRateCardEntitlement
 		require.NoError(t, json.Unmarshal([]byte(`{"type":"unknown"}`), &apiEnt))
 
 		domain, err := FromAPIBillingRateCardEntitlement(apiEnt, nil)
@@ -1916,8 +1916,8 @@ func TestFromToAPIBillingRateCardEntitlement(t *testing.T) {
 	})
 
 	t.Run("boolean — round-trips", func(t *testing.T) {
-		var apiEnt api.BillingRateCardEntitlement
-		require.NoError(t, apiEnt.FromBillingRateCardBooleanEntitlement(api.BillingRateCardBooleanEntitlement{
+		var apiEnt apiv3models.BillingRateCardEntitlement
+		require.NoError(t, apiEnt.FromBillingRateCardBooleanEntitlement(apiv3models.BillingRateCardBooleanEntitlement{
 			Type: "boolean",
 		}))
 

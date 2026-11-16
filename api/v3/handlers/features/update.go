@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -14,7 +14,7 @@ import (
 
 type (
 	UpdateFeatureRequest  = feature.UpdateFeatureInputs
-	UpdateFeatureResponse = api.Feature
+	UpdateFeatureResponse = apiv3models.Feature
 	UpdateFeatureParams   = string
 	UpdateFeatureHandler  httptransport.HandlerWithArgs[UpdateFeatureRequest, UpdateFeatureResponse, UpdateFeatureParams]
 )
@@ -22,7 +22,7 @@ type (
 func (h *handler) UpdateFeature() UpdateFeatureHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, featureID UpdateFeatureParams) (UpdateFeatureRequest, error) {
-			body := api.UpdateFeatureRequest{}
+			body := apiv3models.UpdateFeatureRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpdateFeatureRequest{}, err
 			}

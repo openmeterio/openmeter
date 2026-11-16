@@ -12,7 +12,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 )
@@ -67,7 +67,7 @@ func TestCreateCustomerEntitlementGrantHandler(t *testing.T) {
 		require.Equal(t, &grant.ExpirationPeriod{Count: 1, Duration: grant.ExpirationPeriodDurationWeek}, received.Grant.Expiration)
 		require.Equal(t, 100.5, received.Grant.ResetMaxRollover)
 
-		var body api.BillingEntitlementGrant
+		var body apiv3models.BillingEntitlementGrant
 		require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
 		require.Equal(t, "01K4WAQ0J99ZZ0MD75HXR112HA", body.Id)
 		require.Equal(t, testEntitlementID, body.EntitlementId)

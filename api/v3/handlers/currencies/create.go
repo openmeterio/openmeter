@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -18,7 +18,7 @@ import (
 
 type (
 	CreateCurrencyRequest  = currencies.CreateCurrencyInput
-	CreateCurrencyResponse = v3.BillingCurrency
+	CreateCurrencyResponse = apiv3models.BillingCurrency
 	CreateCurrencyHandler  = httptransport.Handler[CreateCurrencyRequest, CreateCurrencyResponse]
 )
 
@@ -34,7 +34,7 @@ func (h *handler) CreateCurrency() CreateCurrencyHandler {
 				return CreateCurrencyRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			body := v3.CreateCurrencyCustomRequest{}
+			body := apiv3models.CreateCurrencyCustomRequest{}
 			if err = request.ParseBody(r, &body); err != nil {
 				return CreateCurrencyRequest{}, fmt.Errorf("failed to parse create custom currency request: %w", err)
 			}

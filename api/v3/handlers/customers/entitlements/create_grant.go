@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -16,10 +16,10 @@ import (
 
 type (
 	CreateCustomerEntitlementGrantRequest  = entitlement.CreateCustomerEntitlementGrantInput
-	CreateCustomerEntitlementGrantResponse = api.BillingEntitlementGrant
+	CreateCustomerEntitlementGrantResponse = apiv3models.BillingEntitlementGrant
 	CreateCustomerEntitlementGrantParams   struct {
-		CustomerID    api.ULID
-		EntitlementID api.ULID
+		CustomerID    apiv3models.ULID
+		EntitlementID apiv3models.ULID
 	}
 	CreateCustomerEntitlementGrantHandler = httptransport.HandlerWithArgs[CreateCustomerEntitlementGrantRequest, CreateCustomerEntitlementGrantResponse, CreateCustomerEntitlementGrantParams]
 )
@@ -32,7 +32,7 @@ func (h *handler) CreateCustomerEntitlementGrant() CreateCustomerEntitlementGran
 				return CreateCustomerEntitlementGrantRequest{}, err
 			}
 
-			var body api.BillingEntitlementGrantCreateRequest
+			var body apiv3models.BillingEntitlementGrantCreateRequest
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateCustomerEntitlementGrantRequest{}, err
 			}

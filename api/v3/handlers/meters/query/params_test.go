@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -33,7 +33,7 @@ func noopCustomerResolver(_ context.Context, _ string, _ []string) ([]customer.C
 
 func TestBuildQueryParams_Empty(t *testing.T) {
 	m := newTestMeter()
-	body := api.MeterQueryRequest{}
+	body := apiv3models.MeterQueryRequest{}
 
 	params, err := BuildQueryParams(context.Background(), m, body, noopCustomerResolver)
 	require.NoError(t, err)
@@ -47,7 +47,7 @@ func TestBuildQueryParams_Empty(t *testing.T) {
 func TestBuildQueryParams_FromTo(t *testing.T) {
 	m := newTestMeter()
 	now := time.Now().UTC().Truncate(time.Second)
-	body := api.MeterQueryRequest{
+	body := apiv3models.MeterQueryRequest{
 		From: &now,
 		To:   lo.ToPtr(now.Add(time.Hour)),
 	}
@@ -62,8 +62,8 @@ func TestBuildQueryParams_Granularity(t *testing.T) {
 	m := newTestMeter()
 
 	t.Run("valid granularity", func(t *testing.T) {
-		gran := api.MeterQueryGranularity("PT1H")
-		body := api.MeterQueryRequest{Granularity: &gran}
+		gran := apiv3models.MeterQueryGranularity("PT1H")
+		body := apiv3models.MeterQueryRequest{Granularity: &gran}
 
 		params, err := BuildQueryParams(context.Background(), m, body, noopCustomerResolver)
 		require.NoError(t, err)
@@ -72,8 +72,8 @@ func TestBuildQueryParams_Granularity(t *testing.T) {
 	})
 
 	t.Run("invalid granularity", func(t *testing.T) {
-		gran := api.MeterQueryGranularity("P1Y")
-		body := api.MeterQueryRequest{Granularity: &gran}
+		gran := apiv3models.MeterQueryGranularity("P1Y")
+		body := apiv3models.MeterQueryRequest{Granularity: &gran}
 
 		_, err := BuildQueryParams(context.Background(), m, body, noopCustomerResolver)
 		require.Error(t, err)
@@ -84,7 +84,7 @@ func TestBuildQueryParams_TimeZone(t *testing.T) {
 	m := newTestMeter()
 
 	t.Run("valid timezone", func(t *testing.T) {
-		body := api.MeterQueryRequest{TimeZone: lo.ToPtr("America/New_York")}
+		body := apiv3models.MeterQueryRequest{TimeZone: lo.ToPtr("America/New_York")}
 
 		params, err := BuildQueryParams(context.Background(), m, body, noopCustomerResolver)
 		require.NoError(t, err)
@@ -93,7 +93,7 @@ func TestBuildQueryParams_TimeZone(t *testing.T) {
 	})
 
 	t.Run("invalid timezone", func(t *testing.T) {
-		body := api.MeterQueryRequest{TimeZone: lo.ToPtr("Invalid/Zone")}
+		body := apiv3models.MeterQueryRequest{TimeZone: lo.ToPtr("Invalid/Zone")}
 
 		_, err := BuildQueryParams(context.Background(), m, body, noopCustomerResolver)
 		require.Error(t, err)
@@ -104,7 +104,7 @@ func TestBuildQueryParams_GroupByDimensions(t *testing.T) {
 	m := newTestMeter()
 
 	t.Run("valid dimensions", func(t *testing.T) {
-		body := api.MeterQueryRequest{
+		body := apiv3models.MeterQueryRequest{
 			GroupByDimensions: &[]string{"subject", "region"},
 		}
 
@@ -114,7 +114,7 @@ func TestBuildQueryParams_GroupByDimensions(t *testing.T) {
 	})
 
 	t.Run("invalid dimension", func(t *testing.T) {
-		body := api.MeterQueryRequest{
+		body := apiv3models.MeterQueryRequest{
 			GroupByDimensions: &[]string{"nonexistent"},
 		}
 
@@ -127,9 +127,9 @@ func TestBuildQueryParams_SubjectFilter(t *testing.T) {
 	m := newTestMeter()
 
 	t.Run("eq filter adds subject to group by", func(t *testing.T) {
-		body := api.MeterQueryRequest{
-			Filters: &api.MeterQueryFilters{
-				Dimensions: &map[string]api.QueryFilterStringMapItem{
+		body := apiv3models.MeterQueryRequest{
+			Filters: &apiv3models.MeterQueryFilters{
+				Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 					DimensionSubject: {Eq: lo.ToPtr("user-1")},
 				},
 			},
@@ -142,10 +142,10 @@ func TestBuildQueryParams_SubjectFilter(t *testing.T) {
 	})
 
 	t.Run("does not duplicate subject in group by", func(t *testing.T) {
-		body := api.MeterQueryRequest{
+		body := apiv3models.MeterQueryRequest{
 			GroupByDimensions: &[]string{"subject"},
-			Filters: &api.MeterQueryFilters{
-				Dimensions: &map[string]api.QueryFilterStringMapItem{
+			Filters: &apiv3models.MeterQueryFilters{
+				Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 					DimensionSubject: {Eq: lo.ToPtr("user-1")},
 				},
 			},
@@ -182,9 +182,9 @@ func TestBuildQueryParams_CustomerFilter(t *testing.T) {
 			return customers, nil
 		}
 
-		body := api.MeterQueryRequest{
-			Filters: &api.MeterQueryFilters{
-				Dimensions: &map[string]api.QueryFilterStringMapItem{
+		body := apiv3models.MeterQueryRequest{
+			Filters: &apiv3models.MeterQueryFilters{
+				Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 					DimensionCustomerID: {In: &[]string{"c1", "c2"}},
 				},
 			},
@@ -201,9 +201,9 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 	m := newTestMeter()
 
 	t.Run("valid dimension filter", func(t *testing.T) {
-		body := api.MeterQueryRequest{
-			Filters: &api.MeterQueryFilters{
-				Dimensions: &map[string]api.QueryFilterStringMapItem{
+		body := apiv3models.MeterQueryRequest{
+			Filters: &apiv3models.MeterQueryFilters{
+				Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 					"region": {Eq: lo.ToPtr("us-east-1")},
 				},
 			},
@@ -215,9 +215,9 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 	})
 
 	t.Run("invalid dimension name", func(t *testing.T) {
-		body := api.MeterQueryRequest{
-			Filters: &api.MeterQueryFilters{
-				Dimensions: &map[string]api.QueryFilterStringMapItem{
+		body := apiv3models.MeterQueryRequest{
+			Filters: &apiv3models.MeterQueryFilters{
+				Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 					"nonexistent": {Eq: lo.ToPtr("val")},
 				},
 			},
@@ -228,9 +228,9 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 	})
 
 	t.Run("multiple operators in dimension filter", func(t *testing.T) {
-		body := api.MeterQueryRequest{
-			Filters: &api.MeterQueryFilters{
-				Dimensions: &map[string]api.QueryFilterStringMapItem{
+		body := apiv3models.MeterQueryRequest{
+			Filters: &apiv3models.MeterQueryFilters{
+				Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 					"region": {
 						Eq:  lo.ToPtr("us-east"),
 						Neq: lo.ToPtr("us-west"),
@@ -246,9 +246,9 @@ func TestBuildQueryParams_DimensionFilters(t *testing.T) {
 
 func TestBuildQueryParams_MultipleSubjectFilterOperators(t *testing.T) {
 	m := newTestMeter()
-	body := api.MeterQueryRequest{
-		Filters: &api.MeterQueryFilters{
-			Dimensions: &map[string]api.QueryFilterStringMapItem{
+	body := apiv3models.MeterQueryRequest{
+		Filters: &apiv3models.MeterQueryFilters{
+			Dimensions: &map[string]apiv3models.QueryFilterStringMapItem{
 				DimensionSubject: {
 					Eq:  lo.ToPtr("a"),
 					Neq: lo.ToPtr("b"),

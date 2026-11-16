@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -35,7 +35,7 @@ func TestConvertUnitCostToAPI(t *testing.T) {
 
 		manual, err := result.AsBillingFeatureManualUnitCost()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("0.005"), manual.Amount)
+		assert.Equal(t, apiv3models.Numeric("0.005"), manual.Amount)
 	})
 
 	t.Run("llm unit cost with properties", func(t *testing.T) {
@@ -82,7 +82,7 @@ func TestConvertUnitCostToAPI(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, lo.ToPtr("openai"), llm.Provider)
 		assert.Equal(t, lo.ToPtr("gpt-4"), llm.Model)
-		assert.Equal(t, lo.ToPtr(api.BillingFeatureLLMTokenTypeInput), llm.TokenType)
+		assert.Equal(t, lo.ToPtr(apiv3models.BillingFeatureLLMTokenTypeInput), llm.TokenType)
 		assert.Nil(t, llm.ProviderProperty)
 		assert.Nil(t, llm.ModelProperty)
 		assert.Nil(t, llm.TokenTypeProperty)
@@ -98,8 +98,8 @@ func TestConvertUnitCostToAPI(t *testing.T) {
 
 func TestConvertUnitCostFromAPI(t *testing.T) {
 	t.Run("manual unit cost", func(t *testing.T) {
-		var apiUC api.BillingFeatureUnitCost
-		err := apiUC.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{
+		var apiUC apiv3models.BillingFeatureUnitCost
+		err := apiUC.FromBillingFeatureManualUnitCost(apiv3models.BillingFeatureManualUnitCost{
 			Amount: "0.123",
 		})
 		require.NoError(t, err)
@@ -113,8 +113,8 @@ func TestConvertUnitCostFromAPI(t *testing.T) {
 	})
 
 	t.Run("llm unit cost with properties", func(t *testing.T) {
-		var apiUC api.BillingFeatureUnitCost
-		err := apiUC.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
+		var apiUC apiv3models.BillingFeatureUnitCost
+		err := apiUC.FromBillingFeatureLLMUnitCost(apiv3models.BillingFeatureLLMUnitCost{
 			ProviderProperty:  lo.ToPtr("provider"),
 			ModelProperty:     lo.ToPtr("model"),
 			TokenTypeProperty: lo.ToPtr("type"),
@@ -134,11 +134,11 @@ func TestConvertUnitCostFromAPI(t *testing.T) {
 	})
 
 	t.Run("llm unit cost with static values", func(t *testing.T) {
-		var apiUC api.BillingFeatureUnitCost
-		err := apiUC.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
+		var apiUC apiv3models.BillingFeatureUnitCost
+		err := apiUC.FromBillingFeatureLLMUnitCost(apiv3models.BillingFeatureLLMUnitCost{
 			Provider:  lo.ToPtr("anthropic"),
 			Model:     lo.ToPtr("claude-3-5-sonnet"),
-			TokenType: lo.ToPtr(api.BillingFeatureLLMTokenTypeOutput),
+			TokenType: lo.ToPtr(apiv3models.BillingFeatureLLMTokenTypeOutput),
 		})
 		require.NoError(t, err)
 
@@ -208,7 +208,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 		result, err := ConvertFeatureToAPI(f)
 		require.NoError(t, err)
 		assert.Equal(t, "feat-1", result.Id)
-		assert.Equal(t, api.ResourceKey("my_feature"), result.Key)
+		assert.Equal(t, apiv3models.ResourceKey("my_feature"), result.Key)
 		assert.Equal(t, "My Feature", result.Name)
 		assert.Nil(t, result.Meter)
 		assert.Nil(t, result.UnitCost)
@@ -234,7 +234,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 		result, err := ConvertFeatureToAPI(f)
 		require.NoError(t, err)
 		require.NotNil(t, result.Meter)
-		assert.Equal(t, api.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"), result.Meter.Id)
+		assert.Equal(t, apiv3models.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"), result.Meter.Id)
 		require.NotNil(t, result.Meter.Filters)
 		filterMap := *result.Meter.Filters
 		assert.Equal(t, lo.ToPtr("openai"), filterMap["provider"].Eq)
@@ -287,7 +287,7 @@ func TestConvertFeatureToAPI(t *testing.T) {
 
 func TestConvertCreateRequestToDomain(t *testing.T) {
 	t.Run("minimal request without meter", func(t *testing.T) {
-		body := api.CreateFeatureRequest{
+		body := apiv3models.CreateFeatureRequest{
 			Key:  "my_key",
 			Name: "My Feature",
 		}
@@ -303,12 +303,12 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 
 	t.Run("with meter ID and filters", func(t *testing.T) {
 		meterID := "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-		body := api.CreateFeatureRequest{
+		body := apiv3models.CreateFeatureRequest{
 			Key:  "tokens",
 			Name: "Tokens",
-			Meter: &api.FeatureMeterReference{
-				Id: api.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
-				Filters: &map[string]api.QueryFilterStringMapItem{
+			Meter: &apiv3models.FeatureMeterReference{
+				Id: apiv3models.ULID("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+				Filters: &map[string]apiv3models.QueryFilterStringMapItem{
 					"model": {Eq: lo.ToPtr("gpt-4")},
 				},
 			},
@@ -323,11 +323,11 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 	})
 
 	t.Run("with manual unit cost", func(t *testing.T) {
-		var uc api.BillingFeatureUnitCost
-		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.05"})
+		var uc apiv3models.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureManualUnitCost(apiv3models.BillingFeatureManualUnitCost{Amount: "0.05"})
 		require.NoError(t, err)
 
-		body := api.CreateFeatureRequest{
+		body := apiv3models.CreateFeatureRequest{
 			Key:      "feat",
 			Name:     "Feature",
 			UnitCost: &uc,
@@ -341,8 +341,8 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 	})
 
 	t.Run("with labels", func(t *testing.T) {
-		labels := api.Labels{"env": "prod", "team": "billing"}
-		body := api.CreateFeatureRequest{
+		labels := apiv3models.Labels{"env": "prod", "team": "billing"}
+		body := apiv3models.CreateFeatureRequest{
 			Key:    "feat",
 			Name:   "Feature",
 			Labels: &labels,
@@ -357,11 +357,11 @@ func TestConvertCreateRequestToDomain(t *testing.T) {
 
 func TestConvertUpdateRequestToDomain(t *testing.T) {
 	t.Run("with unit cost value", func(t *testing.T) {
-		var uc api.BillingFeatureUnitCost
-		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.05"})
+		var uc apiv3models.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureManualUnitCost(apiv3models.BillingFeatureManualUnitCost{Amount: "0.05"})
 		require.NoError(t, err)
 
-		body := api.UpdateFeatureRequest{UnitCost: nullable.NewNullableWithValue(uc)}
+		body := apiv3models.UpdateFeatureRequest{UnitCost: nullable.NewNullableWithValue(uc)}
 		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
 		assert.Equal(t, "ns", result.Namespace)
@@ -375,14 +375,14 @@ func TestConvertUpdateRequestToDomain(t *testing.T) {
 	})
 
 	t.Run("with explicit null clears unit cost", func(t *testing.T) {
-		body := api.UpdateFeatureRequest{UnitCost: nullable.NewNullNullable[api.BillingFeatureUnitCost]()}
+		body := apiv3models.UpdateFeatureRequest{UnitCost: nullable.NewNullNullable[apiv3models.BillingFeatureUnitCost]()}
 		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
 		assert.True(t, result.UnitCost.IsNull())
 	})
 
 	t.Run("with omitted unit cost", func(t *testing.T) {
-		body := api.UpdateFeatureRequest{}
+		body := apiv3models.UpdateFeatureRequest{}
 		result, err := convertUpdateRequestToDomain("ns", "feat-1", body)
 		require.NoError(t, err)
 		assert.False(t, result.UnitCost.IsSpecified())
@@ -391,14 +391,14 @@ func TestConvertUpdateRequestToDomain(t *testing.T) {
 
 func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 	t.Run("adds pricing to llm unit cost", func(t *testing.T) {
-		var uc api.BillingFeatureUnitCost
-		err := uc.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
+		var uc apiv3models.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureLLMUnitCost(apiv3models.BillingFeatureLLMUnitCost{
 			ProviderProperty: lo.ToPtr("provider"),
 			ModelProperty:    lo.ToPtr("model"),
 		})
 		require.NoError(t, err)
 
-		resp := &api.Feature{UnitCost: &uc}
+		resp := &apiv3models.Feature{UnitCost: &uc}
 		pricing := &llmcost.ModelPricing{
 			InputPerToken:  alpacadecimal.NewFromFloat(0.00001),
 			OutputPerToken: alpacadecimal.NewFromFloat(0.00003),
@@ -409,20 +409,20 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 		llm, err := resp.UnitCost.AsBillingFeatureLLMUnitCost()
 		require.NoError(t, err)
 		require.NotNil(t, llm.Pricing)
-		assert.Equal(t, api.Numeric("0.00001"), llm.Pricing.InputPerToken)
-		assert.Equal(t, api.Numeric("0.00003"), llm.Pricing.OutputPerToken)
+		assert.Equal(t, apiv3models.Numeric("0.00001"), llm.Pricing.InputPerToken)
+		assert.Equal(t, apiv3models.Numeric("0.00003"), llm.Pricing.OutputPerToken)
 		assert.Nil(t, llm.Pricing.CacheReadPerToken)
 	})
 
 	t.Run("adds optional pricing fields", func(t *testing.T) {
-		var uc api.BillingFeatureUnitCost
-		err := uc.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{
+		var uc apiv3models.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureLLMUnitCost(apiv3models.BillingFeatureLLMUnitCost{
 			Provider: lo.ToPtr("openai"),
 			Model:    lo.ToPtr("gpt-4"),
 		})
 		require.NoError(t, err)
 
-		resp := &api.Feature{UnitCost: &uc}
+		resp := &apiv3models.Feature{UnitCost: &uc}
 		pricing := &llmcost.ModelPricing{
 			InputPerToken:     alpacadecimal.NewFromFloat(0.00001),
 			OutputPerToken:    alpacadecimal.NewFromFloat(0.00003),
@@ -435,17 +435,17 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 		llm, err := resp.UnitCost.AsBillingFeatureLLMUnitCost()
 		require.NoError(t, err)
 		require.NotNil(t, llm.Pricing.CacheReadPerToken)
-		assert.Equal(t, api.Numeric("0.000005"), *llm.Pricing.CacheReadPerToken)
+		assert.Equal(t, apiv3models.Numeric("0.000005"), *llm.Pricing.CacheReadPerToken)
 		require.NotNil(t, llm.Pricing.ReasoningPerToken)
-		assert.Equal(t, api.Numeric("0.00006"), *llm.Pricing.ReasoningPerToken)
+		assert.Equal(t, apiv3models.Numeric("0.00006"), *llm.Pricing.ReasoningPerToken)
 		assert.Nil(t, llm.Pricing.CacheWritePerToken)
 	})
 
 	t.Run("no-op when unit cost is manual", func(t *testing.T) {
-		var uc api.BillingFeatureUnitCost
-		err := uc.FromBillingFeatureManualUnitCost(api.BillingFeatureManualUnitCost{Amount: "0.005"})
+		var uc apiv3models.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureManualUnitCost(apiv3models.BillingFeatureManualUnitCost{Amount: "0.005"})
 		require.NoError(t, err)
-		resp := &api.Feature{UnitCost: &uc}
+		resp := &apiv3models.Feature{UnitCost: &uc}
 
 		enrichFeatureResponseWithPricing(resp, &llmcost.ModelPricing{
 			InputPerToken:  alpacadecimal.NewFromFloat(0.00001),
@@ -455,20 +455,20 @@ func TestEnrichFeatureResponseWithPricing(t *testing.T) {
 		// Manual cost should be unchanged
 		manual, err := resp.UnitCost.AsBillingFeatureManualUnitCost()
 		require.NoError(t, err)
-		assert.Equal(t, api.Numeric("0.005"), manual.Amount)
+		assert.Equal(t, apiv3models.Numeric("0.005"), manual.Amount)
 	})
 
 	t.Run("no-op when unit cost is nil", func(t *testing.T) {
-		resp := &api.Feature{}
+		resp := &apiv3models.Feature{}
 		enrichFeatureResponseWithPricing(resp, &llmcost.ModelPricing{})
 		assert.Nil(t, resp.UnitCost)
 	})
 
 	t.Run("no-op when pricing is nil", func(t *testing.T) {
-		var uc api.BillingFeatureUnitCost
-		err := uc.FromBillingFeatureLLMUnitCost(api.BillingFeatureLLMUnitCost{})
+		var uc apiv3models.BillingFeatureUnitCost
+		err := uc.FromBillingFeatureLLMUnitCost(apiv3models.BillingFeatureLLMUnitCost{})
 		require.NoError(t, err)
-		resp := &api.Feature{UnitCost: &uc}
+		resp := &apiv3models.Feature{UnitCost: &uc}
 		enrichFeatureResponseWithPricing(resp, nil)
 
 		llm, err := resp.UnitCost.AsBillingFeatureLLMUnitCost()
@@ -534,7 +534,7 @@ func TestConvertMetadataLabels(t *testing.T) {
 	})
 
 	t.Run("labels to metadata", func(t *testing.T) {
-		l := api.Labels{"x": "y"}
+		l := apiv3models.Labels{"x": "y"}
 		meta, err := labels.ToMetadata(&l)
 		assert.NoError(t, err)
 		assert.Equal(t, "y", meta["x"])

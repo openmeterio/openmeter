@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
@@ -22,7 +22,7 @@ func TestValidateMeterFilters(t *testing.T) {
 	}
 
 	t.Run("valid filters", func(t *testing.T) {
-		filters := map[string]api.QueryFilterStringMapItem{
+		filters := map[string]apiv3models.QueryFilterStringMapItem{
 			"provider": {Eq: lo.ToPtr("openai")},
 			"model":    {In: &[]string{"gpt-4", "gpt-4o"}},
 		}
@@ -32,7 +32,7 @@ func TestValidateMeterFilters(t *testing.T) {
 	})
 
 	t.Run("invalid dimension key", func(t *testing.T) {
-		filters := map[string]api.QueryFilterStringMapItem{
+		filters := map[string]apiv3models.QueryFilterStringMapItem{
 			"nonexistent": {Eq: lo.ToPtr("value")},
 		}
 
@@ -43,12 +43,12 @@ func TestValidateMeterFilters(t *testing.T) {
 	})
 
 	t.Run("empty filters", func(t *testing.T) {
-		err := validateMeterFilters(map[string]api.QueryFilterStringMapItem{}, testMeter)
+		err := validateMeterFilters(map[string]apiv3models.QueryFilterStringMapItem{}, testMeter)
 		require.NoError(t, err)
 	})
 
 	t.Run("mix of valid and invalid keys", func(t *testing.T) {
-		filters := map[string]api.QueryFilterStringMapItem{
+		filters := map[string]apiv3models.QueryFilterStringMapItem{
 			"provider": {Eq: lo.ToPtr("openai")},
 			"bad_key":  {Eq: lo.ToPtr("value")},
 		}

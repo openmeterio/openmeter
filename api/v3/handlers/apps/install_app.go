@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/app/billingprofile"
@@ -18,7 +18,7 @@ import (
 
 type (
 	InstallAppRequest  = app.InstallAppV3Input
-	InstallAppResponse = api.BillingInstallAppResponse
+	InstallAppResponse = apiv3models.BillingInstallAppResponse
 	InstallAppHandler  httptransport.Handler[InstallAppRequest, InstallAppResponse]
 )
 
@@ -30,7 +30,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 				return InstallAppRequest{}, err
 			}
 
-			var body api.InstallAppJSONRequestBody
+			var body apiv3models.InstallAppJSONRequestBody
 			if err := request.ParseBody(r, &body); err != nil {
 				return InstallAppRequest{}, err
 			}
@@ -42,7 +42,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 				})
 			}
 
-			convertedType := api.BillingAppType(discType)
+			convertedType := apiv3models.BillingAppType(discType)
 
 			if !convertedType.Valid() {
 				err := fmt.Errorf("invalid app type: %s", discType)
@@ -52,7 +52,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 				})
 			}
 
-			domainType, err := ToDomainAppTypeFromAPIBillingAppType(api.BillingAppType(discType))
+			domainType, err := ToDomainAppTypeFromAPIBillingAppType(apiv3models.BillingAppType(discType))
 			if err != nil {
 				return InstallAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{Field: "type", Reason: err.Error(), Source: apierrors.InvalidParamSourceBody},
@@ -64,7 +64,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 			}
 
 			switch convertedType {
-			case api.BillingAppTypeSandbox:
+			case apiv3models.BillingAppTypeSandbox:
 				sandbox, err := body.AsBillingInstallAppSandbox()
 				if err != nil {
 					return InstallAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -78,7 +78,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 					Name:                        sandbox.Name,
 					CreateDefaultBillingProfile: sandbox.CreateBillingProfile,
 				}, nil
-			case api.BillingAppTypeStripe:
+			case apiv3models.BillingAppTypeStripe:
 				stripe, err := body.AsBillingInstallAppStripeWithApiKey()
 				if err != nil {
 					return InstallAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -93,7 +93,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 					APIKey:                      lo.ToPtr(stripe.ApiKey),
 					CreateDefaultBillingProfile: stripe.CreateBillingProfile,
 				}, nil
-			case api.BillingAppTypeExternalInvoicing:
+			case apiv3models.BillingAppTypeExternalInvoicing:
 				externalInvoicing, err := body.AsBillingInstallAppExternalInvoicing()
 				if err != nil {
 					return InstallAppRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -122,7 +122,7 @@ func (h *handler) InstallApp() InstallAppHandler {
 				return InstallAppResponse{}, fmt.Errorf("failed to install app: %w", err)
 			}
 
-			capabilities, err := lo.MapErr(resp.DefaultCapabilies, func(c app.CapabilityType, _ int) (api.BillingAppCapabilityType, error) {
+			capabilities, err := lo.MapErr(resp.DefaultCapabilies, func(c app.CapabilityType, _ int) (apiv3models.BillingAppCapabilityType, error) {
 				return ToAPIBillingAppCapabilityTypeFromCapabilityType(c)
 			})
 			if err != nil {

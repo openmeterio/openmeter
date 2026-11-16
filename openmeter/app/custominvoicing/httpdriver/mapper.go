@@ -3,12 +3,12 @@ package httpdriver
 import (
 	"fmt"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func mapUpsertStandardInvoiceResultFromAPI(in *api.CustomInvoicingSyncResult) *billing.UpsertStandardInvoiceResult {
+func mapUpsertStandardInvoiceResultFromAPI(in *apiv1models.CustomInvoicingSyncResult) *billing.UpsertStandardInvoiceResult {
 	if in == nil {
 		return nil
 	}
@@ -38,7 +38,7 @@ func mapUpsertStandardInvoiceResultFromAPI(in *api.CustomInvoicingSyncResult) *b
 	return res
 }
 
-func mapFinalizeStandardInvoiceResultFromAPI(in api.CustomInvoicingFinalizedRequest) *billing.FinalizeStandardInvoiceResult {
+func mapFinalizeStandardInvoiceResultFromAPI(in apiv1models.CustomInvoicingFinalizedRequest) *billing.FinalizeStandardInvoiceResult {
 	res := billing.NewFinalizeStandardInvoiceResult()
 
 	if in.Invoicing != nil {
@@ -60,25 +60,25 @@ func mapFinalizeStandardInvoiceResultFromAPI(in api.CustomInvoicingFinalizedRequ
 	return res
 }
 
-func mapPaymentTriggerFromAPI(in api.CustomInvoicingPaymentTrigger) (billing.InvoiceTrigger, error) {
+func mapPaymentTriggerFromAPI(in apiv1models.CustomInvoicingPaymentTrigger) (billing.InvoiceTrigger, error) {
 	if in == "" {
 		return "", models.NewGenericValidationError(fmt.Errorf("payment trigger is required"))
 	}
 
 	// Map API trigger names to internal state machine triggers
 	switch in {
-	case api.CustomInvoicingPaymentTriggerPaid:
+	case apiv1models.CustomInvoicingPaymentTriggerPaid:
 		return billing.TriggerPaid, nil
-	case api.CustomInvoicingPaymentTriggerPaymentFailed:
+	case apiv1models.CustomInvoicingPaymentTriggerPaymentFailed:
 		// Note: API uses "payment_failed" but internal trigger is "failed"
 		return billing.TriggerFailed, nil
-	case api.CustomInvoicingPaymentTriggerPaymentUncollectible:
+	case apiv1models.CustomInvoicingPaymentTriggerPaymentUncollectible:
 		return billing.TriggerPaymentUncollectible, nil
-	case api.CustomInvoicingPaymentTriggerPaymentOverdue:
+	case apiv1models.CustomInvoicingPaymentTriggerPaymentOverdue:
 		return billing.TriggerPaymentOverdue, nil
-	case api.CustomInvoicingPaymentTriggerActionRequired:
+	case apiv1models.CustomInvoicingPaymentTriggerActionRequired:
 		return billing.TriggerActionRequired, nil
-	case api.CustomInvoicingPaymentTriggerVoid:
+	case apiv1models.CustomInvoicingPaymentTriggerVoid:
 		return billing.TriggerVoid, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("unknown payment trigger: %s", in))

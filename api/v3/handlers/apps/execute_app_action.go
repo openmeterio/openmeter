@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,7 +15,7 @@ import (
 
 type (
 	ExecuteAppActionRequest  = app.ExecuteAppActionInput
-	ExecuteAppActionResponse = api.BillingApp
+	ExecuteAppActionResponse = apiv3models.BillingApp
 	ExecuteAppActionHandler  httptransport.HandlerWithArgs[ExecuteAppActionRequest, ExecuteAppActionResponse, string]
 )
 
@@ -27,13 +27,13 @@ func (h *handler) ExecuteAppAction() ExecuteAppActionHandler {
 				return ExecuteAppActionRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			var body api.ExecuteAppActionJSONRequestBody
+			var body apiv3models.ExecuteAppActionJSONRequestBody
 			if err := request.ParseBody(r, &body); err != nil {
 				return ExecuteAppActionRequest{}, err
 			}
 
 			actionType, err := body.Discriminator()
-			if err == nil && !api.BillingAppActionType(actionType).Valid() {
+			if err == nil && !apiv3models.BillingAppActionType(actionType).Valid() {
 				err = fmt.Errorf("invalid action type: %s", actionType)
 			}
 

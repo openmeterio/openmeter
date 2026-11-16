@@ -6,9 +6,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -19,8 +19,8 @@ import (
 
 type (
 	ListFeaturesRequest  = feature.ListFeaturesParams
-	ListFeaturesResponse = response.PagePaginationResponse[api.Feature]
-	ListFeaturesParams   = api.ListFeaturesParams
+	ListFeaturesResponse = response.PagePaginationResponse[apiv3models.Feature]
+	ListFeaturesParams   = apiv3models.ListFeaturesParams
 	ListFeaturesHandler  httptransport.HandlerWithArgs[ListFeaturesRequest, ListFeaturesResponse, ListFeaturesParams]
 )
 
@@ -109,7 +109,7 @@ func (h *handler) ListFeatures() ListFeaturesHandler {
 				return ListFeaturesResponse{}, err
 			}
 
-			items := make([]api.Feature, 0, len(result.Items))
+			items := make([]apiv3models.Feature, 0, len(result.Items))
 			for _, f := range result.Items {
 				apiFeature, err := ConvertFeatureToAPI(f)
 				if err != nil {

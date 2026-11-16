@@ -8,16 +8,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
-	"github.com/openmeterio/openmeter/api/v3/models"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 )
 
 type meterServer struct {
-	v3.Unimplemented
-	params models.ListMetersParams
+	apiv3.Unimplemented
+	params apiv3models.ListMetersParams
 }
 
-func (s *meterServer) ListMeters(w http.ResponseWriter, _ *http.Request, params models.ListMetersParams) {
+func (s *meterServer) ListMeters(w http.ResponseWriter, _ *http.Request, params apiv3models.ListMetersParams) {
 	s.params = params
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -29,8 +29,8 @@ func TestListMetersBindsModelFilter(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/openmeter/meters?"+query.Encode(), nil)
 	resp := httptest.NewRecorder()
 
-	v3.Handler(server).ServeHTTP(resp, req)
+	apiv3.Handler(server).ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusNoContent, resp.Code)
-	require.Equal(t, &models.ListMetersParamsFilter{Key: &models.StringFieldFilter{Eq: &key}}, server.params.Filter)
+	require.Equal(t, &apiv3models.ListMetersParamsFilter{Key: &apiv3models.StringFieldFilter{Eq: &key}}, server.params.Filter)
 }

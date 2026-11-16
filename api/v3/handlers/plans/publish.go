@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -19,7 +19,7 @@ import (
 
 type (
 	PublishPlanRequest  = plan.PublishPlanInput
-	PublishPlanResponse = api.BillingPlan
+	PublishPlanResponse = apiv3models.BillingPlan
 	PublishPlanParams   = string
 	PublishPlanHandler  httptransport.HandlerWithArgs[PublishPlanRequest, PublishPlanResponse, PublishPlanParams]
 )

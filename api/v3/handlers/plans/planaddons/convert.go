@@ -1,18 +1,18 @@
 package planaddons
 
 import (
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func ToAPIPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
+func ToAPIPlanAddon(a planaddon.PlanAddon) (apiv3models.PlanAddon, error) {
 	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
 
-	return api.PlanAddon{
+	return apiv3models.PlanAddon{
 		Id:               a.ID,
-		Addon:            api.AddonReference{Id: a.Addon.ID},
+		Addon:            apiv3models.AddonReference{Id: a.Addon.ID},
 		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,
 		MaxQuantity:      a.PlanAddonConfig.MaxQuantity,
 		CreatedAt:        a.CreatedAt,
@@ -23,14 +23,14 @@ func ToAPIPlanAddon(a planaddon.PlanAddon) (api.PlanAddon, error) {
 	}, nil
 }
 
-func ToAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]api.ProductCatalogValidationError {
+func ToAPIProductCatalogValidationErrors(issues models.ValidationIssues) *[]apiv3models.ProductCatalogValidationError {
 	if len(issues) == 0 {
 		return nil
 	}
 
-	result := make([]api.ProductCatalogValidationError, 0, len(issues))
+	result := make([]apiv3models.ProductCatalogValidationError, 0, len(issues))
 	for _, issue := range issues {
-		result = append(result, api.ProductCatalogValidationError{
+		result = append(result, apiv3models.ProductCatalogValidationError{
 			Code:    string(issue.Code()),
 			Field:   issue.Field().JSONPath(),
 			Message: issue.Message(),

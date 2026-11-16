@@ -12,8 +12,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -23,7 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-func serveListGrants(t *testing.T, svc fakeService, params api.ListGrantsParams) *httptest.ResponseRecorder {
+func serveListGrants(t *testing.T, svc fakeService, params apiv3models.ListGrantsParams) *httptest.ResponseRecorder {
 	t.Helper()
 
 	res := httptest.NewRecorder()
@@ -41,7 +41,7 @@ func TestListGrantsHandler(t *testing.T) {
 				received = input
 				return pagination.Result[grant.Grant]{}, nil
 			},
-		}, api.ListGrantsParams{})
+		}, apiv3models.ListGrantsParams{})
 
 		require.Equal(t, http.StatusOK, res.Code, res.Body.String())
 		require.Equal(t, entitlement.ListNamespaceGrantsInput{
@@ -51,7 +51,7 @@ func TestListGrantsHandler(t *testing.T) {
 			Page:      pagination.NewPage(1, 20),
 		}, received)
 
-		var body response.PagePaginationResponse[api.BillingEntitlementGrant]
+		var body response.PagePaginationResponse[apiv3models.BillingEntitlementGrant]
 		require.NoError(t, json.Unmarshal(res.Body.Bytes(), &body))
 		require.Empty(t, body.Data)
 		require.Equal(t, 0, lo.FromPtr(body.Meta.Page.Total))
@@ -76,10 +76,10 @@ func TestListGrantsHandler(t *testing.T) {
 					TotalCount: 11,
 				}, nil
 			},
-		}, api.ListGrantsParams{
-			Page: &api.PagePaginationQuery{Number: lo.ToPtr(2), Size: lo.ToPtr(5)},
+		}, apiv3models.ListGrantsParams{
+			Page: &apiv3models.PagePaginationQuery{Number: lo.ToPtr(2), Size: lo.ToPtr(5)},
 			Sort: lo.ToPtr("effective_at desc"),
-			Filter: &api.ListGrantsParamsFilter{
+			Filter: &apiv3models.ListGrantsParamsFilter{
 				CustomerId: &filters.FilterULID{Eq: lo.ToPtr("01K4WAQ0J99ZZ0MD75HXR112H8")},
 				FeatureId:  &filters.FilterULID{Oeq: []string{"a", "01K4WAQ0J99ZZ0MD75HXR112H9"}},
 			},
@@ -97,7 +97,7 @@ func TestListGrantsHandler(t *testing.T) {
 			Page:           pagination.NewPage(2, 5),
 		}, received)
 
-		var body response.PagePaginationResponse[api.BillingEntitlementGrant]
+		var body response.PagePaginationResponse[apiv3models.BillingEntitlementGrant]
 		require.NoError(t, json.Unmarshal(res.Body.Bytes(), &body))
 		require.Len(t, body.Data, 1)
 		require.Equal(t, "01K4WAQ0J99ZZ0MD75HXR112HB", body.Data[0].Id)
@@ -107,11 +107,11 @@ func TestListGrantsHandler(t *testing.T) {
 
 	for _, tc := range []struct {
 		name   string
-		params api.ListGrantsParams
+		params apiv3models.ListGrantsParams
 		field  string
 	}{
-		{name: "rejects an invalid page", params: api.ListGrantsParams{Page: &api.PagePaginationQuery{Number: lo.ToPtr(0)}}, field: "page"},
-		{name: "rejects an unsupported sort field", params: api.ListGrantsParams{Sort: lo.ToPtr("owner_id")}, field: "sort"},
+		{name: "rejects an invalid page", params: apiv3models.ListGrantsParams{Page: &apiv3models.PagePaginationQuery{Number: lo.ToPtr(0)}}, field: "page"},
+		{name: "rejects an unsupported sort field", params: apiv3models.ListGrantsParams{Sort: lo.ToPtr("owner_id")}, field: "sort"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			res := serveListGrants(t, fakeService{
@@ -131,7 +131,7 @@ func TestListGrantsHandler(t *testing.T) {
 			listGrants: func(context.Context, entitlement.ListNamespaceGrantsInput) (pagination.Result[grant.Grant], error) {
 				return pagination.Result[grant.Grant]{}, models.NewGenericValidationError(errors.New("invalid order by"))
 			},
-		}, api.ListGrantsParams{})
+		}, apiv3models.ListGrantsParams{})
 
 		require.Equal(t, http.StatusBadRequest, res.Code)
 	})

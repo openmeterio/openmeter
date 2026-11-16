@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	v3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -14,7 +14,7 @@ import (
 
 type (
 	GetCurrencyRequest  = currencies.GetCurrencyInput
-	GetCurrencyResponse = v3.BillingCurrency
+	GetCurrencyResponse = apiv3models.BillingCurrency
 	GetCurrencyHandler  = httptransport.HandlerWithArgs[GetCurrencyRequest, GetCurrencyResponse, GetCurrencyParams]
 	GetCurrencyParams   = string
 )

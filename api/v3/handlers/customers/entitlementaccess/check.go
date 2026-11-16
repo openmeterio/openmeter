@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -15,10 +15,10 @@ import (
 
 type (
 	GetCustomerEntitlementAccessParams struct {
-		CustomerID api.ULID
+		CustomerID apiv3models.ULID
 		FeatureKey string
 	}
-	GetCustomerEntitlementAccessResponse = api.BillingEntitlementAccessCheckResult
+	GetCustomerEntitlementAccessResponse = apiv3models.BillingEntitlementAccessCheckResult
 	GetCustomerEntitlementAccessHandler  httptransport.HandlerWithArgs[entitlement.GetCustomerEntitlementAccessInput, GetCustomerEntitlementAccessResponse, GetCustomerEntitlementAccessParams]
 )
 

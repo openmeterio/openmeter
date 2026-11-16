@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -18,14 +18,14 @@ import (
 
 type (
 	CreateCustomerStripeCheckoutSessionRequest  = appstripe.CreateCheckoutSessionInput
-	CreateCustomerStripeCheckoutSessionResponse = api.BillingAppStripeCreateCheckoutSessionResult
+	CreateCustomerStripeCheckoutSessionResponse = apiv3models.BillingAppStripeCreateCheckoutSessionResult
 	CreateCustomerStripeCheckoutSessionHandler  httptransport.HandlerWithArgs[CreateCustomerStripeCheckoutSessionRequest, CreateCustomerStripeCheckoutSessionResponse, string]
 )
 
 func (h *handler) CreateCustomerStripeCheckoutSession() CreateCustomerStripeCheckoutSessionHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerIdParam string) (CreateCustomerStripeCheckoutSessionRequest, error) {
-			body := api.BillingCustomerStripeCreateCheckoutSessionRequest{}
+			body := apiv3models.BillingCustomerStripeCreateCheckoutSessionRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateCustomerStripeCheckoutSessionRequest{}, err
 			}

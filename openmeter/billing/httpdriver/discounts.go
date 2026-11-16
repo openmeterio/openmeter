@@ -3,17 +3,18 @@
 package httpdriver
 
 import (
-	"github.com/openmeterio/openmeter/api"
+	apiv1 "github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 )
 
-func AsPercentageDiscount(d api.BillingDiscountPercentage) productcatalog.PercentageDiscount {
-	return productcataloghttp.AsPercentageDiscount(api.FromBillingDiscountPercentageToDiscountPercentage(d))
+func AsPercentageDiscount(d apiv1models.BillingDiscountPercentage) productcatalog.PercentageDiscount {
+	return productcataloghttp.AsPercentageDiscount(apiv1.FromBillingDiscountPercentageToDiscountPercentage(d))
 }
 
-func AsUsageDiscount(d api.BillingDiscountUsage) (productcatalog.UsageDiscount, error) {
-	pcUsageDiscount := api.FromBillingDiscountUsageToDiscountUsage(d)
+func AsUsageDiscount(d apiv1models.BillingDiscountUsage) (productcatalog.UsageDiscount, error) {
+	pcUsageDiscount := apiv1.FromBillingDiscountUsageToDiscountUsage(d)
 
 	usageDiscount, err := productcataloghttp.AsUsageDiscount(pcUsageDiscount)
 	if err != nil {
@@ -32,21 +33,21 @@ func AsUsageDiscount(d api.BillingDiscountUsage) (productcatalog.UsageDiscount, 
 //   - Legacy billing this correlation ID is used to link discounts across progressively billed lines,
 //     but editing a progressively billed line is not allowed.
 //   - Charges only have this field for legacy compatibility, it's value doesn't matter.
-func AsDiscounts(discounts *api.BillingDiscounts) (productcatalog.Discounts, error) {
+func AsDiscounts(discounts *apiv1models.BillingDiscounts) (productcatalog.Discounts, error) {
 	out := productcatalog.Discounts{}
 	if discounts == nil {
 		return out, nil
 	}
 
 	if discounts.Percentage != nil {
-		pctDiscount := api.FromBillingDiscountPercentageToDiscountPercentage(*discounts.Percentage)
+		pctDiscount := apiv1.FromBillingDiscountPercentageToDiscountPercentage(*discounts.Percentage)
 
 		percentageDiscount := productcataloghttp.AsPercentageDiscount(pctDiscount)
 		out.Percentage = &percentageDiscount
 	}
 
 	if discounts.Usage != nil {
-		uDiscount := api.FromBillingDiscountUsageToDiscountUsage(*discounts.Usage)
+		uDiscount := apiv1.FromBillingDiscountUsageToDiscountUsage(*discounts.Usage)
 
 		usageDiscount, err := productcataloghttp.AsUsageDiscount(uDiscount)
 		if err != nil {

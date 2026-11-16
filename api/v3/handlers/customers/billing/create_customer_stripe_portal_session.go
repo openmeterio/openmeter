@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -20,9 +20,9 @@ import (
 type (
 	CreateCustomerStripePortalSessionRequest = struct {
 		customerId customer.CustomerID
-		options    api.BillingAppStripeCreateCustomerPortalSessionOptions
+		options    apiv3models.BillingAppStripeCreateCustomerPortalSessionOptions
 	}
-	CreateCustomerStripePortalSessionResponse = api.BillingAppStripeCreateCustomerPortalSessionResult
+	CreateCustomerStripePortalSessionResponse = apiv3models.BillingAppStripeCreateCustomerPortalSessionResult
 	CreateCustomerStripePortalSessionHandler  httptransport.HandlerWithArgs[CreateCustomerStripePortalSessionRequest, CreateCustomerStripePortalSessionResponse, string]
 )
 
@@ -30,7 +30,7 @@ func (h *handler) CreateCustomerStripePortalSession() CreateCustomerStripePortal
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerIdParam string) (CreateCustomerStripePortalSessionRequest, error) {
 			// Parse request body
-			body := api.BillingCustomerStripeCreateCustomerPortalSessionRequest{}
+			body := apiv3models.BillingCustomerStripeCreateCustomerPortalSessionRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateCustomerStripePortalSessionRequest{}, err
 			}

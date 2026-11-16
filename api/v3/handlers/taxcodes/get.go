@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -14,7 +14,7 @@ import (
 
 type (
 	GetTaxCodeRequest  = taxcode.GetTaxCodeInput
-	GetTaxCodeResponse = api.BillingTaxCode
+	GetTaxCodeResponse = apiv3models.BillingTaxCode
 	GetTaxCodeParams   = string
 	GetTaxCodeHandler  httptransport.HandlerWithArgs[GetTaxCodeRequest, GetTaxCodeResponse, GetTaxCodeParams]
 )

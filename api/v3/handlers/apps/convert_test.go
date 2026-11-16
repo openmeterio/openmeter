@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -34,7 +34,7 @@ func TestToAPIBillingAppActions(t *testing.T) {
 
 		require.NotNil(t, apiApp.Actions)
 		require.Len(t, *apiApp.Actions, 1)
-		require.Equal(t, api.BillingAppActionTypeReconcileWebhookEvents, (*apiApp.Actions)[0].Type)
+		require.Equal(t, apiv3models.BillingAppActionTypeReconcileWebhookEvents, (*apiApp.Actions)[0].Type)
 	})
 
 	t.Run("apps without actions omit the field", func(t *testing.T) {

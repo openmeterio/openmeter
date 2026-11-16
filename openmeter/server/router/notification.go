@@ -3,12 +3,12 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 )
 
 // List notification channels
 // (GET /api/v1/notification/channels)
-func (a *Router) ListNotificationChannels(w http.ResponseWriter, r *http.Request, params api.ListNotificationChannelsParams) {
+func (a *Router) ListNotificationChannels(w http.ResponseWriter, r *http.Request, params apiv1models.ListNotificationChannelsParams) {
 	a.notificationHandler.ListChannels().With(params).ServeHTTP(w, r)
 }
 
@@ -38,7 +38,7 @@ func (a *Router) UpdateNotificationChannel(w http.ResponseWriter, r *http.Reques
 
 // List notification evens
 // (GET /api/v1/notification/events)
-func (a *Router) ListNotificationEvents(w http.ResponseWriter, r *http.Request, params api.ListNotificationEventsParams) {
+func (a *Router) ListNotificationEvents(w http.ResponseWriter, r *http.Request, params apiv1models.ListNotificationEventsParams) {
 	a.notificationHandler.ListEvents().With(params).ServeHTTP(w, r)
 }
 
@@ -56,7 +56,7 @@ func (a *Router) ResendNotificationEvent(w http.ResponseWriter, r *http.Request,
 
 // List notification rules
 // (GET /api/v1/notification/rules)
-func (a *Router) ListNotificationRules(w http.ResponseWriter, r *http.Request, params api.ListNotificationRulesParams) {
+func (a *Router) ListNotificationRules(w http.ResponseWriter, r *http.Request, params apiv1models.ListNotificationRulesParams) {
 	a.notificationHandler.ListRules().With(params).ServeHTTP(w, r)
 }
 

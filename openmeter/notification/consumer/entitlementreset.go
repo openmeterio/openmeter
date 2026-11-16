@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	customerconvert "github.com/openmeterio/openmeter/openmeter/customer/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementconvert "github.com/openmeterio/openmeter/openmeter/entitlement/apiconvert"
@@ -130,7 +130,7 @@ func (b *EntitlementSnapshotHandler) createResetEvent(ctx context.Context, in cr
 		Entitlement: *entitlementAPIEntity,
 		Feature:     featureResp,
 		Subject:     subjectconvert.ToAPISubject(in.Snapshot.Subject),
-		Value:       apimodels.EntitlementValue(*in.Snapshot.Value),
+		Value:       apiv1models.EntitlementValue(*in.Snapshot.Value),
 	}
 
 	// TODO(OM-1508): As we're reusing the same event version, we need to add this temporary check

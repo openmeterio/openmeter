@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -18,14 +18,14 @@ import (
 
 type (
 	CreatePlanRequest  = plan.CreatePlanInput
-	CreatePlanResponse = api.BillingPlan
+	CreatePlanResponse = apiv3models.BillingPlan
 	CreatePlanHandler  httptransport.Handler[CreatePlanRequest, CreatePlanResponse]
 )
 
 func (h *handler) CreatePlan() CreatePlanHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreatePlanRequest, error) {
-			body := api.CreatePlanRequest{}
+			body := apiv3models.CreatePlanRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreatePlanRequest{}, err
 			}

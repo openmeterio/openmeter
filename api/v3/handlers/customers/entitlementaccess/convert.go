@@ -6,17 +6,17 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 )
 
-func mapEntitlementAccessCheckToAPI(access entitlement.CustomerEntitlementAccess) (api.BillingEntitlementAccessCheckResult, error) {
-	result := api.BillingEntitlementAccessCheckResult{HasAccess: access.Value.HasAccess()}
+func mapEntitlementAccessCheckToAPI(access entitlement.CustomerEntitlementAccess) (apiv3models.BillingEntitlementAccessCheckResult, error) {
+	result := apiv3models.BillingEntitlementAccessCheckResult{HasAccess: access.Value.HasAccess()}
 	if access.Type != "" {
-		result.Type = lo.ToPtr(api.BillingEntitlementType(access.Type))
+		result.Type = lo.ToPtr(apiv3models.BillingEntitlementType(access.Type))
 	}
 
 	switch value := access.Value.(type) {
@@ -24,26 +24,26 @@ func mapEntitlementAccessCheckToAPI(access entitlement.CustomerEntitlementAccess
 	case *staticentitlement.StaticEntitlementValue:
 		result.Config = &value.Config
 	default:
-		return api.BillingEntitlementAccessCheckResult{}, errors.New("unknown entitlement type")
+		return apiv3models.BillingEntitlementAccessCheckResult{}, errors.New("unknown entitlement type")
 	}
 
 	return result, nil
 }
 
-func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, expands ...api.BillingEntitlementAccessExpand) (api.BillingEntitlementValueResult, error) {
+func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, expands ...apiv3models.BillingEntitlementAccessExpand) (apiv3models.BillingEntitlementValueResult, error) {
 	if access.Type == "" {
-		return api.BillingEntitlementValueResult{}, errors.New("entitlement type is required for value result")
+		return apiv3models.BillingEntitlementValueResult{}, errors.New("entitlement type is required for value result")
 	}
 
-	result := api.BillingEntitlementValueResult{
+	result := apiv3models.BillingEntitlementValueResult{
 		FeatureKey: access.FeatureKey,
-		Type:       api.BillingEntitlementType(access.Type),
+		Type:       apiv3models.BillingEntitlementType(access.Type),
 		HasAccess:  access.Value.HasAccess(),
 	}
 
 	switch value := access.Value.(type) {
 	case *meteredentitlement.MeteredEntitlementValue:
-		if lo.Contains(expands, api.BillingEntitlementAccessExpandValue) {
+		if lo.Contains(expands, apiv3models.BillingEntitlementAccessExpandValue) {
 			result.Value = lo.ToPtr(mapMeteredEntitlementValueToAPI(value))
 		}
 	case *staticentitlement.StaticEntitlementValue:
@@ -51,19 +51,19 @@ func mapEntitlementAccessToAPI(access entitlement.CustomerEntitlementAccess, exp
 	case *booleanentitlement.BooleanEntitlementValue:
 	case *entitlement.NoAccessValue:
 	default:
-		return api.BillingEntitlementValueResult{}, errors.New("unknown entitlement type")
+		return apiv3models.BillingEntitlementValueResult{}, errors.New("unknown entitlement type")
 	}
 
 	return result, nil
 }
 
-func mapMeteredEntitlementValueToAPI(value *meteredentitlement.MeteredEntitlementValue) api.BillingEntitlementAccessValue {
-	grantBalances := make(map[string]api.Numeric, len(value.GrantBalances))
+func mapMeteredEntitlementValueToAPI(value *meteredentitlement.MeteredEntitlementValue) apiv3models.BillingEntitlementAccessValue {
+	grantBalances := make(map[string]apiv3models.Numeric, len(value.GrantBalances))
 	for grantID, balance := range value.GrantBalances {
 		grantBalances[grantID] = alpacadecimal.NewFromFloat(balance).String()
 	}
 
-	return api.BillingEntitlementAccessValue{
+	return apiv3models.BillingEntitlementAccessValue{
 		Balance:                   alpacadecimal.NewFromFloat(value.Balance).String(),
 		Usage:                     alpacadecimal.NewFromFloat(value.UsageInPeriod).String(),
 		Overage:                   alpacadecimal.NewFromFloat(value.Overage).String(),

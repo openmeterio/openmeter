@@ -6,9 +6,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -22,9 +22,9 @@ type (
 	ListPlanAddonsRequest = planaddon.ListPlanAddonsInput
 	ListPlanAddonsParams  struct {
 		PlanID string
-		Params api.ListPlanAddonsParams
+		Params apiv3models.ListPlanAddonsParams
 	}
-	ListPlanAddonsResponse = response.PagePaginationResponse[api.PlanAddon]
+	ListPlanAddonsResponse = response.PagePaginationResponse[apiv3models.PlanAddon]
 	ListPlanAddonsHandler  httptransport.HandlerWithArgs[ListPlanAddonsRequest, ListPlanAddonsResponse, ListPlanAddonsParams]
 )
 
@@ -137,7 +137,7 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				return ListPlanAddonsResponse{}, err
 			}
 
-			items := make([]api.PlanAddon, 0, len(result.Items))
+			items := make([]apiv3models.PlanAddon, 0, len(result.Items))
 			for _, a := range result.Items {
 				planAddon, err := ToAPIPlanAddon(a)
 				if err != nil {

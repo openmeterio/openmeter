@@ -8,8 +8,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -58,22 +58,22 @@ func formatProviderName(id string) string {
 	return strings.Join(words, " ")
 }
 
-func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {
+func domainPriceToAPI(p llmcost.Price) apiv3models.LLMCostPrice {
 	// Map internal source to API source: manual stays manual, everything else is system.
-	source := api.LLMCostPriceSourceSystem
+	source := apiv3models.LLMCostPriceSourceSystem
 	if p.Source == llmcost.PriceSourceManual {
-		source = api.LLMCostPriceSourceManual
+		source = apiv3models.LLMCostPriceSourceManual
 	}
 
 	providerID := string(p.Provider)
 
-	out := api.LLMCostPrice{
+	out := apiv3models.LLMCostPrice{
 		Id: p.ID,
-		Provider: api.LLMCostProvider{
+		Provider: apiv3models.LLMCostProvider{
 			Id:   providerID,
 			Name: formatProviderName(providerID),
 		},
-		Model: api.LLMCostModel{
+		Model: apiv3models.LLMCostModel{
 			Id:   p.ModelID,
 			Name: p.ModelName,
 		},
@@ -90,8 +90,8 @@ func domainPriceToAPI(p llmcost.Price) api.LLMCostPrice {
 	return out
 }
 
-func domainPricingToAPI(p llmcost.ModelPricing) api.LLMCostModelPricing {
-	out := api.LLMCostModelPricing{
+func domainPricingToAPI(p llmcost.ModelPricing) apiv3models.LLMCostModelPricing {
+	out := apiv3models.LLMCostModelPricing{
 		InputPerToken:  p.InputPerToken.String(),
 		OutputPerToken: p.OutputPerToken.String(),
 	}
@@ -111,7 +111,7 @@ func domainPricingToAPI(p llmcost.ModelPricing) api.LLMCostModelPricing {
 	return out
 }
 
-func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error) {
+func apiPricingToDomain(p apiv3models.LLMCostModelPricing) (llmcost.ModelPricing, error) {
 	inputPerToken, err := decimalFromString(p.InputPerToken)
 	if err != nil {
 		return llmcost.ModelPricing{}, models.NewGenericValidationError(
@@ -167,7 +167,7 @@ func apiPricingToDomain(p api.LLMCostModelPricing) (llmcost.ModelPricing, error)
 	return out, nil
 }
 
-func apiCreateOverrideToDomain(ns string, body api.LLMCostOverrideCreate) (llmcost.CreateOverrideInput, error) {
+func apiCreateOverrideToDomain(ns string, body apiv3models.LLMCostOverrideCreate) (llmcost.CreateOverrideInput, error) {
 	pricing, err := apiPricingToDomain(body.Pricing)
 	if err != nil {
 		return llmcost.CreateOverrideInput{}, err

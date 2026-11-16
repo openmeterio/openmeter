@@ -6,16 +6,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestEventAsPayload(t *testing.T) {
-	invoice := &notification.InvoicePayload{Invoice: apimodels.Invoice{Id: "inv-1"}}
-	reset := &notification.EntitlementResetPayload{Subject: apimodels.Subject{Key: "subject-1"}}
+	invoice := &notification.InvoicePayload{Invoice: apiv1models.Invoice{Id: "inv-1"}}
+	reset := &notification.EntitlementResetPayload{Subject: apiv1models.Subject{Key: "subject-1"}}
 	threshold := &notification.BalanceThresholdPayload{
-		Threshold: apimodels.NotificationRuleBalanceThresholdValue{Type: apimodels.NotificationRuleBalanceThresholdValueTypeUsageValue, Value: 80},
+		Threshold: apiv1models.NotificationRuleBalanceThresholdValue{Type: apiv1models.NotificationRuleBalanceThresholdValueTypeUsageValue, Value: 80},
 	}
 
 	tests := []struct {

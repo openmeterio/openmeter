@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	models "github.com/openmeterio/openmeter/pkg/models"
@@ -13,7 +13,7 @@ import (
 
 type (
 	UnscheduleCancelationRequest  = models.NamespacedID
-	UnscheduleCancelationResponse = api.BillingSubscription
+	UnscheduleCancelationResponse = apiv3models.BillingSubscription
 	UnscheduleCancelationParams   = string
 	UnscheduleCancelationHandler  httptransport.HandlerWithArgs[UnscheduleCancelationRequest, UnscheduleCancelationResponse, UnscheduleCancelationParams]
 )

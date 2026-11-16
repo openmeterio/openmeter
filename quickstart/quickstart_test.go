@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 )
 
@@ -53,7 +53,7 @@ func openmeterV3Address(t *testing.T) string {
 	return openmeterAddress(t) + "/api/v3"
 }
 
-func createMeterV3(t *testing.T, address string, body apiv3.CreateMeterRequest) *apiv3.Meter {
+func createMeterV3(t *testing.T, address string, body apiv3models.CreateMeterRequest) *apiv3models.Meter {
 	t.Helper()
 
 	payload, err := json.Marshal(body)
@@ -76,13 +76,13 @@ func createMeterV3(t *testing.T, address string, body apiv3.CreateMeterRequest) 
 	require.NoError(t, err)
 	require.Equal(t, http.StatusCreated, resp.StatusCode, "Invalid status code [response_body=%s]", string(responseBody))
 
-	var created apiv3.Meter
+	var created apiv3models.Meter
 	require.NoError(t, json.Unmarshal(responseBody, &created))
 
 	return &created
 }
 
-func queryMeterV3(t require.TestingT, address string, meterID string, body apiv3.MeterQueryRequest) *apiv3.MeterQueryResult {
+func queryMeterV3(t require.TestingT, address string, meterID string, body apiv3models.MeterQueryRequest) *apiv3models.MeterQueryResult {
 	if helper, ok := any(t).(interface{ Helper() }); ok {
 		helper.Helper()
 	}
@@ -107,7 +107,7 @@ func queryMeterV3(t require.TestingT, address string, meterID string, body apiv3
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode, "Invalid status code [response_body=%s]", string(responseBody))
 
-	var result apiv3.MeterQueryResult
+	var result apiv3models.MeterQueryResult
 	require.NoError(t, json.Unmarshal(responseBody, &result))
 
 	return &result
@@ -138,10 +138,10 @@ func TestQuickstart(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, v1CreateResp.StatusCode(), "Invalid status code [response_body=%s]", string(v1CreateResp.Body))
 
-	v3Meter := createMeterV3(t, v3Address, apiv3.CreateMeterRequest{
+	v3Meter := createMeterV3(t, v3Address, apiv3models.CreateMeterRequest{
 		Key:         v3MeterKey,
 		Name:        "Quickstart V3 Meter",
-		Aggregation: apiv3.MeterAggregationCount,
+		Aggregation: apiv3models.MeterAggregationCount,
 		EventType:   "request",
 		Dimensions: &map[string]string{
 			"method": "$.method",
@@ -232,18 +232,18 @@ func TestQuickstart(t *testing.T) {
 
 	t.Run("v3", func(t *testing.T) {
 		assert.EventuallyWithT(t, func(t *assert.CollectT) {
-			granularity := apiv3.MeterQueryGranularity("PT1H")
-			resp := queryMeterV3(t, v3Address, v3Meter.Id, apiv3.MeterQueryRequest{
+			granularity := apiv3models.MeterQueryGranularity("PT1H")
+			resp := queryMeterV3(t, v3Address, v3Meter.Id, apiv3models.MeterQueryRequest{
 				Granularity: &granularity,
 			})
 
 			require.Len(t, resp.Data, 2)
 			assert.WithinDuration(t, yesterday, resp.Data[0].From, 0)
 			assert.WithinDuration(t, yesterday.Add(time.Hour), resp.Data[0].To, 0)
-			assert.Equal(t, apiv3.Numeric("2"), resp.Data[0].Value)
+			assert.Equal(t, apiv3models.Numeric("2"), resp.Data[0].Value)
 			assert.WithinDuration(t, today, resp.Data[1].From, 0)
 			assert.WithinDuration(t, today.Add(time.Hour), resp.Data[1].To, 0)
-			assert.Equal(t, apiv3.Numeric("1"), resp.Data[1].Value)
+			assert.Equal(t, apiv3models.Numeric("1"), resp.Data[1].Value)
 		}, 30*time.Second, time.Second)
 	})
 }

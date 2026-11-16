@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -19,9 +19,9 @@ const (
 )
 
 type (
-	QueryEntitlementAccessParams   = apiv3.QueryEntitlementAccessParams
+	QueryEntitlementAccessParams   = apiv3models.QueryEntitlementAccessParams
 	QueryEntitlementAccessRequest  = entitlementaccess.QueryInput
-	QueryEntitlementAccessResponse = apiv3.EntitlementAccessQueryResponse
+	QueryEntitlementAccessResponse = apiv3models.EntitlementAccessQueryResponse
 	QueryEntitlementAccessHandler  = httptransport.HandlerWithArgs[QueryEntitlementAccessRequest, QueryEntitlementAccessResponse, QueryEntitlementAccessParams]
 )
 
@@ -33,7 +33,7 @@ func (h *handler) QueryEntitlementAccess() QueryEntitlementAccessHandler {
 				return QueryEntitlementAccessRequest{}, err
 			}
 
-			var body apiv3.EntitlementAccessQueryRequest
+			var body apiv3models.EntitlementAccessQueryRequest
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return QueryEntitlementAccessRequest{}, err

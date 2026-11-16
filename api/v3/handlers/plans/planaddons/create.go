@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -17,7 +17,7 @@ import (
 
 type (
 	CreatePlanAddonRequest  = planaddon.CreatePlanAddonInput
-	CreatePlanAddonResponse = api.PlanAddon
+	CreatePlanAddonResponse = apiv3models.PlanAddon
 	CreatePlanAddonParams   = string
 	CreatePlanAddonHandler  httptransport.HandlerWithArgs[CreatePlanAddonRequest, CreatePlanAddonResponse, CreatePlanAddonParams]
 )
@@ -25,7 +25,7 @@ type (
 func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, planID CreatePlanAddonParams) (CreatePlanAddonRequest, error) {
-			body := api.CreatePlanAddonRequest{}
+			body := apiv3models.CreatePlanAddonRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreatePlanAddonRequest{}, err
 			}

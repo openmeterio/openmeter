@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/portal/authenticator"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -16,7 +16,7 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/v1/portal/tokens
-func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params api.ListPortalTokensParams) {
+func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params apiv1models.ListPortalTokensParams) {
 	a.portalHandler.ListTokens().With(params).ServeHTTP(w, r)
 }
 
@@ -27,7 +27,7 @@ func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) 
 
 // TODO: migrate to http handler
 // GET /api/v1/portal/meters/{meterSlug}/query
-func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.QueryPortalMeterParams) {
+func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params apiv1models.QueryPortalMeterParams) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "queryPortalMeter")
 	ctx = contextx.WithAttr(ctx, "meterSlug", meterSlug)
 	ctx = contextx.WithAttr(ctx, "params", params) // TODO: we should probable NOT add this to the context
@@ -40,7 +40,7 @@ func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterS
 		return
 	}
 
-	a.QueryMeter(w, r, meterSlug, api.QueryMeterParams{
+	a.QueryMeter(w, r, meterSlug, apiv1models.QueryMeterParams{
 		From:           params.From,
 		To:             params.To,
 		FilterGroupBy:  params.FilterGroupBy,

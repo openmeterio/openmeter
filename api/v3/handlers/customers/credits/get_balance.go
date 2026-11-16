@@ -8,8 +8,8 @@ import (
 
 	"github.com/samber/mo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
@@ -27,10 +27,10 @@ type (
 		RetrievedAt    time.Time
 		HistoricalAsOf *time.Time
 	}
-	GetCustomerCreditBalanceResponse = api.BillingCreditBalances
+	GetCustomerCreditBalanceResponse = apiv3models.BillingCreditBalances
 	GetCustomerCreditBalanceParams   struct {
-		CustomerID api.ULID
-		Params     api.GetCustomerCreditBalanceParams
+		CustomerID apiv3models.ULID
+		Params     apiv3models.GetCustomerCreditBalanceParams
 	}
 	GetCustomerCreditBalanceHandler httptransport.HandlerWithArgs[GetCustomerCreditBalanceRequest, GetCustomerCreditBalanceResponse, GetCustomerCreditBalanceParams]
 )
@@ -114,7 +114,7 @@ func (h *handler) GetCustomerCreditBalance() GetCustomerCreditBalanceHandler {
 				return GetCustomerCreditBalanceResponse{}, err
 			}
 
-			balances := make([]api.CreditBalance, 0, len(balancesByCurrency))
+			balances := make([]apiv3models.CreditBalance, 0, len(balancesByCurrency))
 			for _, item := range balancesByCurrency {
 				balances = append(balances, toAPICreditBalance(item.CurrencyReference(), item.Balance))
 			}

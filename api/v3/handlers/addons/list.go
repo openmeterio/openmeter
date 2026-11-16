@@ -7,9 +7,9 @@ import (
 
 	"github.com/samber/lo"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -21,8 +21,8 @@ import (
 
 type (
 	ListAddonsRequest  = addon.ListAddonsInput
-	ListAddonsResponse = response.PagePaginationResponse[apiv3.Addon]
-	ListAddonsParams   = apiv3.ListAddonsParams
+	ListAddonsResponse = response.PagePaginationResponse[apiv3models.Addon]
+	ListAddonsParams   = apiv3models.ListAddonsParams
 	ListAddonsHandler  httptransport.HandlerWithArgs[ListAddonsRequest, ListAddonsResponse, ListAddonsParams]
 )
 
@@ -125,7 +125,7 @@ func (h *handler) ListAddons() ListAddonsHandler {
 				return ListAddonsResponse{}, fmt.Errorf("failed to list add-ons: %w", err)
 			}
 
-			items := make([]apiv3.Addon, 0, len(resp.Items))
+			items := make([]apiv3models.Addon, 0, len(resp.Items))
 			for _, a := range resp.Items {
 				apiAddon, err := ToAPIAddon(a)
 				if err != nil {

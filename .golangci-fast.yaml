@@ -6,6 +6,7 @@ linters:
     - bodyclose
     - errcheck
     - govet
+    - importas
     - ineffassign
     - misspell
     - nolintlint
@@ -14,6 +15,17 @@ linters:
     - unconvert
     - wsl_v5
   settings:
+    importas:
+      no-unaliased: true
+      alias:
+        - pkg: 'github\.com/openmeterio/openmeter/api'
+          alias: apiv1
+        - pkg: 'github\.com/openmeterio/openmeter/api/models'
+          alias: apiv1models
+        - pkg: 'github\.com/openmeterio/openmeter/api/v3'
+          alias: apiv3
+        - pkg: 'github\.com/openmeterio/openmeter/api/v3/models'
+          alias: apiv3models
     wsl_v5:
       # Keep assignment and defer grouping discretionary.
       default: none

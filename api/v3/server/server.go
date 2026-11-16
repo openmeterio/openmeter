@@ -13,7 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	addonshandler "github.com/openmeterio/openmeter/api/v3/handlers/addons"
 	appshandler "github.com/openmeterio/openmeter/api/v3/handlers/apps"
@@ -291,7 +291,7 @@ type Server struct {
 }
 
 // Make sure we conform to ServerInterface
-var _ api.ServerInterface = (*Server)(nil)
+var _ apiv3.ServerInterface = (*Server)(nil)
 
 func NewServer(config *Config) (*Server, error) {
 	if err := config.Validate(); err != nil {
@@ -299,7 +299,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Get the OpenAPI spec
-	swagger, err := api.GetSpec()
+	swagger, err := apiv3.GetSpec()
 	if err != nil {
 		slog.Error("failed to get swagger", "error", err)
 		return nil, err
@@ -460,7 +460,7 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 			_ = render.RenderYAML(w, s.swagger)
 		})
 
-		middlewares := []api.MiddlewareFunc{
+		middlewares := []apiv3.MiddlewareFunc{
 			validationMiddleware,
 		}
 
@@ -486,13 +486,13 @@ func (s *Server) RegisterRoutes(r chi.Router) error {
 			}))
 		}
 
-		postAuthMiddlewares := lo.Map(s.PostAuthMiddlewares, func(mwf server.MiddlewareFunc, _ int) api.MiddlewareFunc {
-			return api.MiddlewareFunc(mwf)
+		postAuthMiddlewares := lo.Map(s.PostAuthMiddlewares, func(mwf server.MiddlewareFunc, _ int) apiv3.MiddlewareFunc {
+			return apiv3.MiddlewareFunc(mwf)
 		})
 
 		middlewares = append(middlewares, postAuthMiddlewares...)
 
-		_ = api.HandlerWithOptions(s, api.ChiServerOptions{
+		_ = apiv3.HandlerWithOptions(s, apiv3.ChiServerOptions{
 			BaseRouter:       r,
 			Middlewares:      middlewares,
 			ErrorHandlerFunc: apierrors.NewV3ErrorHandlerFunc(s.ErrorHandler),

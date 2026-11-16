@@ -3,13 +3,13 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/httpdriver"
 )
 
 // List all available add-ons for plan
 // (GET /api/v1/plans/{planId}/addons)
-func (a *Router) ListPlanAddons(w http.ResponseWriter, r *http.Request, planId string, params api.ListPlanAddonsParams) {
+func (a *Router) ListPlanAddons(w http.ResponseWriter, r *http.Request, planId string, params apiv1models.ListPlanAddonsParams) {
 	a.planAddonHandler.ListPlanAddons().With(httpdriver.ListPlanAddonsParams{
 		ListPlanAddonsParams: params,
 		PlanIDOrKey:          planId,

@@ -6,9 +6,9 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,9 +34,9 @@ func FromAPIChannelSortField(ctx context.Context, field string) (notification.Or
 }
 
 // ToDomainChannelType validates the V3 type before it reaches service inputs or filters.
-func ToDomainChannelType(v api.BillingNotificationChannelType) (notification.ChannelType, error) {
+func ToDomainChannelType(v apiv3models.BillingNotificationChannelType) (notification.ChannelType, error) {
 	switch v {
-	case api.BillingNotificationChannelTypeWebhook:
+	case apiv3models.BillingNotificationChannelTypeWebhook:
 		return notification.ChannelTypeWebhook, nil
 	default:
 		return "", models.NewGenericValidationError(fmt.Errorf("invalid notification channel type: %s", v))
@@ -44,23 +44,23 @@ func ToDomainChannelType(v api.BillingNotificationChannelType) (notification.Cha
 }
 
 // ToAPIChannelType maps the domain ChannelType to the v3 wire-format channel type.
-func ToAPIChannelType(v notification.ChannelType) (api.BillingNotificationChannelType, error) {
+func ToAPIChannelType(v notification.ChannelType) (apiv3models.BillingNotificationChannelType, error) {
 	switch v {
 	case notification.ChannelTypeWebhook:
-		return api.BillingNotificationChannelTypeWebhook, nil
+		return apiv3models.BillingNotificationChannelTypeWebhook, nil
 	default:
 		return "", fmt.Errorf("invalid notification channel type: %s", v)
 	}
 }
 
 // ToAPIChannel maps a domain Channel to its v3 API representation.
-func ToAPIChannel(c notification.Channel) (api.BillingNotificationChannel, error) {
+func ToAPIChannel(c notification.Channel) (apiv3models.BillingNotificationChannel, error) {
 	apiType, err := ToAPIChannelType(c.Type)
 	if err != nil {
-		return api.BillingNotificationChannel{}, err
+		return apiv3models.BillingNotificationChannel{}, err
 	}
 
-	channel := api.BillingNotificationChannel{
+	channel := apiv3models.BillingNotificationChannel{
 		Id:        c.ID,
 		Name:      c.Name,
 		Type:      apiType,
@@ -85,7 +85,7 @@ func ToAPIChannel(c notification.Channel) (api.BillingNotificationChannel, error
 }
 
 // FromAPICreateChannelRequest maps a v3 create request body to the domain input.
-func FromAPICreateChannelRequest(ns string, body api.CreateNotificationChannelRequest) (notification.CreateChannelInput, error) {
+func FromAPICreateChannelRequest(ns string, body apiv3models.CreateNotificationChannelRequest) (notification.CreateChannelInput, error) {
 	domainType, err := ToDomainChannelType(body.Type)
 	if err != nil {
 		return notification.CreateChannelInput{}, err
@@ -119,7 +119,7 @@ func FromAPICreateChannelRequest(ns string, body api.CreateNotificationChannelRe
 // the wire, while an omitted disabled/labels/custom_headers resets the field. An
 // omitted signing_secret maps to the empty string, which the service layer treats
 // as "keep the current secret" — the credential is never cleared by omission.
-func FromAPIUpdateChannelRequest(ns string, id string, body api.UpdateBillingNotificationChannelRequest) (notification.UpdateChannelInput, error) {
+func FromAPIUpdateChannelRequest(ns string, id string, body apiv3models.UpdateBillingNotificationChannelRequest) (notification.UpdateChannelInput, error) {
 	ma, err := labels.ToMetadataAnnotations(body.Labels)
 	if err != nil {
 		return notification.UpdateChannelInput{}, err
@@ -163,7 +163,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 	mapped := *f
 
 	if f.Eq != nil {
-		v, err := ToDomainChannelType(api.BillingNotificationChannelType(*f.Eq))
+		v, err := ToDomainChannelType(apiv3models.BillingNotificationChannelType(*f.Eq))
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +172,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 	}
 
 	if f.Ne != nil {
-		v, err := ToDomainChannelType(api.BillingNotificationChannelType(*f.Ne))
+		v, err := ToDomainChannelType(apiv3models.BillingNotificationChannelType(*f.Ne))
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +183,7 @@ func mapAPIChannelTypeFilter(f *filter.FilterString) (*filter.FilterString, erro
 	if f.In != nil {
 		values := make([]string, 0, len(*f.In))
 		for _, raw := range *f.In {
-			v, err := ToDomainChannelType(api.BillingNotificationChannelType(raw))
+			v, err := ToDomainChannelType(apiv3models.BillingNotificationChannelType(raw))
 			if err != nil {
 				return nil, err
 			}

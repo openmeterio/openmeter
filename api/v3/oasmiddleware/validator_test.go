@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 )
 
@@ -19,7 +19,7 @@ import (
 // GET /openmeter/addons requires a 200 body with both "data" and "meta" fields.
 // Returning {} omits both required fields and must trigger a violation.
 func TestValidateResponse_Violation(t *testing.T) {
-	swagger, err := api.GetSpec()
+	swagger, err := apiv3.GetSpec()
 	require.NoError(t, err)
 
 	swagger.Servers = nil
@@ -53,7 +53,7 @@ func TestValidateResponse_Violation(t *testing.T) {
 
 // TestValidateResponse_Clean proves that a well-formed response does not trigger the error hook.
 func TestValidateResponse_Clean(t *testing.T) {
-	swagger, err := api.GetSpec()
+	swagger, err := apiv3.GetSpec()
 	require.NoError(t, err)
 
 	swagger.Servers = nil
@@ -89,7 +89,7 @@ func TestValidateResponse_Clean(t *testing.T) {
 // The filter is the per-route gate that lets callers (e.g. unstable-only mode) avoid the
 // buffering overhead on routes they don't care about.
 func TestValidateResponse_RouteFilterSkipsValidation(t *testing.T) {
-	swagger, err := api.GetSpec()
+	swagger, err := apiv3.GetSpec()
 	require.NoError(t, err)
 
 	swagger.Servers = nil

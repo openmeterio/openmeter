@@ -10,7 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/meters/query"
 	"github.com/openmeterio/openmeter/api/v3/labels"
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,7 +35,7 @@ var (
 	// goverter:map EventsFrom EventFrom
 	// goverter:ignore Annotations
 	// goverter:ignore inputOptions
-	FromAPICreateMeterRequest func(namespace string, createMeterRequest api.CreateMeterRequest) (meter.CreateMeterInput, error)
+	FromAPICreateMeterRequest func(namespace string, createMeterRequest apiv3models.CreateMeterRequest) (meter.CreateMeterInput, error)
 	// goverter:map GroupBy Dimensions
 	// goverter:map EventFrom EventsFrom
 	// goverter:map ManagedResource.ID Id
@@ -45,13 +45,13 @@ var (
 	// goverter:map ManagedResource.ManagedModel.UpdatedAt UpdatedAt
 	// goverter:map ManagedResource.ManagedModel.DeletedAt DeletedAt
 	// goverter:map . Labels | ConvertMetadataAnnotationsToLabels
-	ToAPIMeter                      func(meter.Meter) api.Meter
-	ToAPIMeterPagePaginatedResponse func(meters response.PagePaginationResponse[meter.Meter]) api.MeterPagePaginatedResponse
+	ToAPIMeter                      func(meter.Meter) apiv3models.Meter
+	ToAPIMeterPagePaginatedResponse func(meters response.PagePaginationResponse[meter.Meter]) apiv3models.MeterPagePaginatedResponse
 )
 
 var ConvertLabelsToMetadata = labels.ToMetadata
 
-func ConvertMetadataAnnotationsToLabels(source meter.Meter) *api.Labels {
+func ConvertMetadataAnnotationsToLabels(source meter.Meter) *apiv3models.Labels {
 	return labels.FromMetadataAnnotations(source.Metadata, source.Annotations)
 }
 
@@ -60,42 +60,42 @@ func NamespaceFromContext(namespace string) string {
 	return namespace
 }
 
-func ToAPIMeterAggregation(aggregation meter.MeterAggregation) api.MeterAggregation {
+func ToAPIMeterAggregation(aggregation meter.MeterAggregation) apiv3models.MeterAggregation {
 	switch aggregation {
 	case meter.MeterAggregationSum:
-		return api.MeterAggregationSum
+		return apiv3models.MeterAggregationSum
 	case meter.MeterAggregationCount:
-		return api.MeterAggregationCount
+		return apiv3models.MeterAggregationCount
 	case meter.MeterAggregationUniqueCount:
-		return api.MeterAggregationUniqueCount
+		return apiv3models.MeterAggregationUniqueCount
 	case meter.MeterAggregationAvg:
-		return api.MeterAggregationAvg
+		return apiv3models.MeterAggregationAvg
 	case meter.MeterAggregationMin:
-		return api.MeterAggregationMin
+		return apiv3models.MeterAggregationMin
 	case meter.MeterAggregationMax:
-		return api.MeterAggregationMax
+		return apiv3models.MeterAggregationMax
 	case meter.MeterAggregationLatest:
-		return api.MeterAggregationLatest
+		return apiv3models.MeterAggregationLatest
 	}
 
-	return api.MeterAggregation("")
+	return apiv3models.MeterAggregation("")
 }
 
-func FromAPIMeterAggregation(aggregation api.MeterAggregation) meter.MeterAggregation {
+func FromAPIMeterAggregation(aggregation apiv3models.MeterAggregation) meter.MeterAggregation {
 	switch aggregation {
-	case api.MeterAggregationSum:
+	case apiv3models.MeterAggregationSum:
 		return meter.MeterAggregationSum
-	case api.MeterAggregationCount:
+	case apiv3models.MeterAggregationCount:
 		return meter.MeterAggregationCount
-	case api.MeterAggregationUniqueCount:
+	case apiv3models.MeterAggregationUniqueCount:
 		return meter.MeterAggregationUniqueCount
-	case api.MeterAggregationAvg:
+	case apiv3models.MeterAggregationAvg:
 		return meter.MeterAggregationAvg
-	case api.MeterAggregationMin:
+	case apiv3models.MeterAggregationMin:
 		return meter.MeterAggregationMin
-	case api.MeterAggregationMax:
+	case apiv3models.MeterAggregationMax:
 		return meter.MeterAggregationMax
-	case api.MeterAggregationLatest:
+	case apiv3models.MeterAggregationLatest:
 		return meter.MeterAggregationLatest
 	}
 
@@ -106,7 +106,7 @@ func IntToFloat32(i int) float32 {
 	return float32(i)
 }
 
-func FromAPIUpdateMeterRequest(namespace string, meterID string, body api.UpdateMeterRequest) (meter.UpdateMeterInput, error) {
+func FromAPIUpdateMeterRequest(namespace string, meterID string, body apiv3models.UpdateMeterRequest) (meter.UpdateMeterInput, error) {
 	input := meter.UpdateMeterInput{
 		ID: models.NamespacedID{
 			Namespace: namespace,
@@ -136,10 +136,10 @@ func FromAPIUpdateMeterRequest(namespace string, meterID string, body api.Update
 	return input, nil
 }
 
-// ConvertMetadataToLabels converts models.Metadata to api.Labels.
+// ConvertMetadataToLabels converts models.Metadata to apiv3models.Labels.
 // Always returns an initialized map (never nil) so JSON serializes to {} instead of null.
-func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
-	labels := make(api.Labels)
+func ConvertMetadataToLabels(source models.Metadata) *apiv3models.Labels {
+	labels := make(apiv3models.Labels)
 	for k, v := range source {
 		labels[k] = v
 	}
@@ -147,7 +147,7 @@ func ConvertMetadataToLabels(source models.Metadata) *api.Labels {
 	return &labels
 }
 
-func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
+func ToAPIMeterQueryRow(row meter.MeterQueryRow) apiv3models.MeterQueryRow {
 	dimensions := make(map[string]string)
 
 	if row.Subject != nil {
@@ -168,7 +168,7 @@ func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 		}
 	}
 
-	return api.MeterQueryRow{
+	return apiv3models.MeterQueryRow{
 		Value:      alpacadecimal.NewFromFloat(row.Value).String(),
 		From:       row.WindowStart,
 		To:         row.WindowEnd,
@@ -176,11 +176,11 @@ func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 	}
 }
 
-func ToAPIMeterQueryResult(from *api.DateTime, to *api.DateTime, rows []meter.MeterQueryRow) api.MeterQueryResult {
-	return api.MeterQueryResult{
+func ToAPIMeterQueryResult(from *apiv3models.DateTime, to *apiv3models.DateTime, rows []meter.MeterQueryRow) apiv3models.MeterQueryResult {
+	return apiv3models.MeterQueryResult{
 		From: from,
 		To:   to,
-		Data: lo.Map(rows, func(row meter.MeterQueryRow, _ int) api.MeterQueryRow {
+		Data: lo.Map(rows, func(row meter.MeterQueryRow, _ int) apiv3models.MeterQueryRow {
 			return ToAPIMeterQueryRow(row)
 		}),
 	}

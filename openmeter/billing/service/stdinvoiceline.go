@@ -8,7 +8,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
@@ -201,7 +201,7 @@ func (s *Service) upsertGatheringInvoiceForCurrency(ctx context.Context, currenc
 		Customers:      []string{customerProfile.Customer.ID},
 		Namespace:      customerProfile.Customer.Namespace,
 		Currencies:     []currencyx.FiatCode{currency},
-		OrderBy:        apimodels.InvoiceOrderByCreatedAt,
+		OrderBy:        apiv1models.InvoiceOrderByCreatedAt,
 		Order:          sortx.OrderAsc,
 		IncludeDeleted: true,
 		Expand:         []billing.GatheringInvoiceExpand{billing.GatheringInvoiceExpandLines},

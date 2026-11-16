@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
@@ -15,8 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apimodels.Invoice, error) {
-	var apps *apimodels.BillingProfileAppsOrReference
+func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apiv1models.Invoice, error) {
+	var apps *apiv1models.BillingProfileAppsOrReference
 	var err error
 	collectionAt := invoice.CollectionAt
 
@@ -32,16 +32,16 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apimodels.Invoice, e
 	if invoice.Workflow.Apps != nil {
 		apps, err = ToAPIBillingProfileApps(invoice.Workflow.Apps)
 		if err != nil {
-			return apimodels.Invoice{}, fmt.Errorf("failed to map profile apps to API: %w", err)
+			return apiv1models.Invoice{}, fmt.Errorf("failed to map profile apps to API: %w", err)
 		}
 	} else {
 		apps, err = ToAPIBillingProfileAppReferences(&invoice.Workflow.AppReferences)
 		if err != nil {
-			return apimodels.Invoice{}, fmt.Errorf("failed to map profile app references to API: %w", err)
+			return apiv1models.Invoice{}, fmt.Errorf("failed to map profile app references to API: %w", err)
 		}
 	}
 
-	out := apimodels.Invoice{
+	out := apiv1models.Invoice{
 		Id: invoice.ID,
 
 		CreatedAt:            invoice.CreatedAt,
@@ -63,8 +63,8 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apimodels.Invoice, e
 		Description: invoice.Description,
 		Metadata:    convert.MapToPointer(invoice.Metadata),
 
-		Status: apimodels.InvoiceStatus(invoice.Status.ShortStatus()),
-		StatusDetails: apimodels.InvoiceStatusDetails{
+		Status: apiv1models.InvoiceStatus(invoice.Status.ShortStatus()),
+		StatusDetails: apiv1models.InvoiceStatusDetails{
 			Failed:         invoice.StatusDetails.Failed,
 			Immutable:      invoice.StatusDetails.Immutable,
 			ExtendedStatus: string(invoice.Status),
@@ -75,16 +75,16 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apimodels.Invoice, e
 		Totals:   mapTotalsToAPI(invoice.Totals),
 		// TODO[OM-943]: Implement
 		Payment: nil,
-		Type:    apimodels.InvoiceType(invoice.Type),
+		Type:    apiv1models.InvoiceType(invoice.Type),
 		ValidationIssues: convert.SliceToPointer(
-			lo.Map(invoice.ValidationIssues, func(v billing.ValidationIssue, _ int) apimodels.ValidationIssue {
-				return apimodels.ValidationIssue{
+			lo.Map(invoice.ValidationIssues, func(v billing.ValidationIssue, _ int) apiv1models.ValidationIssue {
+				return apiv1models.ValidationIssue{
 					Id:        v.ID,
 					CreatedAt: v.CreatedAt,
 					UpdatedAt: v.UpdatedAt,
 					DeletedAt: v.DeletedAt,
 
-					Severity:  apimodels.ValidationIssueSeverity(v.Severity),
+					Severity:  apiv1models.ValidationIssueSeverity(v.Severity),
 					Message:   v.Message,
 					Code:      lo.EmptyableToPtr(v.Code),
 					Component: string(v.Component),
@@ -96,25 +96,25 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apimodels.Invoice, e
 
 	workflowConfig, err := ToAPIBillingWorkflow(invoice.Workflow.Config)
 	if err != nil {
-		return apimodels.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
+		return apiv1models.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
 	}
 
-	out.Workflow = apimodels.InvoiceWorkflowSettings{
+	out.Workflow = apiv1models.InvoiceWorkflowSettings{
 		Apps:                   apps,
 		SourceBillingProfileId: invoice.Workflow.SourceBillingProfileID,
 		Workflow:               workflowConfig,
 	}
 
-	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (apimodels.InvoiceLine, error) {
+	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (apiv1models.InvoiceLine, error) {
 		mappedLine, err := mapInvoiceLineToAPI(line)
 		if err != nil {
-			return apimodels.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
+			return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
 		}
 
 		return mappedLine, nil
 	})
 	if err != nil {
-		return apimodels.Invoice{}, err
+		return apiv1models.Invoice{}, err
 	}
 
 	if len(outLines) > 0 {
@@ -124,64 +124,64 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apimodels.Invoice, e
 	return out, nil
 }
 
-func ToAPIEventInvoice(event billing.EventStandardInvoice) (apimodels.Invoice, error) {
+func ToAPIEventInvoice(event billing.EventStandardInvoice) (apiv1models.Invoice, error) {
 	// Only the apps captured in the event belong in the notification snapshot.
 	event.Invoice.Workflow.Apps = nil
 
 	invoice, err := ToAPIStandardInvoice(event.Invoice)
 	if err != nil {
-		return apimodels.Invoice{}, err
+		return apiv1models.Invoice{}, err
 	}
 
 	// Even an event without apps has the expanded apps shape in stored v1 payloads.
-	apps := apimodels.BillingProfileApps{}
+	apps := apiv1models.BillingProfileApps{}
 
 	if event.Apps.Invoicing.Type != "" {
 		apps.Invoicing, err = appconvert.ToAPIEventApp(event.Apps.Invoicing)
 		if err != nil {
-			return apimodels.Invoice{}, err
+			return apiv1models.Invoice{}, err
 		}
 	}
 
 	if event.Apps.Payment.Type != "" {
 		apps.Payment, err = appconvert.ToAPIEventApp(event.Apps.Payment)
 		if err != nil {
-			return apimodels.Invoice{}, err
+			return apiv1models.Invoice{}, err
 		}
 	}
 
 	if event.Apps.Tax.Type != "" {
 		apps.Tax, err = appconvert.ToAPIEventApp(event.Apps.Tax)
 		if err != nil {
-			return apimodels.Invoice{}, err
+			return apiv1models.Invoice{}, err
 		}
 	}
 
-	invoice.Workflow.Apps = &apimodels.BillingProfileAppsOrReference{}
+	invoice.Workflow.Apps = &apiv1models.BillingProfileAppsOrReference{}
 	if err := invoice.Workflow.Apps.FromBillingProfileApps(apps); err != nil {
-		return apimodels.Invoice{}, err
+		return apiv1models.Invoice{}, err
 	}
 
 	return invoice, nil
 }
 
-func ToAPIBillingInvoiceCustomerExtendedDetails(c billing.InvoiceCustomer) apimodels.BillingInvoiceCustomerExtendedDetails {
+func ToAPIBillingInvoiceCustomerExtendedDetails(c billing.InvoiceCustomer) apiv1models.BillingInvoiceCustomerExtendedDetails {
 	a := c.BillingAddress
 
-	out := apimodels.BillingInvoiceCustomerExtendedDetails{
+	out := apiv1models.BillingInvoiceCustomerExtendedDetails{
 		Id:   lo.ToPtr(c.CustomerID),
 		Key:  c.Key,
 		Name: lo.EmptyableToPtr(c.Name),
 	}
 
 	if c.UsageAttribution != nil {
-		out.UsageAttribution = apimodels.CustomerUsageAttribution{
+		out.UsageAttribution = apiv1models.CustomerUsageAttribution{
 			SubjectKeys: c.UsageAttribution.SubjectKeys,
 		}
 	}
 
 	if a != nil && !lo.IsEmpty(*a) {
-		out.Addresses = lo.ToPtr([]apimodels.Address{
+		out.Addresses = lo.ToPtr([]apiv1models.Address{
 			{
 				Country:     (*string)(a.Country),
 				PostalCode:  a.PostalCode,
@@ -197,31 +197,31 @@ func ToAPIBillingInvoiceCustomerExtendedDetails(c billing.InvoiceCustomer) apimo
 	return out
 }
 
-func mapInvoiceAppExternalIdsToAPI(externalIds externalid.InvoiceExternalIDs) *apimodels.InvoiceAppExternalIds {
+func mapInvoiceAppExternalIdsToAPI(externalIds externalid.InvoiceExternalIDs) *apiv1models.InvoiceAppExternalIds {
 	if lo.IsEmpty(externalIds) {
 		return nil
 	}
 
-	return &apimodels.InvoiceAppExternalIds{
+	return &apiv1models.InvoiceAppExternalIds{
 		Invoicing: lo.EmptyableToPtr(externalIds.Invoicing),
 		Payment:   lo.EmptyableToPtr(externalIds.Payment),
 	}
 }
 
-func mapPeriodToAPI(p *timeutil.ClosedPeriod) *apimodels.Period {
+func mapPeriodToAPI(p *timeutil.ClosedPeriod) *apiv1models.Period {
 	if p == nil {
 		return nil
 	}
 
 	// TODO[later]: let's use a common model for this
-	return &apimodels.Period{
+	return &apiv1models.Period{
 		From: p.From,
 		To:   p.To,
 	}
 }
 
-func mapTotalsToAPI(t totals.Totals) apimodels.InvoiceTotals {
-	return apimodels.InvoiceTotals{
+func mapTotalsToAPI(t totals.Totals) apiv1models.InvoiceTotals {
+	return apiv1models.InvoiceTotals{
 		Amount:              t.Amount.String(),
 		ChargesTotal:        t.ChargesTotal.String(),
 		CreditsTotal:        t.CreditsTotal.String(),
@@ -233,24 +233,24 @@ func mapTotalsToAPI(t totals.Totals) apimodels.InvoiceTotals {
 	}
 }
 
-func mapInvoiceAvailableActionsToAPI(actions billing.StandardInvoiceAvailableActions) apimodels.InvoiceAvailableActions {
-	return apimodels.InvoiceAvailableActions{
+func mapInvoiceAvailableActionsToAPI(actions billing.StandardInvoiceAvailableActions) apiv1models.InvoiceAvailableActions {
+	return apiv1models.InvoiceAvailableActions{
 		Advance:            mapInvoiceAvailableActionDetailsToAPI(actions.Advance),
 		Approve:            mapInvoiceAvailableActionDetailsToAPI(actions.Approve),
 		Delete:             mapInvoiceAvailableActionDetailsToAPI(actions.Delete),
 		Retry:              mapInvoiceAvailableActionDetailsToAPI(actions.Retry),
 		Void:               mapInvoiceAvailableActionDetailsToAPI(actions.Void),
 		SnapshotQuantities: mapInvoiceAvailableActionDetailsToAPI(actions.SnapshotQuantities),
-		Invoice:            lo.If(actions.Invoice != nil, &apimodels.InvoiceAvailableActionInvoiceDetails{}).Else(nil),
+		Invoice:            lo.If(actions.Invoice != nil, &apiv1models.InvoiceAvailableActionInvoiceDetails{}).Else(nil),
 	}
 }
 
-func mapInvoiceAvailableActionDetailsToAPI(actions *billing.StandardInvoiceAvailableActionDetails) *apimodels.InvoiceAvailableActionDetails {
+func mapInvoiceAvailableActionDetailsToAPI(actions *billing.StandardInvoiceAvailableActionDetails) *apiv1models.InvoiceAvailableActionDetails {
 	if actions == nil {
 		return nil
 	}
 
-	return &apimodels.InvoiceAvailableActionDetails{
+	return &apiv1models.InvoiceAvailableActionDetails{
 		ResultingState: string(actions.ResultingState),
 	}
 }

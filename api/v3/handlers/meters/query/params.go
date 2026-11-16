@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -18,7 +18,7 @@ const maxGroupByFilterComplexityDepth = 2
 
 // BuildQueryParams converts a v3 MeterQueryRequest body into streaming.QueryParams.
 // It validates groupBy dimensions against the given meter and resolves customer filters.
-func BuildQueryParams(ctx context.Context, m meter.Meter, body api.MeterQueryRequest, resolveCustomers CustomerResolverFunc) (streaming.QueryParams, error) {
+func BuildQueryParams(ctx context.Context, m meter.Meter, body apiv3models.MeterQueryRequest, resolveCustomers CustomerResolverFunc) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
 		From: body.From,
 		To:   body.To,

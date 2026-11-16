@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -14,10 +14,10 @@ import (
 
 type (
 	VoidCreditGrantRequest  = creditgrant.VoidInput
-	VoidCreditGrantResponse = api.BillingCreditGrant
+	VoidCreditGrantResponse = apiv3models.BillingCreditGrant
 	VoidCreditGrantParams   struct {
-		CustomerID    api.ULID
-		CreditGrantID api.ULID
+		CustomerID    apiv3models.ULID
+		CreditGrantID apiv3models.ULID
 	}
 	VoidCreditGrantHandler = httptransport.HandlerWithArgs[VoidCreditGrantRequest, VoidCreditGrantResponse, VoidCreditGrantParams]
 )
@@ -30,7 +30,7 @@ func (h *handler) VoidCreditGrant() VoidCreditGrantHandler {
 				return VoidCreditGrantRequest{}, err
 			}
 
-			var body api.VoidCreditGrantRequest
+			var body apiv3models.VoidCreditGrantRequest
 			if err := request.ParseOptionalBody(r, &body); err != nil {
 				return VoidCreditGrantRequest{}, err
 			}

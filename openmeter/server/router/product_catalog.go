@@ -3,12 +3,12 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 )
 
 // List features
 // (GET /api/v1/features)
-func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request, params api.ListFeaturesParams) {
+func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request, params apiv1models.ListFeaturesParams) {
 	a.featureHandler.ListFeatures().With(params).ServeHTTP(w, r)
 }
 

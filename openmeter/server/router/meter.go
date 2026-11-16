@@ -3,13 +3,13 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	httpdriver "github.com/openmeterio/openmeter/openmeter/meter/httphandler"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 
 // GET /api/v1/meters
-func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
+func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params apiv1models.ListMetersParams) {
 	a.meterHandler.ListMeters().With(params).ServeHTTP(w, r)
 }
 
@@ -34,7 +34,7 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 }
 
 // GET /api/v1/meters/{meterIdOrSlug}/query
-func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterParams) {
+func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params apiv1models.QueryMeterParams) {
 	// Construct handler params
 	handlerParams := httpdriver.QueryMeterParams{
 		IdOrSlug:         meterIDOrSlug,
@@ -76,7 +76,7 @@ func (a *Router) QueryMeterPost(w http.ResponseWriter, r *http.Request, meterIDO
 }
 
 // GET /api/v1/meters/{meterIdOrSlug}/subjects
-func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.ListMeterSubjectsParams) {
+func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params apiv1models.ListMeterSubjectsParams) {
 	a.meterHandler.ListSubjects().With(httpdriver.ListSubjectsParams{
 		IdOrSlug: meterIDOrSlug,
 		From:     params.From,
@@ -85,7 +85,7 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 }
 
 // GET /api/v1/meters/{meterIdOrSlug}/group-by/{groupByKey}/values
-func (a *Router) ListMeterGroupByValues(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, groupByKey string, params api.ListMeterGroupByValuesParams) {
+func (a *Router) ListMeterGroupByValues(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, groupByKey string, params apiv1models.ListMeterGroupByValuesParams) {
 	a.meterHandler.ListGroupByValues().With(httpdriver.ListGroupByValuesParams{
 		IdOrSlug:   meterIDOrSlug,
 		GroupByKey: groupByKey,

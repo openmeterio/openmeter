@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -16,14 +16,14 @@ import (
 
 type (
 	CreateAddonRequest  = addon.CreateAddonInput
-	CreateAddonResponse = apiv3.Addon
+	CreateAddonResponse = apiv3models.Addon
 	CreateAddonHandler  httptransport.Handler[CreateAddonRequest, CreateAddonResponse]
 )
 
 func (h *handler) CreateAddon() CreateAddonHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateAddonRequest, error) {
-			body := apiv3.CreateAddonRequest{}
+			body := apiv3models.CreateAddonRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateAddonRequest{}, err
 			}

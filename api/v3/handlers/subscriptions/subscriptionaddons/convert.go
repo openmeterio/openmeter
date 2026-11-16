@@ -7,11 +7,11 @@ import (
 
 	"github.com/samber/lo"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/handlers/subscriptions"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	addondiff "github.com/openmeterio/openmeter/openmeter/subscription/addon/diff"
@@ -37,7 +37,7 @@ func FromAPISubscriptionAddonSortField(ctx context.Context, field string) (subsc
 	}
 }
 
-func FromAPICreateSubscriptionAddonRequest(req apiv3.CreateSubscriptionAddonRequest) (subscriptionworkflow.AddAddonWorkflowInput, error) {
+func FromAPICreateSubscriptionAddonRequest(req apiv3models.CreateSubscriptionAddonRequest) (subscriptionworkflow.AddAddonWorkflowInput, error) {
 	timing, err := subscriptions.FromAPIBillingSubscriptionEditTiming(req.Timing)
 	if err != nil {
 		return subscriptionworkflow.AddAddonWorkflowInput{}, fmt.Errorf("failed to convert timing: %w", err)
@@ -58,7 +58,7 @@ func FromAPICreateSubscriptionAddonRequest(req apiv3.CreateSubscriptionAddonRequ
 	}, nil
 }
 
-func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (apiv3.SubscriptionAddon, error) {
+func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscriptionaddon.SubscriptionAddon) (apiv3models.SubscriptionAddon, error) {
 	now := clock.Now()
 
 	// inst.Quantity is 0 when no instance is active at now (e.g. addon scheduled for next_billing_cycle).
@@ -69,7 +69,7 @@ func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscripti
 	})
 
 	if len(pers) == 0 {
-		return apiv3.SubscriptionAddon{}, models.NewGenericNotFoundError(errors.New("no instances found for subscription addon"))
+		return apiv3models.SubscriptionAddon{}, models.NewGenericNotFoundError(errors.New("no instances found for subscription addon"))
 	}
 
 	union := lo.Reduce(pers, func(agg timeutil.OpenPeriod, item timeutil.OpenPeriod, _ int) timeutil.OpenPeriod {
@@ -78,10 +78,10 @@ func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscripti
 
 	affectedMap := addondiff.GetAffectedItemIDs(view, addon)
 
-	rateCards, err := slicesx.MapWithErr(addon.RateCards, func(r subscriptionaddon.SubscriptionAddonRateCard) (apiv3.SubscriptionAddonRateCard, error) {
+	rateCards, err := slicesx.MapWithErr(addon.RateCards, func(r subscriptionaddon.SubscriptionAddonRateCard) (apiv3models.SubscriptionAddonRateCard, error) {
 		rc, err := plans.ToAPIBillingRateCard(r.AddonRateCard.RateCard)
 		if err != nil {
-			return apiv3.SubscriptionAddonRateCard{}, fmt.Errorf("failed to convert rate card: %w", err)
+			return apiv3models.SubscriptionAddonRateCard{}, fmt.Errorf("failed to convert rate card: %w", err)
 		}
 
 		// JSON encoders should emit [] not null when no items are affected.
@@ -90,28 +90,28 @@ func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscripti
 			ids = []string{}
 		}
 
-		return apiv3.SubscriptionAddonRateCard{
+		return apiv3models.SubscriptionAddonRateCard{
 			RateCard:                    rc,
 			AffectedSubscriptionItemIds: ids,
 		}, nil
 	})
 	if err != nil {
-		return apiv3.SubscriptionAddon{}, fmt.Errorf("failed to convert rate cards: %w", err)
+		return apiv3models.SubscriptionAddon{}, fmt.Errorf("failed to convert rate cards: %w", err)
 	}
 
 	// Addons with no rate cards leave RateCards nil; emit [] so the response satisfies the array schema.
 	if rateCards == nil {
-		rateCards = []apiv3.SubscriptionAddonRateCard{}
+		rateCards = []apiv3models.SubscriptionAddonRateCard{}
 	}
 
-	return apiv3.SubscriptionAddon{
+	return apiv3models.SubscriptionAddon{
 		Id:          addon.ID,
 		Name:        addon.Name,
 		Description: addon.Description,
 		CreatedAt:   addon.CreatedAt,
 		UpdatedAt:   addon.UpdatedAt,
 		DeletedAt:   addon.DeletedAt,
-		Addon: apiv3.AddonReference{
+		Addon: apiv3models.AddonReference{
 			Id: addon.Addon.ID,
 		},
 		Labels:     labels.FromMetadata(addon.Metadata),
@@ -119,8 +119,8 @@ func toAPISubscriptionAddon(view subscription.SubscriptionView, addon subscripti
 		QuantityAt: now,
 		ActiveFrom: lo.FromPtrOr(union.From, now),
 		ActiveTo:   union.To,
-		Timeline: lo.Map(addon.GetInstances(), func(i subscriptionaddon.SubscriptionAddonInstance, _ int) apiv3.SubscriptionAddonTimelineSegment {
-			return apiv3.SubscriptionAddonTimelineSegment{
+		Timeline: lo.Map(addon.GetInstances(), func(i subscriptionaddon.SubscriptionAddonInstance, _ int) apiv3models.SubscriptionAddonTimelineSegment {
+			return apiv3models.SubscriptionAddonTimelineSegment{
 				Quantity:   i.Quantity,
 				ActiveFrom: i.CadencedModel.ActiveFrom,
 				ActiveTo:   i.CadencedModel.ActiveTo,

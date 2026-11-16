@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,7 +15,7 @@ import (
 
 type (
 	CreateCustomerRequest  = customer.CreateCustomerInput
-	CreateCustomerResponse = api.BillingCustomer
+	CreateCustomerResponse = apiv3models.BillingCustomer
 	CreateCustomerHandler  httptransport.Handler[CreateCustomerRequest, CreateCustomerResponse]
 )
 
@@ -23,7 +23,7 @@ type (
 func (h *handler) CreateCustomer() CreateCustomerHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateCustomerRequest, error) {
-			body := api.CreateCustomerRequest{}
+			body := apiv3models.CreateCustomerRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateCustomerRequest{}, err
 			}

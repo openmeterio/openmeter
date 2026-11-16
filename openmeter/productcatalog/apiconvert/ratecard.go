@@ -5,13 +5,13 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apimodels.RateCardUsageBasedPrice, error) {
-	var resp apimodels.RateCardUsageBasedPrice
+func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apiv1models.RateCardUsageBasedPrice, error) {
+	var resp apiv1models.RateCardUsageBasedPrice
 
 	switch price.Type() {
 	case productcatalog.FlatPriceType:
@@ -20,10 +20,10 @@ func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apimodels.RateCar
 			return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
 		}
 
-		err = resp.FromFlatPriceWithPaymentTerm(apimodels.FlatPriceWithPaymentTerm{
+		err = resp.FromFlatPriceWithPaymentTerm(apiv1models.FlatPriceWithPaymentTerm{
 			Amount:      flatPrice.Amount.String(),
 			PaymentTerm: lo.ToPtr(ToAPIPricePaymentTerm(flatPrice.PaymentTerm)),
-			Type:        apimodels.FlatPriceWithPaymentTermTypeFlat,
+			Type:        apiv1models.FlatPriceWithPaymentTermTypeFlat,
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
@@ -34,11 +34,11 @@ func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apimodels.RateCar
 			return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
 		}
 
-		err = resp.FromUnitPriceWithCommitments(apimodels.UnitPriceWithCommitments{
+		err = resp.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{
 			Amount:        unitPrice.Amount.String(),
 			MinimumAmount: convert.StringerPtrToStringPtr(unitPrice.MinimumAmount),
 			MaximumAmount: convert.StringerPtrToStringPtr(unitPrice.MaximumAmount),
-			Type:          apimodels.UnitPriceWithCommitmentsTypeUnit,
+			Type:          apiv1models.UnitPriceWithCommitmentsTypeUnit,
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast UnitPrice: %w", err)
@@ -49,34 +49,34 @@ func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apimodels.RateCar
 			return resp, fmt.Errorf("failed to cast TieredPrice: %w", err)
 		}
 
-		err = resp.FromTieredPriceWithCommitments(apimodels.TieredPriceWithCommitments{
-			Type:          apimodels.TieredPriceWithCommitmentsTypeTiered,
-			Mode:          apimodels.TieredPriceMode(tieredPrice.Mode),
+		err = resp.FromTieredPriceWithCommitments(apiv1models.TieredPriceWithCommitments{
+			Type:          apiv1models.TieredPriceWithCommitmentsTypeTiered,
+			Mode:          apiv1models.TieredPriceMode(tieredPrice.Mode),
 			MinimumAmount: convert.StringerPtrToStringPtr(tieredPrice.MinimumAmount),
 			MaximumAmount: convert.StringerPtrToStringPtr(tieredPrice.MaximumAmount),
-			Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) apimodels.PriceTier {
-				var upToAmount *apimodels.Numeric
+			Tiers: lo.Map(tieredPrice.Tiers, func(t productcatalog.PriceTier, _ int) apiv1models.PriceTier {
+				var upToAmount *apiv1models.Numeric
 				if t.UpToAmount != nil {
 					upToAmount = lo.ToPtr(t.UpToAmount.String())
 				}
 
-				var unitPrice *apimodels.UnitPrice
+				var unitPrice *apiv1models.UnitPrice
 				if t.UnitPrice != nil {
-					unitPrice = &apimodels.UnitPrice{
-						Type:   apimodels.UnitPriceTypeUnit,
+					unitPrice = &apiv1models.UnitPrice{
+						Type:   apiv1models.UnitPriceTypeUnit,
 						Amount: t.UnitPrice.Amount.String(),
 					}
 				}
 
-				var flatPrice *apimodels.FlatPrice
+				var flatPrice *apiv1models.FlatPrice
 				if t.FlatPrice != nil {
-					flatPrice = &apimodels.FlatPrice{
-						Type:   apimodels.FlatPriceTypeFlat,
+					flatPrice = &apiv1models.FlatPrice{
+						Type:   apiv1models.FlatPriceTypeFlat,
 						Amount: t.FlatPrice.Amount.String(),
 					}
 				}
 
-				return apimodels.PriceTier{
+				return apiv1models.PriceTier{
 					UpToAmount: upToAmount,
 					UnitPrice:  unitPrice,
 					FlatPrice:  flatPrice,
@@ -97,8 +97,8 @@ func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apimodels.RateCar
 			multiplier = lo.ToPtr(dynamicPrice.Multiplier.String())
 		}
 
-		err = resp.FromDynamicPriceWithCommitments(apimodels.DynamicPriceWithCommitments{
-			Type:          apimodels.DynamicPriceWithCommitmentsTypeDynamic,
+		err = resp.FromDynamicPriceWithCommitments(apiv1models.DynamicPriceWithCommitments{
+			Type:          apiv1models.DynamicPriceWithCommitmentsTypeDynamic,
 			MinimumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MinimumAmount),
 			MaximumAmount: convert.StringerPtrToStringPtr(dynamicPrice.MaximumAmount),
 			Multiplier:    multiplier,
@@ -112,8 +112,8 @@ func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apimodels.RateCar
 			return resp, fmt.Errorf("failed to cast PackagePrice: %w", err)
 		}
 
-		err = resp.FromPackagePriceWithCommitments(apimodels.PackagePriceWithCommitments{
-			Type:               apimodels.PackagePriceWithCommitmentsTypePackage,
+		err = resp.FromPackagePriceWithCommitments(apiv1models.PackagePriceWithCommitments{
+			Type:               apiv1models.PackagePriceWithCommitmentsTypePackage,
 			Amount:             packagePrice.Amount.String(),
 			QuantityPerPackage: packagePrice.QuantityPerPackage.String(),
 			MinimumAmount:      convert.StringerPtrToStringPtr(packagePrice.MinimumAmount),
@@ -129,29 +129,29 @@ func ToAPIRateCardUsageBasedPrice(price productcatalog.Price) (apimodels.RateCar
 	return resp, nil
 }
 
-func ToAPIPricePaymentTerm(t productcatalog.PaymentTermType) apimodels.PricePaymentTerm {
+func ToAPIPricePaymentTerm(t productcatalog.PaymentTermType) apiv1models.PricePaymentTerm {
 	switch t {
 	case productcatalog.InArrearsPaymentTerm:
-		return apimodels.PricePaymentTermInArrears
+		return apiv1models.PricePaymentTermInArrears
 	case productcatalog.InAdvancePaymentTerm:
 		fallthrough
 	default:
-		return apimodels.PricePaymentTermInAdvance
+		return apiv1models.PricePaymentTermInAdvance
 	}
 }
 
-func ToAPITaxConfig(c productcatalog.TaxConfig) apimodels.TaxConfig {
-	var stripe *apimodels.StripeTaxConfig
+func ToAPITaxConfig(c productcatalog.TaxConfig) apiv1models.TaxConfig {
+	var stripe *apiv1models.StripeTaxConfig
 
 	if c.Stripe != nil {
-		stripe = &apimodels.StripeTaxConfig{
+		stripe = &apiv1models.StripeTaxConfig{
 			Code: c.Stripe.Code,
 		}
 	}
 
-	return apimodels.TaxConfig{
+	return apiv1models.TaxConfig{
 		Stripe:    stripe,
-		Behavior:  (*apimodels.TaxBehavior)(c.Behavior),
+		Behavior:  (*apiv1models.TaxBehavior)(c.Behavior),
 		TaxCodeId: c.TaxCodeID,
 	}
 }

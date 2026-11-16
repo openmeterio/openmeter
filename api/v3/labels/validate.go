@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
-	api "github.com/openmeterio/openmeter/api/v3/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -52,7 +52,7 @@ func ValidateLabel(k, v string) error {
 	return errors.Join(errs...)
 }
 
-func ValidateLabels(l api.Labels) error {
+func ValidateLabels(l apiv3models.Labels) error {
 	var errs []error
 
 	for k, v := range l {

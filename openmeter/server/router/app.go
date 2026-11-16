@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 )
 
 // Handle to get app by id
@@ -14,7 +14,7 @@ func (a *Router) GetApp(w http.ResponseWriter, r *http.Request, appID string) {
 
 // Handle to list apps
 // (GET /api/v1/apps)
-func (a *Router) ListApps(w http.ResponseWriter, r *http.Request, params api.ListAppsParams) {
+func (a *Router) ListApps(w http.ResponseWriter, r *http.Request, params apiv1models.ListAppsParams) {
 	a.appHandler.ListApps().With(params).ServeHTTP(w, r)
 }
 

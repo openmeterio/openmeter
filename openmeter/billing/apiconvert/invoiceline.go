@@ -7,7 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -17,8 +17,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]apimodels.InvoiceDetailedLine, error) {
-	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (apimodels.InvoiceDetailedLine, error) {
+func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (*[]apiv1models.InvoiceDetailedLine, error) {
+	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (apiv1models.InvoiceDetailedLine, error) {
 		return mapDetailedLineToAPI(line, currency, invoiceAt, taxConfig)
 	})
 	if err != nil {
@@ -28,21 +28,21 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatC
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (apimodels.InvoiceDetailedLine, error) {
+func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig) (apiv1models.InvoiceDetailedLine, error) {
 	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
-		return apimodels.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
+		return apiv1models.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
 	}
 
-	var discountsAPI *apimodels.InvoiceLineDiscounts
+	var discountsAPI *apiv1models.InvoiceLineDiscounts
 	if amountDiscountsAPI != nil {
-		discountsAPI = &apimodels.InvoiceLineDiscounts{
+		discountsAPI = &apiv1models.InvoiceLineDiscounts{
 			Amount: amountDiscountsAPI,
 		}
 	}
 
-	return apimodels.InvoiceDetailedLine{
-		Type: apimodels.InvoiceDetailedLineTypeFlatFee,
+	return apiv1models.InvoiceDetailedLine{
+		Type: apiv1models.InvoiceDetailedLineTypeFlatFee,
 		Id:   line.ID,
 
 		CreatedAt: line.CreatedAt,
@@ -51,32 +51,32 @@ func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode
 		InvoiceAt: invoiceAt,
 
 		Currency: string(currency),
-		Status:   apimodels.InvoiceLineStatusDetailed,
+		Status:   apiv1models.InvoiceLineStatusDetailed,
 
 		Description: line.Description,
 		Name:        line.Name,
-		ManagedBy:   apimodels.InvoiceLineManagedBySystem,
+		ManagedBy:   apiv1models.InvoiceLineManagedBySystem,
 
-		Invoice: &apimodels.InvoiceReference{
+		Invoice: &apiv1models.InvoiceReference{
 			Id: line.InvoiceID,
 		},
 
-		Period: apimodels.Period{
+		Period: apiv1models.Period{
 			From: line.ServicePeriod.From,
 			To:   line.ServicePeriod.To,
 		},
 
 		PerUnitAmount: lo.ToPtr(line.PerUnitAmount.String()),
 		Quantity:      lo.ToPtr(line.Quantity.String()),
-		Category:      lo.ToPtr(apimodels.InvoiceDetailedLineCostCategory(line.Category)),
+		Category:      lo.ToPtr(apiv1models.InvoiceDetailedLineCostCategory(line.Category)),
 		TaxConfig:     ToAPITaxConfig(taxConfig),
-		PaymentTerm:   lo.ToPtr(apimodels.PricePaymentTerm(line.PaymentTerm)),
+		PaymentTerm:   lo.ToPtr(apiv1models.PricePaymentTerm(line.PaymentTerm)),
 
-		RateCard: &apimodels.InvoiceDetailedLineRateCard{
+		RateCard: &apiv1models.InvoiceDetailedLineRateCard{
 			TaxConfig: ToAPITaxConfig(taxConfig),
-			Price: &apimodels.FlatPriceWithPaymentTerm{
-				Type:        apimodels.FlatPriceWithPaymentTermTypeFlat,
-				PaymentTerm: lo.ToPtr(apimodels.PricePaymentTerm(line.PaymentTerm)),
+			Price: &apiv1models.FlatPriceWithPaymentTerm{
+				Type:        apiv1models.FlatPriceWithPaymentTermTypeFlat,
+				PaymentTerm: lo.ToPtr(apiv1models.PricePaymentTerm(line.PaymentTerm)),
 				Amount:      line.PerUnitAmount.String(),
 			},
 			Quantity: lo.ToPtr(line.Quantity.String()),
@@ -90,42 +90,42 @@ func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode
 	}, nil
 }
 
-func mapLineAppExternalIdsToAPI(externalIds externalid.LineExternalIDs) *apimodels.InvoiceLineAppExternalIds {
+func mapLineAppExternalIdsToAPI(externalIds externalid.LineExternalIDs) *apiv1models.InvoiceLineAppExternalIds {
 	if lo.IsEmpty(externalIds) {
 		return nil
 	}
 
-	return &apimodels.InvoiceLineAppExternalIds{
+	return &apiv1models.InvoiceLineAppExternalIds{
 		Invoicing: lo.EmptyableToPtr(externalIds.Invoicing),
 	}
 }
 
-func mapInvoiceLineToAPI(line *billing.StandardLine) (apimodels.InvoiceLine, error) {
+func mapInvoiceLineToAPI(line *billing.StandardLine) (apiv1models.InvoiceLine, error) {
 	if line.UsageBased == nil {
-		return apimodels.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
+		return apiv1models.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
 	}
 
 	if line.UsageBased.Price == nil {
-		return apimodels.InvoiceLine{}, fmt.Errorf("price is nil [line=%s]", line.ID)
+		return apiv1models.InvoiceLine{}, fmt.Errorf("price is nil [line=%s]", line.ID)
 	}
 
 	price, err := catalogconvert.ToAPIRateCardUsageBasedPrice(*line.UsageBased.Price)
 	if err != nil {
-		return apimodels.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
+		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
 	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.Currency, line.InvoiceAt, line.TaxConfig.ToProductCatalog())
 	if err != nil {
-		return apimodels.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
+		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}
 
 	discountsAPI, err := mapDiscountsToAPI(line.Discounts)
 	if err != nil {
-		return apimodels.InvoiceLine{}, fmt.Errorf("failed to map discounts: %w", err)
+		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map discounts: %w", err)
 	}
 
-	invoiceLine := apimodels.InvoiceLine{
-		Type: apimodels.InvoiceLineTypeUsageBased,
+	invoiceLine := apiv1models.InvoiceLine{
+		Type: apiv1models.InvoiceLineTypeUsageBased,
 		Id:   line.ID,
 
 		CreatedAt: line.CreatedAt,
@@ -135,19 +135,19 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (apimodels.InvoiceLine, err
 
 		// TODO: deprecation
 		Currency: string(line.Currency),
-		Status:   apimodels.InvoiceLineStatusValid,
+		Status:   apiv1models.InvoiceLineStatusValid,
 
 		Description: line.Description,
 		Name:        line.Name,
-		ManagedBy:   apimodels.InvoiceLineManagedBy(line.ManagedBy),
+		ManagedBy:   apiv1models.InvoiceLineManagedBy(line.ManagedBy),
 
 		// TODO: deprecation
-		Invoice: &apimodels.InvoiceReference{
+		Invoice: &apiv1models.InvoiceReference{
 			Id: line.InvoiceID,
 		},
 
 		Metadata: convert.MapToPointer(line.Metadata),
-		Period: apimodels.Period{
+		Period: apiv1models.Period{
 			From: line.Period.From,
 			To:   line.Period.To,
 		},
@@ -162,7 +162,7 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (apimodels.InvoiceLine, err
 
 		Price: lo.ToPtr(price),
 
-		RateCard: &apimodels.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			TaxConfig:  ToAPITaxConfig(line.TaxConfig.ToProductCatalog()),
 			Price:      lo.ToPtr(price),
 			FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
@@ -180,24 +180,24 @@ func mapInvoiceLineToAPI(line *billing.StandardLine) (apimodels.InvoiceLine, err
 	return invoiceLine, nil
 }
 
-func ToAPIInvoiceLineSubscriptionReference(optSub *billing.SubscriptionReference) *apimodels.InvoiceLineSubscriptionReference {
+func ToAPIInvoiceLineSubscriptionReference(optSub *billing.SubscriptionReference) *apiv1models.InvoiceLineSubscriptionReference {
 	if optSub == nil {
 		return nil
 	}
 
-	out := &apimodels.InvoiceLineSubscriptionReference{
-		Item: apimodels.IDResource{
+	out := &apiv1models.InvoiceLineSubscriptionReference{
+		Item: apiv1models.IDResource{
 			Id: optSub.ItemID,
 		},
-		Phase: apimodels.IDResource{
+		Phase: apiv1models.IDResource{
 			Id: optSub.PhaseID,
 		},
-		Subscription: apimodels.IDResource{
+		Subscription: apiv1models.IDResource{
 			Id: optSub.SubscriptionID,
 		},
 	}
 
-	out.BillingPeriod = apimodels.Period{
+	out.BillingPeriod = apiv1models.Period{
 		From: optSub.BillingPeriod.From,
 		To:   optSub.BillingPeriod.To,
 	}
@@ -205,13 +205,13 @@ func ToAPIInvoiceLineSubscriptionReference(optSub *billing.SubscriptionReference
 	return out
 }
 
-func mapInvoiceLineCreditsToAPI(credits billing.CreditsApplied) *[]apimodels.InvoiceLineCreditAllocation {
+func mapInvoiceLineCreditsToAPI(credits billing.CreditsApplied) *[]apiv1models.InvoiceLineCreditAllocation {
 	if len(credits) == 0 {
 		return nil
 	}
 
-	out := lo.Map(credits, func(credit billing.CreditApplied, _ int) apimodels.InvoiceLineCreditAllocation {
-		return apimodels.InvoiceLineCreditAllocation{
+	out := lo.Map(credits, func(credit billing.CreditApplied, _ int) apiv1models.InvoiceLineCreditAllocation {
+		return apiv1models.InvoiceLineCreditAllocation{
 			Amount:      credit.Amount.String(),
 			Description: lo.EmptyableToPtr(credit.Description),
 		}
@@ -220,7 +220,7 @@ func mapInvoiceLineCreditsToAPI(credits billing.CreditsApplied) *[]apimodels.Inv
 	return &out
 }
 
-func mapDiscountsToAPI(discounts billing.StandardLineDiscounts) (*apimodels.InvoiceLineDiscounts, error) {
+func mapDiscountsToAPI(discounts billing.StandardLineDiscounts) (*apiv1models.InvoiceLineDiscounts, error) {
 	if len(discounts.Usage) == 0 {
 		return nil, nil
 	}
@@ -230,23 +230,23 @@ func mapDiscountsToAPI(discounts billing.StandardLineDiscounts) (*apimodels.Invo
 		return nil, fmt.Errorf("failed to map usage discounts: %w", err)
 	}
 
-	return &apimodels.InvoiceLineDiscounts{
+	return &apiv1models.InvoiceLineDiscounts{
 		Usage: mappedUsageDiscounts,
 	}, nil
 }
 
-func mapInvoiceLineAmountDiscountsToAPI(amountDiscounts billing.AmountLineDiscountsManaged) (*[]apimodels.InvoiceLineAmountDiscount, error) {
+func mapInvoiceLineAmountDiscountsToAPI(amountDiscounts billing.AmountLineDiscountsManaged) (*[]apiv1models.InvoiceLineAmountDiscount, error) {
 	if len(amountDiscounts) == 0 {
 		return nil, nil
 	}
 
-	mapped, err := slicesx.MapWithErr(amountDiscounts, func(discount billing.AmountLineDiscountManaged) (apimodels.InvoiceLineAmountDiscount, error) {
+	mapped, err := slicesx.MapWithErr(amountDiscounts, func(discount billing.AmountLineDiscountManaged) (apiv1models.InvoiceLineAmountDiscount, error) {
 		reason, err := mapDiscountReasonToAPI(discount.Reason)
 		if err != nil {
-			return apimodels.InvoiceLineAmountDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
+			return apiv1models.InvoiceLineAmountDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
 		}
 
-		return apimodels.InvoiceLineAmountDiscount{
+		return apiv1models.InvoiceLineAmountDiscount{
 			Id:          discount.ID,
 			Amount:      discount.Amount.String(),
 			CreatedAt:   discount.CreatedAt,
@@ -264,18 +264,18 @@ func mapInvoiceLineAmountDiscountsToAPI(amountDiscounts billing.AmountLineDiscou
 	return lo.ToPtr(mapped), nil
 }
 
-func mapInvoiceLineUsageDiscountsToAPI(usageDiscounts billing.UsageLineDiscountsManaged) (*[]apimodels.InvoiceLineUsageDiscount, error) {
+func mapInvoiceLineUsageDiscountsToAPI(usageDiscounts billing.UsageLineDiscountsManaged) (*[]apiv1models.InvoiceLineUsageDiscount, error) {
 	if len(usageDiscounts) == 0 {
 		return nil, nil
 	}
 
-	mapped, err := slicesx.MapWithErr(usageDiscounts, func(discount billing.UsageLineDiscountManaged) (apimodels.InvoiceLineUsageDiscount, error) {
+	mapped, err := slicesx.MapWithErr(usageDiscounts, func(discount billing.UsageLineDiscountManaged) (apiv1models.InvoiceLineUsageDiscount, error) {
 		reason, err := mapDiscountReasonToAPI(discount.Reason)
 		if err != nil {
-			return apimodels.InvoiceLineUsageDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
+			return apiv1models.InvoiceLineUsageDiscount{}, fmt.Errorf("failed to map discount reason: %w", err)
 		}
 
-		return apimodels.InvoiceLineUsageDiscount{
+		return apiv1models.InvoiceLineUsageDiscount{
 			Id:                    discount.ID,
 			Quantity:              discount.Quantity.String(),
 			PreLinePeriodQuantity: decimalPtrToStringPtrIgnoringZeroValue(discount.PreLinePeriodQuantity),
@@ -294,12 +294,12 @@ func mapInvoiceLineUsageDiscountsToAPI(usageDiscounts billing.UsageLineDiscounts
 	return lo.ToPtr(mapped), nil
 }
 
-func mapDiscountReasonToAPI(reason billing.DiscountReason) (apimodels.BillingDiscountReason, error) {
-	out := apimodels.BillingDiscountReason{}
+func mapDiscountReasonToAPI(reason billing.DiscountReason) (apiv1models.BillingDiscountReason, error) {
+	out := apiv1models.BillingDiscountReason{}
 	switch reason.Type() {
 	case billing.MaximumSpendDiscountReason:
-		if err := out.FromDiscountReasonMaximumSpend(apimodels.DiscountReasonMaximumSpend{
-			Type: apimodels.DiscountReasonMaximumSpendTypeMaximumSpend,
+		if err := out.FromDiscountReasonMaximumSpend(apiv1models.DiscountReasonMaximumSpend{
+			Type: apiv1models.DiscountReasonMaximumSpendTypeMaximumSpend,
 		}); err != nil {
 			return out, err
 		}
@@ -309,10 +309,10 @@ func mapDiscountReasonToAPI(reason billing.DiscountReason) (apimodels.BillingDis
 			return out, err
 		}
 
-		if err := out.FromDiscountReasonRatecardPercentage(apimodels.DiscountReasonRatecardPercentage{
+		if err := out.FromDiscountReasonRatecardPercentage(apiv1models.DiscountReasonRatecardPercentage{
 			Percentage:    reason.Percentage,
 			CorrelationId: lo.EmptyableToPtr(reason.CorrelationID),
-			Type:          apimodels.DiscountReasonRatecardPercentageType(billing.RatecardPercentageDiscountReason),
+			Type:          apiv1models.DiscountReasonRatecardPercentageType(billing.RatecardPercentageDiscountReason),
 		}); err != nil {
 			return out, err
 		}
@@ -322,15 +322,15 @@ func mapDiscountReasonToAPI(reason billing.DiscountReason) (apimodels.BillingDis
 			return out, err
 		}
 
-		if err := out.FromDiscountReasonRatecardUsage(apimodels.DiscountReasonRatecardUsage{
+		if err := out.FromDiscountReasonRatecardUsage(apiv1models.DiscountReasonRatecardUsage{
 			Quantity:      reason.Quantity.String(),
 			CorrelationId: lo.EmptyableToPtr(reason.CorrelationID),
-			Type:          apimodels.DiscountReasonRatecardUsageType(billing.RatecardUsageDiscountReason),
+			Type:          apiv1models.DiscountReasonRatecardUsageType(billing.RatecardUsageDiscountReason),
 		}); err != nil {
 			return out, err
 		}
 	default:
-		return apimodels.BillingDiscountReason{}, fmt.Errorf("unknown discount reason type: %s", reason.Type())
+		return apiv1models.BillingDiscountReason{}, fmt.Errorf("unknown discount reason type: %s", reason.Type())
 	}
 
 	return out, nil
@@ -373,7 +373,7 @@ func decimalPtrToStringPtrIfNotEqual(value *alpacadecimal.Decimal, other *alpaca
 	return lo.ToPtr(value.String())
 }
 
-func ToAPITaxConfig(to *productcatalog.TaxConfig) *apimodels.TaxConfig {
+func ToAPITaxConfig(to *productcatalog.TaxConfig) *apiv1models.TaxConfig {
 	if to == nil {
 		return nil
 	}

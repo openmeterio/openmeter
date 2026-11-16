@@ -8,8 +8,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -24,7 +24,7 @@ type (
 		Customizations []subscription.Patch
 		Timing         subscription.Timing
 	}
-	EditSubscriptionResponse = api.BillingSubscription
+	EditSubscriptionResponse = apiv3models.BillingSubscription
 	EditSubscriptionParams   = string
 	EditSubscriptionHandler  = httptransport.HandlerWithArgs[EditSubscriptionRequest, EditSubscriptionResponse, EditSubscriptionParams]
 )
@@ -32,7 +32,7 @@ type (
 func (h *handler) EditSubscription() EditSubscriptionHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, subscriptionID EditSubscriptionParams) (EditSubscriptionRequest, error) {
-			body := api.BillingSubscriptionEdit{}
+			body := apiv3models.BillingSubscriptionEdit{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return EditSubscriptionRequest{}, err
 			}

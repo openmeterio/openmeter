@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -18,7 +18,7 @@ func TestConvertAPIVoidCreditGrantRequestDefaultsPaymentAdjustment(t *testing.T)
 		"ns",
 		"cust-1",
 		"grant-1",
-		api.VoidCreditGrantRequest{},
+		apiv3models.VoidCreditGrantRequest{},
 	)
 
 	require.NoError(t, err)
@@ -29,13 +29,13 @@ func TestConvertAPIVoidCreditGrantRequestDefaultsPaymentAdjustment(t *testing.T)
 }
 
 func TestConvertAPIVoidCreditGrantRequestAcceptsNonePaymentAdjustment(t *testing.T) {
-	adjustment := api.BillingCreditGrantVoidPaymentAdjustmentNone
+	adjustment := apiv3models.BillingCreditGrantVoidPaymentAdjustmentNone
 
 	req, err := fromAPIVoidCreditGrantRequest(
 		"ns",
 		"cust-1",
 		"grant-1",
-		api.VoidCreditGrantRequest{
+		apiv3models.VoidCreditGrantRequest{
 			PaymentAdjustment: &adjustment,
 		},
 	)
@@ -45,13 +45,13 @@ func TestConvertAPIVoidCreditGrantRequestAcceptsNonePaymentAdjustment(t *testing
 }
 
 func TestConvertAPIVoidCreditGrantRequestRejectsUnsupportedPaymentAdjustment(t *testing.T) {
-	adjustment := api.BillingCreditGrantVoidPaymentAdjustment("external")
+	adjustment := apiv3models.BillingCreditGrantVoidPaymentAdjustment("external")
 
 	_, err := fromAPIVoidCreditGrantRequest(
 		"ns",
 		"cust-1",
 		"grant-1",
-		api.VoidCreditGrantRequest{
+		apiv3models.VoidCreditGrantRequest{
 			PaymentAdjustment: &adjustment,
 		},
 	)

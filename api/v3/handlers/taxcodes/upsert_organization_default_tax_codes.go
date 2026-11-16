@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -14,14 +14,14 @@ import (
 
 type (
 	UpsertOrganizationDefaultTaxCodesRequest  = taxcode.UpsertOrganizationDefaultTaxCodesInput
-	UpsertOrganizationDefaultTaxCodesResponse = api.OrganizationDefaultTaxCodes
+	UpsertOrganizationDefaultTaxCodesResponse = apiv3models.OrganizationDefaultTaxCodes
 	UpsertOrganizationDefaultTaxCodesHandler  = httptransport.Handler[UpsertOrganizationDefaultTaxCodesRequest, UpsertOrganizationDefaultTaxCodesResponse]
 )
 
 func (h *handler) UpsertOrganizationDefaultTaxCodes() UpsertOrganizationDefaultTaxCodesHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (UpsertOrganizationDefaultTaxCodesRequest, error) {
-			body := api.UpdateOrganizationDefaultTaxCodesJSONRequestBody{}
+			body := apiv3models.UpdateOrganizationDefaultTaxCodesJSONRequestBody{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return UpsertOrganizationDefaultTaxCodesRequest{}, err
 			}

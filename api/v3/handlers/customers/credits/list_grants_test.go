@@ -11,8 +11,9 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	"github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -31,11 +32,11 @@ func (s *grantListService) List(_ context.Context, input creditgrant.ListInput) 
 }
 
 type grantListServer struct {
-	api.ServerInterface
+	apiv3.ServerInterface
 	handler *handler
 }
 
-func (s grantListServer) ListCreditGrants(w http.ResponseWriter, r *http.Request, customerID api.ULID, params api.ListCreditGrantsParams) {
+func (s grantListServer) ListCreditGrants(w http.ResponseWriter, r *http.Request, customerID apiv3models.ULID, params apiv3models.ListCreditGrantsParams) {
 	s.handler.ListCreditGrants().With(ListCreditGrantsParams{CustomerID: customerID, Params: params}).ServeHTTP(w, r)
 }
 
@@ -62,7 +63,7 @@ func TestListCreditGrantsSpendabilityQuery(t *testing.T) {
 			// Given the generated HTTP binding and the real grant list handler.
 			service := &grantListService{}
 			h := &handler{resolveNamespace: func(context.Context) (string, error) { return "ns", nil }, creditGrantService: service}
-			router := api.Handler(grantListServer{handler: h})
+			router := apiv3.Handler(grantListServer{handler: h})
 			// When a deep-object query reaches the endpoint.
 			req := httptest.NewRequest(http.MethodGet, "/openmeter/customers/01ARZ3NDEKTSV4RRFFQ69G5FAV/credits/grants?"+tc.query, nil)
 			rec := httptest.NewRecorder()
@@ -107,7 +108,7 @@ func TestListCreditGrantsSortQuery(t *testing.T) {
 			// given: the generated HTTP binding and the real grant list handler.
 			service := &grantListService{}
 			h := &handler{resolveNamespace: func(context.Context) (string, error) { return "ns", nil }, creditGrantService: service}
-			router := api.Handler(grantListServer{handler: h})
+			router := apiv3.Handler(grantListServer{handler: h})
 
 			// when: a sort query reaches the endpoint.
 			query := url.Values{}

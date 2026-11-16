@@ -6,7 +6,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -15,16 +15,16 @@ import (
 func TestUsageBasedLineParser(t *testing.T) {
 	require := require.New(t)
 
-	unitPriceAPI := api.RateCardUsageBasedPrice{}
-	require.NoError(unitPriceAPI.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
+	unitPriceAPI := apiv1models.RateCardUsageBasedPrice{}
+	require.NoError(unitPriceAPI.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{
 		Amount: "100",
 	}))
 
 	unitPrice, err := productcataloghttp.AsPrice(unitPriceAPI)
 	require.NoError(err)
 
-	unitPrice2API := api.RateCardUsageBasedPrice{}
-	require.NoError(unitPrice2API.FromUnitPriceWithCommitments(api.UnitPriceWithCommitments{
+	unitPrice2API := apiv1models.RateCardUsageBasedPrice{}
+	require.NoError(unitPrice2API.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{
 		Amount: "200",
 	}))
 
@@ -38,7 +38,7 @@ func TestUsageBasedLineParser(t *testing.T) {
 	require.Equal(parsed.FeatureKey, "feature-key")
 
 	parsed, err = mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			Price:      &unitPriceAPI,
 			FeatureKey: lo.ToPtr("feature-key"),
 		},
@@ -49,7 +49,7 @@ func TestUsageBasedLineParser(t *testing.T) {
 
 	// Failure case: Missing required fields
 	parsed, err = mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			FeatureKey: lo.ToPtr("feature-key"),
 		},
 	})
@@ -57,7 +57,7 @@ func TestUsageBasedLineParser(t *testing.T) {
 	require.Nil(parsed)
 
 	parsed, err = mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			Price: &unitPriceAPI,
 		},
 	})
@@ -70,7 +70,7 @@ func TestUsageBasedLineParser(t *testing.T) {
 
 	// Failure case #2: Value mismatch
 	parsed, err = mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			Price:      &unitPriceAPI,
 			FeatureKey: lo.ToPtr("feature-key"),
 		},
@@ -81,7 +81,7 @@ func TestUsageBasedLineParser(t *testing.T) {
 	require.Nil(parsed)
 
 	parsed, err = mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			Price:      &unitPriceAPI,
 			FeatureKey: lo.ToPtr("feature-key"),
 		},
@@ -93,21 +93,21 @@ func TestUsageBasedLineParser(t *testing.T) {
 }
 
 func TestUsageBasedLineParserRejectsFlatPriceUsageDiscount(t *testing.T) {
-	flatPriceAPI := api.RateCardUsageBasedPrice{}
-	require.NoError(t, flatPriceAPI.FromFlatPriceWithPaymentTerm(api.FlatPriceWithPaymentTerm{
+	flatPriceAPI := apiv1models.RateCardUsageBasedPrice{}
+	require.NoError(t, flatPriceAPI.FromFlatPriceWithPaymentTerm(apiv1models.FlatPriceWithPaymentTerm{
 		Amount:      "100",
-		PaymentTerm: lo.ToPtr(api.PricePaymentTermInAdvance),
-		Type:        api.FlatPriceWithPaymentTermTypeFlat,
+		PaymentTerm: lo.ToPtr(apiv1models.PricePaymentTermInAdvance),
+		Type:        apiv1models.FlatPriceWithPaymentTermTypeFlat,
 	}))
 
 	parsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
-		RateCard: &api.InvoiceUsageBasedRateCard{
+		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
 			Price: &flatPriceAPI,
-			Discounts: &api.BillingDiscounts{
-				Percentage: &api.BillingDiscountPercentage{
+			Discounts: &apiv1models.BillingDiscounts{
+				Percentage: &apiv1models.BillingDiscountPercentage{
 					Percentage: models.NewPercentage(50),
 				},
-				Usage: &api.BillingDiscountUsage{
+				Usage: &apiv1models.BillingDiscountUsage{
 					Quantity: "1",
 				},
 			},

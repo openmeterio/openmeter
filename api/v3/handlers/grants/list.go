@@ -7,10 +7,10 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	customersentitlements "github.com/openmeterio/openmeter/api/v3/handlers/customers/entitlements"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -25,8 +25,8 @@ import (
 
 type (
 	ListGrantsRequest  = entitlement.ListNamespaceGrantsInput
-	ListGrantsResponse = response.PagePaginationResponse[api.BillingEntitlementGrant]
-	ListGrantsParams   = api.ListGrantsParams
+	ListGrantsResponse = response.PagePaginationResponse[apiv3models.BillingEntitlementGrant]
+	ListGrantsParams   = apiv3models.ListGrantsParams
 	ListGrantsHandler  = httptransport.HandlerWithArgs[ListGrantsRequest, ListGrantsResponse, ListGrantsParams]
 )
 
@@ -120,7 +120,7 @@ func (h *handler) ListGrants() ListGrantsHandler {
 
 			now := clock.Now()
 
-			items, err := slicesx.MapWithErr(result.Items, func(g grant.Grant) (api.BillingEntitlementGrant, error) {
+			items, err := slicesx.MapWithErr(result.Items, func(g grant.Grant) (apiv3models.BillingEntitlementGrant, error) {
 				return customersentitlements.ToAPIEntitlementGrant(g, now)
 			})
 			if err != nil {

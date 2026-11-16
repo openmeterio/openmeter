@@ -11,8 +11,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -27,7 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func fromAPICreateEntitlementRequest(customerID customer.CustomerID, body api.CreateEntitlementRequest, now time.Time) (entitlement.CreateCustomerEntitlementInput, error) {
+func fromAPICreateEntitlementRequest(customerID customer.CustomerID, body apiv3models.CreateEntitlementRequest, now time.Time) (entitlement.CreateCustomerEntitlementInput, error) {
 	input := entitlement.CreateCustomerEntitlementInput{
 		CustomerID: customerID,
 	}
@@ -38,7 +38,7 @@ func fromAPICreateEntitlementRequest(customerID customer.CustomerID, body api.Cr
 	}
 
 	switch discriminator {
-	case string(api.CreateEntitlementMeteredRequestTypeMetered):
+	case string(apiv3models.CreateEntitlementMeteredRequestTypeMetered):
 		metered, err := body.AsCreateEntitlementMeteredRequest()
 		if err != nil {
 			return input, fmt.Errorf("invalid metered entitlement: %w", err)
@@ -47,7 +47,7 @@ func fromAPICreateEntitlementRequest(customerID customer.CustomerID, body api.Cr
 		input.Entitlement, input.Grants, err = fromAPICreateEntitlementMeteredRequest(metered, now)
 
 		return input, err
-	case string(api.CreateEntitlementStaticRequestTypeStatic):
+	case string(apiv3models.CreateEntitlementStaticRequestTypeStatic):
 		static, err := body.AsCreateEntitlementStaticRequest()
 		if err != nil {
 			return input, fmt.Errorf("invalid static entitlement: %w", err)
@@ -56,7 +56,7 @@ func fromAPICreateEntitlementRequest(customerID customer.CustomerID, body api.Cr
 		input.Entitlement, err = fromAPICreateEntitlementStaticRequest(static, now)
 
 		return input, err
-	case string(api.CreateEntitlementBooleanRequestTypeBoolean):
+	case string(apiv3models.CreateEntitlementBooleanRequestTypeBoolean):
 		boolean, err := body.AsCreateEntitlementBooleanRequest()
 		if err != nil {
 			return input, fmt.Errorf("invalid boolean entitlement: %w", err)
@@ -70,7 +70,7 @@ func fromAPICreateEntitlementRequest(customerID customer.CustomerID, body api.Cr
 	}
 }
 
-func fromAPICreateEntitlementMeteredRequest(r api.CreateEntitlementMeteredRequest, now time.Time) (entitlement.CreateEntitlementInputs, []entitlement.CreateEntitlementGrantInputs, error) {
+func fromAPICreateEntitlementMeteredRequest(r apiv3models.CreateEntitlementMeteredRequest, now time.Time) (entitlement.CreateEntitlementInputs, []entitlement.CreateEntitlementGrantInputs, error) {
 	input, err := fromAPIEntitlementBase(entitlement.EntitlementTypeMetered, r.Feature, r.Labels, &r.UsagePeriod, now)
 	if err != nil {
 		return input, nil, err
@@ -114,7 +114,7 @@ func fromAPICreateEntitlementMeteredRequest(r api.CreateEntitlementMeteredReques
 	return input, grants, nil
 }
 
-func fromAPICreateEntitlementStaticRequest(r api.CreateEntitlementStaticRequest, now time.Time) (entitlement.CreateEntitlementInputs, error) {
+func fromAPICreateEntitlementStaticRequest(r apiv3models.CreateEntitlementStaticRequest, now time.Time) (entitlement.CreateEntitlementInputs, error) {
 	input, err := fromAPIEntitlementBase(entitlement.EntitlementTypeStatic, r.Feature, r.Labels, r.UsagePeriod, now)
 	if err != nil {
 		return input, err
@@ -134,7 +134,7 @@ func fromAPICreateEntitlementStaticRequest(r api.CreateEntitlementStaticRequest,
 	return input, nil
 }
 
-func fromAPIEntitlementBase(entitlementType entitlement.EntitlementType, feature api.FeatureReference, apiLabels *api.Labels, usagePeriod *api.RecurringPeriodInput, now time.Time) (entitlement.CreateEntitlementInputs, error) {
+func fromAPIEntitlementBase(entitlementType entitlement.EntitlementType, feature apiv3models.FeatureReference, apiLabels *apiv3models.Labels, usagePeriod *apiv3models.RecurringPeriodInput, now time.Time) (entitlement.CreateEntitlementInputs, error) {
 	metadata, err := labels.ToMetadata(apiLabels)
 	if err != nil {
 		return entitlement.CreateEntitlementInputs{}, err
@@ -160,7 +160,7 @@ func fromAPIEntitlementBase(entitlementType entitlement.EntitlementType, feature
 	return input, nil
 }
 
-func fromAPIRecurringPeriodInput(p api.RecurringPeriodInput, defaultAnchor time.Time) (timeutil.Recurrence, error) {
+func fromAPIRecurringPeriodInput(p apiv3models.RecurringPeriodInput, defaultAnchor time.Time) (timeutil.Recurrence, error) {
 	interval, err := datetime.ISODurationString(p.Interval).Parse()
 	if err != nil {
 		return timeutil.Recurrence{}, fmt.Errorf("invalid interval: %w", err)
@@ -171,7 +171,7 @@ func fromAPIRecurringPeriodInput(p api.RecurringPeriodInput, defaultAnchor time.
 
 // fromAPIMeasureUsageFrom resolves the preset variant against the usage period
 // the entitlement is being created with, mirroring the v2 API semantics.
-func fromAPIMeasureUsageFrom(m api.BillingEntitlementMeasureUsageFrom, usagePeriod timeutil.Recurrence, now time.Time) (entitlement.MeasureUsageFromInput, error) {
+func fromAPIMeasureUsageFrom(m apiv3models.BillingEntitlementMeasureUsageFrom, usagePeriod timeutil.Recurrence, now time.Time) (entitlement.MeasureUsageFromInput, error) {
 	var out entitlement.MeasureUsageFromInput
 
 	if at, err := m.AsDateTime(); err == nil {
@@ -186,9 +186,9 @@ func fromAPIMeasureUsageFrom(m api.BillingEntitlementMeasureUsageFrom, usagePeri
 	var value entitlement.MeasureUsageFromEnum
 
 	switch preset {
-	case api.BillingEntitlementMeasureUsageFromPresetCurrentPeriodStart:
+	case apiv3models.BillingEntitlementMeasureUsageFromPresetCurrentPeriodStart:
 		value = entitlement.MeasureUsageFromCurrentPeriodStart
-	case api.BillingEntitlementMeasureUsageFromPresetNow:
+	case apiv3models.BillingEntitlementMeasureUsageFromPresetNow:
 		value = entitlement.MeasureUsageFromNow
 	default:
 		return out, fmt.Errorf("unsupported preset: %s", preset)
@@ -202,7 +202,7 @@ func fromAPIMeasureUsageFrom(m api.BillingEntitlementMeasureUsageFrom, usagePeri
 	return out, out.FromEnum(value, currentPeriod, now)
 }
 
-func fromAPIEntitlementGrantCreateRequest(g api.BillingEntitlementGrantCreateRequest) (entitlement.CreateEntitlementGrantInputs, error) {
+func fromAPIEntitlementGrantCreateRequest(g apiv3models.BillingEntitlementGrantCreateRequest) (entitlement.CreateEntitlementGrantInputs, error) {
 	amount, err := parseNumeric(g.Amount)
 	if err != nil {
 		return entitlement.CreateEntitlementGrantInputs{}, fmt.Errorf("invalid amount: %w", err)
@@ -298,7 +298,7 @@ func expirationPeriodFromISODuration(d datetime.ISODuration) (grant.ExpirationPe
 	return grant.ExpirationPeriod{}, fmt.Errorf("expiration must be a whole number of hours, days, weeks, months or years, got %s", d.String())
 }
 
-func parseNumeric(v api.Numeric) (float64, error) {
+func parseNumeric(v apiv3models.Numeric) (float64, error) {
 	d, err := alpacadecimal.NewFromString(v)
 	if err != nil {
 		return 0, err
@@ -307,8 +307,8 @@ func parseNumeric(v api.Numeric) (float64, error) {
 	return d.InexactFloat64(), nil
 }
 
-func ToAPIBillingEntitlement(e *entitlement.Entitlement) (api.BillingEntitlement, error) {
-	var out api.BillingEntitlement
+func ToAPIBillingEntitlement(e *entitlement.Entitlement) (apiv3models.BillingEntitlement, error) {
+	var out apiv3models.BillingEntitlement
 
 	if e == nil {
 		return out, errors.New("entitlement is nil")
@@ -341,12 +341,12 @@ func ToAPIBillingEntitlement(e *entitlement.Entitlement) (api.BillingEntitlement
 	}
 }
 
-func toAPIEntitlementMetered(m *meteredentitlement.Entitlement) api.BillingEntitlementMetered {
-	out := api.BillingEntitlementMetered{
-		Type:                   api.BillingEntitlementMeteredTypeMetered,
+func toAPIEntitlementMetered(m *meteredentitlement.Entitlement) apiv3models.BillingEntitlementMetered {
+	out := apiv3models.BillingEntitlementMetered{
+		Type:                   apiv3models.BillingEntitlementMeteredTypeMetered,
 		Id:                     m.ID,
-		Feature:                api.FeatureReference{Id: m.FeatureID},
-		Customer:               api.CustomerReference{Id: m.CustomerID},
+		Feature:                apiv3models.FeatureReference{Id: m.FeatureID},
+		Customer:               apiv3models.CustomerReference{Id: m.CustomerID},
 		Labels:                 labels.FromMetadataAnnotations(m.Metadata, m.Annotations),
 		ActiveFrom:             m.ActiveFromTime(),
 		ActiveTo:               m.ActiveToTime(),
@@ -366,7 +366,7 @@ func toAPIEntitlementMetered(m *meteredentitlement.Entitlement) api.BillingEntit
 	if m.HasDefaultGrant() {
 		amount := alpacadecimal.NewFromFloat(m.IssueAfterReset.Amount).String()
 
-		out.Issue = &api.BillingEntitlementIssueAfterReset{
+		out.Issue = &apiv3models.BillingEntitlementIssueAfterReset{
 			Amount:   amount,
 			Priority: m.IssueAfterReset.Priority,
 		}
@@ -377,12 +377,12 @@ func toAPIEntitlementMetered(m *meteredentitlement.Entitlement) api.BillingEntit
 	return out
 }
 
-func toAPIEntitlementStatic(s *staticentitlement.Entitlement) api.BillingEntitlementStatic {
-	out := api.BillingEntitlementStatic{
-		Type:       api.BillingEntitlementStaticTypeStatic,
+func toAPIEntitlementStatic(s *staticentitlement.Entitlement) apiv3models.BillingEntitlementStatic {
+	out := apiv3models.BillingEntitlementStatic{
+		Type:       apiv3models.BillingEntitlementStaticTypeStatic,
 		Id:         s.ID,
-		Feature:    api.FeatureReference{Id: s.FeatureID},
-		Customer:   api.CustomerReference{Id: s.CustomerID},
+		Feature:    apiv3models.FeatureReference{Id: s.FeatureID},
+		Customer:   apiv3models.CustomerReference{Id: s.CustomerID},
 		Labels:     labels.FromMetadataAnnotations(s.Metadata, s.Annotations),
 		ActiveFrom: s.ActiveFromTime(),
 		ActiveTo:   s.ActiveToTime(),
@@ -403,12 +403,12 @@ func toAPIEntitlementStatic(s *staticentitlement.Entitlement) api.BillingEntitle
 	return out
 }
 
-func toAPIEntitlementBoolean(b *booleanentitlement.Entitlement) api.BillingEntitlementBoolean {
-	out := api.BillingEntitlementBoolean{
-		Type:       api.BillingEntitlementBooleanTypeBoolean,
+func toAPIEntitlementBoolean(b *booleanentitlement.Entitlement) apiv3models.BillingEntitlementBoolean {
+	out := apiv3models.BillingEntitlementBoolean{
+		Type:       apiv3models.BillingEntitlementBooleanTypeBoolean,
 		Id:         b.ID,
-		Feature:    api.FeatureReference{Id: b.FeatureID},
-		Customer:   api.CustomerReference{Id: b.CustomerID},
+		Feature:    apiv3models.FeatureReference{Id: b.FeatureID},
+		Customer:   apiv3models.CustomerReference{Id: b.CustomerID},
 		Labels:     labels.FromMetadataAnnotations(b.Metadata, b.Annotations),
 		ActiveFrom: b.ActiveFromTime(),
 		ActiveTo:   b.ActiveToTime(),
@@ -428,68 +428,68 @@ func toAPIEntitlementBoolean(b *booleanentitlement.Entitlement) api.BillingEntit
 	return out
 }
 
-func toAPIRecurringPeriod(u *entitlement.UsagePeriod) api.RecurringPeriod {
+func toAPIRecurringPeriod(u *entitlement.UsagePeriod) apiv3models.RecurringPeriod {
 	original := u.GetOriginalValueAsUsagePeriodInput().GetValue()
 
-	return api.RecurringPeriod{
+	return apiv3models.RecurringPeriod{
 		Anchor:   original.Anchor,
 		Interval: original.Interval.ISOString().String(),
 	}
 }
 
-func toAPIClosedPeriod(p timeutil.ClosedPeriod) api.ClosedPeriod {
-	return api.ClosedPeriod{
+func toAPIClosedPeriod(p timeutil.ClosedPeriod) apiv3models.ClosedPeriod {
+	return apiv3models.ClosedPeriod{
 		From: p.From,
 		To:   p.To,
 	}
 }
 
-func mapHistoryWindowSize(size api.BillingEntitlementHistoryWindowSize) (meter.WindowSize, error) {
+func mapHistoryWindowSize(size apiv3models.BillingEntitlementHistoryWindowSize) (meter.WindowSize, error) {
 	switch size {
-	case api.BillingEntitlementHistoryWindowSizePT1H:
+	case apiv3models.BillingEntitlementHistoryWindowSizePT1H:
 		return meter.WindowSizeHour, nil
-	case api.BillingEntitlementHistoryWindowSizeP1D:
+	case apiv3models.BillingEntitlementHistoryWindowSizeP1D:
 		return meter.WindowSizeDay, nil
 	default:
 		return "", fmt.Errorf("unsupported window size %q", size)
 	}
 }
 
-func mapHistoryToAPI(history entitlement.CustomerEntitlementHistory) api.BillingEntitlementHistory {
-	return api.BillingEntitlementHistory{
-		WindowedHistory: lo.Map(history.Windows, func(window entitlement.BalanceHistoryWindow, _ int) api.BillingEntitlementHistoryWindow {
-			return api.BillingEntitlementHistoryWindow{
+func mapHistoryToAPI(history entitlement.CustomerEntitlementHistory) apiv3models.BillingEntitlementHistory {
+	return apiv3models.BillingEntitlementHistory{
+		WindowedHistory: lo.Map(history.Windows, func(window entitlement.BalanceHistoryWindow, _ int) apiv3models.BillingEntitlementHistoryWindow {
+			return apiv3models.BillingEntitlementHistoryWindow{
 				Period:         mapPeriodToAPI(window.From, window.To),
 				Usage:          alpacadecimal.NewFromFloat(window.UsageInPeriod).String(),
 				BalanceAtStart: alpacadecimal.NewFromFloat(window.BalanceAtStart).String(),
 			}
 		}),
-		BurndownHistory: lo.Map(history.Burndown.Segments(), func(segment engine.GrantBurnDownHistorySegment, _ int) api.BillingEntitlementBurndownSegment {
+		BurndownHistory: lo.Map(history.Burndown.Segments(), func(segment engine.GrantBurnDownHistorySegment, _ int) apiv3models.BillingEntitlementBurndownSegment {
 			return mapBurndownSegmentToAPI(segment)
 		}),
 	}
 }
 
-func mapBurndownSegmentToAPI(segment engine.GrantBurnDownHistorySegment) api.BillingEntitlementBurndownSegment {
+func mapBurndownSegmentToAPI(segment engine.GrantBurnDownHistorySegment) apiv3models.BillingEntitlementBurndownSegment {
 	balancesAtEnd := segment.ApplyUsage()
-	numeric := func(balance float64, _ string) api.Numeric {
+	numeric := func(balance float64, _ string) apiv3models.Numeric {
 		return alpacadecimal.NewFromFloat(balance).String()
 	}
 
-	return api.BillingEntitlementBurndownSegment{
+	return apiv3models.BillingEntitlementBurndownSegment{
 		Period:  mapPeriodToAPI(segment.From, segment.To),
 		Usage:   alpacadecimal.NewFromFloat(segment.TotalUsage).String(),
 		Overage: alpacadecimal.NewFromFloat(segment.Overage).String(),
-		Balance: api.BillingEntitlementBurndownBalance{
+		Balance: apiv3models.BillingEntitlementBurndownBalance{
 			Start: alpacadecimal.NewFromFloat(segment.BalanceAtStart.Balance()).String(),
 			End:   alpacadecimal.NewFromFloat(balancesAtEnd.Balance()).String(),
 		},
-		GrantBalances: api.BillingEntitlementBurndownGrantBalances{
+		GrantBalances: apiv3models.BillingEntitlementBurndownGrantBalances{
 			Start: lo.MapValues(segment.BalanceAtStart, numeric),
 			End:   lo.MapValues(balancesAtEnd, numeric),
 		},
-		GrantUsages: lo.Map(segment.GrantUsages, func(usage engine.GrantUsage, _ int) api.BillingEntitlementGrantUsage {
-			return api.BillingEntitlementGrantUsage{
+		GrantUsages: lo.Map(segment.GrantUsages, func(usage engine.GrantUsage, _ int) apiv3models.BillingEntitlementGrantUsage {
+			return apiv3models.BillingEntitlementGrantUsage{
 				GrantId: usage.GrantID,
 				Usage:   alpacadecimal.NewFromFloat(usage.Usage).String(),
 			}
@@ -499,6 +499,6 @@ func mapBurndownSegmentToAPI(segment engine.GrantBurnDownHistorySegment) api.Bil
 
 // mapPeriodToAPI renders period bounds in UTC as AIP-142 requires, regardless of
 // the location the calculation ran in.
-func mapPeriodToAPI(from, to time.Time) api.ClosedPeriod {
-	return api.ClosedPeriod{From: from.UTC(), To: to.UTC()}
+func mapPeriodToAPI(from, to time.Time) apiv3models.ClosedPeriod {
+	return apiv3models.ClosedPeriod{From: from.UTC(), To: to.UTC()}
 }

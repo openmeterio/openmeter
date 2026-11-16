@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -16,7 +16,7 @@ import (
 type (
 	GetAddonRequest       = addon.GetAddonInput
 	GetAddonRequestParams = string
-	GetAddonResponse      = apiv3.Addon
+	GetAddonResponse      = apiv3models.Addon
 	GetAddonHandler       httptransport.HandlerWithArgs[GetAddonRequest, GetAddonResponse, GetAddonRequestParams]
 )
 

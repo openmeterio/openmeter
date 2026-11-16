@@ -16,8 +16,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
@@ -942,7 +942,7 @@ func (s *InvoicableChargesTestSuite) TestInvoiceCustomerChargesAPIUsesChargeEngi
 	s.Require().NotNil(pending.Lines[0].ChargeID)
 
 	// when: manually collecting through the v3 handler at the due line's cutoff.
-	body, err := json.Marshal(api.InvoiceCustomerChargesInput{
+	body, err := json.Marshal(apiv3models.InvoiceCustomerChargesInput{
 		AsOf:                       lo.ToPtr(period.To),
 		ProgressiveBillingOverride: lo.ToPtr(false),
 	})
@@ -955,7 +955,7 @@ func (s *InvoicableChargesTestSuite) TestInvoiceCustomerChargesAPIUsesChargeEngi
 
 	// then: collection invokes the charge engine, applies credits, and retains the future line.
 	s.Require().Equal(http.StatusCreated, res.Code, res.Body.String())
-	var result api.InvoiceCustomerChargesResult
+	var result apiv3models.InvoiceCustomerChargesResult
 	s.Require().NoError(json.Unmarshal(res.Body.Bytes(), &result))
 	s.Require().Len(result.Invoices, 1)
 	invoice, err := result.Invoices[0].AsBillingInvoiceStandard()

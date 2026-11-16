@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -18,8 +18,8 @@ func TestConvertAPIUpdateCreditGrantExternalSettlementRequest(t *testing.T) {
 		"ns",
 		"cust-1",
 		"grant-1",
-		api.UpdateCreditGrantExternalSettlementRequest{
-			Status: api.BillingCreditPurchasePaymentSettlementStatusAuthorized,
+		apiv3models.UpdateCreditGrantExternalSettlementRequest{
+			Status: apiv3models.BillingCreditPurchasePaymentSettlementStatusAuthorized,
 		},
 	)
 
@@ -35,8 +35,8 @@ func TestConvertAPIUpdateCreditGrantExternalSettlementRequestRejectsPending(t *t
 		"ns",
 		"cust-1",
 		"grant-1",
-		api.UpdateCreditGrantExternalSettlementRequest{
-			Status: api.BillingCreditPurchasePaymentSettlementStatusPending,
+		apiv3models.UpdateCreditGrantExternalSettlementRequest{
+			Status: apiv3models.BillingCreditPurchasePaymentSettlementStatusPending,
 		},
 	)
 

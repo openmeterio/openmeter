@@ -5,13 +5,13 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func ToAPICustomer(c customer.Customer) apimodels.Customer {
-	apiCustomer := apimodels.Customer{
+func ToAPICustomer(c customer.Customer) apiv1models.Customer {
+	apiCustomer := apiv1models.Customer{
 		Id:           c.ManagedResource.ID,
 		Key:          c.Key,
 		Name:         c.Name,
@@ -25,11 +25,11 @@ func ToAPICustomer(c customer.Customer) apimodels.Customer {
 	}
 
 	if c.UsageAttribution != nil {
-		apiCustomer.UsageAttribution = &apimodels.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys}
+		apiCustomer.UsageAttribution = &apiv1models.CustomerUsageAttribution{SubjectKeys: c.UsageAttribution.SubjectKeys}
 	}
 
 	if c.BillingAddress != nil {
-		address := apimodels.Address{
+		address := apiv1models.Address{
 			City:        c.BillingAddress.City,
 			State:       c.BillingAddress.State,
 			PostalCode:  c.BillingAddress.PostalCode,
@@ -52,18 +52,18 @@ func ToAPICustomer(c customer.Customer) apimodels.Customer {
 	return apiCustomer
 }
 
-func ToAPIMetadata(metadata models.Metadata) *apimodels.Metadata {
+func ToAPIMetadata(metadata models.Metadata) *apiv1models.Metadata {
 	if len(metadata) == 0 {
 		return nil
 	}
 
-	return lo.ToPtr(apimodels.Metadata(maps.Clone(metadata)))
+	return lo.ToPtr(apiv1models.Metadata(maps.Clone(metadata)))
 }
 
-func ToAPIAnnotations(annotations models.Annotations) *apimodels.Annotations {
+func ToAPIAnnotations(annotations models.Annotations) *apiv1models.Annotations {
 	if len(annotations) == 0 {
 		return nil
 	}
 
-	return lo.ToPtr(apimodels.Annotations(maps.Clone(annotations)))
+	return lo.ToPtr(apiv1models.Annotations(maps.Clone(annotations)))
 }

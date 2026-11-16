@@ -10,7 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	app "github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -277,7 +277,7 @@ type CreateCheckoutSessionInput struct {
 	AppID            app.AppID
 	CustomerID       customer.CustomerID
 	StripeCustomerID string
-	Options          apimodels.CreateStripeCheckoutSessionRequestOptions
+	Options          apiv1models.CreateStripeCheckoutSessionRequestOptions
 }
 
 func (i CreateCheckoutSessionInput) Validate() error {
@@ -299,11 +299,11 @@ func (i CreateCheckoutSessionInput) Validate() error {
 
 	if i.Options.UiMode != nil {
 		switch *i.Options.UiMode {
-		case apimodels.CheckoutSessionUIModeEmbedded:
+		case apiv1models.CheckoutSessionUIModeEmbedded:
 			if i.Options.CancelURL != nil {
 				return errors.New("cancel url is not allowed for embedded ui mode")
 			}
-		case apimodels.CheckoutSessionUIModeHosted:
+		case apiv1models.CheckoutSessionUIModeHosted:
 			if i.Options.SuccessURL == nil {
 				return errors.New("success url is required for hosted ui mode")
 			}

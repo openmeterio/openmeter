@@ -6,8 +6,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -20,7 +20,7 @@ type (
 		ID     models.NamespacedID
 		Timing subscription.Timing
 	}
-	CancelSubscriptionResponse = api.BillingSubscription
+	CancelSubscriptionResponse = apiv3models.BillingSubscription
 	CancelSubscriptionParams   = string
 	CancelSubscriptionHandler  httptransport.HandlerWithArgs[CancelSubscriptionRequest, CancelSubscriptionResponse, CancelSubscriptionParams]
 )
@@ -29,7 +29,7 @@ func (h *handler) CancelSubscription() CancelSubscriptionHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, subscriptionID CancelSubscriptionParams) (CancelSubscriptionRequest, error) {
 			// Parse body
-			body := api.BillingSubscriptionCancel{}
+			body := apiv3models.BillingSubscriptionCancel{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CancelSubscriptionRequest{}, err
 			}
