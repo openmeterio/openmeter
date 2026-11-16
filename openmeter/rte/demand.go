@@ -165,7 +165,8 @@ func (i PruneInvalidationsInput) Validate() error {
 // retry bookkeeping; a process crash rolls back the entire attempt.
 type DemandRepository interface {
 	Activate(context.Context, ActivateDemandInput) error
-	EnsurePull(context.Context, EnsureFreshInput) error
+	// EnsurePull returns true when renewal confirms the key is clean. Otherwise the caller must check for work.
+	EnsurePull(context.Context, EnsureFreshInput) (clean bool, err error)
 	Deactivate(context.Context, CalculationTarget) error
 	Invalidate(context.Context, InvalidateInput) (InvalidationResult, error)
 	PruneInvalidations(context.Context, PruneInvalidationsInput) (int, error)

@@ -7,8 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -60,19 +62,26 @@ func TestDemandRegistrationCanonicalizesAndRepairsWireKey(t *testing.T) {
 	incoming := f.target
 	incoming.Key = bytes.Replace(f.target.Key, []byte(`"currency"`), []byte(`"Currency"`), 1)
 	require.NotEqual(t, f.target.Key, incoming.Key)
-	require.NoError(t, f.repository.Activate(t.Context(), rte.ActivateDemandInput{Target: incoming, RefreshInterval: time.Hour}))
+	pull := rte.EnsureFreshInput{Target: incoming, PullTTL: time.Hour}
+	confirmedClean, err := f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+	targeted := f.input
+	targeted.Target = &f.target
 	row, err := f.client.RTEDemand.Query().Only(t.Context())
 	require.NoError(t, err)
 	require.JSONEq(t, string(f.target.Key), string(row.Key))
 
 	// When an existing clean row was created by a writer that saved raw JSON.
-	result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	result, err := f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
 	require.NoError(t, err)
 	require.True(t, result.Processed)
 	_, err = f.client.ExecContext(t.Context(), "UPDATE rte_demands SET key = $1 WHERE id = $2", string(incoming.Key), row.ID)
 	require.NoError(t, err)
-	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour}
-	require.NoError(t, f.repository.EnsurePull(t.Context(), pull))
+	pull.Target = f.target
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
 
 	// Then registration repairs the same identity and wakes it once to cover missed facts.
 	repaired, err := f.client.RTEDemand.Query().Only(t.Context())
@@ -81,12 +90,14 @@ func TestDemandRegistrationCanonicalizesAndRepairsWireKey(t *testing.T) {
 	require.JSONEq(t, string(f.target.Key), string(repaired.Key))
 	require.Equal(t, repaired.CompletedVersion+1, repaired.DirtyVersion)
 	require.True(t, repaired.NextAttemptAt.Equal(now))
-	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	result, err = f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
 	require.NoError(t, err)
 	require.True(t, result.Processed)
 
 	pull.Target = incoming
-	require.NoError(t, f.repository.EnsurePull(t.Context(), pull))
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.True(t, confirmedClean)
 	clean, err := f.client.RTEDemand.Query().Only(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, repaired.DirtyVersion, clean.DirtyVersion)
@@ -321,7 +332,9 @@ func TestDemandPullExpiryAgeAndPeriodicRefresh(t *testing.T) {
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Minute}
-	require.NoError(t, f.repository.EnsurePull(t.Context(), pull))
+	confirmedClean, err := f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
 	targeted := f.input
 	targeted.Target = &f.target
 	result, err := f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
@@ -331,14 +344,29 @@ func TestDemandPullExpiryAgeAndPeriodicRefresh(t *testing.T) {
 	// When its age bound expires, a pull dirties it; expiry stops background work.
 	clock.FreezeTime(now.Add(30 * time.Second))
 	pull.MaxAge = 10 * time.Second
-	require.NoError(t, f.repository.EnsurePull(t.Context(), pull))
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
 	row, err := f.client.RTEDemand.Query().Only(t.Context())
 	require.NoError(t, err)
 	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+	result, err = f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
 	clock.FreezeTime(now.Add(2 * time.Minute))
 	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { t.Fatal("expired pull processed"); return nil })
 	require.NoError(t, err)
 	require.False(t, result.Processed)
+
+	// Even an unbounded-age pull needs a calculation after its interest expires.
+	pull.MaxAge = 0
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+	row, err = f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
 
 	// Then push activation resumes work and its timer cannot be postponed by registration.
 	activate := rte.ActivateDemandInput{Target: f.target, RefreshInterval: time.Minute}
@@ -366,7 +394,9 @@ func TestDemandPullExpiryAgeAndPeriodicRefresh(t *testing.T) {
 func TestDemandPullOnlyCoalescesWithoutBackgroundCalculations(t *testing.T) {
 	// Given a pull-only key with a completed version and continued interest.
 	f := newDemandFixture(t)
-	require.NoError(t, f.repository.EnsurePull(t.Context(), rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour}))
+	confirmedClean, err := f.repository.EnsurePull(t.Context(), rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour})
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
 	targeted := f.input
 	targeted.Target = &f.target
 	result, err := f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
@@ -393,6 +423,92 @@ func TestDemandPullOnlyCoalescesWithoutBackgroundCalculations(t *testing.T) {
 	result, err = f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { t.Fatal("clean pull recalculated"); return nil })
 	require.NoError(t, err)
 	require.False(t, result.Processed)
+}
+
+func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
+	// Given a completed pull-only key with an hour of interest.
+	f := newDemandFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour}
+	clean, err := f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.False(t, clean)
+	targeted := f.input
+	targeted.Target = &f.target
+	result, err := f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	row, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	pull.PullTTL = time.Minute
+	clean, err = f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.True(t, clean)
+	renewed, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.Equal(t, row.PullUntil, renewed.PullUntil, "a shorter pull must preserve the longer interest")
+
+	// When an invalidation holds the row lock, a pull must wait for its dirty version.
+	pull.PullTTL = 2 * time.Hour
+	type renewal struct {
+		clean bool
+		err   error
+	}
+	done := make(chan renewal, 1)
+	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
+		marked, err := f.repository.Invalidate(txCtx, rte.InvalidateInput{
+			Source: "ledger", EventID: "during-renewal",
+			Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind, Targets: []rte.CalculationTarget{f.target}}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, 1, marked.Matched)
+
+		go func() {
+			clean, err := f.repository.EnsurePull(ctx, pull)
+			done <- renewal{clean, err}
+		}()
+
+		// This fixture has its own database. Wait for PostgreSQL to confirm the
+		// competing update is blocked before allowing the invalidation to commit.
+		require.EventuallyWithT(t, func(collect *assert.CollectT) {
+			rows, err := f.client.QueryContext(ctx, `SELECT EXISTS (
+				SELECT FROM pg_stat_activity WHERE datname = current_database()
+				AND wait_event_type = 'Lock' AND query LIKE '%rte_demands%'
+			)`)
+			require.NoError(collect, err)
+			defer rows.Close()
+
+			waiting, err := sql.ScanBool(rows)
+			require.NoError(collect, err)
+			require.True(collect, waiting)
+		}, 5*time.Second, 10*time.Millisecond)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	// Then renewal reports work due, and the next completed calculation restores a clean hit.
+	select {
+	case renewal := <-done:
+		require.NoError(t, renewal.err)
+		require.False(t, renewal.clean)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+
+	renewed, err = f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.True(t, renewed.PullUntil.After(*row.PullUntil))
+
+	result, err = f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	clean, err = f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.True(t, clean)
 }
 
 func TestDemandReceiptRetentionBoundsDeletionAndAllowsSafeReplay(t *testing.T) {
