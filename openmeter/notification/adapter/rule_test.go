@@ -260,11 +260,13 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 	env := newChannelTestEnv(t)
 	tests := []struct {
 		name      string
+		versioned string
 		eventType notification.EventType
 		config    notification.RuleConfig
 	}{
 		{
 			name:      "entitlements.balance.threshold",
+			versioned: "v1.entitlement.balance_threshold.triggered",
 			eventType: notification.EventTypeBalanceThreshold,
 			config: notification.RuleConfig{
 				BalanceThreshold: &notification.BalanceThresholdRuleConfig{
@@ -277,6 +279,7 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 		},
 		{
 			name:      "entitlements.reset",
+			versioned: "v1.entitlement.usage_period.reset",
 			eventType: notification.EventTypeEntitlementReset,
 			config: notification.RuleConfig{
 				EntitlementReset: &notification.EntitlementResetRuleConfig{Features: []string{"feature-a"}},
@@ -284,11 +287,13 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 		},
 		{
 			name:      "invoice.created",
+			versioned: "v1.billing.invoice.created",
 			eventType: notification.EventTypeInvoiceCreated,
 			config:    notification.RuleConfig{Invoice: &notification.InvoiceRuleConfig{}},
 		},
 		{
 			name:      "invoice.updated",
+			versioned: "v1.billing.invoice.updated",
 			eventType: notification.EventTypeInvoiceUpdated,
 			config:    notification.RuleConfig{Invoice: &notification.InvoiceRuleConfig{}},
 		},
@@ -320,7 +325,14 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 
 			assert.Equal(t, tt.name, storedType)
 
-			// when: getting and filtering rules through the existing adapter
+			// when: a versioned type column is paired with the original config
+			_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_rules SET type = $1 WHERE id = $2", tt.versioned, created.ID)
+			require.NoError(t, err)
+
+			var meta notification.RuleConfigMeta
+			require.NoError(t, json.Unmarshal([]byte(storedConfig), &meta))
+			assert.Equal(t, tt.eventType, meta.Type)
+
 			fetched, err := env.adapter.GetRule(t.Context(), notification.GetRuleInput(created.NamespacedID))
 			require.NoError(t, err)
 
@@ -353,7 +365,7 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			// then: storage remains readable by old backends without type/config conversion
+			// then: the update preserves the stored spelling and the legacy config
 			assert.Equal(t, created.ID, updated.ID)
 			assert.Equal(t, created.CreatedAt, updated.CreatedAt)
 			assert.Equal(t, tt.eventType, updated.Type)
@@ -370,7 +382,7 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 			).Scan(&updatedType, &updatedConfig)
 			require.NoError(t, err)
 
-			assert.Equal(t, storedType, updatedType)
+			assert.Equal(t, tt.versioned, updatedType)
 			assert.JSONEq(t, storedConfig, updatedConfig)
 		})
 	}

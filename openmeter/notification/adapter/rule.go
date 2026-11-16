@@ -56,7 +56,10 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 
 		query = filter.ApplyToQuery(query, params.ID, ruledb.FieldID)
 		query = filter.ApplyToQuery(query, params.Name, ruledb.FieldName)
-		query = filter.ApplyToQuery(query, params.Type, ruledb.FieldType)
+		if params.Type != nil && !params.Type.IsEmpty() {
+			query = query.Where(eventTypePredicate(ruledb.FieldType, params.Type))
+		}
+
 		query = filter.ApplyToQuery(query, params.Disabled, ruledb.FieldDisabled)
 		query = filter.ApplyToQuery(query, params.CreatedAt, ruledb.FieldCreatedAt)
 		query = filter.ApplyToQuery(query, params.UpdatedAt, ruledb.FieldUpdatedAt)
@@ -67,10 +70,12 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 			query = query.Where(ruledb.HasChannelsWith(channelPreds...))
 		}
 
-		order := entutils.GetOrdering(sortx.OrderDefault)
+		sortOrder := sortx.OrderDefault
 		if !params.Order.IsDefaultValue() {
-			order = entutils.GetOrdering(params.Order)
+			sortOrder = params.Order
 		}
+
+		order := entutils.GetOrdering(sortOrder)
 
 		switch params.OrderBy {
 		case notification.OrderByCreatedAt:
@@ -78,7 +83,7 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 		case notification.OrderByUpdatedAt:
 			query = query.Order(ruledb.ByUpdatedAt(order...))
 		case notification.OrderByType:
-			query = query.Order(ruledb.ByType(order...))
+			query = query.Order(byLegacyEventType(ruledb.FieldType, sortOrder), ruledb.ByID(order...))
 		case notification.OrderByID:
 			fallthrough
 		default:

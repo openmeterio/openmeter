@@ -794,26 +794,31 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 	env := newEventTestEnv(t)
 	tests := []struct {
 		name      string
+		versioned string
 		eventType notification.EventType
 		payload   notification.EventPayload
 	}{
 		{
 			name:      "entitlements.balance.threshold",
+			versioned: "v1.entitlement.balance_threshold.triggered",
 			eventType: notification.EventTypeBalanceThreshold,
 			payload:   notification.EventPayload{BalanceThreshold: &notification.BalanceThresholdPayload{}},
 		},
 		{
 			name:      "entitlements.reset",
+			versioned: "v1.entitlement.usage_period.reset",
 			eventType: notification.EventTypeEntitlementReset,
 			payload:   notification.EventPayload{EntitlementReset: &notification.EntitlementResetPayload{}},
 		},
 		{
 			name:      "invoice.created",
+			versioned: "v1.billing.invoice.created",
 			eventType: notification.EventTypeInvoiceCreated,
 			payload:   notification.EventPayload{Invoice: &notification.InvoicePayload{}},
 		},
 		{
 			name:      "invoice.updated",
+			versioned: "v1.billing.invoice.updated",
 			eventType: notification.EventTypeInvoiceUpdated,
 			payload:   notification.EventPayload{Invoice: &notification.InvoicePayload{}},
 		},
@@ -867,6 +872,13 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			assert.Equal(t, tt.name, storedType)
 			assert.JSONEq(t, string(expectedPayload), storedPayload)
 
+			// when: both type columns have versioned names but the stored JSON is unchanged
+			_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_events SET type = $1 WHERE id = $2", tt.versioned, created.ID)
+			require.NoError(t, err)
+
+			_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_rules SET type = $1 WHERE id = $2", tt.versioned, rule.ID)
+			require.NoError(t, err)
+
 			fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: created.Namespace, ID: created.ID})
 			require.NoError(t, err)
 			require.NotNil(t, fetched)
@@ -883,9 +895,23 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			assert.Equal(t, tt.eventType, fetched.Type)
 			assert.Equal(t, tt.eventType, listed.Items[0].Type)
 			assert.Equal(t, rule.ID, fetched.Rule.ID)
+			assert.Equal(t, tt.eventType, fetched.Rule.Type)
+			assert.Equal(t, tt.eventType, fetched.Rule.Config.Type)
 			assert.Equal(t, created.CreatedAt.Truncate(time.Microsecond), fetched.CreatedAt)
 			assert.Equal(t, created.Payload, fetched.Payload)
 			assert.Equal(t, created.Payload, listed.Items[0].Payload)
+
+			// Internal filters can combine exact and pattern comparisons on the public type.
+			mixed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+				Namespaces: []string{namespace},
+				Type: &filter.FilterString{And: &[]filter.FilterString{
+					{Like: &tt.name},
+					{Ne: new(string(otherType))},
+				}},
+			})
+			require.NoError(t, err)
+			require.Len(t, mixed.Items, 1)
+			assert.Equal(t, created.ID, mixed.Items[0].ID)
 
 			var readType, readPayload string
 			err = env.sqlDB.QueryRowContext(t.Context(),
@@ -893,7 +919,7 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			).Scan(&readType, &readPayload)
 			require.NoError(t, err)
 
-			assert.Equal(t, storedType, readType)
+			assert.Equal(t, tt.versioned, readType)
 			assert.JSONEq(t, storedPayload, readPayload)
 		})
 	}

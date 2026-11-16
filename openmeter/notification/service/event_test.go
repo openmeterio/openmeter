@@ -2,6 +2,12 @@ package service_test
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,6 +16,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/api/v3/filters"
+	eventhandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
+	rulehandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/rules"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
+	"github.com/openmeterio/openmeter/api/v3/response"
 	eventdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	statusdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -420,6 +431,136 @@ func TestCreateEventRequiresRule(t *testing.T) {
 
 					assert.Equal(t, wantCount, eventCount)
 					assert.Equal(t, wantCount, statusCount)
+				})
+			}
+		})
+	}
+}
+
+func TestV3NotificationTypeCompatibility(t *testing.T) {
+	env := newServiceTestEnv(t)
+	ctx := t.Context()
+	namespace := ulid.Make().String()
+	channel := seedChannel(t, env, namespace, clock.Now(), "invoice webhook")
+
+	type item struct {
+		ID   string                 `json:"id"`
+		Type notification.EventType `json:"type"`
+	}
+
+	// Given two Rules and Events of each invoice type, with one of each pair
+	// using the versioned type column and the original JSON discriminator.
+	var wantRules, wantEvents []item
+
+	for _, pair := range []struct {
+		legacy    notification.EventType
+		versioned string
+	}{
+		{notification.EventTypeInvoiceCreated, "v1.billing.invoice.created"},
+		{notification.EventTypeInvoiceUpdated, "v1.billing.invoice.updated"},
+	} {
+		for i := range 2 {
+			rule, err := env.adapter.CreateRule(ctx, notification.CreateRuleInput{
+				NamespacedModel: models.NamespacedModel{Namespace: namespace},
+				Type:            pair.legacy,
+				Name:            ulid.Make().String(),
+				Channels:        []string{channel.ID},
+				Config: notification.RuleConfig{
+					RuleConfigMeta: notification.RuleConfigMeta{Type: pair.legacy},
+					Invoice:        &notification.InvoiceRuleConfig{},
+				},
+			})
+			require.NoError(t, err)
+
+			event, err := env.adapter.CreateEvent(ctx, notification.CreateEventInput{
+				NamespacedModel: models.NamespacedModel{Namespace: namespace},
+				RuleID:          rule.ID,
+				Type:            pair.legacy,
+				Payload: notification.EventPayload{
+					EventPayloadMeta: notification.EventPayloadMeta{Type: pair.legacy, Version: notification.EventPayloadVersionCurrent},
+					Invoice:          &notification.InvoicePayload{},
+				},
+			})
+			require.NoError(t, err)
+
+			if i == 0 {
+				_, err = env.db.ExecContext(ctx, "UPDATE notification_rules SET type = $1 WHERE id = $2", pair.versioned, rule.ID)
+				require.NoError(t, err)
+
+				_, err = env.db.ExecContext(ctx, "UPDATE notification_events SET type = $1 WHERE id = $2", pair.versioned, event.ID)
+				require.NoError(t, err)
+			}
+
+			wantRules = append(wantRules, item{rule.ID, pair.legacy})
+			wantEvents = append(wantEvents, item{event.ID, pair.legacy})
+		}
+	}
+
+	resolveNamespace := func(context.Context) (string, error) { return namespace, nil }
+	events := eventhandler.New(resolveNamespace, env.service).ListNotificationEvents()
+	rules := rulehandler.New(resolveNamespace, env.service, nil).ListNotificationRules()
+
+	for _, resource := range []struct {
+		name    string
+		want    []item
+		handler func(*filters.FilterStringExact, *string, *apiv3models.PagePaginationQuery) http.Handler
+	}{
+		{"events", wantEvents, func(f *filters.FilterStringExact, sort *string, page *apiv3models.PagePaginationQuery) http.Handler {
+			return events.With(apiv3models.ListBillingNotificationEventsParams{Filter: &apiv3models.ListNotificationEventsParamsFilter{Type: f}, Sort: sort, Page: page})
+		}},
+		{"rules", wantRules, func(f *filters.FilterStringExact, sort *string, page *apiv3models.PagePaginationQuery) http.Handler {
+			return rules.With(apiv3models.ListBillingNotificationRulesParams{Filter: &apiv3models.ListNotificationRulesParamsFilter{Type: f}, Sort: sort, Page: page})
+		}},
+	} {
+		t.Run(resource.name, func(t *testing.T) {
+			// Sort each pair independently of insertion order. The legacy type name
+			// places "created" before "updated", even when a column starts with "v1".
+			want := slices.Clone(resource.want)
+			slices.SortFunc(want, func(a, b item) int {
+				if order := strings.Compare(string(a.Type), string(b.Type)); order != 0 {
+					return order
+				}
+
+				return strings.Compare(a.ID, b.ID)
+			})
+
+			for _, tc := range []struct {
+				name, key, value, sort string
+				want                   []item
+			}{
+				{"equality", "filter[type]", "invoice.created", "type", want[:2]},
+				{"one of", "filter[type][oeq]", "invoice.updated,invoice.created", "type", want},
+				{"exclusion", "filter[type][neq]", "invoice.updated", "type desc", []item{want[1], want[0]}},
+				{"descending", "", "", "type desc", []item{want[3], want[2], want[1], want[0]}},
+				{"versioned public filter rejected", "filter[type]", "v1.billing.invoice.created", "type", nil},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					// When the client requests one row per page, even a pair of aliases spans pages.
+					var parsed apiv3models.ListNotificationEventsParamsFilter
+					if tc.key != "" {
+						require.NoError(t, filters.Parse(url.Values{tc.key: {tc.value}}, &parsed))
+					}
+
+					for i := range max(len(tc.want), 1) {
+						page := apiv3models.PagePaginationQuery{Number: new(i + 1), Size: new(1)}
+						rec := httptest.NewRecorder()
+						resource.handler(parsed.Type, &tc.sort, &page).ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil))
+
+						if tc.want == nil {
+							require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+
+							return
+						}
+
+						// Then the count and the item on this page use the public type name.
+						require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+						var got response.PagePaginationResponse[item]
+						require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
+
+						require.Equal(t, new(len(tc.want)), got.Meta.Page.Total)
+						require.Equal(t, []item{tc.want[i]}, got.Data)
+					}
 				})
 			}
 		})
