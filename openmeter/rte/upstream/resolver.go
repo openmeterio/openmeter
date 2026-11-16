@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -137,16 +139,34 @@ func (r *resolver) Resolve(ctx context.Context, event marshaler.Event) ([]rte.De
 	case ledger.TransactionGroupCommittedEvent:
 		return r.query(ctx, ledgerQuery{namespace: e.Namespace, groupID: e.GroupID, now: clock.Now().UTC()})
 	case ingestevents.EventBatchedIngest:
-		if len(e.MeterSlugs) == 0 || len(e.RawEvents) == 0 {
+		if len(e.RawEvents) == 0 {
 			return nil, nil
 		}
 
+		// A newly created meter may already count these events while the sink
+		// is still reporting slugs from its previous meter-cache refresh.
+		var eventTypes []string
 		timestamps := make([]time.Time, 0, len(e.RawEvents))
 		for _, raw := range e.RawEvents {
+			if raw.Type != "" {
+				eventTypes = append(eventTypes, raw.Type)
+			}
+
 			timestamps = append(timestamps, time.Unix(raw.Time, 0).UTC())
 		}
 
-		return r.query(ctx, ingestQuery{namespace: e.Namespace.ID, subject: e.SubjectKey, meters: e.MeterSlugs, timestamps: timestamps, now: clock.Now().UTC()})
+		if len(e.MeterSlugs) == 0 && len(eventTypes) == 0 {
+			return nil, nil
+		}
+
+		return r.query(ctx, ingestQuery{
+			namespace:  e.Namespace.ID,
+			subject:    e.SubjectKey,
+			meterSlugs: lo.Uniq(e.MeterSlugs),
+			eventTypes: lo.Uniq(eventTypes),
+			timestamps: lo.Uniq(timestamps),
+			now:        clock.Now().UTC(),
+		})
 	case entitlement.EntitlementCreatedEventV2:
 		return entitlementSelector(e.Namespace.ID, e.Entitlement.ID), nil
 	case entitlement.EntitlementDeletedEventV2:

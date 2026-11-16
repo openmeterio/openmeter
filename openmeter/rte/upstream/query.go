@@ -93,10 +93,10 @@ const creditChargeScope = `(
 )`
 
 type ingestQuery struct {
-	namespace, subject string
-	meters             []string
-	timestamps         []time.Time
-	now                time.Time
+	namespace, subject     string
+	meterSlugs, eventTypes []string
+	timestamps             []time.Time
+	now                    time.Time
 }
 
 func (q ingestQuery) SQL() (string, []any) {
@@ -117,7 +117,7 @@ func (q ingestQuery) SQL() (string, []any) {
 ), features_by_meter AS (
  SELECT f.id, f.key FROM features f JOIN meters m
  ON m.namespace = f.namespace AND m.id = f.meter_id
- WHERE f.namespace = $1 AND m.key = ANY($4::text[])
+ WHERE f.namespace = $1 AND (m.key = ANY($4::text[]) OR m.event_type = ANY($5::text[]))
 )
 SELECT d.namespace, d.kind, d.key FROM rte_demands d
 WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
@@ -125,7 +125,7 @@ WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
    SELECT 1 FROM entitlements e JOIN customers_by_subject cs ON cs.id = e.customer_id
    JOIN features_by_meter f ON f.id = e.feature_id
    WHERE e.namespace = d.namespace AND e.id = d.owner_id AND e.entitlement_type = 'metered'
-   AND EXISTS (SELECT 1 FROM unnest($5::timestamptz[]) AS t(at)
+   AND EXISTS (SELECT 1 FROM unnest($6::timestamptz[]) AS t(at)
      WHERE t.at >= COALESCE(e.measure_usage_from, e.active_from, e.created_at)
      AND (e.deleted_at IS NULL OR t.at < e.deleted_at)))) OR
  (d.kind = 'credit_balance' AND EXISTS (
@@ -137,8 +137,8 @@ WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
    AND c.deleted_at IS NULL AND c.status NOT IN ('final', 'deleted')
    AND c.settlement_mode IN ('credit_only', 'credit_then_invoice')
    AND COALESCE(o.service_period_from, c.service_period_from) <= $2
-   AND EXISTS (SELECT 1 FROM unnest($5::timestamptz[]) AS t(at)
+   AND EXISTS (SELECT 1 FROM unnest($6::timestamptz[]) AS t(at)
      WHERE t.at >= COALESCE(o.service_period_from, c.service_period_from)
      AND t.at < COALESCE(o.service_period_to, c.service_period_to))
-   AND ` + creditChargeScope + `)))`, []any{q.namespace, q.now, q.subject, pq.Array(q.meters), pq.Array(timestamps)}
+   AND ` + creditChargeScope + `)))`, []any{q.namespace, q.now, q.subject, pq.Array(q.meterSlugs), pq.Array(q.eventTypes), pq.Array(timestamps)}
 }

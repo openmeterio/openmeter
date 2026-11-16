@@ -106,13 +106,11 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	event := ingestevents.EventBatchedIngest{
 		Namespace: eventmodels.NamespaceID{ID: ns}, SubjectKey: "rte-upstream-customer",
 		MeterSlugs: []string{"api-requests-total", "api-requests-total"}, StoredAt: now,
-		RawEvents: []serializer.CloudEventsKafkaPayload{{Time: start.Add(time.Hour).Unix()}, {Time: start.Add(time.Hour).Unix()}},
+		RawEvents: []serializer.CloudEventsKafkaPayload{{Type: "test", Time: start.Add(time.Hour).Unix()}, {Type: "test", Time: start.Add(time.Hour).Unix()}},
 	}
 
 	// when: late duplicate usage is resolved after arrival, only the matching
 	// active demand identities are selected once each.
-	selectors, err := resolver.Resolve(ctx, &event)
-	s.Require().NoError(err)
 	hashes := func(selectors []rte.DemandSelector) []string {
 		var result []string
 		for _, selector := range selectors {
@@ -134,7 +132,15 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 		expected = append(expected, identity.KeyHash)
 	}
 
-	s.ElementsMatch(expected, hashes(selectors))
+	// The sink may still have only an older meter for this event type in its cache.
+	for _, slugs := range [][]string{event.MeterSlugs, nil, {"older-meter"}} {
+		batch := event
+		batch.MeterSlugs = slugs
+		selected, err := resolver.Resolve(ctx, &batch)
+		s.Require().NoError(err)
+		s.ElementsMatch(expected, hashes(selected), "cached meter slugs %v", slugs)
+	}
+
 	resolvedMeter, err := s.MeterAdapter.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: ns, IDOrSlug: "api-requests-total"})
 	s.Require().NoError(err)
 	for _, fact := range []marshaler.Event{
@@ -154,7 +160,10 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	// do not schedule calculator work, and demand deactivation is respected.
 	for _, change := range []func(*ingestevents.EventBatchedIngest){
 		func(e *ingestevents.EventBatchedIngest) { e.SubjectKey = "untracked-subject" },
-		func(e *ingestevents.EventBatchedIngest) { e.MeterSlugs = []string{"unrelated-meter"} },
+		func(e *ingestevents.EventBatchedIngest) {
+			e.MeterSlugs = []string{"unrelated-meter"}
+			e.RawEvents = []serializer.CloudEventsKafkaPayload{{Type: "unrelated", Time: start.Add(time.Hour).Unix()}}
+		},
 		func(e *ingestevents.EventBatchedIngest) {
 			e.RawEvents = []serializer.CloudEventsKafkaPayload{{Time: start.Add(-time.Hour).Unix()}}
 		},
@@ -172,7 +181,7 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 		s.Require().NoError(repository.Deactivate(ctx, target.CalculationTarget))
 	}
 
-	selectors, err = resolver.Resolve(ctx, event)
+	selectors, err := resolver.Resolve(ctx, event)
 	s.Require().NoError(err)
 	s.Empty(selectors)
 }
