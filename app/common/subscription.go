@@ -99,7 +99,6 @@ func NewSubscriptionServices(
 		Publisher:             eventPublisher,
 		FeatureFlags:          featureFlags,
 		Lockr:                 lockr,
-		TaxCodeResolver:       taxCodeResolver,
 		CostBasisService:      currencyService,
 	})
 	if err != nil {
@@ -134,6 +133,7 @@ func NewSubscriptionServices(
 		Logger:             logger.With("subsystem", "subscription.workflow.service"),
 		Lockr:              lockr,
 		FeatureFlags:       featureFlags,
+		TaxCodeResolver:    taxCodeResolver,
 	})
 	if err != nil {
 		return SubscriptionServiceWithWorkflow{}, err
@@ -146,6 +146,7 @@ func NewSubscriptionServices(
 		FeatureResolver:     featureResolver,
 		CurrencyResolver:    currencyResolver,
 		CustomerService:     customerService,
+		TaxCodeResolver:     taxCodeResolver,
 		Logger:              logger.With("subsystem", "subscription.change.service"),
 	})
 	if err != nil {

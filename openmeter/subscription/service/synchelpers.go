@@ -6,7 +6,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -145,17 +144,10 @@ func (s *service) createItem(
 	opts createItemOptions,
 	ent *subscription.SubscriptionEntitlement,
 ) (subscription.SubscriptionItem, error) {
-	// Only new items are checked: existing items may still point at a Tax Code deleted since.
-	//
-	// TODO: this leniency is unintended and must be fixed. Replacing, canceling, editing or
-	// migrating an item that references a deleted Tax Code should fail validation pointing at the
-	// item, not silently proceed against a dead reference.
-	// TestSubscriptionItemTaxCodeReferences ("Should keep existing items referencing a
-	// since-deleted Tax Code on update") pins the current behavior and has to change with the fix.
-	if err := productcatalog.ValidateRateCardTaxCodes(ctx, s.TaxCodeResolver, opts.sub.Namespace, productcatalog.RateCards{opts.itemSpec.RateCard}); err != nil {
-		return subscription.SubscriptionItem{}, fmt.Errorf("invalid tax code for item %s: %w", opts.itemSpec.ItemKey, err)
-	}
-
+	// Tax Codes are not validated here: sync cannot tell an authored reference (picked in the
+	// current request) from an inherited one, and checking here made subscriptions with a deleted
+	// Tax Code impossible to cancel or edit. The operation boundaries that can tell them apart run
+	// the checks instead.
 	itemEntityInput, err := opts.itemSpec.ToCreateSubscriptionItemEntityInput(
 		opts.phase.NamespacedID,
 		opts.phaseCadence,

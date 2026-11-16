@@ -82,6 +82,17 @@ func (p Plan) HasCurrencyOverrides() bool {
 	})
 }
 
+// TaxCodeIDs returns the distinct Tax Code IDs referenced across all phases, so callers can look
+// them all up in one batch.
+func (p Plan) TaxCodeIDs() []string {
+	ids := make([]string, 0, len(p.Phases))
+	for _, phase := range p.Phases {
+		ids = append(ids, phase.RateCards.TaxCodeIDs()...)
+	}
+
+	return lo.Uniq(ids)
+}
+
 // UsesCustomCurrency reports whether the plan is priced in a custom (non-fiat)
 // currency, either at the plan level or through a rate card currency override.
 // Custom-currency support is gated behind the credits feature, so callers use this

@@ -40,6 +40,20 @@ func (s *service) Change(ctx context.Context, request plansubscription.ChangeSub
 			return def, err
 		}
 
+		// The inline plan's rate cards are authored in this request, so a deleted Tax Code
+		// reference is rejected here rather than at the FK.
+		// Not via ValidateWith: it would turn a failed lookup into a 400.
+		if err := productcatalog.ValidatePlanWithTaxCodes(ctx, s.TaxCodeResolver, request.ID.Namespace)(planInput.Plan); err != nil {
+			if !models.IsGenericValidationError(err) {
+				return def, fmt.Errorf("failed to validate tax codes of custom plan: %w", err)
+			}
+
+			return def, models.ErrorWithFieldPrefix(
+				models.NewFieldSelectorGroup(models.NewFieldSelector("plan")),
+				err,
+			)
+		}
+
 		if err := productcatalogcurrencyresolver.ResolveCurrenciesForPlan(ctx, s.CurrencyResolver.WithNamespace(request.ID.Namespace), &planInput.Plan); err != nil {
 			return def, fmt.Errorf("invalid plan currencies: %w", err)
 		}
