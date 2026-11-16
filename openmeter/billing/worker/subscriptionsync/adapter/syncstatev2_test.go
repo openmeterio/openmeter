@@ -80,6 +80,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		defer clock.UnFreeze()
 		input := f.input
 		input.LastSuccessAt = at.Add(time.Hour)
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateCustomerDeletedBefore
 		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, input))
 
 		// then: the same row holds the latest result and v1 state is untouched

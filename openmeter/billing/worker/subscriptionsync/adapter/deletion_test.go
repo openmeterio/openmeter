@@ -172,12 +172,11 @@ func (s *DeletedSubscriptionsToReconcileSuite) TestDifferentV2ResultStillRequire
 	// given: a deleted subscription with a v2 result for work other than deletion
 	sub := s.createSubscription(s.customerID)
 	s.Require().NoError(s.db.Subscription.UpdateOneID(sub.ID).SetDeletedAt(s.now).Exec(ctx))
-	s.recordDeletionCleanup(sub.NamespacedID)
-	// The Go enum currently supports only deletion. Seed a future state directly
-	// to verify that the query matches the result, not merely row existence.
-	_, err := s.testDB.PGDriver.DB().ExecContext(ctx,
-		"UPDATE subscription_sync_states_v2 SET last_success_state = $1 WHERE subscription_id = $2", "active", sub.ID)
-	s.Require().NoError(err)
+	s.Require().NoError(s.adapter.UpsertSyncStateV2(ctx, subscriptionsync.UpsertSyncStateV2Input{
+		SubscriptionID:   sub.NamespacedID,
+		LastSuccessState: subscriptionsync.SyncStateV2StateCustomerDeletedBefore,
+		LastSuccessAt:    s.now,
+	}))
 
 	// when: the worker selects cleanup candidates
 	result, err := s.adapter.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{

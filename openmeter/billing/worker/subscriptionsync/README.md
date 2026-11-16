@@ -11,12 +11,12 @@ advance invoice and payment lifecycles.
 
 ## Reconciliation model
 
-A sync is given a subscription ID and an `asOf` horizon. It reloads the current
-subscription view for non-deleted subscriptions, including when triggered by an
-event carrying an older view. It first identifies the customer, then acquires
-billing's customer lock and reloads the subscription and billing profile. Reading
-the view under this lock prevents a waiting sync from recreating billing artifacts
-after another sync completed deletion cleanup. Under that lock it:
+A sync is given a subscription ID and an `asOf` horizon. It first identifies the
+customer, then acquires billing's customer lock and reloads the subscription and
+billing profile. Unless deletion cleanup requires an empty target, it reloads the
+current subscription view, including when triggered by an event carrying an older
+view. Reading the view under this lock prevents a waiting sync from recreating
+billing artifacts after another sync completed deletion cleanup. Under that lock it:
 
 1. loads the persisted invoice-line and charge state owned by that subscription
 2. builds the target billable periods from the resolved subscription view
@@ -36,8 +36,8 @@ patches applied.
 
 `SyncByID` collects the customer's pending lines after reconciliation when
 `WithInvoicePendingLines()` is provided, so flat fees billed in advance can
-become invoices immediately. Dry runs and deleted subscriptions do not collect
-pending lines.
+become invoices immediately. Dry runs and deletion cleanup do not collect pending
+lines.
 
 ## Target time model
 
@@ -146,6 +146,14 @@ owned artifacts subject to immutable-invoice rules. Cleanup must
 load the deleted subscription record separately because the normal subscription
 view lookup excludes deleted records.
 
+A non-deleted subscription also has an empty target when its customer's
+`DeletedAt` is at or before the subscription's `ActiveFrom`. That customer cannot
+receive service from this subscription, but previously generated gathering lines
+may still exist. Sync removes those artifacts instead of only stopping future
+scheduling. It uses the deletion timestamp even when it is ahead of the worker
+clock, so collection cannot invoice those lines while cleanup waits. Customer
+deletion after subscription start still allows reconciliation of earlier service.
+
 Sync state is written only after the plan has been applied. `HasBillables`
 prevents needless future scheduling; `NextSyncAfter` is the end of the
 generated horizon. Errors remain retryable through the event handler or
@@ -153,10 +161,12 @@ periodic reconciler. Dry-run builds the same plan but only logs it and does not
 write artifacts or sync state.
 
 The separate v2 sync-state table stores the last successful reconciliation
-result and its completion time. Its first supported result is
-`subscription_deleted`; a missing row means no successful v2 reconciliation
-has been recorded. Successful deleted-subscription syncs write this result in
-the same transaction as billing cleanup, even when there are no artifacts left.
+result and its completion time: `subscription_deleted` for a deleted subscription,
+or `customer_deleted_before` when its customer was deleted at or before subscription
+start. Subscription deletion takes precedence when both conditions hold. A missing
+row means no successful v2 reconciliation has been recorded. Sync writes the result
+in the same transaction as billing cleanup, even when there are no artifacts left,
+and stops legacy periodic scheduling with `HasBillables=false` and no next deadline.
 Dry runs and failed syncs do not record completion.
 
 The regular periodic list requires `DeletedAt` to be nil. A separate cleanup

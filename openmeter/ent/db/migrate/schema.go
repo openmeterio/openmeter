@@ -6018,7 +6018,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "last_success_state", Type: field.TypeEnum, Enums: []string{"subscription_deleted"}},
+		{Name: "last_success_state", Type: field.TypeEnum, Enums: []string{"subscription_deleted", "customer_deleted_before"}},
 		{Name: "last_success_at", Type: field.TypeTime},
 		{Name: "subscription_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
