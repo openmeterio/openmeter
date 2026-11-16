@@ -32,7 +32,7 @@ jobs:
         chart: [ openmeter, benthos-collector ]
 
     steps:
-      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -105,7 +105,7 @@ jobs:
             goarch: arm64
 
     steps:
-      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -182,7 +182,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
@@ -281,7 +281,7 @@ jobs:
     environment: prod
 
     steps:
-      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
           use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
