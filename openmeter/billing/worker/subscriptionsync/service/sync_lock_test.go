@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -22,6 +24,9 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	// given: a sync reads an active subscription, then deletion cleanup finishes
 	// before this sync acquires the customer's billing lock
 	now := time.Now()
+	beforeLockRevision := ulid.Make().String()
+	lockedRevision := ulid.Make().String()
+	laterRevision := ulid.Make().String()
 	subscriptionService := &subscriptionServiceSpy{view: subscription.SubscriptionView{
 		Subscription: subscription.Subscription{
 			NamespacedID:    models.NamespacedID{Namespace: "namespace", ID: "subscription-id"},
@@ -29,13 +34,25 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 			InvoiceCurrency: currencyx.Code("USD"),
 		},
 	}}
+	syncAdapter := &subscriptionSyncAdapterSpy{
+		statesV2: []subscriptionsync.SyncStateV2Managed{{
+			SyncStateV2: subscriptionsync.SyncStateV2{
+				LastSyncedSubsRevision: lo.ToPtr(beforeLockRevision),
+				CurrentSubsRevision:    lo.ToPtr(beforeLockRevision),
+			},
+		}},
+	}
 	billingService := &billingServiceSpy{
 		beforeLock: func() {
 			subscriptionService.view.Subscription.DeletedAt = &now
+			syncAdapter.statesV2[0].CurrentSubsRevision = lo.ToPtr(lockedRevision)
 		},
 	}
-	syncAdapter := &subscriptionSyncAdapterSpy{}
-	reconciler := &syncReconcilerSpy{}
+	reconciler := &syncReconcilerSpy{
+		onPlan: func() {
+			syncAdapter.statesV2[0].CurrentSubsRevision = lo.ToPtr(laterRevision)
+		},
+	}
 	service := &Service{
 		billingService:          billingService,
 		reconciler:              reconciler,
@@ -57,6 +74,9 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	require.Empty(t, reconciler.planInput.Target.Items)
 	require.Len(t, syncAdapter.upsertsV2, 1)
 	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionDeleted, syncAdapter.upsertsV2[0].LastSuccessState)
+	// Acknowledge what was read after locking, not a revision changed during planning.
+	require.Equal(t, lockedRevision, syncAdapter.upsertsV2[0].LastSyncedSubsRevision)
+	require.Equal(t, 1, syncAdapter.getStatesV2Calls)
 	require.Len(t, syncAdapter.upserts, 1)
 	require.False(t, syncAdapter.upserts[0].HasBillables)
 }
@@ -123,8 +143,15 @@ func (s *subscriptionServiceSpy) GetView(context.Context, models.NamespacedID) (
 
 type subscriptionSyncAdapterSpy struct {
 	subscriptionsync.Adapter
-	upserts   []subscriptionsync.UpsertSyncStateInput
-	upsertsV2 []subscriptionsync.UpsertSyncStateV2Input
+	upserts          []subscriptionsync.UpsertSyncStateInput
+	upsertsV2        []subscriptionsync.UpsertSyncStateV2Input
+	statesV2         []subscriptionsync.SyncStateV2Managed
+	getStatesV2Calls int
+}
+
+func (s *subscriptionSyncAdapterSpy) GetSyncStatesV2(context.Context, subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
+	s.getStatesV2Calls++
+	return s.statesV2, nil
 }
 
 func (s *subscriptionSyncAdapterSpy) UpsertSyncState(_ context.Context, input subscriptionsync.UpsertSyncStateInput) error {
@@ -141,11 +168,15 @@ type syncReconcilerSpy struct {
 	syncreconciler.Reconciler
 	planCalled bool
 	planInput  syncreconciler.PlanInput
+	onPlan     func()
 }
 
 func (s *syncReconcilerSpy) Plan(_ context.Context, input syncreconciler.PlanInput) (*syncreconciler.Plan, error) {
 	s.planCalled = true
 	s.planInput = input
+	if s.onPlan != nil {
+		s.onPlan()
+	}
 
 	return &syncreconciler.Plan{}, nil
 }

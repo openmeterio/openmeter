@@ -6021,6 +6021,8 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_success_state", Type: field.TypeEnum, Enums: []string{"subscription_deleted", "customer_deleted_before"}},
 		{Name: "last_success_at", Type: field.TypeTime},
+		{Name: "last_synced_subs_revision", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "current_subs_revision", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// SubscriptionSyncStatesV2Table holds the schema information for the "subscription_sync_states_v2" table.
@@ -6031,7 +6033,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_sync_state_v2_subscription_fk",
-				Columns:    []*schema.Column{SubscriptionSyncStatesV2Columns[7]},
+				Columns:    []*schema.Column{SubscriptionSyncStatesV2Columns[9]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -6050,7 +6052,7 @@ var (
 			{
 				Name:    "subscriptionsyncstatev2_namespace_subscription_id",
 				Unique:  true,
-				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[1], SubscriptionSyncStatesV2Columns[7]},
+				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[1], SubscriptionSyncStatesV2Columns[9]},
 				Annotation: &entsql.IndexAnnotation{
 					IncludeColumns: []string{
 						SubscriptionSyncStatesV2Columns[5].Name,

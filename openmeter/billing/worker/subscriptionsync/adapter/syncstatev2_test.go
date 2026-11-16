@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -61,7 +62,13 @@ func TestSyncStateV2Persistence(t *testing.T) {
 
 		// then: reads include the row identity and UTC timestamps
 		expectedState := subscriptionsync.SyncStateV2Managed{
-			SyncStateV2: f.input,
+			SyncStateV2: subscriptionsync.SyncStateV2{
+				SubscriptionID:         f.input.SubscriptionID,
+				LastSuccessState:       f.input.LastSuccessState,
+				LastSuccessAt:          at,
+				LastSyncedSubsRevision: lo.ToPtr(f.input.LastSyncedSubsRevision),
+				CurrentSubsRevision:    lo.ToPtr(f.input.LastSyncedSubsRevision),
+			},
 			NamespacedID: models.NamespacedID{
 				Namespace: f.input.SubscriptionID.Namespace,
 				ID:        createdState.ID,
@@ -86,7 +93,8 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		// then: the same row holds the latest result and v1 state is untouched
 		states, err = f.adapter.GetSyncStatesV2(ctx, ids)
 		require.NoError(t, err)
-		expectedState.SyncStateV2 = input
+		expectedState.LastSuccessState = input.LastSuccessState
+		expectedState.LastSuccessAt = input.LastSuccessAt
 		expectedState.UpdatedAt = at.Add(2 * time.Hour)
 		require.Equal(t, []subscriptionsync.SyncStateV2Managed{expectedState}, states)
 		count, err := f.db.SubscriptionSyncStateV2.Query().Count(ctx)
@@ -95,6 +103,103 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		legacyStates, err := f.adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{input.SubscriptionID})
 		require.NoError(t, err)
 		require.Empty(t, legacyStates)
+	})
+
+	t.Run("legacy rows keep nullable revisions until cleanup succeeds", func(t *testing.T) {
+		// Given an existing cleanup result written before revision tracking was added.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		require.NoError(t, f.db.SubscriptionSyncStateV2.Create().
+			SetNamespace(f.input.SubscriptionID.Namespace).
+			SetSubscriptionID(f.input.SubscriptionID.ID).
+			SetLastSuccessState(f.input.LastSuccessState).
+			SetLastSuccessAt(at).Exec(ctx))
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Nil(t, states[0].LastSyncedSubsRevision)
+		require.Nil(t, states[0].CurrentSubsRevision)
+		require.NoError(t, states[0].Validate())
+
+		// When cleanup acknowledges the revision generated for the legacy row.
+		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+
+		// Then both missing revisions are initialized to the same observed revision.
+		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, lo.ToPtr(f.input.LastSyncedSubsRevision), states[0].LastSyncedSubsRevision)
+		require.Equal(t, states[0].LastSyncedSubsRevision, states[0].CurrentSubsRevision)
+	})
+
+	t.Run("new rows generate one revision when none is provided", func(t *testing.T) {
+		// Given a first cleanup with no observed v2 revision.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		input := f.input
+		input.LastSyncedSubsRevision = ""
+
+		// When its successful result is inserted.
+		require.NoError(t, f.adapter.UpsertSyncStateV2(t.Context(), input))
+
+		// Then the adapter generates one valid ULID for both columns.
+		states, err := f.adapter.GetSyncStatesV2(t.Context(), subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.NotNil(t, states[0].CurrentSubsRevision)
+		require.Equal(t, states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
+		_, err = ulid.ParseStrict(*states[0].CurrentSubsRevision)
+		require.NoError(t, err)
+	})
+
+	t.Run("cleanup preserves a newer current revision", func(t *testing.T) {
+		// Given cleanup read one revision before another writer advanced it.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+		observed, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, observed, 1)
+		newerRevision := ulid.Make().String()
+		require.NoError(t, f.db.SubscriptionSyncStateV2.UpdateOneID(observed[0].ID).
+			SetCurrentSubsRevision(newerRevision).Exec(ctx))
+
+		// When cleanup acknowledges only the revision that it read.
+		input := f.input
+		input.LastSyncedSubsRevision = *observed[0].CurrentSubsRevision
+		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, input))
+
+		// Then the intervening change remains visible as two different revisions.
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, observed[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
+		require.Equal(t, lo.ToPtr(newerRevision), states[0].CurrentSubsRevision)
+	})
+
+	t.Run("a row inserted after the initial read keeps its current revision", func(t *testing.T) {
+		// Given cleanup found no row and generated its initial revision.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Empty(t, states)
+
+		// Another writer inserts a different revision before cleanup records success.
+		newerRevision := ulid.Make().String()
+		require.NoError(t, f.db.SubscriptionSyncStateV2.Create().
+			SetNamespace(f.input.SubscriptionID.Namespace).
+			SetSubscriptionID(f.input.SubscriptionID.ID).
+			SetLastSuccessState(f.input.LastSuccessState).
+			SetLastSuccessAt(at).
+			SetCurrentSubsRevision(newerRevision).Exec(ctx))
+		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+
+		// Then ON CONFLICT acknowledges cleanup without replacing that writer's revision.
+		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, lo.ToPtr(f.input.LastSyncedSubsRevision), states[0].LastSyncedSubsRevision)
+		require.Equal(t, lo.ToPtr(newerRevision), states[0].CurrentSubsRevision)
 	})
 
 	t.Run("namespace ownership", func(t *testing.T) {
@@ -136,6 +241,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		err = transaction.RunWithNoValue(ctx, f.adapter, func(ctx context.Context) error {
 			pending := f.input
 			pending.LastSuccessAt = at.Add(2 * time.Hour)
+			pending.LastSyncedSubsRevision = ulid.Make().String()
 			if err := f.adapter.UpsertSyncStateV2(ctx, pending); err != nil {
 				return err
 			}
@@ -225,9 +331,10 @@ func setupSyncStateV2PersistenceTest(t *testing.T, at time.Time) syncStateV2Pers
 		adapter: adapter,
 		db:      db,
 		input: subscriptionsync.UpsertSyncStateV2Input{
-			SubscriptionID:   sub.NamespacedID,
-			LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
-			LastSuccessAt:    at.In(time.FixedZone("test", 2*60*60)),
+			SubscriptionID:         sub.NamespacedID,
+			LastSuccessState:       subscriptionsync.SyncStateV2StateSubscriptionDeleted,
+			LastSuccessAt:          at.In(time.FixedZone("test", 2*60*60)),
+			LastSyncedSubsRevision: ulid.Make().String(),
 		},
 	}
 }

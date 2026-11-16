@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -136,6 +137,23 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 		}
 
 		return withBillingLock(ctx, s, customerID, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
+			syncStates, err := s.subscriptionSyncAdapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+			if err != nil {
+				return nil, fmt.Errorf("getting subscription sync state v2: %w", err)
+			}
+
+			// Capture the revision before reading billing intent. A change committed
+			// during cleanup must remain different from the revision acknowledged below.
+			var subsRevision string
+			if len(syncStates) > 0 {
+				// TODO[later]: Require CurrentSubsRevision on existing v2 rows instead of defaulting NULL to an empty string.
+				subsRevision = lo.FromPtr(syncStates[0].CurrentSubsRevision)
+			}
+
+			if subsRevision == "" {
+				subsRevision = ulid.Make().String()
+			}
+
 			// A sync waiting for the billing lock must observe any deletion cleanup
 			// that completed first, rather than recreate lines from an older view.
 			subs, err := s.getSubscription(ctx, subscriptionID)
@@ -244,9 +262,10 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				// Record cleanup even when no artifacts remained. The result must commit
 				// together with artifact deletion and the legacy scheduling update.
 				if err := s.subscriptionSyncAdapter.UpsertSyncStateV2(ctx, subscriptionsync.UpsertSyncStateV2Input{
-					SubscriptionID:   subscriptionID,
-					LastSuccessState: cleanupState,
-					LastSuccessAt:    clock.Now().UTC(),
+					SubscriptionID:         subscriptionID,
+					LastSuccessState:       cleanupState,
+					LastSuccessAt:          clock.Now().UTC(),
+					LastSyncedSubsRevision: subsRevision,
 				}); err != nil {
 					return nil, fmt.Errorf("recording subscription cleanup reconciliation: %w", err)
 				}

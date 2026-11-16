@@ -3500,6 +3500,14 @@ func init() {
 	subscriptionsyncstatev2DescSubscriptionID := subscriptionsyncstatev2Fields[0].Descriptor()
 	// subscriptionsyncstatev2.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
 	subscriptionsyncstatev2.SubscriptionIDValidator = subscriptionsyncstatev2DescSubscriptionID.Validators[0].(func(string) error)
+	// subscriptionsyncstatev2DescLastSyncedSubsRevision is the schema descriptor for last_synced_subs_revision field.
+	subscriptionsyncstatev2DescLastSyncedSubsRevision := subscriptionsyncstatev2Fields[3].Descriptor()
+	// subscriptionsyncstatev2.LastSyncedSubsRevisionValidator is a validator for the "last_synced_subs_revision" field. It is called by the builders before save.
+	subscriptionsyncstatev2.LastSyncedSubsRevisionValidator = subscriptionsyncstatev2DescLastSyncedSubsRevision.Validators[0].(func(string) error)
+	// subscriptionsyncstatev2DescCurrentSubsRevision is the schema descriptor for current_subs_revision field.
+	subscriptionsyncstatev2DescCurrentSubsRevision := subscriptionsyncstatev2Fields[4].Descriptor()
+	// subscriptionsyncstatev2.CurrentSubsRevisionValidator is a validator for the "current_subs_revision" field. It is called by the builders before save.
+	subscriptionsyncstatev2.CurrentSubsRevisionValidator = subscriptionsyncstatev2DescCurrentSubsRevision.Validators[0].(func(string) error)
 	// subscriptionsyncstatev2DescID is the schema descriptor for id field.
 	subscriptionsyncstatev2DescID := subscriptionsyncstatev2MixinFields0[0].Descriptor()
 	// subscriptionsyncstatev2.DefaultID holds the default value on creation for the id field.

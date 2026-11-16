@@ -369,11 +369,12 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
 
 			s.expectNoGatheringInvoice()
 			s.Require().Len(states, 1)
-			s.Equal(subscriptionsync.SyncStateV2{
-				SubscriptionID:   subscriptionID,
-				LastSuccessState: subscriptionsync.SyncStateV2StateCustomerDeletedBefore,
-				LastSuccessAt:    now,
-			}, states[0].SyncStateV2)
+			s.Equal(subscriptionID, states[0].SubscriptionID)
+			s.Equal(subscriptionsync.SyncStateV2StateCustomerDeletedBefore, states[0].LastSuccessState)
+			s.Equal(now, states[0].LastSuccessAt)
+			s.Require().NotNil(states[0].CurrentSubsRevision)
+			s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
+			s.NoError(states[0].Validate())
 			root, err := s.DBClient.Subscription.Get(ctx, subscriptionID.ID)
 			s.Require().NoError(err)
 			s.Nil(root.DeletedAt)
@@ -397,6 +398,63 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
 	}
 }
 
+func (s *ReconciliationTestSuite) TestOrdinarySyncLeavesRevisionsUnchanged() {
+	ctx := s.T().Context()
+	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// Given a live subscription and v2 state whose current revision has advanced.
+	view := s.createSubscriptionForCustomerDeletion(customerDeletionSubscriptionInput{})
+	subscriptionID := view.Subscription.NamespacedID
+	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
+		SetNamespace(s.Namespace).
+		SetSubscriptionID(subscriptionID.ID).
+		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+		SetLastSuccessAt(now.Add(-time.Hour)).
+		SetLastSyncedSubsRevision(ulid.Make().String()).
+		SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))
+	before, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(before, 1)
+
+	// When ordinary reconciliation succeeds, it still does not write v2 state.
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, view.Subscription.ActiveFrom.Add(time.Minute)))
+	after, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Equal(before, after)
+}
+
+func (s *ReconciliationTestSuite) TestCleanupAcknowledgesCurrentRevision() {
+	ctx := s.T().Context()
+	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// Given a customer deletion whose current revision differs from the last acknowledged revision.
+	view := s.createSubscriptionForCustomerDeletion(customerDeletionSubscriptionInput{})
+	subscriptionID := view.Subscription.NamespacedID
+	currentRevision := ulid.Make().String()
+	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
+		SetNamespace(s.Namespace).
+		SetSubscriptionID(subscriptionID.ID).
+		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+		SetLastSuccessAt(now.Add(-time.Hour)).
+		SetLastSyncedSubsRevision(ulid.Make().String()).
+		SetCurrentSubsRevision(currentRevision).Exec(ctx))
+	s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).SetDeletedAt(now).Exec(ctx))
+
+	// When cleanup succeeds, the observed current revision becomes acknowledged.
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now))
+	states, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(states, 1)
+	s.Equal(lo.ToPtr(currentRevision), states[0].CurrentSubsRevision)
+	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
+	s.Equal(now, states[0].LastSuccessAt)
+	s.expectNoGatheringInvoice()
+}
+
 func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupDryRun() {
 	ctx := s.T().Context()
 	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -409,19 +467,29 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupDryRun() {
 	invoice := s.gatheringInvoice()
 	legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
+	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
+		SetNamespace(s.Namespace).
+		SetSubscriptionID(subscriptionID.ID).
+		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+		SetLastSuccessAt(now.Add(-time.Hour)).
+		SetLastSyncedSubsRevision(ulid.Make().String()).
+		SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))
+	v2Before, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(v2Before, 1)
 	s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).SetDeletedAt(now).Exec(ctx))
 
 	// When cleanup is requested as a dry run, with invoicing also requested.
 	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now, subscriptionsync.EnableDryRun(), subscriptionsync.WithInvoicePendingLines()))
 
-	// Then neither artifacts nor scheduling change and no successful cleanup is recorded.
+	// Then artifacts, scheduling, and the previous v2 revisions remain unchanged.
 	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice().Lines.OrEmpty())
 	legacyAfter, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Equal(legacyBefore, legacyAfter)
 	states, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
-	s.Empty(states)
+	s.Equal(v2Before, states)
 }
 
 func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRollback() {
@@ -442,7 +510,7 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRollback() {
 			name:  "v2 completion write fails",
 			table: "subscription_sync_states_v2",
 			checkSQL: func(subscriptionID models.NamespacedID, _ billing.GatheringInvoice) string {
-				return fmt.Sprintf("subscription_id <> %s", pq.QuoteLiteral(subscriptionID.ID))
+				return fmt.Sprintf("subscription_id <> %s OR last_synced_subs_revision IS DISTINCT FROM current_subs_revision", pq.QuoteLiteral(subscriptionID.ID))
 			},
 		},
 	}
@@ -459,6 +527,16 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRollback() {
 			invoice := s.gatheringInvoice()
 			legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 			s.Require().NoError(err)
+			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Create().
+				SetNamespace(s.Namespace).
+				SetSubscriptionID(subscriptionID.ID).
+				SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+				SetLastSuccessAt(now.Add(-time.Hour)).
+				SetLastSyncedSubsRevision(ulid.Make().String()).
+				SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))
+			v2Before, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+			s.Require().NoError(err)
+			s.Require().Len(v2Before, 1)
 			s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).SetDeletedAt(now).Exec(ctx))
 			// Reject the real cleanup write in PostgreSQL without replacing any service or adapter.
 			// Scope the constraint to this fixture so the suite's other records remain valid.
@@ -477,14 +555,14 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRollback() {
 			// When artifact cleanup or recording completion fails.
 			s.Require().ErrorContains(s.Service.SyncByID(ctx, subscriptionID, now), constraintName)
 
-			// Then the billing transaction restores artifacts and scheduling without recording completion.
+			// Then artifact changes and revision acknowledgments roll back with the billing transaction.
 			s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice().Lines.OrEmpty())
 			legacyAfter, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 			s.Require().NoError(err)
 			s.Equal(legacyBefore, legacyAfter)
 			states, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 			s.Require().NoError(err)
-			s.Empty(states)
+			s.Equal(v2Before, states)
 			_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, dropConstraint)
 			s.Require().NoError(err)
 			s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now))
