@@ -179,7 +179,8 @@ type InvoicingApp interface {
 	FinalizeStandardInvoice(ctx context.Context, invoice StandardInvoice) (*FinalizeStandardInvoiceResult, error)
 
 	// DeleteStandardInvoice deletes the invoice on the remote system, the invoice is read-only, the app should not modify it
-	// the invoice deletion is only invoked for non-finalized invoices.
+	// the invoice deletion is only invoked for non-finalized invoices. A remote invoice that no longer exists
+	// counts as deleted.
 	DeleteStandardInvoice(ctx context.Context, invoice StandardInvoice) error
 
 	// WouldStandardInvoiceBeEmpty tells whether the invoice would be empty on the remote system. Billing only
