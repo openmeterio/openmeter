@@ -1,0 +1,2 @@
+-- Keep backfilled revisions on downgrade: clearing them could erase revisions
+-- written by subscription changes or acknowledged by a later cleanup sync.

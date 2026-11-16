@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -44,7 +43,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		require.Empty(t, states)
 	})
 
-	t.Run("upsert preserves row identity and creation time", func(t *testing.T) {
+	t.Run("recording results preserves row identity and creation time", func(t *testing.T) {
 		// given: a soft-deleted subscription with no recorded v2 reconciliation
 		clock.FreezeTime(at)
 		defer clock.UnFreeze()
@@ -53,7 +52,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		ids := subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID}
 
 		// when: successful cleanup is recorded with a non-UTC timestamp
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
 		states, err := f.adapter.GetSyncStatesV2(ctx, ids)
 		require.NoError(t, err)
 		require.Len(t, states, 1)
@@ -66,8 +65,8 @@ func TestSyncStateV2Persistence(t *testing.T) {
 				SubscriptionID:         f.input.SubscriptionID,
 				LastSuccessState:       f.input.LastSuccessState,
 				LastSuccessAt:          at,
-				LastSyncedSubsRevision: lo.ToPtr(f.input.LastSyncedSubsRevision),
-				CurrentSubsRevision:    lo.ToPtr(f.input.LastSyncedSubsRevision),
+				LastSyncedSubsRevision: f.input.LastSyncedSubsRevision,
+				CurrentSubsRevision:    f.input.LastSyncedSubsRevision,
 			},
 			NamespacedID: models.NamespacedID{
 				Namespace: f.input.SubscriptionID.Namespace,
@@ -88,7 +87,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		input := f.input
 		input.LastSuccessAt = at.Add(time.Hour)
 		input.LastSuccessState = subscriptionsync.SyncStateV2StateCustomerDeletedBefore
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, input))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
 
 		// then: the same row holds the latest result and v1 state is untouched
 		states, err = f.adapter.GetSyncStatesV2(ctx, ids)
@@ -105,57 +104,26 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		require.Empty(t, legacyStates)
 	})
 
-	t.Run("legacy rows keep nullable revisions until cleanup succeeds", func(t *testing.T) {
-		// Given an existing cleanup result written before revision tracking was added.
-		f := setupSyncStateV2PersistenceTest(t, at)
-		ctx := t.Context()
-		require.NoError(t, f.db.SubscriptionSyncStateV2.Create().
-			SetNamespace(f.input.SubscriptionID.Namespace).
-			SetSubscriptionID(f.input.SubscriptionID.ID).
-			SetLastSuccessState(f.input.LastSuccessState).
-			SetLastSuccessAt(at).Exec(ctx))
-		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
-		require.NoError(t, err)
-		require.Len(t, states, 1)
-		require.Nil(t, states[0].LastSyncedSubsRevision)
-		require.Nil(t, states[0].CurrentSubsRevision)
-		require.NoError(t, states[0].Validate())
-
-		// When cleanup acknowledges the revision generated for the legacy row.
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
-
-		// Then both missing revisions are initialized to the same observed revision.
-		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
-		require.NoError(t, err)
-		require.Len(t, states, 1)
-		require.Equal(t, lo.ToPtr(f.input.LastSyncedSubsRevision), states[0].LastSyncedSubsRevision)
-		require.Equal(t, states[0].LastSyncedSubsRevision, states[0].CurrentSubsRevision)
-	})
-
-	t.Run("new rows generate one revision when none is provided", func(t *testing.T) {
-		// Given a first cleanup with no observed v2 revision.
+	t.Run("missing observed revision does not record cleanup", func(t *testing.T) {
+		// Given cleanup did not supply the revision it observed under the billing lock.
 		f := setupSyncStateV2PersistenceTest(t, at)
 		input := f.input
 		input.LastSyncedSubsRevision = ""
 
-		// When its successful result is inserted.
-		require.NoError(t, f.adapter.UpsertSyncStateV2(t.Context(), input))
+		// When recording success, the adapter rejects the missing revision instead of inventing one.
+		require.ErrorContains(t, f.adapter.RecordSyncResultV2(t.Context(), input), "last synced subscription revision is required")
 
-		// Then the adapter generates one valid ULID for both columns.
+		// Then cleanup has not been acknowledged.
 		states, err := f.adapter.GetSyncStatesV2(t.Context(), subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
 		require.NoError(t, err)
-		require.Len(t, states, 1)
-		require.NotNil(t, states[0].CurrentSubsRevision)
-		require.Equal(t, states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
-		_, err = ulid.ParseStrict(*states[0].CurrentSubsRevision)
-		require.NoError(t, err)
+		require.Empty(t, states)
 	})
 
 	t.Run("cleanup preserves a newer current revision", func(t *testing.T) {
 		// Given cleanup read one revision before another writer advanced it.
 		f := setupSyncStateV2PersistenceTest(t, at)
 		ctx := t.Context()
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
 		observed, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
 		require.NoError(t, err)
 		require.Len(t, observed, 1)
@@ -165,15 +133,15 @@ func TestSyncStateV2Persistence(t *testing.T) {
 
 		// When cleanup acknowledges only the revision that it read.
 		input := f.input
-		input.LastSyncedSubsRevision = *observed[0].CurrentSubsRevision
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, input))
+		input.LastSyncedSubsRevision = observed[0].CurrentSubsRevision
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
 
 		// Then the intervening change remains visible as two different revisions.
 		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
 		require.NoError(t, err)
 		require.Len(t, states, 1)
 		require.Equal(t, observed[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
-		require.Equal(t, lo.ToPtr(newerRevision), states[0].CurrentSubsRevision)
+		require.Equal(t, newerRevision, states[0].CurrentSubsRevision)
 	})
 
 	t.Run("a row inserted after the initial read keeps its current revision", func(t *testing.T) {
@@ -191,15 +159,16 @@ func TestSyncStateV2Persistence(t *testing.T) {
 			SetSubscriptionID(f.input.SubscriptionID.ID).
 			SetLastSuccessState(f.input.LastSuccessState).
 			SetLastSuccessAt(at).
+			SetLastSyncedSubsRevision(ulid.Make().String()).
 			SetCurrentSubsRevision(newerRevision).Exec(ctx))
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
 
 		// Then ON CONFLICT acknowledges cleanup without replacing that writer's revision.
 		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID})
 		require.NoError(t, err)
 		require.Len(t, states, 1)
-		require.Equal(t, lo.ToPtr(f.input.LastSyncedSubsRevision), states[0].LastSyncedSubsRevision)
-		require.Equal(t, lo.ToPtr(newerRevision), states[0].CurrentSubsRevision)
+		require.Equal(t, f.input.LastSyncedSubsRevision, states[0].LastSyncedSubsRevision)
+		require.Equal(t, newerRevision, states[0].CurrentSubsRevision)
 	})
 
 	t.Run("namespace ownership", func(t *testing.T) {
@@ -208,7 +177,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		defer clock.UnFreeze()
 		f := setupSyncStateV2PersistenceTest(t, at)
 		ctx := t.Context()
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
 		wrongNamespace := models.NamespacedID{Namespace: "other", ID: f.input.SubscriptionID.ID}
 
 		// when: that subscription is read under the wrong namespace
@@ -219,7 +188,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		require.Empty(t, states)
 		invalidInput := f.input
 		invalidInput.SubscriptionID = wrongNamespace
-		require.ErrorAs(t, f.adapter.UpsertSyncStateV2(ctx, invalidInput), new(*subscription.SubscriptionNotFoundError))
+		require.ErrorAs(t, f.adapter.RecordSyncResultV2(ctx, invalidInput), new(*subscription.SubscriptionNotFoundError))
 	})
 
 	t.Run("transaction rollback", func(t *testing.T) {
@@ -229,7 +198,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		f := setupSyncStateV2PersistenceTest(t, at)
 		ctx := t.Context()
 		ids := subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID}
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
 		expectedStates, err := f.adapter.GetSyncStatesV2(ctx, ids)
 		require.NoError(t, err)
 		require.Len(t, expectedStates, 1)
@@ -242,7 +211,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 			pending := f.input
 			pending.LastSuccessAt = at.Add(2 * time.Hour)
 			pending.LastSyncedSubsRevision = ulid.Make().String()
-			if err := f.adapter.UpsertSyncStateV2(ctx, pending); err != nil {
+			if err := f.adapter.RecordSyncResultV2(ctx, pending); err != nil {
 				return err
 			}
 
@@ -266,6 +235,8 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		// when: a database write bypasses the adapter's subscription lookup
 		err := f.db.SubscriptionSyncStateV2.Create().SetNamespace(f.input.SubscriptionID.Namespace).
 			SetSubscriptionID(ulid.Make().String()).SetLastSuccessState(f.input.LastSuccessState).
+			SetLastSyncedSubsRevision(f.input.LastSyncedSubsRevision).
+			SetCurrentSubsRevision(f.input.LastSyncedSubsRevision).
 			SetLastSuccessAt(at).Exec(ctx)
 
 		// then: the foreign key rejects the state
@@ -279,7 +250,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		f := setupSyncStateV2PersistenceTest(t, at)
 		ctx := t.Context()
 		ids := subscriptionsync.GetSyncStatesV2Input{f.input.SubscriptionID}
-		require.NoError(t, f.adapter.UpsertSyncStateV2(ctx, f.input))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, f.input))
 		states, err := f.adapter.GetSyncStatesV2(ctx, ids)
 		require.NoError(t, err)
 		require.Len(t, states, 1)
@@ -297,7 +268,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 type syncStateV2PersistenceFixture struct {
 	adapter subscriptionsync.Adapter
 	db      *entdb.Client
-	input   subscriptionsync.UpsertSyncStateV2Input
+	input   subscriptionsync.RecordSyncResultV2Input
 }
 
 func setupSyncStateV2PersistenceTest(t *testing.T, at time.Time) syncStateV2PersistenceFixture {
@@ -330,7 +301,7 @@ func setupSyncStateV2PersistenceTest(t *testing.T, at time.Time) syncStateV2Pers
 	return syncStateV2PersistenceFixture{
 		adapter: adapter,
 		db:      db,
-		input: subscriptionsync.UpsertSyncStateV2Input{
+		input: subscriptionsync.RecordSyncResultV2Input{
 			SubscriptionID:         sub.NamespacedID,
 			LastSuccessState:       subscriptionsync.SyncStateV2StateSubscriptionDeleted,
 			LastSuccessAt:          at.In(time.FixedZone("test", 2*60*60)),

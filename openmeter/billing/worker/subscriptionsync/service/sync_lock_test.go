@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel/trace/noop"
 
@@ -37,20 +36,20 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	syncAdapter := &subscriptionSyncAdapterSpy{
 		statesV2: []subscriptionsync.SyncStateV2Managed{{
 			SyncStateV2: subscriptionsync.SyncStateV2{
-				LastSyncedSubsRevision: lo.ToPtr(beforeLockRevision),
-				CurrentSubsRevision:    lo.ToPtr(beforeLockRevision),
+				LastSyncedSubsRevision: beforeLockRevision,
+				CurrentSubsRevision:    beforeLockRevision,
 			},
 		}},
 	}
 	billingService := &billingServiceSpy{
 		beforeLock: func() {
 			subscriptionService.view.Subscription.DeletedAt = &now
-			syncAdapter.statesV2[0].CurrentSubsRevision = lo.ToPtr(lockedRevision)
+			syncAdapter.statesV2[0].CurrentSubsRevision = lockedRevision
 		},
 	}
 	reconciler := &syncReconcilerSpy{
 		onPlan: func() {
-			syncAdapter.statesV2[0].CurrentSubsRevision = lo.ToPtr(laterRevision)
+			syncAdapter.statesV2[0].CurrentSubsRevision = laterRevision
 		},
 	}
 	service := &Service{
@@ -72,10 +71,10 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.True(t, reconciler.planCalled)
 	require.Empty(t, reconciler.planInput.Target.Items)
-	require.Len(t, syncAdapter.upsertsV2, 1)
-	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionDeleted, syncAdapter.upsertsV2[0].LastSuccessState)
+	require.Len(t, syncAdapter.recordedResultsV2, 1)
+	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionDeleted, syncAdapter.recordedResultsV2[0].LastSuccessState)
 	// Acknowledge what was read after locking, not a revision changed during planning.
-	require.Equal(t, lockedRevision, syncAdapter.upsertsV2[0].LastSyncedSubsRevision)
+	require.Equal(t, lockedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
 	require.Equal(t, 1, syncAdapter.getStatesV2Calls)
 	require.Len(t, syncAdapter.upserts, 1)
 	require.False(t, syncAdapter.upserts[0].HasBillables)
@@ -143,10 +142,10 @@ func (s *subscriptionServiceSpy) GetView(context.Context, models.NamespacedID) (
 
 type subscriptionSyncAdapterSpy struct {
 	subscriptionsync.Adapter
-	upserts          []subscriptionsync.UpsertSyncStateInput
-	upsertsV2        []subscriptionsync.UpsertSyncStateV2Input
-	statesV2         []subscriptionsync.SyncStateV2Managed
-	getStatesV2Calls int
+	upserts           []subscriptionsync.UpsertSyncStateInput
+	recordedResultsV2 []subscriptionsync.RecordSyncResultV2Input
+	statesV2          []subscriptionsync.SyncStateV2Managed
+	getStatesV2Calls  int
 }
 
 func (s *subscriptionSyncAdapterSpy) GetSyncStatesV2(context.Context, subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
@@ -159,8 +158,8 @@ func (s *subscriptionSyncAdapterSpy) UpsertSyncState(_ context.Context, input su
 	return nil
 }
 
-func (s *subscriptionSyncAdapterSpy) UpsertSyncStateV2(_ context.Context, input subscriptionsync.UpsertSyncStateV2Input) error {
-	s.upsertsV2 = append(s.upsertsV2, input)
+func (s *subscriptionSyncAdapterSpy) RecordSyncResultV2(_ context.Context, input subscriptionsync.RecordSyncResultV2Input) error {
+	s.recordedResultsV2 = append(s.recordedResultsV2, input)
 	return nil
 }
 

@@ -491,16 +491,6 @@ func LastSyncedSubsRevisionHasSuffix(v string) predicate.SubscriptionSyncStateV2
 	return predicate.SubscriptionSyncStateV2(sql.FieldHasSuffix(FieldLastSyncedSubsRevision, v))
 }
 
-// LastSyncedSubsRevisionIsNil applies the IsNil predicate on the "last_synced_subs_revision" field.
-func LastSyncedSubsRevisionIsNil() predicate.SubscriptionSyncStateV2 {
-	return predicate.SubscriptionSyncStateV2(sql.FieldIsNull(FieldLastSyncedSubsRevision))
-}
-
-// LastSyncedSubsRevisionNotNil applies the NotNil predicate on the "last_synced_subs_revision" field.
-func LastSyncedSubsRevisionNotNil() predicate.SubscriptionSyncStateV2 {
-	return predicate.SubscriptionSyncStateV2(sql.FieldNotNull(FieldLastSyncedSubsRevision))
-}
-
 // LastSyncedSubsRevisionEqualFold applies the EqualFold predicate on the "last_synced_subs_revision" field.
 func LastSyncedSubsRevisionEqualFold(v string) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldEqualFold(FieldLastSyncedSubsRevision, v))
@@ -564,16 +554,6 @@ func CurrentSubsRevisionHasPrefix(v string) predicate.SubscriptionSyncStateV2 {
 // CurrentSubsRevisionHasSuffix applies the HasSuffix predicate on the "current_subs_revision" field.
 func CurrentSubsRevisionHasSuffix(v string) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldHasSuffix(FieldCurrentSubsRevision, v))
-}
-
-// CurrentSubsRevisionIsNil applies the IsNil predicate on the "current_subs_revision" field.
-func CurrentSubsRevisionIsNil() predicate.SubscriptionSyncStateV2 {
-	return predicate.SubscriptionSyncStateV2(sql.FieldIsNull(FieldCurrentSubsRevision))
-}
-
-// CurrentSubsRevisionNotNil applies the NotNil predicate on the "current_subs_revision" field.
-func CurrentSubsRevisionNotNil() predicate.SubscriptionSyncStateV2 {
-	return predicate.SubscriptionSyncStateV2(sql.FieldNotNull(FieldCurrentSubsRevision))
 }
 
 // CurrentSubsRevisionEqualFold applies the EqualFold predicate on the "current_subs_revision" field.

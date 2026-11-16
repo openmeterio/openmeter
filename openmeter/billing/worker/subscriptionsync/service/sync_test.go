@@ -60,7 +60,7 @@ type failingDeletionSyncStateAdapter struct {
 	err error
 }
 
-func (a failingDeletionSyncStateAdapter) UpsertSyncStateV2(context.Context, subscriptionsync.UpsertSyncStateV2Input) error {
+func (a failingDeletionSyncStateAdapter) RecordSyncResultV2(context.Context, subscriptionsync.RecordSyncResultV2Input) error {
 	return a.err
 }
 
@@ -202,7 +202,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRecordsSucc
 	s.Equal(subscriptionID, states[0].SubscriptionID)
 	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionDeleted, states[0].LastSuccessState)
 	s.Equal(now, states[0].LastSuccessAt)
-	s.Require().NotNil(states[0].CurrentSubsRevision)
+	s.NotEmpty(states[0].CurrentSubsRevision)
 	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
 	s.NoError(states[0].Validate())
 	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
@@ -358,7 +358,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWork
 	s.Equal(subscriptionID, states[0].SubscriptionID)
 	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionDeleted, states[0].LastSuccessState)
 	s.Equal(now, states[0].LastSuccessAt)
-	s.Require().NotNil(states[0].CurrentSubsRevision)
+	s.NotEmpty(states[0].CurrentSubsRevision)
 	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
 	s.NoError(states[0].Validate())
 	// Completion excludes it from both lists even while DeletedAt is still in the future.

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"entgo.io/ent/dialect/sql"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
@@ -64,9 +62,9 @@ func mapSyncStateV2FromDB(state *entdb.SubscriptionSyncStateV2) subscriptionsync
 	}
 }
 
-func (a *adapter) UpsertSyncStateV2(ctx context.Context, input subscriptionsync.UpsertSyncStateV2Input) error {
+func (a *adapter) RecordSyncResultV2(ctx context.Context, input subscriptionsync.RecordSyncResultV2Input) error {
 	if err := input.Validate(); err != nil {
-		return fmt.Errorf("validating subscription sync state v2: %w", err)
+		return fmt.Errorf("validating subscription sync result v2: %w", err)
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, tx *adapter) error {
@@ -84,43 +82,23 @@ func (a *adapter) UpsertSyncStateV2(ctx context.Context, input subscriptionsync.
 			return subscription.NewSubscriptionNotFoundError(input.SubscriptionID.ID)
 		}
 
-		revision := input.LastSyncedSubsRevision
-		// TODO[later]: Require LastSyncedSubsRevision instead of generating a revision for an empty input.
-		if revision == "" {
-			revision = ulid.Make().String()
-		}
-
+		// Do not add UpdateCurrentSubsRevision here: it would overwrite a revision
+		// written by a parallel subscription edit after sync read the state.
 		err = tx.db.SubscriptionSyncStateV2.Create().
 			SetNamespace(input.SubscriptionID.Namespace).
 			SetSubscriptionID(input.SubscriptionID.ID).
 			SetLastSuccessState(input.LastSuccessState).
 			SetLastSuccessAt(input.LastSuccessAt.UTC()).
-			SetLastSyncedSubsRevision(revision).
-			SetCurrentSubsRevision(revision).
+			SetLastSyncedSubsRevision(input.LastSyncedSubsRevision).
+			SetCurrentSubsRevision(input.LastSyncedSubsRevision).
 			OnConflictColumns(subscriptionsyncstatev2.FieldNamespace, subscriptionsyncstatev2.FieldSubscriptionID).
 			UpdateLastSuccessState().
 			UpdateLastSuccessAt().
 			UpdateUpdatedAt().
 			UpdateLastSyncedSubsRevision().
-			Update(func(update *entdb.SubscriptionSyncStateV2Upsert) {
-				// Initialize nullable legacy rows without replacing a revision written
-				// since cleanup read the state under the customer billing lock.
-				// TODO[later]: Make CurrentSubsRevision required and remove this NULL initialization.
-				// Generates this ON CONFLICT assignment:
-				// "current_subs_revision" = COALESCE(
-				//     "subscription_sync_states_v2"."current_subs_revision",
-				//     "excluded"."current_subs_revision")
-				update.Set(subscriptionsyncstatev2.FieldCurrentSubsRevision, sql.ExprFunc(func(builder *sql.Builder) {
-					builder.WriteString("COALESCE(").
-						Ident(update.Table().C(subscriptionsyncstatev2.FieldCurrentSubsRevision)).
-						WriteString(", ").
-						Ident("excluded").WriteByte('.').Ident(subscriptionsyncstatev2.FieldCurrentSubsRevision).
-						WriteByte(')')
-				}))
-			}).
 			Exec(ctx)
 		if err != nil {
-			return fmt.Errorf("upserting subscription sync state v2: %w", err)
+			return fmt.Errorf("recording subscription sync result v2: %w", err)
 		}
 
 		return nil

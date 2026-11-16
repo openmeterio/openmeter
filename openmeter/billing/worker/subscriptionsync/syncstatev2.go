@@ -12,7 +12,7 @@ import (
 
 type SyncStateV2Adapter interface {
 	GetSyncStatesV2(context.Context, GetSyncStatesV2Input) ([]SyncStateV2Managed, error)
-	UpsertSyncStateV2(context.Context, UpsertSyncStateV2Input) error
+	RecordSyncResultV2(context.Context, RecordSyncResultV2Input) error
 }
 
 type SyncStateV2State string
@@ -49,9 +49,9 @@ type SyncStateV2 struct {
 	LastSuccessState SyncStateV2State
 	LastSuccessAt    time.Time
 	// LastSyncedSubsRevision is the current revision observed before the last successful cleanup.
-	LastSyncedSubsRevision *string
+	LastSyncedSubsRevision string
 	// CurrentSubsRevision may change while cleanup is running; success must not overwrite it.
-	CurrentSubsRevision *string
+	CurrentSubsRevision string
 }
 
 // SyncStateV2Managed includes the sync-state row's identity and timestamps.
@@ -80,26 +80,36 @@ func (s SyncStateV2Managed) Validate() error {
 
 type GetSyncStatesV2Input = []models.NamespacedID
 
-type UpsertSyncStateV2Input struct {
+type RecordSyncResultV2Input struct {
 	SubscriptionID   models.NamespacedID
 	LastSuccessState SyncStateV2State
 	LastSuccessAt    time.Time
-	// An empty revision initializes a new ULID. CurrentSubsRevision is deliberately
-	// absent: cleanup can acknowledge its observed revision but cannot replace a newer one.
+	// CurrentSubsRevision is deliberately absent: cleanup can acknowledge its
+	// observed revision but cannot replace a newer one.
 	LastSyncedSubsRevision string
 }
 
-var _ models.Validator = UpsertSyncStateV2Input{}
+var _ models.Validator = RecordSyncResultV2Input{}
 
 func (i SyncStateV2) Validate() error {
-	return (UpsertSyncStateV2Input{
-		SubscriptionID:   i.SubscriptionID,
-		LastSuccessState: i.LastSuccessState,
-		LastSuccessAt:    i.LastSuccessAt,
-	}).Validate()
+	var errs []error
+	if err := (RecordSyncResultV2Input{
+		SubscriptionID:         i.SubscriptionID,
+		LastSuccessState:       i.LastSuccessState,
+		LastSuccessAt:          i.LastSuccessAt,
+		LastSyncedSubsRevision: i.LastSyncedSubsRevision,
+	}).Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if i.CurrentSubsRevision == "" {
+		errs = append(errs, errors.New("current subscription revision is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i UpsertSyncStateV2Input) Validate() error {
+func (i RecordSyncResultV2Input) Validate() error {
 	var errs []error
 	if err := i.SubscriptionID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("subscription ID: %w", err))
@@ -111,6 +121,10 @@ func (i UpsertSyncStateV2Input) Validate() error {
 
 	if i.LastSuccessAt.IsZero() {
 		errs = append(errs, errors.New("last success at is required"))
+	}
+
+	if i.LastSyncedSubsRevision == "" {
+		errs = append(errs, errors.New("last synced subscription revision is required"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

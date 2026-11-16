@@ -97,12 +97,6 @@ func (_u *SubscriptionSyncStateV2Update) SetNillableLastSyncedSubsRevision(v *st
 	return _u
 }
 
-// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
-func (_u *SubscriptionSyncStateV2Update) ClearLastSyncedSubsRevision() *SubscriptionSyncStateV2Update {
-	_u.mutation.ClearLastSyncedSubsRevision()
-	return _u
-}
-
 // SetCurrentSubsRevision sets the "current_subs_revision" field.
 func (_u *SubscriptionSyncStateV2Update) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2Update {
 	_u.mutation.SetCurrentSubsRevision(v)
@@ -114,12 +108,6 @@ func (_u *SubscriptionSyncStateV2Update) SetNillableCurrentSubsRevision(v *strin
 	if v != nil {
 		_u.SetCurrentSubsRevision(*v)
 	}
-	return _u
-}
-
-// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
-func (_u *SubscriptionSyncStateV2Update) ClearCurrentSubsRevision() *SubscriptionSyncStateV2Update {
-	_u.mutation.ClearCurrentSubsRevision()
 	return _u
 }
 
@@ -217,14 +205,8 @@ func (_u *SubscriptionSyncStateV2Update) sqlSave(ctx context.Context) (_node int
 	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
 	}
-	if _u.mutation.LastSyncedSubsRevisionCleared() {
-		_spec.ClearField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString)
-	}
 	if value, ok := _u.mutation.CurrentSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString, value)
-	}
-	if _u.mutation.CurrentSubsRevisionCleared() {
-		_spec.ClearField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -314,12 +296,6 @@ func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableLastSyncedSubsRevision(v 
 	return _u
 }
 
-// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
-func (_u *SubscriptionSyncStateV2UpdateOne) ClearLastSyncedSubsRevision() *SubscriptionSyncStateV2UpdateOne {
-	_u.mutation.ClearLastSyncedSubsRevision()
-	return _u
-}
-
 // SetCurrentSubsRevision sets the "current_subs_revision" field.
 func (_u *SubscriptionSyncStateV2UpdateOne) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2UpdateOne {
 	_u.mutation.SetCurrentSubsRevision(v)
@@ -331,12 +307,6 @@ func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableCurrentSubsRevision(v *st
 	if v != nil {
 		_u.SetCurrentSubsRevision(*v)
 	}
-	return _u
-}
-
-// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
-func (_u *SubscriptionSyncStateV2UpdateOne) ClearCurrentSubsRevision() *SubscriptionSyncStateV2UpdateOne {
-	_u.mutation.ClearCurrentSubsRevision()
 	return _u
 }
 
@@ -464,14 +434,8 @@ func (_u *SubscriptionSyncStateV2UpdateOne) sqlSave(ctx context.Context) (_node 
 	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
 	}
-	if _u.mutation.LastSyncedSubsRevisionCleared() {
-		_spec.ClearField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString)
-	}
 	if value, ok := _u.mutation.CurrentSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString, value)
-	}
-	if _u.mutation.CurrentSubsRevisionCleared() {
-		_spec.ClearField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString)
 	}
 	_node = &SubscriptionSyncStateV2{config: _u.config}
 	_spec.Assign = _node.assignValues
