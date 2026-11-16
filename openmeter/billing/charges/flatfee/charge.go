@@ -312,6 +312,10 @@ func validateCostBasis(currency currencies.Currency, settlementMode productcatal
 	return nil
 }
 
+// prorationDivisionPrecision is the number of decimals kept when dividing by the full
+// service period, before rounding to the currency precision.
+const prorationDivisionPrecision = 40
+
 // CalculateAmountAfterProration computes the prorated amount from AmountBeforeProration,
 // ServicePeriod, and FullServicePeriod. Returns AmountBeforeProration when proration is
 // not applicable (disabled, unsupported mode, or zero-length periods).
@@ -334,10 +338,13 @@ func (i Intent) CalculateAmountAfterProration() (alpacadecimal.Decimal, error) {
 	}
 
 	// Multiply before dividing so the intermediate ratio (e.g. 25/30) is not truncated
-	// before the single final rounding to the currency precision.
+	// before the single final rounding to the currency precision. Div would itself round
+	// to 16 decimals, which can push a value just below a half-unit tie (e.g. 0.0249999...)
+	// up to the tie and then up again to the next currency unit, so divide with enough
+	// extra precision that the currency rounding is the only effective rounding.
 	amount := i.AmountBeforeProration.
 		Mul(alpacadecimal.NewFromInt(servicePeriodDuration)).
-		Div(alpacadecimal.NewFromInt(fullServicePeriodDuration))
+		DivRound(alpacadecimal.NewFromInt(fullServicePeriodDuration), prorationDivisionPrecision)
 
 	if err := i.Currency.Validate(); err != nil {
 		return alpacadecimal.Decimal{}, fmt.Errorf("currency: %w", err)
