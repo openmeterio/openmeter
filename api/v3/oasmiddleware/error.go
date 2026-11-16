@@ -34,8 +34,11 @@ func aipMapper(me openapi3.MultiError, parent *apierrors.InvalidParameter) []api
 
 		switch err := err.(type) {
 		case *openapi3.SchemaError:
-			i.Reason = err.Reason
-			ipErrs = append(ipErrs, invalidParamFromSchemaError(err, i))
+			for _, violation := range allOfViolations(err) {
+				ip := *i
+				ip.Reason = violation.Reason
+				ipErrs = append(ipErrs, invalidParamFromSchemaError(violation, &ip))
+			}
 		case *openapi3filter.RequestError:
 			if err.Parameter != nil {
 				if err.Parameter.Name != "" {
@@ -81,6 +84,32 @@ func aipMapper(me openapi3.MultiError, parent *apierrors.InvalidParameter) []api
 	}
 
 	return ipErrs
+}
+
+// allOfViolations returns the branch failures behind an allOf error. Every
+// allOf branch must hold, so each failure is a real violation, and reporting
+// the wrapper alone hides which rule the caller broke.
+func allOfViolations(err error) []*openapi3.SchemaError {
+	switch err := err.(type) {
+	case openapi3.MultiError:
+		var violations []*openapi3.SchemaError
+		for _, e := range err {
+			violations = append(violations, allOfViolations(e)...)
+		}
+
+		return violations
+	case *openapi3.SchemaError:
+		var branchErrs openapi3.MultiError
+		if err.SchemaField == "allOf" && errors.As(err.Origin, &branchErrs) {
+			if violations := allOfViolations(branchErrs); len(violations) > 0 {
+				return violations
+			}
+		}
+
+		return []*openapi3.SchemaError{err}
+	}
+
+	return nil
 }
 
 // collectFromSchemaError looks at schemaErr.Origin. If there are deeper
