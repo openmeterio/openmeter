@@ -48,6 +48,31 @@ func TestFingerprint(t *testing.T) {
 		lo.ToPtr(`{"properties": {"a": {"enum": ["x", "y"]}}, "type": "object"}`),
 	)))
 
+	// Annotations only document the schema, so they are left out. Properties
+	// named like annotations and values of data keywords are kept.
+	documented := `{
+		"$schema": "https://json-schema.org/draft/2020-12/schema",
+		"type": "object",
+		"title": "Payload",
+		"description": "The payload.",
+		"$comment": "internal note",
+		"examples": [{"description": "x"}],
+		"$defs": {"Item": {"type": "string", "description": "An item.", "deprecated": true}}
+	}`
+	documentedBase := `{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","$defs":{"Item":{"type":"string"}}}`
+	require.Equal(t,
+		fingerprint(def(documentedBase, lo.ToPtr(ruleSchema))),
+		fingerprint(def(documented, lo.ToPtr(`{"type":"object","description":"Config.","properties":{"a":{"enum":["x","y"],"title":"A"}}}`))),
+	)
+
+	for _, kept := range []struct{ with, without string }{
+		{`{"properties":{"description":{"type":"string"}}}`, `{"properties":{}}`},
+		{`{"enum":[{"description":"a"}]}`, `{"enum":[{}]}`},
+		{`{"default":{"title":"a"}}`, `{"default":{}}`},
+	} {
+		require.NotEqual(t, fingerprint(def(kept.without, nil)), fingerprint(def(kept.with, nil)), kept.with)
+	}
+
 	// A replacement is set on released definitions, so it is left out.
 	deprecated := def(payloadSchema, lo.ToPtr(ruleSchema))
 	deprecated.DeprecatedBy = &v4.EventType{Name: "billing.invoice.created", Version: 2}
