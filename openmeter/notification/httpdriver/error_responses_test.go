@@ -42,7 +42,7 @@ func TestWebhookErrorResponses(t *testing.T) {
 			method: http.MethodPost,
 			body:   `{"type":"WEBHOOK","name":"test","url":"http://example.com/webhook"}`,
 			handler: func(service notification.Service) http.Handler {
-				return httpdriver.New(namespacedriver.StaticNamespaceDecoder("test"), service, nil).CreateChannel()
+				return httpdriver.New(namespacedriver.StaticNamespaceDecoder("test"), service, nil, nil).CreateChannel()
 			},
 		},
 		{
@@ -50,14 +50,14 @@ func TestWebhookErrorResponses(t *testing.T) {
 			method: http.MethodPut,
 			body:   `{"type":"WEBHOOK","name":"test","url":"http://example.com/webhook"}`,
 			handler: func(service notification.Service) http.Handler {
-				return httpdriver.New(namespacedriver.StaticNamespaceDecoder("test"), service, nil).UpdateChannel().With(resourceID)
+				return httpdriver.New(namespacedriver.StaticNamespaceDecoder("test"), service, nil, nil).UpdateChannel().With(resourceID)
 			},
 		},
 		{
 			name:   "v1 delete rule",
 			method: http.MethodDelete,
 			handler: func(service notification.Service) http.Handler {
-				return httpdriver.New(namespacedriver.StaticNamespaceDecoder("test"), service, nil).DeleteRule().With(resourceID)
+				return httpdriver.New(namespacedriver.StaticNamespaceDecoder("test"), service, nil, nil).DeleteRule().With(resourceID)
 			},
 		},
 		{
@@ -80,7 +80,7 @@ func TestWebhookErrorResponses(t *testing.T) {
 			name:   "v3 delete rule",
 			method: http.MethodDelete,
 			handler: func(service notification.Service) http.Handler {
-				return rules.New(resolveNamespace, service, nil).DeleteNotificationRule().With(resourceID)
+				return rules.New(resolveNamespace, service, nil, nil).DeleteNotificationRule().With(resourceID)
 			},
 		},
 	}

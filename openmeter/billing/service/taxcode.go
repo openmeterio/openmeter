@@ -19,32 +19,67 @@ type resolveTaxCodesInput struct {
 	ReadOnly bool
 }
 
-// resolveTaxCodes batch-resolves all unique Stripe tax codes referenced in an invoice's lines
-// and its DefaultTaxConfig, returning a TaxCodes map keyed by Stripe code.
-func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.TaxCodes, error) {
+// resolveTaxCodes prepares the tax inputs of invoice calculation: it batch-resolves all unique
+// Stripe tax codes referenced in the invoice's lines into a TaxCodes map keyed by Stripe code, and
+// renders the invoice's default tax config in the legacy line shape.
+//
+// The default only stores a Tax Code ID, so its Tax Code is looked up by ID (deleted ones
+// included: the invoice may still reference one) and its Stripe code comes from that Tax Code's
+// mapping. That way lines inheriting the default still end up with the Stripe code, Tax Code and
+// Tax Code ID they always got. The default never creates a Tax Code.
+func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.StandardInvoiceCalculatorDependencies, error) {
 	namespace := in.Namespace
 	invoice := in.Invoice
 	readOnly := in.ReadOnly
-	// Collect unique Stripe codes from lines and the invoice-level default.
+
+	var deps invoicecalc.StandardInvoiceCalculatorDependencies
+
+	result := make(invoicecalc.TaxCodes)
+	// Unique Stripe codes to resolve by mapping.
 	seen := make(map[string]struct{})
 
-	if invoice.Workflow.Config.Invoicing.DefaultTaxConfig != nil {
-		if cfg := invoice.Workflow.Config.Invoicing.DefaultTaxConfig; cfg.Stripe != nil && cfg.Stripe.Code != "" {
-			seen[cfg.Stripe.Code] = struct{}{}
+	if cfg := invoice.Workflow.Config.Invoicing.DefaultTaxConfig; cfg != nil {
+		var defaultTaxCodes map[string]*taxcode.TaxCode
+
+		if cfg.TaxCodeID != "" {
+			var err error
+
+			defaultTaxCodes, err = s.taxCodeResolver.BatchResolve(ctx, namespace, cfg.TaxCodeID)
+			if err != nil {
+				return deps, fmt.Errorf("resolving default tax code %q: %w", cfg.TaxCodeID, err)
+			}
+
+			// A row pointing at a Tax Code outside the namespace (or a missing one) is corrupt.
+			if defaultTaxCodes[cfg.TaxCodeID] == nil {
+				return deps, taxcode.NewTaxCodeNotFoundError(cfg.TaxCodeID)
+			}
+		}
+
+		legacyDefault := cfg.ToLegacyTaxConfig(defaultTaxCodes)
+		deps.DefaultTaxConfig = billing.FromProductCatalog(&legacyDefault)
+
+		// The default's Tax Code is stamped onto the lines that use its Stripe code. A deleted one
+		// isn't: those Stripe codes resolve by mapping to a live Tax Code, as lines carrying the
+		// code themselves always did.
+		if legacyDefault.Stripe != nil {
+			if tc := defaultTaxCodes[cfg.TaxCodeID]; !tc.IsDeleted() {
+				result[legacyDefault.Stripe.Code] = *tc
+			} else {
+				seen[legacyDefault.Stripe.Code] = struct{}{}
+			}
 		}
 	}
 
 	for _, line := range invoice.Lines.OrEmpty() {
 		if line.TaxConfig != nil && line.TaxConfig.Stripe != nil && line.TaxConfig.Stripe.Code != "" {
+			if _, ok := result[line.TaxConfig.Stripe.Code]; ok {
+				continue
+			}
+
 			seen[line.TaxConfig.Stripe.Code] = struct{}{}
 		}
 	}
 
-	if len(seen) == 0 {
-		return nil, nil
-	}
-
-	result := make(invoicecalc.TaxCodes, len(seen))
 	for stripeCode := range seen {
 		if readOnly {
 			tc, err := s.taxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
@@ -57,7 +92,7 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 					continue
 				}
 
-				return nil, fmt.Errorf("resolving tax code %q: %w", stripeCode, err)
+				return deps, fmt.Errorf("resolving tax code %q: %w", stripeCode, err)
 			}
 
 			result[stripeCode] = tc
@@ -68,12 +103,16 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 				TaxCode:   stripeCode,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("resolving tax code %q: %w", stripeCode, err)
+				return deps, fmt.Errorf("resolving tax code %q: %w", stripeCode, err)
 			}
 
 			result[stripeCode] = tc
 		}
 	}
 
-	return result, nil
+	if len(result) > 0 {
+		deps.TaxCodes = result
+	}
+
+	return deps, nil
 }

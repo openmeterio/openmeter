@@ -10,6 +10,7 @@ import (
 
 	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -106,7 +107,12 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to get customer override: %w", err)
 			}
 
-			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.EffectiveProfile)
+			taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, request.Customer.Namespace, mergedProfile.EffectiveProfile.WorkflowConfig)
+			if err != nil {
+				return CreatePendingLineResponse{}, err
+			}
+
+			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.EffectiveProfile, taxCodes)
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
 			}

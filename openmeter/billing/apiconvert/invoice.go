@@ -10,12 +10,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apiv1models.Invoice, error) {
+// ToAPIStandardInvoice maps a standard invoice. taxCodes must hold the invoice's default Tax Code
+// (see ResolveWorkflowTaxCodes) for its stripe.code to show.
+func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	var apps *apiv1models.BillingProfileAppsOrReference
 	var err error
 	collectionAt := invoice.CollectionAt
@@ -94,7 +97,7 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apiv1models.Invoice,
 		ExternalIds: mapInvoiceAppExternalIdsToAPI(invoice.ExternalIDs),
 	}
 
-	workflowConfig, err := ToAPIBillingWorkflow(invoice.Workflow.Config)
+	workflowConfig, err := ToAPIBillingWorkflow(invoice.Workflow.Config, taxCodes)
 	if err != nil {
 		return apiv1models.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
 	}
@@ -124,11 +127,13 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice) (apiv1models.Invoice,
 	return out, nil
 }
 
-func ToAPIEventInvoice(event billing.EventStandardInvoice) (apiv1models.Invoice, error) {
+// ToAPIEventInvoice maps an invoice event to the v1 invoice shape notifications carry. The event
+// has no Stripe code for the invoice default; taxCodes (see ResolveWorkflowTaxCodes) supplies it.
+func ToAPIEventInvoice(event billing.EventStandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	// Only the apps captured in the event belong in the notification snapshot.
 	event.Invoice.Workflow.Apps = nil
 
-	invoice, err := ToAPIStandardInvoice(event.Invoice)
+	invoice, err := ToAPIStandardInvoice(event.Invoice, taxCodes)
 	if err != nil {
 		return apiv1models.Invoice{}, err
 	}

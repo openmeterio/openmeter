@@ -6,7 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
-// SnapshotTaxConfigIntoLines merges the invoice's DefaultTaxConfig into each line and
+// SnapshotTaxConfigIntoLines merges the invoice's default tax config (deps.DefaultTaxConfig) into each line and
 // stamps the resolved TaxCode entity (and its ID) onto the line's TaxConfig.
 // Skipped for gathering invoices — snapshotting only applies to standard invoices.
 func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
@@ -15,7 +15,7 @@ func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardI
 	}
 
 	for _, line := range invoice.Lines.OrEmpty() {
-		line.TaxConfig = billing.MergeTaxConfigs(billing.FromProductCatalog(invoice.Workflow.Config.Invoicing.DefaultTaxConfig), line.TaxConfig)
+		line.TaxConfig = billing.MergeTaxConfigs(deps.DefaultTaxConfig, line.TaxConfig)
 
 		if line.TaxConfig == nil || line.TaxConfig.Stripe == nil {
 			continue

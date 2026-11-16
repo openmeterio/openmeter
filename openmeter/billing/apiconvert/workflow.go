@@ -1,6 +1,8 @@
 package apiconvert
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -8,6 +10,9 @@ import (
 	apiv1models "github.com/openmeterio/openmeter/api/models"
 	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 func ToAPIBillingProfileApps(a *billing.ProfileApps) (*apiv1models.BillingProfileAppsOrReference, error) {
@@ -139,10 +144,17 @@ func mapAlignmentToAPI(c billing.CollectionConfig) (*apiv1models.BillingWorkflow
 	return apiAlignment, nil
 }
 
-func ToAPIBillingWorkflow(c billing.WorkflowConfig) (apiv1models.BillingWorkflow, error) {
+// ToAPIBillingWorkflow maps a workflow config. taxCodes must hold its default Tax Code (see
+// ResolveWorkflowTaxCodes) for the default's stripe.code to show.
+func ToAPIBillingWorkflow(c billing.WorkflowConfig, taxCodes map[string]*taxcode.TaxCode) (apiv1models.BillingWorkflow, error) {
 	apiAlignment, err := mapAlignmentToAPI(c.Collection)
 	if err != nil {
 		return apiv1models.BillingWorkflow{}, fmt.Errorf("failed to map alignment to API: %w", err)
+	}
+
+	defaultTaxConfig, err := toAPIDefaultTaxConfig(c.Invoicing.DefaultTaxConfig, taxCodes)
+	if err != nil {
+		return apiv1models.BillingWorkflow{}, fmt.Errorf("failed to map default tax config to API: %w", err)
 	}
 
 	return apiv1models.BillingWorkflow{
@@ -157,7 +169,7 @@ func ToAPIBillingWorkflow(c billing.WorkflowConfig) (apiv1models.BillingWorkflow
 			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
 			SubscriptionEndProrationMode: lo.ToPtr(apiv1models.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode)),
-			DefaultTaxConfig:             ToAPITaxConfig(c.Invoicing.DefaultTaxConfig),
+			DefaultTaxConfig:             defaultTaxConfig,
 		},
 
 		Payment: &apiv1models.BillingWorkflowPaymentSettings{
@@ -169,4 +181,43 @@ func ToAPIBillingWorkflow(c billing.WorkflowConfig) (apiv1models.BillingWorkflow
 			Enforced: lo.ToPtr(c.Tax.Enforced),
 		},
 	}, nil
+}
+
+// ResolveWorkflowTaxCodes looks up, in one batch, the Tax Codes referenced by the workflows'
+// default tax configs, so v1 responses can show their stripe.code.
+func ResolveWorkflowTaxCodes(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, workflows ...billing.WorkflowConfig) (map[string]*taxcode.TaxCode, error) {
+	ids := lo.Uniq(lo.FilterMap(workflows, func(wf billing.WorkflowConfig, _ int) (string, bool) {
+		id := wf.Invoicing.DefaultTaxCodeID()
+		return id, id != ""
+	}))
+
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	if resolver == nil {
+		return nil, errors.New("tax code resolver is required to render default tax configs")
+	}
+
+	taxCodes, err := resolver.BatchResolve(ctx, namespace, ids...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
+	}
+
+	return taxCodes, nil
+}
+
+// toAPIDefaultTaxConfig renders a workflow's default tax config in the v1 shape; stripe.code
+// comes from the referenced Tax Code's current mapping.
+func toAPIDefaultTaxConfig(cfg *productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) (*apiv1models.TaxConfig, error) {
+	if cfg == nil {
+		return nil, nil
+	}
+
+	taxConfig, err := productcataloghttp.ToAPITaxConfig(*cfg, taxCodes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &taxConfig, nil
 }

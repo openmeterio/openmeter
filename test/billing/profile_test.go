@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
@@ -12,13 +14,16 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type ProfileTestSuite struct {
@@ -31,9 +36,9 @@ func TestProfile(t *testing.T) {
 
 func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
 	// given:
-	// - profiles whose workflow config or tax code is deliberately moved to another namespace
+	// - a profile whose workflow config is deliberately moved to another namespace
 	// when:
-	// - either profile is read
+	// - the profile is read
 	// then:
 	// - the foreign reference is not returned and is reported as missing
 	ctx := s.T().Context()
@@ -53,10 +58,21 @@ func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
 
 	_, err = s.BillingService.GetProfile(ctx, billing.GetProfileInput{Profile: workflowProfile.ProfileID()})
 	require.True(s.T(), models.IsGenericNotFoundError(err))
+}
 
-	taxNamespace := s.GetUniqueNamespace("profile-tax-target")
-	taxProfile := s.ProvisionBillingProfile(ctx, taxNamespace, s.InstallSandboxApp(s.T(), taxNamespace).GetID())
-	taxProfileDB, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: taxProfile.ProfileID()})
+func (s *ProfileTestSuite) TestInvoiceCalculationRejectsCrossNamespaceDefaultTaxCode() {
+	// given:
+	// - a profile whose default tax config is deliberately pointed at another namespace's tax code
+	// when:
+	// - an invoice is created from it, which calculates the invoice
+	// then:
+	// - the foreign tax code isn't used and is reported as missing
+	ctx := s.T().Context()
+	foreignNamespace := s.GetUniqueNamespace("profile-tax-foreign")
+	namespace := s.GetUniqueNamespace("profile-tax-target")
+
+	profile := s.ProvisionBillingProfile(ctx, namespace, s.InstallSandboxApp(s.T(), namespace).GetID())
+	profileDB, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profile.ProfileID()})
 	require.NoError(s.T(), err)
 	foreignTaxCode := s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), foreignNamespace)
 	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, `
@@ -64,11 +80,35 @@ func (s *ProfileTestSuite) TestGetRejectsCrossNamespaceWorkflowReferences() {
 		SET tax_code_id = $1::char(26),
 		    invoice_default_tax_settings = jsonb_build_object('tax_code_id', ($1::char(26))::text)
 		WHERE id = $2
-	`, foreignTaxCode.ID, taxProfileDB.WorkflowConfigID)
+	`, foreignTaxCode.ID, profileDB.WorkflowConfigID)
 	require.NoError(s.T(), err)
 
-	_, err = s.BillingService.GetProfile(ctx, billing.GetProfileInput{Profile: taxProfile.ProfileID()})
-	require.True(s.T(), taxcode.IsTaxCodeNotFoundError(err))
+	cust := s.CreateTestCustomer(namespace, "test")
+	now := time.Now().Truncate(time.Microsecond).UTC()
+
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+				Namespace:     namespace,
+				Period:        timeutil.ClosedPeriod{From: now, To: now.Add(24 * time.Hour)},
+				InvoiceAt:     now,
+				ManagedBy:     billing.ManuallyManagedLine,
+				Name:          "line",
+				PerUnitAmount: alpacadecimal.NewFromFloat(100),
+				PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+			}),
+		}),
+	})
+	require.NoError(s.T(), err)
+
+	_, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	require.Error(s.T(), err)
+	require.True(s.T(), taxcode.IsTaxCodeNotFoundError(err), "expected tax code not found, got: %v", err)
 }
 
 // createProfileFixture creates a profile with the given default flag.

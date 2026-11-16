@@ -157,6 +157,7 @@ func NewServer(config *Config) (*Server, error) {
 		SubscriptionWorkflowService: config.RouterConfig.SubscriptionWorkflowService,
 		ChargeService:               config.RouterConfig.ChargeService,
 		TaxCodeService:              config.RouterConfig.TaxCodeService,
+		TaxCodeResolver:             config.RouterConfig.TaxCodeResolver,
 		CostService:                 config.RouterConfig.CostService,
 		FeatureConnector:            config.RouterConfig.FeatureConnector,
 		NotificationService:         config.RouterConfig.Notification,

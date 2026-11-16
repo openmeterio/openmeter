@@ -46,19 +46,18 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
+	profileTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: profileTaxCode.ID,
 	})
 
 	s.Run("Profile default tax config is inclusive in billing profile", func() {
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.InclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe)
-		s.Equal("txcd_10000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(&productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			TaxCodeID: profileTaxCode.ID,
+		}, draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 	})
 
 	s.Run("Selected profile supplies customer tax settings independently of the default", func() {
@@ -77,9 +76,10 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		selectedInput.Default = false
 		selectedProfile, err := s.BillingService.CreateProfile(ctx, selectedInput)
 		s.Require().NoError(err)
-		s.SeedProfileDefaultTaxConfigViaAdapter(ctx, selectedProfile.ProfileID(), &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-			Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+		selectedTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_20000000")
+		s.SeedProfileDefaultTaxConfigViaAdapter(ctx, selectedProfile.ProfileID(), &productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: selectedTaxCode.ID,
 		})
 		_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
 			Customer:  cust.GetID(),
@@ -94,14 +94,15 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 			},
 		})
 		s.NoError(err)
-		s.NotNil(customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
+
+		wantDefault := &productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: selectedTaxCode.ID,
+		}
+		s.Equal(wantDefault, customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(wantDefault, draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 	})
 
 	s.Run("Profile default tax config is not set, invoice inherits it, but can be updated", func() {
@@ -127,24 +128,24 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 		// let's update the invoice
+		editedTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_30000000")
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice:      draftInvoice.GetInvoiceID(),
 			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
-				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-					Stripe: &productcatalog.StripeTaxConfig{
-						Code: "txcd_30000000",
-					},
+				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					TaxCodeID: editedTaxCode.ID,
 				}
 
 				return nil
 			},
 		})
 		s.NoError(err)
-		s.NotNil(updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal(productcatalog.InclusiveTaxBehavior, *updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_30000000", updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(&productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			TaxCodeID: editedTaxCode.ID,
+		}, updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 	})
 }
 
