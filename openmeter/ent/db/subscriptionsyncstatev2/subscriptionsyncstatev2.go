@@ -30,6 +30,10 @@ const (
 	FieldLastSuccessState = "last_success_state"
 	// FieldLastSuccessAt holds the string denoting the last_success_at field in the database.
 	FieldLastSuccessAt = "last_success_at"
+	// FieldLastSyncedSubsRevision holds the string denoting the last_synced_subs_revision field in the database.
+	FieldLastSyncedSubsRevision = "last_synced_subs_revision"
+	// FieldCurrentSubsRevision holds the string denoting the current_subs_revision field in the database.
+	FieldCurrentSubsRevision = "current_subs_revision"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// Table holds the table name of the subscriptionsyncstatev2 in the database.
@@ -53,6 +57,8 @@ var Columns = []string{
 	FieldSubscriptionID,
 	FieldLastSuccessState,
 	FieldLastSuccessAt,
+	FieldLastSyncedSubsRevision,
+	FieldCurrentSubsRevision,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -76,6 +82,10 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
 	SubscriptionIDValidator func(string) error
+	// LastSyncedSubsRevisionValidator is a validator for the "last_synced_subs_revision" field. It is called by the builders before save.
+	LastSyncedSubsRevisionValidator func(string) error
+	// CurrentSubsRevisionValidator is a validator for the "current_subs_revision" field. It is called by the builders before save.
+	CurrentSubsRevisionValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -131,6 +141,16 @@ func ByLastSuccessState(opts ...sql.OrderTermOption) OrderOption {
 // ByLastSuccessAt orders the results by the last_success_at field.
 func ByLastSuccessAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSuccessAt, opts...).ToFunc()
+}
+
+// ByLastSyncedSubsRevision orders the results by the last_synced_subs_revision field.
+func ByLastSyncedSubsRevision(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastSyncedSubsRevision, opts...).ToFunc()
+}
+
+// ByCurrentSubsRevision orders the results by the current_subs_revision field.
+func ByCurrentSubsRevision(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrentSubsRevision, opts...).ToFunc()
 }
 
 // BySubscriptionField orders the results by subscription field.

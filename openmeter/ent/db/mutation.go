@@ -128817,21 +128817,23 @@ func (m *SubscriptionPhaseMutation) ResetEdge(name string) error {
 // SubscriptionSyncStateV2Mutation represents an operation that mutates the SubscriptionSyncStateV2 nodes in the graph.
 type SubscriptionSyncStateV2Mutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	namespace           *string
-	created_at          *time.Time
-	updated_at          *time.Time
-	deleted_at          *time.Time
-	last_success_state  *subscriptionsync.SyncStateV2State
-	last_success_at     *time.Time
-	clearedFields       map[string]struct{}
-	subscription        *string
-	clearedsubscription bool
-	done                bool
-	oldValue            func(context.Context) (*SubscriptionSyncStateV2, error)
-	predicates          []predicate.SubscriptionSyncStateV2
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	last_success_state        *subscriptionsync.SyncStateV2State
+	last_success_at           *time.Time
+	last_synced_subs_revision *string
+	current_subs_revision     *string
+	clearedFields             map[string]struct{}
+	subscription              *string
+	clearedsubscription       bool
+	done                      bool
+	oldValue                  func(context.Context) (*SubscriptionSyncStateV2, error)
+	predicates                []predicate.SubscriptionSyncStateV2
 }
 
 var _ ent.Mutation = (*SubscriptionSyncStateV2Mutation)(nil)
@@ -129203,6 +129205,104 @@ func (m *SubscriptionSyncStateV2Mutation) ResetLastSuccessAt() {
 	m.last_success_at = nil
 }
 
+// SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
+func (m *SubscriptionSyncStateV2Mutation) SetLastSyncedSubsRevision(s string) {
+	m.last_synced_subs_revision = &s
+}
+
+// LastSyncedSubsRevision returns the value of the "last_synced_subs_revision" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) LastSyncedSubsRevision() (r string, exists bool) {
+	v := m.last_synced_subs_revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastSyncedSubsRevision returns the old "last_synced_subs_revision" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldLastSyncedSubsRevision(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastSyncedSubsRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastSyncedSubsRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastSyncedSubsRevision: %w", err)
+	}
+	return oldValue.LastSyncedSubsRevision, nil
+}
+
+// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
+func (m *SubscriptionSyncStateV2Mutation) ClearLastSyncedSubsRevision() {
+	m.last_synced_subs_revision = nil
+	m.clearedFields[subscriptionsyncstatev2.FieldLastSyncedSubsRevision] = struct{}{}
+}
+
+// LastSyncedSubsRevisionCleared returns if the "last_synced_subs_revision" field was cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) LastSyncedSubsRevisionCleared() bool {
+	_, ok := m.clearedFields[subscriptionsyncstatev2.FieldLastSyncedSubsRevision]
+	return ok
+}
+
+// ResetLastSyncedSubsRevision resets all changes to the "last_synced_subs_revision" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetLastSyncedSubsRevision() {
+	m.last_synced_subs_revision = nil
+	delete(m.clearedFields, subscriptionsyncstatev2.FieldLastSyncedSubsRevision)
+}
+
+// SetCurrentSubsRevision sets the "current_subs_revision" field.
+func (m *SubscriptionSyncStateV2Mutation) SetCurrentSubsRevision(s string) {
+	m.current_subs_revision = &s
+}
+
+// CurrentSubsRevision returns the value of the "current_subs_revision" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) CurrentSubsRevision() (r string, exists bool) {
+	v := m.current_subs_revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrentSubsRevision returns the old "current_subs_revision" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldCurrentSubsRevision(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrentSubsRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrentSubsRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrentSubsRevision: %w", err)
+	}
+	return oldValue.CurrentSubsRevision, nil
+}
+
+// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
+func (m *SubscriptionSyncStateV2Mutation) ClearCurrentSubsRevision() {
+	m.current_subs_revision = nil
+	m.clearedFields[subscriptionsyncstatev2.FieldCurrentSubsRevision] = struct{}{}
+}
+
+// CurrentSubsRevisionCleared returns if the "current_subs_revision" field was cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) CurrentSubsRevisionCleared() bool {
+	_, ok := m.clearedFields[subscriptionsyncstatev2.FieldCurrentSubsRevision]
+	return ok
+}
+
+// ResetCurrentSubsRevision resets all changes to the "current_subs_revision" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetCurrentSubsRevision() {
+	m.current_subs_revision = nil
+	delete(m.clearedFields, subscriptionsyncstatev2.FieldCurrentSubsRevision)
+}
+
 // ClearSubscription clears the "subscription" edge to the Subscription entity.
 func (m *SubscriptionSyncStateV2Mutation) ClearSubscription() {
 	m.clearedsubscription = true
@@ -129264,7 +129364,7 @@ func (m *SubscriptionSyncStateV2Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionSyncStateV2Mutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 9)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionsyncstatev2.FieldNamespace)
 	}
@@ -129285,6 +129385,12 @@ func (m *SubscriptionSyncStateV2Mutation) Fields() []string {
 	}
 	if m.last_success_at != nil {
 		fields = append(fields, subscriptionsyncstatev2.FieldLastSuccessAt)
+	}
+	if m.last_synced_subs_revision != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldLastSyncedSubsRevision)
+	}
+	if m.current_subs_revision != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldCurrentSubsRevision)
 	}
 	return fields
 }
@@ -129308,6 +129414,10 @@ func (m *SubscriptionSyncStateV2Mutation) Field(name string) (ent.Value, bool) {
 		return m.LastSuccessState()
 	case subscriptionsyncstatev2.FieldLastSuccessAt:
 		return m.LastSuccessAt()
+	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
+		return m.LastSyncedSubsRevision()
+	case subscriptionsyncstatev2.FieldCurrentSubsRevision:
+		return m.CurrentSubsRevision()
 	}
 	return nil, false
 }
@@ -129331,6 +129441,10 @@ func (m *SubscriptionSyncStateV2Mutation) OldField(ctx context.Context, name str
 		return m.OldLastSuccessState(ctx)
 	case subscriptionsyncstatev2.FieldLastSuccessAt:
 		return m.OldLastSuccessAt(ctx)
+	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
+		return m.OldLastSyncedSubsRevision(ctx)
+	case subscriptionsyncstatev2.FieldCurrentSubsRevision:
+		return m.OldCurrentSubsRevision(ctx)
 	}
 	return nil, fmt.Errorf("unknown SubscriptionSyncStateV2 field %s", name)
 }
@@ -129389,6 +129503,20 @@ func (m *SubscriptionSyncStateV2Mutation) SetField(name string, value ent.Value)
 		}
 		m.SetLastSuccessAt(v)
 		return nil
+	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastSyncedSubsRevision(v)
+		return nil
+	case subscriptionsyncstatev2.FieldCurrentSubsRevision:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrentSubsRevision(v)
+		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionSyncStateV2 field %s", name)
 }
@@ -129422,6 +129550,12 @@ func (m *SubscriptionSyncStateV2Mutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionsyncstatev2.FieldDeletedAt) {
 		fields = append(fields, subscriptionsyncstatev2.FieldDeletedAt)
 	}
+	if m.FieldCleared(subscriptionsyncstatev2.FieldLastSyncedSubsRevision) {
+		fields = append(fields, subscriptionsyncstatev2.FieldLastSyncedSubsRevision)
+	}
+	if m.FieldCleared(subscriptionsyncstatev2.FieldCurrentSubsRevision) {
+		fields = append(fields, subscriptionsyncstatev2.FieldCurrentSubsRevision)
+	}
 	return fields
 }
 
@@ -129438,6 +129572,12 @@ func (m *SubscriptionSyncStateV2Mutation) ClearField(name string) error {
 	switch name {
 	case subscriptionsyncstatev2.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
+		m.ClearLastSyncedSubsRevision()
+		return nil
+	case subscriptionsyncstatev2.FieldCurrentSubsRevision:
+		m.ClearCurrentSubsRevision()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionSyncStateV2 nullable field %s", name)
@@ -129467,6 +129607,12 @@ func (m *SubscriptionSyncStateV2Mutation) ResetField(name string) error {
 		return nil
 	case subscriptionsyncstatev2.FieldLastSuccessAt:
 		m.ResetLastSuccessAt()
+		return nil
+	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
+		m.ResetLastSyncedSubsRevision()
+		return nil
+	case subscriptionsyncstatev2.FieldCurrentSubsRevision:
+		m.ResetCurrentSubsRevision()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionSyncStateV2 field %s", name)

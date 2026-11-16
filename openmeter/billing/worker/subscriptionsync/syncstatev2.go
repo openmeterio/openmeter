@@ -42,11 +42,16 @@ func (s SyncStateV2State) Validate() error {
 	return nil
 }
 
-// SyncStateV2 describes completed reconciliation, not pending or failed work.
+// SyncStateV2 keeps the last successful cleanup and the subscription revisions
+// needed to detect changes after that cleanup.
 type SyncStateV2 struct {
 	SubscriptionID   models.NamespacedID
 	LastSuccessState SyncStateV2State
 	LastSuccessAt    time.Time
+	// LastSyncedSubsRevision is the current revision observed before the last successful cleanup.
+	LastSyncedSubsRevision *string
+	// CurrentSubsRevision may change while cleanup is running; success must not overwrite it.
+	CurrentSubsRevision *string
 }
 
 // SyncStateV2Managed includes the sync-state row's identity and timestamps.
@@ -75,11 +80,26 @@ func (s SyncStateV2Managed) Validate() error {
 
 type GetSyncStatesV2Input = []models.NamespacedID
 
-type UpsertSyncStateV2Input = SyncStateV2
+type UpsertSyncStateV2Input struct {
+	SubscriptionID   models.NamespacedID
+	LastSuccessState SyncStateV2State
+	LastSuccessAt    time.Time
+	// An empty revision initializes a new ULID. CurrentSubsRevision is deliberately
+	// absent: cleanup can acknowledge its observed revision but cannot replace a newer one.
+	LastSyncedSubsRevision string
+}
 
 var _ models.Validator = UpsertSyncStateV2Input{}
 
 func (i SyncStateV2) Validate() error {
+	return (UpsertSyncStateV2Input{
+		SubscriptionID:   i.SubscriptionID,
+		LastSuccessState: i.LastSuccessState,
+		LastSuccessAt:    i.LastSuccessAt,
+	}).Validate()
+}
+
+func (i UpsertSyncStateV2Input) Validate() error {
 	var errs []error
 	if err := i.SubscriptionID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("subscription ID: %w", err))

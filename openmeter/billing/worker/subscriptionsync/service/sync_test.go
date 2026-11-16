@@ -199,11 +199,12 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRecordsSucc
 	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
-	s.Equal(subscriptionsync.SyncStateV2{
-		SubscriptionID:   subscriptionID,
-		LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
-		LastSuccessAt:    now,
-	}, states[0].SyncStateV2)
+	s.Equal(subscriptionID, states[0].SubscriptionID)
+	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionDeleted, states[0].LastSuccessState)
+	s.Equal(now, states[0].LastSuccessAt)
+	s.Require().NotNil(states[0].CurrentSubsRevision)
+	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
+	s.NoError(states[0].Validate())
 	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 		Namespaces: []string{s.Namespace},
 		Limit:      10,
@@ -354,11 +355,12 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWork
 	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
-	s.Equal(subscriptionsync.SyncStateV2{
-		SubscriptionID:   subscriptionID,
-		LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
-		LastSuccessAt:    now,
-	}, states[0].SyncStateV2)
+	s.Equal(subscriptionID, states[0].SubscriptionID)
+	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionDeleted, states[0].LastSuccessState)
+	s.Equal(now, states[0].LastSuccessAt)
+	s.Require().NotNil(states[0].CurrentSubsRevision)
+	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
+	s.NoError(states[0].Validate())
 	// Completion excludes it from both lists even while DeletedAt is still in the future.
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)

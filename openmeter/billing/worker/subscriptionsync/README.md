@@ -169,6 +169,17 @@ in the same transaction as billing cleanup, even when there are no artifacts lef
 and stops legacy periodic scheduling with `HasBillables=false` and no next deadline.
 Dry runs and failed syncs do not record completion.
 
+Each sync reads v2 state after acquiring the customer billing lock and before
+reading the subscription view. `current_subs_revision` identifies the subscription
+revision to reconcile; `last_synced_subs_revision` records the revision observed
+at the start of the last successful cleanup. Both columns are nullable while
+existing records are upgraded. Sync generates a ULID when there is no current
+revision, and successful cleanup inserts that same value into both columns.
+On conflict, it acknowledges the captured revision and initializes a NULL current
+revision, but preserves any current revision another writer has already set.
+Ordinary syncs read v2 state without writing it. Revisions do not yet change periodic
+scheduling or suppress reconciliation.
+
 The regular periodic list requires `DeletedAt` to be nil. A separate cleanup
 query selects all subscriptions with non-nil `DeletedAt` whose v2 result is not
 `subscription_deleted`. This query has no service-period or deletion lookback:

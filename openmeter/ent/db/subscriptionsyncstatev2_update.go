@@ -83,6 +83,46 @@ func (_u *SubscriptionSyncStateV2Update) SetNillableLastSuccessAt(v *time.Time) 
 	return _u
 }
 
+// SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
+func (_u *SubscriptionSyncStateV2Update) SetLastSyncedSubsRevision(v string) *SubscriptionSyncStateV2Update {
+	_u.mutation.SetLastSyncedSubsRevision(v)
+	return _u
+}
+
+// SetNillableLastSyncedSubsRevision sets the "last_synced_subs_revision" field if the given value is not nil.
+func (_u *SubscriptionSyncStateV2Update) SetNillableLastSyncedSubsRevision(v *string) *SubscriptionSyncStateV2Update {
+	if v != nil {
+		_u.SetLastSyncedSubsRevision(*v)
+	}
+	return _u
+}
+
+// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
+func (_u *SubscriptionSyncStateV2Update) ClearLastSyncedSubsRevision() *SubscriptionSyncStateV2Update {
+	_u.mutation.ClearLastSyncedSubsRevision()
+	return _u
+}
+
+// SetCurrentSubsRevision sets the "current_subs_revision" field.
+func (_u *SubscriptionSyncStateV2Update) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2Update {
+	_u.mutation.SetCurrentSubsRevision(v)
+	return _u
+}
+
+// SetNillableCurrentSubsRevision sets the "current_subs_revision" field if the given value is not nil.
+func (_u *SubscriptionSyncStateV2Update) SetNillableCurrentSubsRevision(v *string) *SubscriptionSyncStateV2Update {
+	if v != nil {
+		_u.SetCurrentSubsRevision(*v)
+	}
+	return _u
+}
+
+// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
+func (_u *SubscriptionSyncStateV2Update) ClearCurrentSubsRevision() *SubscriptionSyncStateV2Update {
+	_u.mutation.ClearCurrentSubsRevision()
+	return _u
+}
+
 // Mutation returns the SubscriptionSyncStateV2Mutation object of the builder.
 func (_u *SubscriptionSyncStateV2Update) Mutation() *SubscriptionSyncStateV2Mutation {
 	return _u.mutation
@@ -131,6 +171,16 @@ func (_u *SubscriptionSyncStateV2Update) check() error {
 			return &ValidationError{Name: "last_success_state", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.last_success_state": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LastSyncedSubsRevision(); ok {
+		if err := subscriptionsyncstatev2.LastSyncedSubsRevisionValidator(v); err != nil {
+			return &ValidationError{Name: "last_synced_subs_revision", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.last_synced_subs_revision": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CurrentSubsRevision(); ok {
+		if err := subscriptionsyncstatev2.CurrentSubsRevisionValidator(v); err != nil {
+			return &ValidationError{Name: "current_subs_revision", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.current_subs_revision": %w`, err)}
+		}
+	}
 	if _u.mutation.SubscriptionCleared() && len(_u.mutation.SubscriptionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionSyncStateV2.subscription"`)
 	}
@@ -163,6 +213,18 @@ func (_u *SubscriptionSyncStateV2Update) sqlSave(ctx context.Context) (_node int
 	}
 	if value, ok := _u.mutation.LastSuccessAt(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
+		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
+	}
+	if _u.mutation.LastSyncedSubsRevisionCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString)
+	}
+	if value, ok := _u.mutation.CurrentSubsRevision(); ok {
+		_spec.SetField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString, value)
+	}
+	if _u.mutation.CurrentSubsRevisionCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -238,6 +300,46 @@ func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableLastSuccessAt(v *time.Tim
 	return _u
 }
 
+// SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
+func (_u *SubscriptionSyncStateV2UpdateOne) SetLastSyncedSubsRevision(v string) *SubscriptionSyncStateV2UpdateOne {
+	_u.mutation.SetLastSyncedSubsRevision(v)
+	return _u
+}
+
+// SetNillableLastSyncedSubsRevision sets the "last_synced_subs_revision" field if the given value is not nil.
+func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableLastSyncedSubsRevision(v *string) *SubscriptionSyncStateV2UpdateOne {
+	if v != nil {
+		_u.SetLastSyncedSubsRevision(*v)
+	}
+	return _u
+}
+
+// ClearLastSyncedSubsRevision clears the value of the "last_synced_subs_revision" field.
+func (_u *SubscriptionSyncStateV2UpdateOne) ClearLastSyncedSubsRevision() *SubscriptionSyncStateV2UpdateOne {
+	_u.mutation.ClearLastSyncedSubsRevision()
+	return _u
+}
+
+// SetCurrentSubsRevision sets the "current_subs_revision" field.
+func (_u *SubscriptionSyncStateV2UpdateOne) SetCurrentSubsRevision(v string) *SubscriptionSyncStateV2UpdateOne {
+	_u.mutation.SetCurrentSubsRevision(v)
+	return _u
+}
+
+// SetNillableCurrentSubsRevision sets the "current_subs_revision" field if the given value is not nil.
+func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableCurrentSubsRevision(v *string) *SubscriptionSyncStateV2UpdateOne {
+	if v != nil {
+		_u.SetCurrentSubsRevision(*v)
+	}
+	return _u
+}
+
+// ClearCurrentSubsRevision clears the value of the "current_subs_revision" field.
+func (_u *SubscriptionSyncStateV2UpdateOne) ClearCurrentSubsRevision() *SubscriptionSyncStateV2UpdateOne {
+	_u.mutation.ClearCurrentSubsRevision()
+	return _u
+}
+
 // Mutation returns the SubscriptionSyncStateV2Mutation object of the builder.
 func (_u *SubscriptionSyncStateV2UpdateOne) Mutation() *SubscriptionSyncStateV2Mutation {
 	return _u.mutation
@@ -299,6 +401,16 @@ func (_u *SubscriptionSyncStateV2UpdateOne) check() error {
 			return &ValidationError{Name: "last_success_state", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.last_success_state": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.LastSyncedSubsRevision(); ok {
+		if err := subscriptionsyncstatev2.LastSyncedSubsRevisionValidator(v); err != nil {
+			return &ValidationError{Name: "last_synced_subs_revision", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.last_synced_subs_revision": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.CurrentSubsRevision(); ok {
+		if err := subscriptionsyncstatev2.CurrentSubsRevisionValidator(v); err != nil {
+			return &ValidationError{Name: "current_subs_revision", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.current_subs_revision": %w`, err)}
+		}
+	}
 	if _u.mutation.SubscriptionCleared() && len(_u.mutation.SubscriptionIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "SubscriptionSyncStateV2.subscription"`)
 	}
@@ -348,6 +460,18 @@ func (_u *SubscriptionSyncStateV2UpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if value, ok := _u.mutation.LastSuccessAt(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
+		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
+	}
+	if _u.mutation.LastSyncedSubsRevisionCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString)
+	}
+	if value, ok := _u.mutation.CurrentSubsRevision(); ok {
+		_spec.SetField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString, value)
+	}
+	if _u.mutation.CurrentSubsRevisionCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldCurrentSubsRevision, field.TypeString)
 	}
 	_node = &SubscriptionSyncStateV2{config: _u.config}
 	_spec.Assign = _node.assignValues

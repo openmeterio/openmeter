@@ -96,6 +96,16 @@ func LastSuccessAt(v time.Time) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldLastSuccessAt, v))
 }
 
+// LastSyncedSubsRevision applies equality check predicate on the "last_synced_subs_revision" field. It's identical to LastSyncedSubsRevisionEQ.
+func LastSyncedSubsRevision(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldLastSyncedSubsRevision, v))
+}
+
+// CurrentSubsRevision applies equality check predicate on the "current_subs_revision" field. It's identical to CurrentSubsRevisionEQ.
+func CurrentSubsRevision(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldCurrentSubsRevision, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldNamespace, v))
@@ -424,6 +434,156 @@ func LastSuccessAtLT(v time.Time) predicate.SubscriptionSyncStateV2 {
 // LastSuccessAtLTE applies the LTE predicate on the "last_success_at" field.
 func LastSuccessAtLTE(v time.Time) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldLTE(FieldLastSuccessAt, v))
+}
+
+// LastSyncedSubsRevisionEQ applies the EQ predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionEQ(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionNEQ applies the NEQ predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionNEQ(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNEQ(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionIn applies the In predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionIn(vs ...string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldIn(FieldLastSyncedSubsRevision, vs...))
+}
+
+// LastSyncedSubsRevisionNotIn applies the NotIn predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionNotIn(vs ...string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNotIn(FieldLastSyncedSubsRevision, vs...))
+}
+
+// LastSyncedSubsRevisionGT applies the GT predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionGT(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldGT(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionGTE applies the GTE predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionGTE(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldGTE(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionLT applies the LT predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionLT(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldLT(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionLTE applies the LTE predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionLTE(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldLTE(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionContains applies the Contains predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionContains(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldContains(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionHasPrefix applies the HasPrefix predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionHasPrefix(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldHasPrefix(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionHasSuffix applies the HasSuffix predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionHasSuffix(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldHasSuffix(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionIsNil applies the IsNil predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionIsNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldIsNull(FieldLastSyncedSubsRevision))
+}
+
+// LastSyncedSubsRevisionNotNil applies the NotNil predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionNotNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNotNull(FieldLastSyncedSubsRevision))
+}
+
+// LastSyncedSubsRevisionEqualFold applies the EqualFold predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionEqualFold(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEqualFold(FieldLastSyncedSubsRevision, v))
+}
+
+// LastSyncedSubsRevisionContainsFold applies the ContainsFold predicate on the "last_synced_subs_revision" field.
+func LastSyncedSubsRevisionContainsFold(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldContainsFold(FieldLastSyncedSubsRevision, v))
+}
+
+// CurrentSubsRevisionEQ applies the EQ predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionEQ(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionNEQ applies the NEQ predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionNEQ(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNEQ(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionIn applies the In predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionIn(vs ...string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldIn(FieldCurrentSubsRevision, vs...))
+}
+
+// CurrentSubsRevisionNotIn applies the NotIn predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionNotIn(vs ...string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNotIn(FieldCurrentSubsRevision, vs...))
+}
+
+// CurrentSubsRevisionGT applies the GT predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionGT(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldGT(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionGTE applies the GTE predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionGTE(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldGTE(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionLT applies the LT predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionLT(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldLT(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionLTE applies the LTE predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionLTE(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldLTE(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionContains applies the Contains predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionContains(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldContains(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionHasPrefix applies the HasPrefix predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionHasPrefix(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldHasPrefix(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionHasSuffix applies the HasSuffix predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionHasSuffix(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldHasSuffix(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionIsNil applies the IsNil predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionIsNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldIsNull(FieldCurrentSubsRevision))
+}
+
+// CurrentSubsRevisionNotNil applies the NotNil predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionNotNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNotNull(FieldCurrentSubsRevision))
+}
+
+// CurrentSubsRevisionEqualFold applies the EqualFold predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionEqualFold(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEqualFold(FieldCurrentSubsRevision, v))
+}
+
+// CurrentSubsRevisionContainsFold applies the ContainsFold predicate on the "current_subs_revision" field.
+func CurrentSubsRevisionContainsFold(v string) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldContainsFold(FieldCurrentSubsRevision, v))
 }
 
 // HasSubscription applies the HasEdge predicate on the "subscription" edge.

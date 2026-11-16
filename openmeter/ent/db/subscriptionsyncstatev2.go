@@ -33,6 +33,10 @@ type SubscriptionSyncStateV2 struct {
 	LastSuccessState subscriptionsync.SyncStateV2State `json:"last_success_state,omitempty"`
 	// LastSuccessAt holds the value of the "last_success_at" field.
 	LastSuccessAt time.Time `json:"last_success_at,omitempty"`
+	// LastSyncedSubsRevision holds the value of the "last_synced_subs_revision" field.
+	LastSyncedSubsRevision *string `json:"last_synced_subs_revision,omitempty"`
+	// CurrentSubsRevision holds the value of the "current_subs_revision" field.
+	CurrentSubsRevision *string `json:"current_subs_revision,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SubscriptionSyncStateV2Query when eager-loading is set.
 	Edges        SubscriptionSyncStateV2Edges `json:"edges"`
@@ -64,7 +68,7 @@ func (*SubscriptionSyncStateV2) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionsyncstatev2.FieldID, subscriptionsyncstatev2.FieldNamespace, subscriptionsyncstatev2.FieldSubscriptionID, subscriptionsyncstatev2.FieldLastSuccessState:
+		case subscriptionsyncstatev2.FieldID, subscriptionsyncstatev2.FieldNamespace, subscriptionsyncstatev2.FieldSubscriptionID, subscriptionsyncstatev2.FieldLastSuccessState, subscriptionsyncstatev2.FieldLastSyncedSubsRevision, subscriptionsyncstatev2.FieldCurrentSubsRevision:
 			values[i] = new(sql.NullString)
 		case subscriptionsyncstatev2.FieldCreatedAt, subscriptionsyncstatev2.FieldUpdatedAt, subscriptionsyncstatev2.FieldDeletedAt, subscriptionsyncstatev2.FieldLastSuccessAt:
 			values[i] = new(sql.NullTime)
@@ -132,6 +136,20 @@ func (_m *SubscriptionSyncStateV2) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.LastSuccessAt = value.Time
 			}
+		case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field last_synced_subs_revision", values[i])
+			} else if value.Valid {
+				_m.LastSyncedSubsRevision = new(string)
+				*_m.LastSyncedSubsRevision = value.String
+			}
+		case subscriptionsyncstatev2.FieldCurrentSubsRevision:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field current_subs_revision", values[i])
+			} else if value.Valid {
+				_m.CurrentSubsRevision = new(string)
+				*_m.CurrentSubsRevision = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -195,6 +213,16 @@ func (_m *SubscriptionSyncStateV2) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("last_success_at=")
 	builder.WriteString(_m.LastSuccessAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.LastSyncedSubsRevision; v != nil {
+		builder.WriteString("last_synced_subs_revision=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.CurrentSubsRevision; v != nil {
+		builder.WriteString("current_subs_revision=")
+		builder.WriteString(*v)
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

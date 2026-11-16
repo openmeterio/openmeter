@@ -30,6 +30,8 @@ func (SubscriptionSyncStateV2) Fields() []ent.Field {
 		field.String("subscription_id").NotEmpty().Immutable().Unique().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 		field.Enum("last_success_state").GoType(subscriptionsync.SyncStateV2State("")),
 		field.Time("last_success_at"),
+		field.String("last_synced_subs_revision").Optional().Nillable().NotEmpty().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
+		field.String("current_subs_revision").Optional().Nillable().NotEmpty().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 	}
 }
 
