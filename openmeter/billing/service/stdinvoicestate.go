@@ -920,7 +920,11 @@ func (m *InvoiceStateMachine) omitEmptyInvoice(ctx context.Context, app billing.
 		return false, billing.WrapAsValidationIssue(err)
 	}
 
-	m.Invoice.ExternalIDs.Invoicing = ""
+	if err := m.Service.adapter.ClearInvoiceLineInvoicingAppReferences(ctx, m.Invoice.GetInvoiceID()); err != nil {
+		return false, fmt.Errorf("clearing line invoicing app references: %w", err)
+	}
+
+	m.Invoice.ClearInvoicingAppReferences()
 
 	return true, nil
 }
