@@ -9,12 +9,12 @@ import (
 
 	apiv1 "github.com/openmeterio/openmeter/api"
 	cloud "github.com/openmeterio/openmeter/api/client/go"
-	"github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 )
 
 type invoiceListHandler struct {
 	apiv1.Unimplemented
-	params models.ListInvoicesParams
+	params apiv1models.ListInvoicesParams
 }
 
 func (h *invoiceListHandler) ListInvoices(w http.ResponseWriter, _ *http.Request, params apiv1.ListInvoicesParams) {
@@ -24,7 +24,7 @@ func (h *invoiceListHandler) ListInvoices(w http.ResponseWriter, _ *http.Request
 
 func TestLegacyInvoiceParamsAcrossTransports(t *testing.T) {
 	order := cloud.InvoiceOrderByCreatedAt
-	params := models.ListInvoicesParams{OrderBy: &order}
+	params := apiv1models.ListInvoicesParams{OrderBy: &order}
 	req, err := cloud.NewListInvoicesRequest("https://example.test", &params)
 	require.NoError(t, err)
 

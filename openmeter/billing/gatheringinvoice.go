@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -992,7 +992,7 @@ type ListGatheringInvoicesInput struct {
 	IDs            []string
 	Customers      []string
 	Currencies     []currencyx.FiatCode
-	OrderBy        apimodels.InvoiceOrderBy
+	OrderBy        apiv1models.InvoiceOrderBy
 	Order          sortx.Order
 	IncludeDeleted bool
 	Expand         GatheringInvoiceExpands

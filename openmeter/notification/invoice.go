@@ -1,7 +1,7 @@
 package notification
 
 import (
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -16,7 +16,7 @@ var (
 )
 
 type InvoicePayload struct {
-	apimodels.Invoice
+	apiv1models.Invoice
 }
 
 func (ip InvoicePayload) ValidateWith(validators ...models.ValidatorFunc[InvoicePayload]) error {

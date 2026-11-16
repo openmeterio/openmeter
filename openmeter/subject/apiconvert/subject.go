@@ -1,11 +1,11 @@
 package apiconvert
 
 import (
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 )
 
-func ToAPISubject(s subject.Subject) apimodels.Subject {
+func ToAPISubject(s subject.Subject) apiv1models.Subject {
 	var metadata *map[string]interface{}
 
 	if s.Metadata != nil {
@@ -18,7 +18,7 @@ func ToAPISubject(s subject.Subject) apimodels.Subject {
 		metadata = &m
 	}
 
-	return apimodels.Subject{
+	return apiv1models.Subject{
 		CreatedAt:        s.CreatedAt,
 		UpdatedAt:        s.UpdatedAt,
 		DeletedAt:        s.DeletedAt,

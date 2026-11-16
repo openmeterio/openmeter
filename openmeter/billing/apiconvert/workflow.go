@@ -5,12 +5,12 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 )
 
-func ToAPIBillingProfileApps(a *billing.ProfileApps) (*apimodels.BillingProfileAppsOrReference, error) {
+func ToAPIBillingProfileApps(a *billing.ProfileApps) (*apiv1models.BillingProfileAppsOrReference, error) {
 	if a == nil {
 		return nil, nil
 	}
@@ -30,13 +30,13 @@ func ToAPIBillingProfileApps(a *billing.ProfileApps) (*apimodels.BillingProfileA
 		return nil, fmt.Errorf("cannot map payment app: %w", err)
 	}
 
-	apps := apimodels.BillingProfileApps{
+	apps := apiv1models.BillingProfileApps{
 		Tax:       tax,
 		Invoicing: invoicing,
 		Payment:   payment,
 	}
 
-	out := apimodels.BillingProfileAppsOrReference{}
+	out := apiv1models.BillingProfileAppsOrReference{}
 
 	if err := out.FromBillingProfileApps(apps); err != nil {
 		return nil, fmt.Errorf("failed to convert apps to API: %w", err)
@@ -45,24 +45,24 @@ func ToAPIBillingProfileApps(a *billing.ProfileApps) (*apimodels.BillingProfileA
 	return &out, nil
 }
 
-func ToAPIBillingProfileAppReferences(a *billing.ProfileAppReferences) (*apimodels.BillingProfileAppsOrReference, error) {
+func ToAPIBillingProfileAppReferences(a *billing.ProfileAppReferences) (*apiv1models.BillingProfileAppsOrReference, error) {
 	if a == nil {
 		return nil, nil
 	}
 
-	apps := apimodels.BillingProfileAppReferences{
-		Tax: apimodels.AppReference{
+	apps := apiv1models.BillingProfileAppReferences{
+		Tax: apiv1models.AppReference{
 			Id: a.Tax.ID,
 		},
-		Invoicing: apimodels.AppReference{
+		Invoicing: apiv1models.AppReference{
 			Id: a.Invoicing.ID,
 		},
-		Payment: apimodels.AppReference{
+		Payment: apiv1models.AppReference{
 			Id: a.Payment.ID,
 		},
 	}
 
-	out := apimodels.BillingProfileAppsOrReference{}
+	out := apiv1models.BillingProfileAppsOrReference{}
 
 	if err := out.FromBillingProfileAppReferences(apps); err != nil {
 		return nil, fmt.Errorf("failed to convert apps to API: %w", err)
@@ -71,13 +71,13 @@ func ToAPIBillingProfileAppReferences(a *billing.ProfileAppReferences) (*apimode
 	return &out, nil
 }
 
-func ToAPIBillingParty(c billing.SupplierContact) apimodels.BillingParty {
+func ToAPIBillingParty(c billing.SupplierContact) apiv1models.BillingParty {
 	a := c.Address
 
-	out := apimodels.BillingParty{
+	out := apiv1models.BillingParty{
 		Id:   lo.EmptyableToPtr(c.ID),
 		Name: lo.EmptyableToPtr(c.Name),
-		Addresses: lo.ToPtr([]apimodels.Address{
+		Addresses: lo.ToPtr([]apiv1models.Address{
 			{
 				Country:     (*string)(a.Country),
 				PostalCode:  a.PostalCode,
@@ -91,7 +91,7 @@ func ToAPIBillingParty(c billing.SupplierContact) apimodels.BillingParty {
 	}
 
 	if c.TaxCode != nil {
-		out.TaxId = &apimodels.BillingPartyTaxIdentity{
+		out.TaxId = &apiv1models.BillingPartyTaxIdentity{
 			Code: c.TaxCode,
 		}
 	}
@@ -99,72 +99,72 @@ func ToAPIBillingParty(c billing.SupplierContact) apimodels.BillingParty {
 	return out
 }
 
-func mapAlignmentToAPI(c billing.CollectionConfig) (*apimodels.BillingWorkflowCollectionAlignment, error) {
-	apiAlignment := &apimodels.BillingWorkflowCollectionAlignment{}
+func mapAlignmentToAPI(c billing.CollectionConfig) (*apiv1models.BillingWorkflowCollectionAlignment, error) {
+	apiAlignment := &apiv1models.BillingWorkflowCollectionAlignment{}
 
 	switch c.Alignment {
 	case billing.AlignmentKindSubscription:
 		if err := apiAlignment.FromBillingWorkflowCollectionAlignmentSubscription(
-			apimodels.BillingWorkflowCollectionAlignmentSubscription{
-				Type: apimodels.BillingWorkflowCollectionAlignmentSubscriptionType(c.Alignment),
+			apiv1models.BillingWorkflowCollectionAlignmentSubscription{
+				Type: apiv1models.BillingWorkflowCollectionAlignmentSubscriptionType(c.Alignment),
 			},
 		); err != nil {
-			return &apimodels.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map alignment to API: %w", err)
+			return &apiv1models.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map alignment to API: %w", err)
 		}
 	case billing.AlignmentKindAnchored:
 		if c.AnchoredAlignmentDetail == nil {
-			return &apimodels.BillingWorkflowCollectionAlignment{}, fmt.Errorf("anchored alignment detail is not set")
+			return &apiv1models.BillingWorkflowCollectionAlignment{}, fmt.Errorf("anchored alignment detail is not set")
 		}
 
-		interval := apimodels.RecurringPeriodInterval{}
+		interval := apiv1models.RecurringPeriodInterval{}
 		if err := interval.FromRecurringPeriodInterval0(c.AnchoredAlignmentDetail.Interval.ISOString().String()); err != nil {
-			return &apimodels.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map interval to API: %w", err)
+			return &apiv1models.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map interval to API: %w", err)
 		}
 
 		if err := apiAlignment.FromBillingWorkflowCollectionAlignmentAnchored(
-			apimodels.BillingWorkflowCollectionAlignmentAnchored{
-				Type: apimodels.BillingWorkflowCollectionAlignmentAnchoredType(c.Alignment),
-				RecurringPeriod: apimodels.RecurringPeriodV2{
+			apiv1models.BillingWorkflowCollectionAlignmentAnchored{
+				Type: apiv1models.BillingWorkflowCollectionAlignmentAnchoredType(c.Alignment),
+				RecurringPeriod: apiv1models.RecurringPeriodV2{
 					Anchor:   c.AnchoredAlignmentDetail.Anchor,
 					Interval: interval,
 				},
 			},
 		); err != nil {
-			return &apimodels.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map alignment to API: %w", err)
+			return &apiv1models.BillingWorkflowCollectionAlignment{}, fmt.Errorf("failed to map alignment to API: %w", err)
 		}
 	default:
-		return &apimodels.BillingWorkflowCollectionAlignment{}, fmt.Errorf("invalid alignment: %s", c.Alignment)
+		return &apiv1models.BillingWorkflowCollectionAlignment{}, fmt.Errorf("invalid alignment: %s", c.Alignment)
 	}
 
 	return apiAlignment, nil
 }
 
-func ToAPIBillingWorkflow(c billing.WorkflowConfig) (apimodels.BillingWorkflow, error) {
+func ToAPIBillingWorkflow(c billing.WorkflowConfig) (apiv1models.BillingWorkflow, error) {
 	apiAlignment, err := mapAlignmentToAPI(c.Collection)
 	if err != nil {
-		return apimodels.BillingWorkflow{}, fmt.Errorf("failed to map alignment to API: %w", err)
+		return apiv1models.BillingWorkflow{}, fmt.Errorf("failed to map alignment to API: %w", err)
 	}
 
-	return apimodels.BillingWorkflow{
-		Collection: &apimodels.BillingWorkflowCollectionSettings{
+	return apiv1models.BillingWorkflow{
+		Collection: &apiv1models.BillingWorkflowCollectionSettings{
 			Alignment: apiAlignment,
 			Interval:  lo.EmptyableToPtr(c.Collection.Interval.String()),
 		},
 
-		Invoicing: &apimodels.BillingWorkflowInvoicingSettings{
+		Invoicing: &apiv1models.BillingWorkflowInvoicingSettings{
 			AutoAdvance:                  lo.ToPtr(c.Invoicing.AutoAdvance),
 			DraftPeriod:                  lo.EmptyableToPtr(c.Invoicing.DraftPeriod.String()),
 			DueAfter:                     lo.EmptyableToPtr(c.Invoicing.DueAfter.String()),
 			ProgressiveBilling:           lo.ToPtr(c.Invoicing.ProgressiveBilling),
-			SubscriptionEndProrationMode: lo.ToPtr(apimodels.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode)),
+			SubscriptionEndProrationMode: lo.ToPtr(apiv1models.BillingWorkflowInvoicingSubscriptionEndProrationMode(c.Invoicing.SubscriptionEndProrationMode)),
 			DefaultTaxConfig:             ToAPITaxConfig(c.Invoicing.DefaultTaxConfig),
 		},
 
-		Payment: &apimodels.BillingWorkflowPaymentSettings{
-			CollectionMethod: (*apimodels.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
+		Payment: &apiv1models.BillingWorkflowPaymentSettings{
+			CollectionMethod: (*apiv1models.CollectionMethod)(lo.EmptyableToPtr(string(c.Payment.CollectionMethod))),
 		},
 
-		Tax: &apimodels.BillingWorkflowTaxSettings{
+		Tax: &apiv1models.BillingWorkflowTaxSettings{
 			Enabled:  lo.ToPtr(c.Tax.Enabled),
 			Enforced: lo.ToPtr(c.Tax.Enforced),
 		},

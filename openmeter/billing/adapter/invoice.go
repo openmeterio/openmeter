@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
@@ -218,17 +218,17 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 		}
 
 		switch input.OrderBy {
-		case apimodels.InvoiceOrderByCustomerName:
+		case apiv1models.InvoiceOrderByCustomerName:
 			query = query.Order(billinginvoice.ByCustomerName(order...))
-		case apimodels.InvoiceOrderByIssuedAt:
+		case apiv1models.InvoiceOrderByIssuedAt:
 			query = query.Order(billinginvoice.ByIssuedAt(order...))
-		case apimodels.InvoiceOrderByPeriodStart:
+		case apiv1models.InvoiceOrderByPeriodStart:
 			query = query.Order(billinginvoice.ByPeriodStart(order...))
-		case apimodels.InvoiceOrderByStatus:
+		case apiv1models.InvoiceOrderByStatus:
 			query = query.Order(billinginvoice.ByStatus(order...))
-		case apimodels.InvoiceOrderByUpdatedAt:
+		case apiv1models.InvoiceOrderByUpdatedAt:
 			query = query.Order(billinginvoice.ByUpdatedAt(order...))
-		case apimodels.InvoiceOrderByCreatedAt:
+		case apiv1models.InvoiceOrderByCreatedAt:
 			fallthrough
 		default:
 			query = query.Order(billinginvoice.ByCreatedAt(order...))

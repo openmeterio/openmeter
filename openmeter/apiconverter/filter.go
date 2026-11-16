@@ -2,7 +2,7 @@
 package apiconverter
 
 import (
-	"github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
@@ -19,25 +19,25 @@ var (
 	// Exists/Contains/Ncontains are internal-only; the v1 FilterString has no
 	// equivalent fields. Remove entries from the ignore list when v1 grows them.
 	// goverter:ignore Exists Contains Ncontains
-	ConvertString       func(models.FilterString) filter.FilterString
-	ConvertStringPtr    func(*models.FilterString) *filter.FilterString
-	ConvertStringMap    func(map[string]models.FilterString) map[string]filter.FilterString
-	ConvertStringMapPtr func(*map[string]models.FilterString) *map[string]filter.FilterString
+	ConvertString       func(apiv1models.FilterString) filter.FilterString
+	ConvertStringPtr    func(*apiv1models.FilterString) *filter.FilterString
+	ConvertStringMap    func(map[string]apiv1models.FilterString) map[string]filter.FilterString
+	ConvertStringMapPtr func(*map[string]apiv1models.FilterString) *map[string]filter.FilterString
 	// goverter:ignoreMissing
-	ConvertIDExact    func(models.FilterIDExact) filter.FilterString
-	ConvertIDExactPtr func(*models.FilterIDExact) *filter.FilterString
-	ConvertInt        func(models.FilterInteger) filter.FilterInteger
-	ConvertIntPtr     func(*models.FilterInteger) *filter.FilterInteger
-	ConvertFloat      func(models.FilterFloat) filter.FilterFloat
-	ConvertFloatPtr   func(*models.FilterFloat) *filter.FilterFloat
-	// FilterTime.Eq is new on the internal type; v1 models.FilterTime does not
+	ConvertIDExact    func(apiv1models.FilterIDExact) filter.FilterString
+	ConvertIDExactPtr func(*apiv1models.FilterIDExact) *filter.FilterString
+	ConvertInt        func(apiv1models.FilterInteger) filter.FilterInteger
+	ConvertIntPtr     func(*apiv1models.FilterInteger) *filter.FilterInteger
+	ConvertFloat      func(apiv1models.FilterFloat) filter.FilterFloat
+	ConvertFloatPtr   func(*apiv1models.FilterFloat) *filter.FilterFloat
+	// FilterTime.Eq is new on the internal type; apiv1models.FilterTime does not
 	// expose it. Remove this ignore when v1 grows an Eq field.
 	// goverter:ignore Eq
 	// goverter:ignore Exists
-	ConvertTime              func(models.FilterTime) filter.FilterTime
-	ConvertTimePtr           func(*models.FilterTime) *filter.FilterTime
-	ConvertBoolean           func(models.FilterBoolean) filter.FilterBoolean
-	ConvertBooleanPtr        func(*models.FilterBoolean) *filter.FilterBoolean
-	ConvertStringToAPI       func(*filter.FilterString) *models.FilterString
-	ConvertStringMapToAPIPtr func(map[string]filter.FilterString) map[string]models.FilterString
+	ConvertTime              func(apiv1models.FilterTime) filter.FilterTime
+	ConvertTimePtr           func(*apiv1models.FilterTime) *filter.FilterTime
+	ConvertBoolean           func(apiv1models.FilterBoolean) filter.FilterBoolean
+	ConvertBooleanPtr        func(*apiv1models.FilterBoolean) *filter.FilterBoolean
+	ConvertStringToAPI       func(*filter.FilterString) *apiv1models.FilterString
+	ConvertStringMapToAPIPtr func(map[string]filter.FilterString) map[string]apiv1models.FilterString
 )

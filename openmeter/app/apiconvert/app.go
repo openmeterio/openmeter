@@ -6,7 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
@@ -14,16 +14,16 @@ import (
 )
 
 // ToAPIApp maps an app to an API app
-func ToAPIApp(item app.App) (apimodels.App, error) {
+func ToAPIApp(item app.App) (apiv1models.App, error) {
 	if item == nil {
-		return apimodels.App{}, errors.New("invalid app: nil")
+		return apiv1models.App{}, errors.New("invalid app: nil")
 	}
 
 	switch item.GetType() {
 	case app.AppTypeStripe:
 		stripeApp := item.(appstripe.App)
 
-		app := apimodels.App{}
+		app := apiv1models.App{}
 		if err := app.FromStripeApp(ToAPIStripeApp(stripeApp.Meta)); err != nil {
 			return app, err
 		}
@@ -32,7 +32,7 @@ func ToAPIApp(item app.App) (apimodels.App, error) {
 	case app.AppTypeSandbox:
 		sandboxApp := item.(appsandbox.App)
 
-		app := apimodels.App{}
+		app := apiv1models.App{}
 		if err := app.FromSandboxApp(ToAPISandboxApp(sandboxApp.Meta)); err != nil {
 			return app, err
 		}
@@ -41,66 +41,66 @@ func ToAPIApp(item app.App) (apimodels.App, error) {
 	case app.AppTypeCustomInvoicing:
 		customInvoicingApp := item.(appcustominvoicing.App)
 
-		app := apimodels.App{}
+		app := apiv1models.App{}
 		if err := app.FromCustomInvoicingApp(ToAPICustomInvoicingApp(customInvoicingApp.Meta)); err != nil {
 			return app, err
 		}
 
 		return app, nil
 	default:
-		return apimodels.App{}, fmt.Errorf("unsupported app type: %s", item.GetType())
+		return apiv1models.App{}, fmt.Errorf("unsupported app type: %s", item.GetType())
 	}
 }
 
-func ToAPIEventApp(event app.EventApp) (apimodels.App, error) {
+func ToAPIEventApp(event app.EventApp) (apiv1models.App, error) {
 	switch event.GetType() {
 	case app.AppTypeStripe:
 		target := appstripe.App{}
 		if err := target.FromEventAppData(event); err != nil {
-			return apimodels.App{}, err
+			return apiv1models.App{}, err
 		}
 
-		app := apimodels.App{}
+		app := apiv1models.App{}
 		if err := app.FromStripeApp(ToAPIStripeApp(target.Meta)); err != nil {
-			return apimodels.App{}, err
+			return apiv1models.App{}, err
 		}
 
 		return app, nil
 	case app.AppTypeSandbox:
 		target := appsandbox.Meta{}
 		if err := target.FromEventAppData(event); err != nil {
-			return apimodels.App{}, err
+			return apiv1models.App{}, err
 		}
 
-		app := apimodels.App{}
+		app := apiv1models.App{}
 		if err := app.FromSandboxApp(ToAPISandboxApp(target)); err != nil {
-			return apimodels.App{}, err
+			return apiv1models.App{}, err
 		}
 
 		return app, nil
 	case app.AppTypeCustomInvoicing:
 		target := appcustominvoicing.App{}
 		if err := target.FromEventAppData(event); err != nil {
-			return apimodels.App{}, err
+			return apiv1models.App{}, err
 		}
 
-		app := apimodels.App{}
+		app := apiv1models.App{}
 		if err := app.FromCustomInvoicingApp(ToAPICustomInvoicingApp(target.Meta)); err != nil {
-			return apimodels.App{}, err
+			return apiv1models.App{}, err
 		}
 
 		return app, nil
 	default:
-		return apimodels.App{}, fmt.Errorf("unsupported app type: %s", event.GetType())
+		return apiv1models.App{}, fmt.Errorf("unsupported app type: %s", event.GetType())
 	}
 }
 
-func ToAPISandboxApp(app appsandbox.Meta) apimodels.SandboxApp {
-	return apimodels.SandboxApp{
+func ToAPISandboxApp(app appsandbox.Meta) apiv1models.SandboxApp {
+	return apiv1models.SandboxApp{
 		Id:        app.GetID().ID,
-		Type:      apimodels.SandboxAppTypeSandbox,
+		Type:      apiv1models.SandboxAppTypeSandbox,
 		Name:      app.GetName(),
-		Status:    apimodels.AppStatus(app.GetStatus()),
+		Status:    apiv1models.AppStatus(app.GetStatus()),
 		Listing:   ToAPIMarketplaceListing(app.GetListing()),
 		CreatedAt: app.CreatedAt,
 		UpdatedAt: app.UpdatedAt,
@@ -110,12 +110,12 @@ func ToAPISandboxApp(app appsandbox.Meta) apimodels.SandboxApp {
 
 func ToAPIStripeApp(
 	stripeApp appstripe.Meta,
-) apimodels.StripeApp {
-	apiStripeApp := apimodels.StripeApp{
+) apiv1models.StripeApp {
+	apiStripeApp := apiv1models.StripeApp{
 		Id:              stripeApp.GetID().ID,
-		Type:            apimodels.StripeAppType(stripeApp.GetType()),
+		Type:            apiv1models.StripeAppType(stripeApp.GetType()),
 		Name:            stripeApp.Name,
-		Status:          apimodels.AppStatus(stripeApp.GetStatus()),
+		Status:          apiv1models.AppStatus(stripeApp.GetStatus()),
 		Listing:         ToAPIMarketplaceListing(stripeApp.GetListing()),
 		MaskedAPIKey:    stripeApp.MaskedAPIKey,
 		CreatedAt:       stripeApp.CreatedAt,
@@ -128,20 +128,20 @@ func ToAPIStripeApp(
 	apiStripeApp.Description = stripeApp.GetDescription()
 
 	if stripeApp.GetMetadata() != nil {
-		apiStripeApp.Metadata = lo.ToPtr(apimodels.Metadata(stripeApp.GetMetadata()))
+		apiStripeApp.Metadata = lo.ToPtr(apiv1models.Metadata(stripeApp.GetMetadata()))
 	}
 
 	return apiStripeApp
 }
 
-func ToAPICustomInvoicingApp(app appcustominvoicing.Meta) apimodels.CustomInvoicingApp {
-	return apimodels.CustomInvoicingApp{
+func ToAPICustomInvoicingApp(app appcustominvoicing.Meta) apiv1models.CustomInvoicingApp {
+	return apiv1models.CustomInvoicingApp{
 		Id:          app.GetID().ID,
-		Type:        apimodels.CustomInvoicingAppTypeCustomInvoicing,
+		Type:        apiv1models.CustomInvoicingAppTypeCustomInvoicing,
 		Name:        app.GetName(),
-		Status:      apimodels.AppStatus(app.GetStatus()),
+		Status:      apiv1models.AppStatus(app.GetStatus()),
 		Listing:     ToAPIMarketplaceListing(app.GetListing()),
-		Metadata:    lo.EmptyableToPtr(apimodels.Metadata(app.GetMetadata())),
+		Metadata:    lo.EmptyableToPtr(apiv1models.Metadata(app.GetMetadata())),
 		Description: app.GetDescription(),
 		CreatedAt:   app.CreatedAt,
 		UpdatedAt:   app.UpdatedAt,
@@ -153,21 +153,21 @@ func ToAPICustomInvoicingApp(app appcustominvoicing.Meta) apimodels.CustomInvoic
 }
 
 // Map marketplace listing to API
-func ToAPIMarketplaceListing(listing app.MarketplaceListing) apimodels.MarketplaceListing {
-	return apimodels.MarketplaceListing{
-		Type:        apimodels.AppType(listing.Type),
+func ToAPIMarketplaceListing(listing app.MarketplaceListing) apiv1models.MarketplaceListing {
+	return apiv1models.MarketplaceListing{
+		Type:        apiv1models.AppType(listing.Type),
 		Name:        listing.Name,
 		Description: listing.Description,
-		Capabilities: lo.Map(listing.Capabilities, func(v app.Capability, _ int) apimodels.AppCapability {
-			return apimodels.AppCapability{
-				Type:        apimodels.AppCapabilityType(v.Type),
+		Capabilities: lo.Map(listing.Capabilities, func(v app.Capability, _ int) apiv1models.AppCapability {
+			return apiv1models.AppCapability{
+				Type:        apiv1models.AppCapabilityType(v.Type),
 				Key:         v.Key,
 				Name:        v.Name,
 				Description: v.Description,
 			}
 		}),
-		InstallMethods: lo.Map(listing.InstallMethods, func(v app.InstallMethod, _ int) apimodels.InstallMethod {
-			return apimodels.InstallMethod(v)
+		InstallMethods: lo.Map(listing.InstallMethods, func(v app.InstallMethod, _ int) apiv1models.InstallMethod {
+			return apiv1models.InstallMethod(v)
 		}),
 	}
 }

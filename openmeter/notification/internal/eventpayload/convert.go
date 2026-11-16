@@ -5,20 +5,20 @@ import (
 
 	"github.com/samber/lo"
 
-	apimodels "github.com/openmeterio/openmeter/api/models"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
-func ToAPINotificationEventBalanceThresholdPayload(e notification.Event) (apimodels.NotificationEventBalanceThresholdPayload, error) {
+func ToAPINotificationEventBalanceThresholdPayload(e notification.Event) (apiv1models.NotificationEventBalanceThresholdPayload, error) {
 	if e.Payload.BalanceThreshold == nil {
-		return apimodels.NotificationEventBalanceThresholdPayload{}, fmt.Errorf("balance threshold is nil")
+		return apiv1models.NotificationEventBalanceThresholdPayload{}, fmt.Errorf("balance threshold is nil")
 	}
 
-	return apimodels.NotificationEventBalanceThresholdPayload{
+	return apiv1models.NotificationEventBalanceThresholdPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
-		Type:      apimodels.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
-		Data: apimodels.NotificationEventBalanceThresholdPayloadData{
+		Type:      apiv1models.NotificationEventBalanceThresholdPayloadTypeEntitlementsBalanceThreshold,
+		Data: apiv1models.NotificationEventBalanceThresholdPayloadData{
 			Value:       e.Payload.BalanceThreshold.Value,
 			Entitlement: e.Payload.BalanceThreshold.Entitlement,
 			Feature:     e.Payload.BalanceThreshold.Feature,
@@ -29,16 +29,16 @@ func ToAPINotificationEventBalanceThresholdPayload(e notification.Event) (apimod
 	}, nil
 }
 
-func ToAPINotificationEventResetPayload(e notification.Event) (apimodels.NotificationEventResetPayload, error) {
+func ToAPINotificationEventResetPayload(e notification.Event) (apiv1models.NotificationEventResetPayload, error) {
 	if e.Payload.EntitlementReset == nil {
-		return apimodels.NotificationEventResetPayload{}, fmt.Errorf("entitlement reset is nil")
+		return apiv1models.NotificationEventResetPayload{}, fmt.Errorf("entitlement reset is nil")
 	}
 
-	return apimodels.NotificationEventResetPayload{
+	return apiv1models.NotificationEventResetPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
-		Type:      apimodels.NotificationEventResetPayloadTypeEntitlementsReset,
-		Data: apimodels.NotificationEventEntitlementValuePayloadBase{
+		Type:      apiv1models.NotificationEventResetPayloadTypeEntitlementsReset,
+		Data: apiv1models.NotificationEventEntitlementValuePayloadBase{
 			Value:       e.Payload.EntitlementReset.Value,
 			Entitlement: e.Payload.EntitlementReset.Entitlement,
 			Feature:     e.Payload.EntitlementReset.Feature,
@@ -48,28 +48,28 @@ func ToAPINotificationEventResetPayload(e notification.Event) (apimodels.Notific
 	}, nil
 }
 
-func ToAPINotificationEventInvoiceCreatedPayload(e notification.Event) (apimodels.NotificationEventInvoiceCreatedPayload, error) {
+func ToAPINotificationEventInvoiceCreatedPayload(e notification.Event) (apiv1models.NotificationEventInvoiceCreatedPayload, error) {
 	if e.Payload.Invoice == nil {
-		return apimodels.NotificationEventInvoiceCreatedPayload{}, fmt.Errorf("invoice is nil")
+		return apiv1models.NotificationEventInvoiceCreatedPayload{}, fmt.Errorf("invoice is nil")
 	}
 
-	return apimodels.NotificationEventInvoiceCreatedPayload{
+	return apiv1models.NotificationEventInvoiceCreatedPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
 		Data:      e.Payload.Invoice.Invoice,
-		Type:      apimodels.NotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
+		Type:      apiv1models.NotificationEventInvoiceCreatedPayloadTypeInvoiceCreated,
 	}, nil
 }
 
-func ToAPINotificationEventInvoiceUpdatedPayload(e notification.Event) (apimodels.NotificationEventInvoiceUpdatedPayload, error) {
+func ToAPINotificationEventInvoiceUpdatedPayload(e notification.Event) (apiv1models.NotificationEventInvoiceUpdatedPayload, error) {
 	if e.Payload.Invoice == nil {
-		return apimodels.NotificationEventInvoiceUpdatedPayload{}, fmt.Errorf("invoice is nil")
+		return apiv1models.NotificationEventInvoiceUpdatedPayload{}, fmt.Errorf("invoice is nil")
 	}
 
-	return apimodels.NotificationEventInvoiceUpdatedPayload{
+	return apiv1models.NotificationEventInvoiceUpdatedPayload{
 		Id:        e.ID,
 		Timestamp: e.CreatedAt,
 		Data:      e.Payload.Invoice.Invoice,
-		Type:      apimodels.NotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
+		Type:      apiv1models.NotificationEventInvoiceUpdatedPayloadTypeInvoiceUpdated,
 	}, nil
 }
