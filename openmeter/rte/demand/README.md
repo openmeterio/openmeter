@@ -25,6 +25,13 @@ its refresh policy. `Deactivate` clears both push and pull interest for that key
 There is no per-caller ownership count. Coordinate deactivation when several
 consumers depend on the same balance.
 
+When a metered entitlement has a scheduled deletion, demand remains active until
+its effective time. That deadline wakes a push key even with periodic refresh
+disabled. A pull-only key checks the deadline on its next pull. Once deletion
+takes effect, processing clears demand and leaves the last successful result
+available through `Get`. An explicit `EnsureFresh` returns the entitlement's
+not-found error.
+
 ## Coalescing and redelivery
 
 Each key has a dirty version and a completed version. Independent invalidations

@@ -217,21 +217,20 @@ func (s *service) process(ctx context.Context, target *rte.CalculationTarget) (b
 		return err
 	})
 	outcome := "empty"
-	if result.Processed {
-		outcome = "calculated"
-	}
-
-	if result.CalculationError != nil {
-		outcome = "retry"
-	}
-
-	if err != nil {
+	switch {
+	case err != nil:
 		outcome = "error"
+	case result.Retired:
+		outcome = "retired"
+	case result.CalculationError != nil:
+		outcome = "retry"
+	case result.Processed:
+		outcome = "calculated"
 	}
 
 	s.record(ctx, "process", outcome)
 
-	return result.Processed, errors.Join(err, result.CalculationError)
+	return result.Processed && err == nil, errors.Join(err, result.CalculationError)
 }
 
 func (s *service) record(ctx context.Context, operation, outcome string) {

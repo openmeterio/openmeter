@@ -3,9 +3,11 @@ package adapter
 import (
 	"context"
 	stdsql "database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"entgo.io/ent/dialect"
@@ -13,9 +15,11 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
 	receiptdb "github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -67,27 +71,36 @@ func (r *demandRepository) EnsurePull(ctx context.Context, input rte.EnsureFresh
 		return false, err
 	}
 
-	until := clock.Now().Add(input.PullTTL)
-
-	return r.ensure(ctx, ensureDemandInput{Target: input.Target, PullUntil: &until, MaxAge: input.MaxAge})
+	return r.ensure(ctx, ensureDemandInput{Target: input.Target, PullTTL: input.PullTTL, MaxAge: input.MaxAge})
 }
 
 type ensureDemandInput struct {
 	Target          rte.CalculationTarget
 	PushEnabled     bool
 	RefreshInterval time.Duration
-	PullUntil       *time.Time
+	PullTTL         time.Duration
 	MaxAge          time.Duration
+}
+
+// The driver encodes query arguments after acquiring a connection. A busy
+// pool can hold a renewal until the previously committed lease has expired.
+type pullRenewalTime struct {
+	now    func() time.Time
+	offset time.Duration
+}
+
+func (t pullRenewalTime) Value() (driver.Value, error) {
+	return t.now().Add(t.offset), nil
 }
 
 func (i ensureDemandInput) Validate() error {
 	var errs []error
 	errs = append(errs, i.Target.Validate())
-	if i.RefreshInterval < 0 || i.MaxAge < 0 {
+	if i.RefreshInterval < 0 || i.PullTTL < 0 || i.MaxAge < 0 {
 		errs = append(errs, errors.New("demand durations must not be negative"))
 	}
 
-	if !i.PushEnabled && i.PullUntil == nil {
+	if !i.PushEnabled && i.PullTTL == 0 {
 		errs = append(errs, errors.New("push or pull demand is required"))
 	}
 
@@ -114,17 +127,20 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 		return false, fmt.Errorf("encode demand key: %w", err)
 	}
 
-	if input.PullUntil != nil && input.MaxAge == 0 {
+	if input.PullTTL > 0 && input.MaxAge == 0 {
 		clean, err := entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (bool, error) {
-			// Read the versions under the same row lock that renews interest. A later
-			// invalidation can then advance the dirty version for the next pull.
+			// If another transaction holds the row, interest might expire before
+			// it commits. Let registration recheck the lease after the lock is ours.
 			const query = `UPDATE rte_demands
 				SET pull_until = GREATEST(pull_until, $1), updated_at = $2
-				WHERE namespace = $3 AND kind = $4 AND key_hash = $5 AND key = $6::jsonb
-				  AND deleted_at IS NULL AND NOT push_enabled AND pull_until > $2
-				RETURNING completed_version = dirty_version`
+				WHERE id = (SELECT id FROM rte_demands
+				  WHERE namespace = $3 AND kind = $4 AND key_hash = $5 AND key = $6::jsonb
+				    AND deleted_at IS NULL AND NOT push_enabled AND pull_until > $2
+				  FOR UPDATE SKIP LOCKED)
+				RETURNING completed_version = dirty_version AND (next_refresh_at IS NULL OR next_refresh_at > $2)`
 
-			rows, err := a.db.QueryContext(ctx, query, *input.PullUntil, clock.Now(), identity.Namespace, string(input.Target.Kind), identity.KeyHash, string(encodedKey))
+			now := sync.OnceValue(clock.Now)
+			rows, err := a.db.QueryContext(ctx, query, pullRenewalTime{now: now, offset: input.PullTTL}, pullRenewalTime{now: now}, identity.Namespace, string(input.Target.Kind), identity.KeyHash, string(encodedKey))
 			if err != nil {
 				return false, err
 			}
@@ -166,25 +182,34 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 				return err
 			}
 
+			now = clock.Now()
 			wasActive := row.PushEnabled || (row.PullUntil != nil && row.PullUntil.After(now))
 			update := a.db.RTEDemand.UpdateOneID(row.ID)
 			if input.PushEnabled {
 				update.SetPushEnabled(true).SetRefreshInterval(int64(input.RefreshInterval))
-				if input.RefreshInterval > 0 {
-					if row.NextRefreshAt == nil || row.RefreshInterval != int64(input.RefreshInterval) {
-						nextRefresh := now.Add(input.RefreshInterval)
-						update.SetNextRefreshAt(nextRefresh)
-						if row.CompletedVersion == row.DirtyVersion {
-							update.SetNextAttemptAt(nextRefresh)
-						}
+				if row.RefreshInterval != int64(input.RefreshInterval) {
+					deletedAt, err := a.demandSourceDeletionAt(ctx, row)
+					if err != nil {
+						return err
 					}
-				} else {
-					update.ClearNextRefreshAt()
+
+					next := nextDemandRefresh(now, input.RefreshInterval, deletedAt)
+					if next != nil {
+						update.SetNextRefreshAt(*next)
+						if row.CompletedVersion == row.DirtyVersion {
+							update.SetNextAttemptAt(*next)
+						}
+					} else {
+						update.ClearNextRefreshAt()
+					}
 				}
 			}
 
-			if input.PullUntil != nil && (row.PullUntil == nil || input.PullUntil.After(*row.PullUntil)) {
-				update.SetPullUntil(*input.PullUntil)
+			if input.PullTTL > 0 {
+				until := now.Add(input.PullTTL)
+				if row.PullUntil == nil || until.After(*row.PullUntil) {
+					update.SetPullUntil(until)
+				}
 			}
 
 			stale := input.MaxAge > 0 && (row.LastCalculatedAt == nil || !row.LastCalculatedAt.After(now.Add(-input.MaxAge)))
@@ -298,6 +323,40 @@ func markDemandDirty(update *sql.UpdateBuilder, now time.Time) {
 		}))
 }
 
+// A deletion notification can arrive before its effective time. Read the source
+// row under the demand lock so redelivery and changes to a scheduled deletion
+// always use the latest committed deadline.
+func (a *adapter) demandSourceDeletionAt(ctx context.Context, row *db.RTEDemand) (*time.Time, error) {
+	if row.Kind != string(rte.CalculationKindMeteredEntitlement) {
+		return nil, nil
+	}
+
+	source, err := a.db.Entitlement.Query().Where(entitlementdb.NamespaceEQ(row.Namespace), entitlementdb.IDEQ(row.OwnerID)).
+		Select(entitlementdb.FieldDeletedAt).Only(ctx)
+	if db.IsNotFound(err) {
+		// Only a confirmed deletion retires demand. Let the calculator handle
+		// an unknown entitlement with its usual lookup and retry semantics.
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("read metered entitlement deletion time: %w", err)
+	}
+
+	return source.DeletedAt, nil
+}
+
+func nextDemandRefresh(now time.Time, interval time.Duration, deletedAt *time.Time) *time.Time {
+	if interval > 0 {
+		next := now.Add(interval)
+		if deletedAt == nil || next.Before(*deletedAt) {
+			return &next
+		}
+	}
+
+	return deletedAt
+}
+
 func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandInput, calculate func(context.Context, rte.CalculationTarget) error) (rte.DemandWorkResult, error) {
 	if err := input.Validate(); err != nil {
 		return rte.DemandWorkResult{}, err
@@ -348,6 +407,28 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 				workVersion++
 			}
 
+			deletedAt, err := a.demandSourceDeletionAt(ctx, row)
+			if err != nil {
+				return rte.DemandWorkResult{}, err
+			}
+
+			if deletedAt != nil && !deletedAt.After(clock.Now()) {
+				// Keep the last successful value readable. Leave this version
+				// outstanding so an explicit pull still sees a deleted source.
+				err := a.db.RTEDemand.UpdateOneID(row.ID).SetDirtyVersion(workVersion).
+					SetPushEnabled(false).ClearPullUntil().ClearNextRefreshAt().SetRefreshInterval(0).SetAttempts(0).Exec(ctx)
+				if err != nil {
+					return rte.DemandWorkResult{}, err
+				}
+
+				result := rte.DemandWorkResult{Processed: true, Retired: true}
+				if input.Target != nil {
+					result.CalculationError = &entitlement.NotFoundError{EntitlementID: models.NamespacedID{Namespace: row.Namespace, ID: row.OwnerID}}
+				}
+
+				return result, nil
+			}
+
 			target := rte.CalculationTarget{Kind: rte.CalculationKind(row.Kind), Key: row.Key}
 			// A savepoint lets retry bookkeeping commit after calculator/store/outbox
 			// failure, without retaining any writes from the failed attempt.
@@ -373,13 +454,16 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 				}
 
 				failedAttempt, calculationFailure, retryAt = row, calculationErr, clock.Now().Add(delay)
+				if deletedAt != nil && deletedAt.Before(retryAt) {
+					retryAt = *deletedAt
+				}
+
 				failedVersion = workVersion
 				update.SetAttempts(row.Attempts + 1).SetNextAttemptAt(retryAt)
 			} else {
 				update.SetCompletedVersion(workVersion).SetAttempts(0).SetLastCalculatedAt(now).SetNextAttemptAt(clock.Now())
-				if row.RefreshInterval > 0 {
-					nextRefresh := clock.Now().Add(time.Duration(row.RefreshInterval))
-					update.SetNextRefreshAt(nextRefresh).SetNextAttemptAt(nextRefresh)
+				if next := nextDemandRefresh(clock.Now(), time.Duration(row.RefreshInterval), deletedAt); next != nil {
+					update.SetNextRefreshAt(*next).SetNextAttemptAt(*next)
 				} else {
 					update.ClearNextRefreshAt()
 				}
@@ -400,7 +484,7 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 		recoveryErr := transaction.RunWithNoValue(ctx, r, func(ctx context.Context) error {
 			return entutils.TransactingRepoWithNoValue(ctx, r.adapter, func(ctx context.Context, a *adapter) error {
 				return a.db.RTEDemand.Update().Where(
-					demanddb.IDEQ(failedAttempt.ID), demanddb.DeletedAtIsNil(),
+					demanddb.IDEQ(failedAttempt.ID), activeDemand(clock.Now()),
 					demanddb.DirtyVersionEQ(failedAttempt.DirtyVersion),
 					demanddb.CompletedVersionEQ(failedAttempt.CompletedVersion),
 					demanddb.AttemptsEQ(failedAttempt.Attempts),

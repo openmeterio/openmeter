@@ -151,6 +151,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 
 			txGroup.transactions = append(txGroup.transactions, tx)
 		}
+
 		if l.publisher != nil {
 			if err := l.publisher.Publish(ctx, ledger.TransactionGroupCommittedEvent{Namespace: group.Namespace(), GroupID: txG.ID}); err != nil {
 				return nil, fmt.Errorf("publish committed transaction group: %w", err)

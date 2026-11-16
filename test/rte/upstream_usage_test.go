@@ -6,7 +6,10 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel/metric/noop"
 
+	"github.com/openmeterio/openmeter/app/common"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -172,4 +175,72 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	selectors, err = resolver.Resolve(ctx, event)
 	s.Require().NoError(err)
 	s.Empty(selectors)
+}
+
+func (s *RTEIntegrationSuite) TestUsageAfterEntitlementActivityEndRefreshesBalance() {
+	// Given a tracked entitlement whose scheduled activity has ended.
+	ctx := s.T().Context()
+	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	ns := s.GetUniqueNamespace("rte-ended")
+	const subject = "after-end"
+	cust := s.CreateTestCustomer(ns, subject)
+	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
+	defer feature.Cleanup()
+
+	ent, err := s.Entitlements.Entitlement.ScheduleEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:        ns,
+		UsageAttribution: cust.GetUsageAttribution(),
+		FeatureID:        &feature.Feature.ID,
+		EntitlementType:  entitlement.EntitlementTypeMetered,
+		ActiveFrom:       &start,
+		ActiveTo:         lo.ToPtr(start.Add(10 * time.Minute)),
+		IssueAfterReset:  lo.ToPtr(float64(100)),
+		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
+			Anchor: start, Interval: timeutil.RecurrencePeriodMonth,
+		})),
+	})
+	s.Require().NoError(err)
+
+	logger := testutils.NewDiscardLogger(s.T())
+	resolver, err := upstream.New(upstream.Config{Client: s.DBClient, Logger: logger})
+	s.Require().NoError(err)
+	engine := s.newRTE()
+	demands, err := common.NewRTEDemandService(s.DBClient, engine, logger, noop.NewMeterProvider().Meter("test"), config.RTEConfiguration{CalculationTimeout: 30 * time.Second})
+	s.Require().NoError(err)
+	key := rtemetered.Key{EntitlementID: models.NamespacedID{Namespace: ns, ID: ent.ID}}
+	target, err := rte.NewCalculationTarget(key)
+	s.Require().NoError(err)
+	pull := rte.EnsureFreshInput{Target: target, PullTTL: time.Hour}
+
+	clock.FreezeTime(start.Add(12 * time.Minute))
+	defer clock.UnFreeze()
+	s.Require().NoError(demands.EnsureFresh(ctx, pull))
+	before, err := engine.MeteredEntitlements().Get(ctx, key)
+	s.Require().NoError(err)
+
+	// When later usage changes the underlying by-ID balance, route its ingest notification.
+	at := start.Add(20 * time.Minute)
+	clock.FreezeTime(at)
+	defer clock.UnFreeze()
+	occurred := start.Add(15 * time.Minute)
+	s.MockStreamingConnector.AddSimpleEvent("api-requests-total", 25, occurred)
+	expected, err := s.Entitlements.MeteredEntitlement.GetEntitlementBalance(ctx, key.EntitlementID, at)
+	s.Require().NoError(err)
+	s.Require().Equal(before.Value.UsageInPeriod+25, expected.UsageInPeriod)
+
+	selected, err := resolver.Resolve(ctx, &ingestevents.EventBatchedIngest{
+		Namespace: eventmodels.NamespaceID{ID: ns}, SubjectKey: subject, StoredAt: at,
+		MeterSlugs: []string{"api-requests-total"}, RawEvents: []serializer.CloudEventsKafkaPayload{{Time: occurred.Unix()}},
+	})
+	s.Require().NoError(err)
+	s.Require().NoError(demands.Invalidate(ctx, rte.InvalidateInput{Source: "ingest", EventID: "post-end-usage", Selectors: selected}))
+
+	// Then a pull with an unexpired lease refreshes to the same balance as the source.
+	s.Require().NoError(demands.EnsureFresh(ctx, pull))
+	after, err := engine.MeteredEntitlements().Get(ctx, key)
+	s.Require().NoError(err)
+	s.Equal(*expected, after.Value)
 }

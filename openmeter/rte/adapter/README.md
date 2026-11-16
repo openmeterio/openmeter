@@ -23,9 +23,15 @@ names, so PostgreSQL can match currency and feature scope even when a caller use
 casing. Registering a key again repairs a previously misencoded row and marks it dirty to
 cover changes it may have missed. The worker decodes the stored key after a restart.
 
-For an active pull-only key with `MaxAge=0`, one update extends interest and checks the
-versions under the row lock. A clean result skips the work check. An expired key goes
-through registration because it may have missed an invalidation.
+For an uncontended, active pull-only key with `MaxAge=0`, one update extends interest and
+checks the versions. A clean result skips the work check. If the row is busy, registration
+waits for the lock before checking the old lease and starting the new one. A lease that
+expires during the wait requires a calculation because invalidations may have been skipped.
+
+The event worker calls `EnsureFresh` outside a transaction, so registration commits before
+calculation. A caller that wraps the whole pull in its own transaction delays visibility of
+the new lease. If a source fact arrives before commit while the previous lease is absent or
+expired, routing can skip that key. Use a top-level pull when relying on continuous invalidation.
 
 The repository keeps a demand row locked through the callback, including external usage reads.
 Background workers skip locked keys. An explicit pull for the same target waits for the owner.
