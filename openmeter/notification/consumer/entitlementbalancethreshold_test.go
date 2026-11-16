@@ -936,7 +936,7 @@ func TestEntitlementSnapshotEventLookups(t *testing.T) {
 		var latest notification.Event
 		latest.Payload.Type = notification.EventTypeBalanceThreshold
 		latest.Payload.BalanceThreshold = &notification.BalanceThresholdPayload{
-			EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{Value: apimodels.EntitlementValue(*event.Value)},
+			EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{Value: apiv1models.EntitlementValue(*event.Value)},
 			Threshold:                   threshold,
 		}
 
