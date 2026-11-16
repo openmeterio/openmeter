@@ -21,6 +21,8 @@ import (
 var _ billing.ProfileService = (*Service)(nil)
 
 func (s *Service) CreateProfile(ctx context.Context, input billing.CreateProfileInput) (*billing.Profile, error) {
+	// Clients that predate the field (the whole v1 API) never send it, so an
+	// unset value falls back to the default instead of failing validation.
 	if input.WorkflowConfig.Invoicing.EmptyInvoiceMode == "" {
 		input.WorkflowConfig.Invoicing.EmptyInvoiceMode = billing.DefaultWorkflowConfig.Invoicing.EmptyInvoiceMode
 	}
