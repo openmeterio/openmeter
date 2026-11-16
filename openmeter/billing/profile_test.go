@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestInvoicingConfigValidateSubscriptionEndProrationMode(t *testing.T) {
@@ -91,6 +92,8 @@ func TestInvoicingConfigValidateEmptyInvoiceMode(t *testing.T) {
 			err := config.Validate()
 			if tt.errContains != "" {
 				require.ErrorContains(t, err, tt.errContains)
+				require.True(t, models.IsGenericValidationError(err))
+
 				return
 			}
 
