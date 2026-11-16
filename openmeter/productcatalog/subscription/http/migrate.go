@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -15,7 +15,7 @@ import (
 
 type (
 	MigrateSubscriptionRequest  = plansubscription.MigrateSubscriptionRequest
-	MigrateSubscriptionResponse = api.SubscriptionChangeResponseBody
+	MigrateSubscriptionResponse = apiv1models.SubscriptionChangeResponseBody
 	MigrateSubscriptionParams   = struct {
 		ID string
 	}
@@ -25,7 +25,7 @@ type (
 func (h *handler) MigrateSubscription() MigrateSubscriptionHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params MigrateSubscriptionParams) (MigrateSubscriptionRequest, error) {
-			var body api.MigrateSubscriptionJSONRequestBody
+			var body apiv1models.MigrateSubscriptionJSONRequestBody
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return MigrateSubscriptionRequest{}, err

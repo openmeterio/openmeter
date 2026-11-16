@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -19,8 +19,8 @@ import (
 
 type (
 	ListChannelsRequest  = notification.ListChannelsInput
-	ListChannelsResponse = api.NotificationChannelPaginatedResponse
-	ListChannelsParams   = api.ListNotificationChannelsParams
+	ListChannelsResponse = apiv1models.NotificationChannelPaginatedResponse
+	ListChannelsParams   = apiv1models.ListNotificationChannelsParams
 	ListChannelsHandler  httptransport.HandlerWithArgs[ListChannelsRequest, ListChannelsResponse, ListChannelsParams]
 )
 
@@ -34,8 +34,8 @@ func (h *handler) ListChannels() ListChannelsHandler {
 
 			req := ListChannelsRequest{
 				Namespaces: []string{ns},
-				OrderBy:    notification.OrderBy(lo.FromPtrOr(params.OrderBy, api.NotificationChannelOrderById)),
-				Order:      sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
+				OrderBy:    notification.OrderBy(lo.FromPtrOr(params.OrderBy, apiv1models.NotificationChannelOrderById)),
+				Order:      sortx.Order(lo.FromPtrOr(params.Order, apiv1models.SortOrderDESC)),
 				Page: pagination.Page{
 					PageSize:   lo.FromPtrOr(params.PageSize, notification.DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, notification.DefaultPageNumber),
@@ -54,10 +54,10 @@ func (h *handler) ListChannels() ListChannelsHandler {
 				return ListChannelsResponse{}, fmt.Errorf("failed to list channels: %w", err)
 			}
 
-			items := make([]api.NotificationChannel, 0, len(resp.Items))
+			items := make([]apiv1models.NotificationChannel, 0, len(resp.Items))
 
 			for _, channel := range resp.Items {
-				var item api.NotificationChannel
+				var item apiv1models.NotificationChannel
 
 				item, err = FromChannel(channel)
 				if err != nil {
@@ -85,14 +85,14 @@ func (h *handler) ListChannels() ListChannelsHandler {
 
 type (
 	CreateChannelRequest  = notification.CreateChannelInput
-	CreateChannelResponse = api.NotificationChannel
+	CreateChannelResponse = apiv1models.NotificationChannel
 	CreateChannelHandler  httptransport.Handler[CreateChannelRequest, CreateChannelResponse]
 )
 
 func (h *handler) CreateChannel() CreateChannelHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateChannelRequest, error) {
-			body := api.NotificationChannelCreateRequest{}
+			body := apiv1models.NotificationChannelCreateRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateChannelRequest{}, fmt.Errorf("field to decode create channel request: %w", err)
 			}
@@ -127,14 +127,14 @@ func (h *handler) CreateChannel() CreateChannelHandler {
 
 type (
 	UpdateChannelRequest  = notification.UpdateChannelInput
-	UpdateChannelResponse = api.NotificationChannel
+	UpdateChannelResponse = apiv1models.NotificationChannel
 	UpdateChannelHandler  httptransport.HandlerWithArgs[UpdateChannelRequest, UpdateChannelResponse, string]
 )
 
 func (h *handler) UpdateChannel() UpdateChannelHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, channelID string) (UpdateChannelRequest, error) {
-			body := api.NotificationChannelCreateRequest{}
+			body := apiv1models.NotificationChannelCreateRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateChannelRequest{}, fmt.Errorf("field to decode update channel request: %w", err)
 			}
@@ -205,7 +205,7 @@ func (h *handler) DeleteChannel() DeleteChannelHandler {
 
 type (
 	GetChannelRequest  = notification.GetChannelInput
-	GetChannelResponse = api.NotificationChannel
+	GetChannelResponse = apiv1models.NotificationChannel
 	GetChannelHandler  httptransport.HandlerWithArgs[GetChannelRequest, GetChannelResponse, string]
 )
 

@@ -7,7 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/apiconverter"
 	"github.com/openmeterio/openmeter/openmeter/llmcost"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -16,11 +16,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
 
-func MapFeatureToResponse(f feature.Feature) (api.Feature, error) {
+func MapFeatureToResponse(f feature.Feature) (apiv1models.Feature, error) {
 	return apiconvert.ToAPIFeature(f)
 }
 
-func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs, meterID *string) (feature.CreateFeatureInputs, error) {
+func MapFeatureCreateInputsRequest(namespace string, f apiv1models.FeatureCreateInputs, meterID *string) (feature.CreateFeatureInputs, error) {
 	// if advancedMeterGroupByFilters is set, use it
 	// otherwise, use legacy meterGroupByFilters
 	meterGroupByFilters := lo.FromPtrOr(apiconverter.ConvertStringMapPtr(f.AdvancedMeterGroupByFilters), map[string]filter.FilterString{})
@@ -49,7 +49,7 @@ func MapFeatureCreateInputsRequest(namespace string, f api.FeatureCreateInputs, 
 	return inputs, nil
 }
 
-func apiUnitCostToDomain(u *api.FeatureUnitCost) (*feature.UnitCost, error) {
+func apiUnitCostToDomain(u *apiv1models.FeatureUnitCost) (*feature.UnitCost, error) {
 	discriminator, err := u.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to determine unit cost type: %w", err)
@@ -152,7 +152,7 @@ func extractEqFilterValue(filters feature.MeterGroupByFilters, key string) strin
 }
 
 // enrichFeatureResponseWithPricing adds resolved LLM pricing to the feature API response.
-func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelPricing) {
+func enrichFeatureResponseWithPricing(resp *apiv1models.Feature, pricing *llmcost.ModelPricing) {
 	if resp.UnitCost == nil || pricing == nil {
 		return
 	}
@@ -162,7 +162,7 @@ func enrichFeatureResponseWithPricing(resp *api.Feature, pricing *llmcost.ModelP
 		return
 	}
 
-	apiPricing := api.FeatureLLMUnitCostPricing{
+	apiPricing := apiv1models.FeatureLLMUnitCostPricing{
 		InputPerToken:  pricing.InputPerToken.String(),
 		OutputPerToken: pricing.OutputPerToken.String(),
 	}

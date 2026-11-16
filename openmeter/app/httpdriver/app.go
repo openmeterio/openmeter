@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	appsandbox "github.com/openmeterio/openmeter/openmeter/app/sandbox"
@@ -21,8 +21,8 @@ import (
 // ListAppsHandler is a handler for listing apps
 type (
 	ListAppsRequest  = app.ListAppInput
-	ListAppsResponse = api.AppPaginatedResponse
-	ListAppsParams   = api.ListAppsParams
+	ListAppsResponse = apiv1models.AppPaginatedResponse
+	ListAppsParams   = apiv1models.ListAppsParams
 	ListAppsHandler  httptransport.HandlerWithArgs[ListAppsRequest, ListAppsResponse, ListAppsParams]
 )
 
@@ -50,7 +50,7 @@ func (h *handler) ListApps() ListAppsHandler {
 				return ListAppsResponse{}, fmt.Errorf("failed to list apps: %w", err)
 			}
 
-			items := make([]api.App, 0, len(result.Items))
+			items := make([]apiv1models.App, 0, len(result.Items))
 			for _, item := range result.Items {
 				app, err := MapAppToAPI(item)
 				if err != nil {
@@ -78,7 +78,7 @@ func (h *handler) ListApps() ListAppsHandler {
 // GetAppHandler is a handler to get an app by id
 type (
 	GetAppRequest  = app.GetAppInput
-	GetAppResponse = api.App
+	GetAppResponse = apiv1models.App
 	GetAppHandler  httptransport.HandlerWithArgs[GetAppRequest, GetAppResponse, string]
 )
 
@@ -116,7 +116,7 @@ func (h *handler) GetApp() GetAppHandler {
 // UpdateAppHandler is a handler to update an app
 type (
 	UpdateAppRequest  = app.UpdateAppInput
-	UpdateAppResponse = api.App
+	UpdateAppResponse = apiv1models.App
 	UpdateAppHandler  httptransport.HandlerWithArgs[UpdateAppRequest, UpdateAppResponse, string]
 )
 
@@ -130,7 +130,7 @@ func (h *handler) UpdateApp() UpdateAppHandler {
 				return UpdateAppRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
 			}
 
-			var body api.UpdateAppJSONRequestBody
+			var body apiv1models.UpdateAppJSONRequestBody
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateAppRequest{}, fmt.Errorf("field to decode upsert customer data request: %w", err)
 			}

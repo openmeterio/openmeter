@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	v1api "github.com/openmeterio/openmeter/api"
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -49,12 +49,12 @@ func TestFromAPIRuleSortField(t *testing.T) {
 // constants and that the deprecated v1 aliases are not accepted on the v3 write path.
 func TestFromAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 	testCases := []struct {
-		in   api.BillingNotificationBalanceThresholdType
-		want v1api.NotificationRuleBalanceThresholdValueType
+		in   apiv3models.BillingNotificationBalanceThresholdType
+		want apiv1models.NotificationRuleBalanceThresholdValueType
 	}{
-		{api.BillingNotificationBalanceThresholdTypeBalanceValue, v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue},
-		{api.BillingNotificationBalanceThresholdTypeUsagePercentage, v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage},
-		{api.BillingNotificationBalanceThresholdTypeUsageValue, v1api.NotificationRuleBalanceThresholdValueTypeUsageValue},
+		{apiv3models.BillingNotificationBalanceThresholdTypeBalanceValue, apiv1models.NotificationRuleBalanceThresholdValueTypeBalanceValue},
+		{apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage, apiv1models.NotificationRuleBalanceThresholdValueTypeUsagePercentage},
+		{apiv3models.BillingNotificationBalanceThresholdTypeUsageValue, apiv1models.NotificationRuleBalanceThresholdValueTypeUsageValue},
 	}
 
 	for _, tc := range testCases {
@@ -67,7 +67,7 @@ func TestFromAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 
 	for _, legacy := range []string{"NUMBER", "PERCENT", "nonsense"} {
 		t.Run(legacy+" is rejected", func(t *testing.T) {
-			_, err := FromAPIBillingNotificationBalanceThresholdType(api.BillingNotificationBalanceThresholdType(legacy))
+			_, err := FromAPIBillingNotificationBalanceThresholdType(apiv3models.BillingNotificationBalanceThresholdType(legacy))
 			require.Error(t, err)
 			assert.True(t, models.IsGenericValidationError(err))
 		})
@@ -75,18 +75,18 @@ func TestFromAPIBillingNotificationBalanceThresholdType(t *testing.T) {
 }
 
 func TestFromAPICreateRuleRequest_BalanceThreshold(t *testing.T) {
-	var body api.BillingNotificationRuleRequest
-	require.NoError(t, body.FromBillingNotificationRuleBalanceThresholdRequest(api.BillingNotificationRuleBalanceThresholdRequest{
-		Type:     api.BillingNotificationRuleBalanceThresholdRequestTypeEntitlementsBalanceThreshold,
+	var body apiv3models.BillingNotificationRuleRequest
+	require.NoError(t, body.FromBillingNotificationRuleBalanceThresholdRequest(apiv3models.BillingNotificationRuleBalanceThresholdRequest{
+		Type:     apiv3models.BillingNotificationRuleBalanceThresholdRequestTypeEntitlementsBalanceThreshold,
 		Name:     "threshold rule",
 		Disabled: lo.ToPtr(true),
-		Channels: []api.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}},
-		Thresholds: []api.BillingNotificationBalanceThreshold{
-			{Type: api.BillingNotificationBalanceThresholdTypeUsagePercentage, Value: 90},
-			{Type: api.BillingNotificationBalanceThresholdTypeBalanceValue, Value: 10},
+		Channels: []apiv3models.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}},
+		Thresholds: []apiv3models.BillingNotificationBalanceThreshold{
+			{Type: apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage, Value: 90},
+			{Type: apiv3models.BillingNotificationBalanceThresholdTypeBalanceValue, Value: 10},
 		},
-		Features: &[]api.FeatureReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"}},
-		Labels:   &api.Labels{"team": "billing"},
+		Features: &[]apiv3models.FeatureReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"}},
+		Labels:   &apiv3models.Labels{"team": "billing"},
 	}))
 
 	got, err := FromAPICreateRuleRequest("ns", body)
@@ -103,19 +103,19 @@ func TestFromAPICreateRuleRequest_BalanceThreshold(t *testing.T) {
 	require.NotNil(t, got.Config.BalanceThreshold)
 	assert.Equal(t, []string{"01ARZ3NDEKTSV4RRFFQ69G5FAX"}, got.Config.BalanceThreshold.Features)
 	assert.Equal(t, []notification.BalanceThreshold{
-		{Type: v1api.NotificationRuleBalanceThresholdValueTypeUsagePercentage, Value: 90},
-		{Type: v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, Value: 10},
+		{Type: apiv1models.NotificationRuleBalanceThresholdValueTypeUsagePercentage, Value: 90},
+		{Type: apiv1models.NotificationRuleBalanceThresholdValueTypeBalanceValue, Value: 10},
 	}, got.Config.BalanceThreshold.Thresholds)
 	assert.Nil(t, got.Config.EntitlementReset)
 	assert.Nil(t, got.Config.Invoice)
 }
 
 func TestFromAPIUpdateRuleRequest_InvoiceCreated(t *testing.T) {
-	var body api.BillingNotificationRuleRequest
-	require.NoError(t, body.FromBillingNotificationRuleInvoiceCreatedRequest(api.BillingNotificationRuleInvoiceCreatedRequest{
-		Type:     api.BillingNotificationRuleInvoiceCreatedRequestTypeInvoiceCreated,
+	var body apiv3models.BillingNotificationRuleRequest
+	require.NoError(t, body.FromBillingNotificationRuleInvoiceCreatedRequest(apiv3models.BillingNotificationRuleInvoiceCreatedRequest{
+		Type:     apiv3models.BillingNotificationRuleInvoiceCreatedRequestTypeInvoiceCreated,
 		Name:     "invoice rule",
-		Channels: []api.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}, {Id: "01ARZ3NDEKTSV4RRFFQ69G5FAW"}},
+		Channels: []apiv3models.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}, {Id: "01ARZ3NDEKTSV4RRFFQ69G5FAW"}},
 	}))
 
 	got, err := FromAPIUpdateRuleRequest("ns", "01ARZ3NDEKTSV4RRFFQ69G5FAX", body)
@@ -131,11 +131,11 @@ func TestFromAPIUpdateRuleRequest_InvoiceCreated(t *testing.T) {
 }
 
 func TestFromAPIRuleRequest_EntitlementResetWithoutFeatures(t *testing.T) {
-	var body api.BillingNotificationRuleRequest
-	require.NoError(t, body.FromBillingNotificationRuleEntitlementResetRequest(api.BillingNotificationRuleEntitlementResetRequest{
-		Type:     api.BillingNotificationRuleEntitlementResetRequestTypeEntitlementsReset,
+	var body apiv3models.BillingNotificationRuleRequest
+	require.NoError(t, body.FromBillingNotificationRuleEntitlementResetRequest(apiv3models.BillingNotificationRuleEntitlementResetRequest{
+		Type:     apiv3models.BillingNotificationRuleEntitlementResetRequestTypeEntitlementsReset,
 		Name:     "reset rule",
-		Channels: []api.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}},
+		Channels: []apiv3models.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"}},
 	}))
 
 	got, err := FromAPICreateRuleRequest("ns", body)
@@ -146,7 +146,7 @@ func TestFromAPIRuleRequest_EntitlementResetWithoutFeatures(t *testing.T) {
 }
 
 func TestFromAPIRuleRequest_UnknownTypeIsRejected(t *testing.T) {
-	var body api.BillingNotificationRuleRequest
+	var body apiv3models.BillingNotificationRuleRequest
 	require.NoError(t, body.UnmarshalJSON([]byte(`{"type":"nonsense","name":"x","channels":[]}`)))
 
 	_, err := FromAPICreateRuleRequest("ns", body)
@@ -170,8 +170,8 @@ func TestToAPIBillingNotificationRule_BalanceThreshold(t *testing.T) {
 				Features: []string{"gpt4_tokens"},
 				Thresholds: []notification.BalanceThreshold{
 					// The legacy PERCENT spelling must normalize to usage_percentage.
-					{Type: v1api.NotificationRuleBalanceThresholdValueTypePercent, Value: 90},
-					{Type: v1api.NotificationRuleBalanceThresholdValueTypeBalanceValue, Value: 10},
+					{Type: apiv1models.NotificationRuleBalanceThresholdValueTypePercent, Value: 90},
+					{Type: apiv1models.NotificationRuleBalanceThresholdValueTypeBalanceValue, Value: 10},
 				},
 			},
 		},
@@ -192,13 +192,13 @@ func TestToAPIBillingNotificationRule_BalanceThreshold(t *testing.T) {
 	assert.Equal(t, rule.ID, v.Id)
 	assert.Equal(t, "threshold rule", v.Name)
 	assert.True(t, lo.FromPtr(v.Disabled))
-	assert.Equal(t, []api.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAW"}}, v.Channels)
+	assert.Equal(t, []apiv3models.NotificationChannelReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAW"}}, v.Channels)
 	assert.Equal(t, createdAt, v.CreatedAt)
-	assert.Equal(t, &[]api.FeatureReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"}}, v.Features)
-	assert.Equal(t, api.Labels{"team": "billing"}, lo.FromPtr(v.Labels))
-	assert.Equal(t, []api.BillingNotificationBalanceThreshold{
-		{Type: api.BillingNotificationBalanceThresholdTypeUsagePercentage, Value: 90},
-		{Type: api.BillingNotificationBalanceThresholdTypeBalanceValue, Value: 10},
+	assert.Equal(t, &[]apiv3models.FeatureReference{{Id: "01ARZ3NDEKTSV4RRFFQ69G5FAX"}}, v.Features)
+	assert.Equal(t, apiv3models.Labels{"team": "billing"}, lo.FromPtr(v.Labels))
+	assert.Equal(t, []apiv3models.BillingNotificationBalanceThreshold{
+		{Type: apiv3models.BillingNotificationBalanceThresholdTypeUsagePercentage, Value: 90},
+		{Type: apiv3models.BillingNotificationBalanceThresholdTypeBalanceValue, Value: 10},
 	}, v.Thresholds)
 }
 

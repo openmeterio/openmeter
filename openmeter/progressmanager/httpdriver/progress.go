@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	progressmanagerentity "github.com/openmeterio/openmeter/openmeter/progressmanager/entity"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -14,7 +14,7 @@ import (
 
 type (
 	GetProgressRequest  = progressmanagerentity.GetProgressInput
-	GetProgressResponse = api.Progress
+	GetProgressResponse = apiv1models.Progress
 	GetProgressHandler  httptransport.HandlerWithArgs[GetProgressRequest, GetProgressResponse, string]
 )
 
@@ -59,8 +59,8 @@ func (h *handler) GetProgress() GetProgressHandler {
 }
 
 // progressToAPI converts a Progress to an API Progress
-func progressToAPI(p progressmanagerentity.Progress) api.Progress {
-	return api.Progress{
+func progressToAPI(p progressmanagerentity.Progress) apiv1models.Progress {
+	return apiv1models.Progress{
 		Success:   p.Success,
 		Failed:    p.Failed,
 		Total:     p.Total,

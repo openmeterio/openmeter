@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -26,8 +26,8 @@ import (
 
 type (
 	ListPlansRequest  = plan.ListPlansInput
-	ListPlansResponse = api.PlanPaginatedResponse
-	ListPlansParams   = api.ListPlansParams
+	ListPlansResponse = apiv1models.PlanPaginatedResponse
+	ListPlansParams   = apiv1models.ListPlansParams
 
 	ListPlansHandlerRequest struct {
 		Namespace string
@@ -47,14 +47,14 @@ func (h *handler) ListPlans() ListPlansHandler {
 
 			var statusFilter []productcatalog.PlanStatus
 			if params.Status != nil {
-				statusFilter = lo.Map(*params.Status, func(status api.PlanStatus, _ int) productcatalog.PlanStatus {
+				statusFilter = lo.Map(*params.Status, func(status apiv1models.PlanStatus, _ int) productcatalog.PlanStatus {
 					return productcatalog.PlanStatus(status)
 				})
 			}
 
 			req := ListPlansRequest{
-				OrderBy: plan.OrderBy(lo.FromPtrOr(params.OrderBy, api.PlanOrderById)),
-				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
+				OrderBy: plan.OrderBy(lo.FromPtrOr(params.OrderBy, apiv1models.PlanOrderById)),
+				Order:   sortx.Order(defaultx.WithDefault(params.Order, apiv1models.SortOrderDESC)),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
@@ -86,10 +86,10 @@ func (h *handler) ListPlans() ListPlansHandler {
 				return ListPlansResponse{}, err
 			}
 
-			items := make([]api.Plan, 0, len(resp.Items))
+			items := make([]apiv1models.Plan, 0, len(resp.Items))
 
 			for _, p := range resp.Items {
-				var item api.Plan
+				var item apiv1models.Plan
 
 				item, err = FromPlan(p, taxCodes)
 				if err != nil {
@@ -121,16 +121,16 @@ type (
 	// legacy stripe.code values, which has to happen in the same transaction as the create.
 	CreatePlanHandlerRequest struct {
 		Namespace string
-		Body      api.PlanCreate
+		Body      apiv1models.PlanCreate
 	}
-	CreatePlanResponse = api.Plan
+	CreatePlanResponse = apiv1models.Plan
 	CreatePlanHandler  httptransport.Handler[CreatePlanHandlerRequest, CreatePlanResponse]
 )
 
 func (h *handler) CreatePlan() CreatePlanHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreatePlanHandlerRequest, error) {
-			body := api.PlanCreate{}
+			body := apiv1models.PlanCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreatePlanHandlerRequest{}, fmt.Errorf("failed to decode create plan request: %w", err)
 			}
@@ -151,7 +151,7 @@ func (h *handler) CreatePlan() CreatePlanHandler {
 			// The settlement mode gate only needs the request and feature flags, so check it before
 			// opening the transaction that tax code mapping runs in.
 			creditEnabled := featuregate.ContextResolver().Credits(ctx)
-			if !creditEnabled && lo.FromPtr(request.Body.SettlementMode) == api.BillingSettlementModeCreditOnly {
+			if !creditEnabled && lo.FromPtr(request.Body.SettlementMode) == apiv1models.BillingSettlementModeCreditOnly {
 				return CreatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
@@ -205,16 +205,16 @@ type (
 	// CreatePlanHandlerRequest.
 	UpdatePlanHandlerRequest struct {
 		models.NamespacedID
-		Body api.PlanReplaceUpdate
+		Body apiv1models.PlanReplaceUpdate
 	}
-	UpdatePlanResponse = api.Plan
+	UpdatePlanResponse = apiv1models.Plan
 	UpdatePlanHandler  httptransport.HandlerWithArgs[UpdatePlanHandlerRequest, UpdatePlanResponse, string]
 )
 
 func (h *handler) UpdatePlan() UpdatePlanHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, planID string) (UpdatePlanHandlerRequest, error) {
-			body := api.PlanReplaceUpdate{}
+			body := apiv1models.PlanReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdatePlanHandlerRequest{}, fmt.Errorf("failed to decode update plan request: %w", err)
 			}
@@ -238,7 +238,7 @@ func (h *handler) UpdatePlan() UpdatePlanHandler {
 			// Same as create: the settlement mode gate only needs the request, so check it before
 			// the transaction that tax code mapping runs in.
 			creditEnabled := featuregate.ContextResolver().Credits(ctx)
-			if !creditEnabled && request.Body.SettlementMode != nil && *request.Body.SettlementMode == api.BillingSettlementModeCreditOnly {
+			if !creditEnabled && request.Body.SettlementMode != nil && *request.Body.SettlementMode == apiv1models.BillingSettlementModeCreditOnly {
 				return UpdatePlanResponse{}, models.NewGenericValidationError(fmt.Errorf("credits are not enabled on this deployment of OpenMeter"))
 			}
 
@@ -333,7 +333,7 @@ type (
 		// Version is not set.
 		IncludeLatest bool
 	}
-	GetPlanResponse = api.Plan
+	GetPlanResponse = apiv1models.Plan
 	GetPlanHandler  httptransport.HandlerWithArgs[GetPlanRequest, GetPlanResponse, GetPlanRequestParams]
 )
 
@@ -394,7 +394,7 @@ func (h *handler) GetPlan() GetPlanHandler {
 
 type (
 	PublishPlanRequest  = plan.PublishPlanInput
-	PublishPlanResponse = api.Plan
+	PublishPlanResponse = apiv1models.Plan
 	PublishPlanHandler  httptransport.HandlerWithArgs[PublishPlanRequest, PublishPlanResponse, string]
 )
 
@@ -446,7 +446,7 @@ func (h *handler) PublishPlan() PublishPlanHandler {
 
 type (
 	ArchivePlanRequest  = plan.ArchivePlanInput
-	ArchivePlanResponse = api.Plan
+	ArchivePlanResponse = apiv1models.Plan
 	ArchivePlanHandler  httptransport.HandlerWithArgs[ArchivePlanRequest, ArchivePlanResponse, string]
 )
 
@@ -496,7 +496,7 @@ func (h *handler) ArchivePlan() ArchivePlanHandler {
 
 type (
 	NextPlanRequest  = plan.NextPlanInput
-	NextPlanResponse = api.Plan
+	NextPlanResponse = apiv1models.Plan
 	NextPlanHandler  httptransport.HandlerWithArgs[NextPlanRequest, NextPlanResponse, string]
 )
 

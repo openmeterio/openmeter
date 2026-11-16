@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/apiconverter"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -19,16 +19,16 @@ import (
 	modelshttp "github.com/openmeterio/openmeter/pkg/models/http"
 )
 
-// ToAPIMeter converts a meter.Meter to an api.Meter.
-func ToAPIMeter(m meter.Meter) api.Meter {
-	apiMeter := api.Meter{
+// ToAPIMeter converts a meter.Meter to an apiv1models.Meter.
+func ToAPIMeter(m meter.Meter) apiv1models.Meter {
+	apiMeter := apiv1models.Meter{
 		Id:            m.ID,
 		Name:          &m.Name,
 		Description:   m.Description,
 		Slug:          m.Key,
 		EventType:     m.EventType,
 		EventFrom:     m.EventFrom,
-		Aggregation:   api.MeterAggregation(m.Aggregation),
+		Aggregation:   apiv1models.MeterAggregation(m.Aggregation),
 		ValueProperty: m.ValueProperty,
 		CreatedAt:     m.CreatedAt,
 		UpdatedAt:     m.UpdatedAt,
@@ -44,9 +44,9 @@ func ToAPIMeter(m meter.Meter) api.Meter {
 	return apiMeter
 }
 
-// ToAPIMeterQueryResult constructs an api.MeterQueryResult
-func ToAPIMeterQueryResult(from *time.Time, to *time.Time, windowSize *api.WindowSize, rows []meter.MeterQueryRow) api.MeterQueryResult {
-	return api.MeterQueryResult{
+// ToAPIMeterQueryResult constructs an apiv1models.MeterQueryResult
+func ToAPIMeterQueryResult(from *time.Time, to *time.Time, windowSize *apiv1models.WindowSize, rows []meter.MeterQueryRow) apiv1models.MeterQueryResult {
+	return apiv1models.MeterQueryResult{
 		From:       from,
 		To:         to,
 		WindowSize: windowSize,
@@ -54,9 +54,9 @@ func ToAPIMeterQueryResult(from *time.Time, to *time.Time, windowSize *api.Windo
 	}
 }
 
-// ToAPIMeterQueryRow converts a meter.MeterQueryRow to an api.MeterQueryRow.
-func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
-	apiRow := api.MeterQueryRow{
+// ToAPIMeterQueryRow converts a meter.MeterQueryRow to an apiv1models.MeterQueryRow.
+func ToAPIMeterQueryRow(row meter.MeterQueryRow) apiv1models.MeterQueryRow {
+	apiRow := apiv1models.MeterQueryRow{
 		CustomerId:  row.CustomerID,
 		Subject:     row.Subject,
 		GroupBy:     row.GroupBy,
@@ -68,9 +68,9 @@ func ToAPIMeterQueryRow(row meter.MeterQueryRow) api.MeterQueryRow {
 	return apiRow
 }
 
-// ToAPIMeterQueryRowList converts a list of meter.MeterQueryRow to a list of api.MeterQueryRow.
-func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
-	apiRows := make([]api.MeterQueryRow, len(rows))
+// ToAPIMeterQueryRowList converts a list of meter.MeterQueryRow to a list of apiv1models.MeterQueryRow.
+func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []apiv1models.MeterQueryRow {
+	apiRows := make([]apiv1models.MeterQueryRow, len(rows))
 	for i, row := range rows {
 		apiRows[i] = ToAPIMeterQueryRow(row)
 	}
@@ -78,11 +78,11 @@ func ToAPIMeterQueryRowList(rows []meter.MeterQueryRow) []api.MeterQueryRow {
 	return apiRows
 }
 
-// ToQueryParamsFromAPIParams converts a api.QueryMeterParams to a streaming.QueryParams.
+// ToQueryParamsFromAPIParams converts an apiv1models.QueryMeterParams to a streaming.QueryParams.
 // This is used to convert an API POST query body to GET request params.
-func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryMeterPostJSONRequestBody {
+func ToRequestFromQueryParamsPOSTBody(apiParams apiv1models.QueryMeterParams) apiv1models.QueryMeterPostJSONRequestBody {
 	// Map the POST request body to a GET request params
-	request := api.QueryMeterPostJSONRequestBody{
+	request := apiv1models.QueryMeterPostJSONRequestBody{
 		ClientId:                    apiParams.ClientId,
 		From:                        apiParams.From,
 		To:                          apiParams.To,
@@ -91,7 +91,7 @@ func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryM
 		FilterCustomerId:            apiParams.FilterCustomerId,
 		WindowSize:                  apiParams.WindowSize,
 		WindowTimeZone:              apiParams.WindowTimeZone,
-		AdvancedMeterGroupByFilters: (*map[string]api.FilterString)(apiParams.AdvancedMeterGroupByFilters),
+		AdvancedMeterGroupByFilters: (*map[string]apiv1models.FilterString)(apiParams.AdvancedMeterGroupByFilters),
 	}
 
 	if apiParams.FilterGroupBy != nil {
@@ -106,9 +106,9 @@ func ToRequestFromQueryParamsPOSTBody(apiParams api.QueryMeterParams) api.QueryM
 	return request
 }
 
-// toQueryParamsFromRequest converts a api.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
+// toQueryParamsFromRequest converts an apiv1models.QueryMeterPostJSONRequestBody to a streaming.QueryParams.
 // This is used to convert an API GET query params to a service level streaming.QueryParams.
-func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, request api.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
+func (h *handler) toQueryParamsFromRequest(ctx context.Context, m meter.Meter, request apiv1models.QueryMeterPostJSONRequestBody) (streaming.QueryParams, error) {
 	params := streaming.QueryParams{
 		ClientID: request.ClientId,
 		From:     request.From,

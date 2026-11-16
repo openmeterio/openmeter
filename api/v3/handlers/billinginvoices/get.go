@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -14,7 +14,7 @@ import (
 
 type (
 	GetBillingInvoiceRequest  = billing.GetInvoiceByIdInput
-	GetBillingInvoiceResponse = api.BillingInvoice
+	GetBillingInvoiceResponse = apiv3models.BillingInvoice
 	GetBillingInvoiceParams   = string
 	GetBillingInvoiceHandler  = httptransport.HandlerWithArgs[GetBillingInvoiceRequest, GetBillingInvoiceResponse, GetBillingInvoiceParams]
 )

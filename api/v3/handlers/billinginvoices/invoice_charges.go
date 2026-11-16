@@ -7,8 +7,8 @@ import (
 
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -22,7 +22,7 @@ type (
 		billing.InvoicePendingLinesInput
 		Options []billing.InvoicePendingLinesOption
 	}
-	InvoiceCustomerChargesResponse = api.InvoiceCustomerChargesResult
+	InvoiceCustomerChargesResponse = apiv3models.InvoiceCustomerChargesResult
 	InvoiceCustomerChargesHandler  = httptransport.HandlerWithArgs[InvoiceCustomerChargesRequest, InvoiceCustomerChargesResponse, string]
 )
 
@@ -34,7 +34,7 @@ func (h *handler) InvoiceCustomerCharges() InvoiceCustomerChargesHandler {
 				return InvoiceCustomerChargesRequest{}, err
 			}
 
-			var body api.InvoiceCustomerChargesInput
+			var body apiv3models.InvoiceCustomerChargesInput
 			if err := request.ParseOptionalBody(r, &body); err != nil {
 				return InvoiceCustomerChargesRequest{}, err
 			}

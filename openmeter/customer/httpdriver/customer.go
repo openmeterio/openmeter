@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
@@ -44,8 +44,8 @@ func eqFilter(value *string) *filter.FilterString {
 }
 
 type (
-	ListCustomersResponse = pagination.Result[api.Customer]
-	ListCustomersParams   = api.ListCustomersParams
+	ListCustomersResponse = pagination.Result[apiv1models.Customer]
+	ListCustomersParams   = apiv1models.ListCustomersParams
 	ListCustomersRequest  = customer.ListCustomersInput
 	ListCustomersHandler  httptransport.HandlerWithArgs[ListCustomersRequest, ListCustomersResponse, ListCustomersParams]
 )
@@ -69,8 +69,8 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 				},
 
 				// Order
-				OrderBy: string(defaultx.WithDefault(params.OrderBy, api.CustomerOrderByName)),
-				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
+				OrderBy: string(defaultx.WithDefault(params.OrderBy, apiv1models.CustomerOrderByName)),
+				Order:   sortx.Order(defaultx.WithDefault(params.Order, apiv1models.SortOrderASC)),
 
 				// Filters
 				Key:                        containsFilter(params.Key),
@@ -84,7 +84,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 
 				// Expand
 				// TODO[v2]: disable expand of subscriptions by default, for now this is a breaking change
-				Expands: lo.Map(lo.FromPtrOr(params.Expand, api.QueryCustomerListExpand{api.CustomerExpandSubscriptions}), func(item api.CustomerExpand, _ int) customer.Expand {
+				Expands: lo.Map(lo.FromPtrOr(params.Expand, apiv1models.QueryCustomerListExpand{apiv1models.CustomerExpandSubscriptions}), func(item apiv1models.CustomerExpand, _ int) customer.Expand {
 					return customer.Expand(item)
 				}),
 			}
@@ -125,8 +125,8 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 			}
 
 			// Map the customers to the API
-			return pagination.MapResultErr(resp, func(customer customer.Customer) (api.Customer, error) {
-				var item api.Customer
+			return pagination.MapResultErr(resp, func(customer customer.Customer) (apiv1models.Customer, error) {
+				var item apiv1models.Customer
 
 				subs, ok := customerSubscriptions[customer.ID]
 				if !ok {
@@ -151,7 +151,7 @@ func (h *handler) ListCustomers() ListCustomersHandler {
 
 type (
 	CreateCustomerRequest  = customer.CreateCustomerInput
-	CreateCustomerResponse = api.Customer
+	CreateCustomerResponse = apiv1models.Customer
 	CreateCustomerHandler  httptransport.Handler[CreateCustomerRequest, CreateCustomerResponse]
 )
 
@@ -159,7 +159,7 @@ type (
 func (h *handler) CreateCustomer() CreateCustomerHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateCustomerRequest, error) {
-			body := api.CustomerCreate{}
+			body := apiv1models.CustomerCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateCustomerRequest{}, fmt.Errorf("field to decode create customer request: %w", err)
 			}
@@ -202,7 +202,7 @@ type (
 		CustomerIDOrKey string
 		CustomerMutate  customer.CustomerMutate
 	}
-	UpdateCustomerResponse = api.Customer
+	UpdateCustomerResponse = apiv1models.Customer
 	UpdateCustomerHandler  httptransport.HandlerWithArgs[UpdateCustomerRequest, UpdateCustomerResponse, string]
 )
 
@@ -210,7 +210,7 @@ type (
 func (h *handler) UpdateCustomer() UpdateCustomerHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, customerIDOrKey string) (UpdateCustomerRequest, error) {
-			body := api.CustomerReplaceUpdate{}
+			body := apiv1models.CustomerReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateCustomerRequest{}, fmt.Errorf("field to decode update customer request: %w", err)
 			}
@@ -330,13 +330,13 @@ func (h *handler) DeleteCustomer() DeleteCustomerHandler {
 
 type (
 	GetCustomerRequest  = customer.GetCustomerInput
-	GetCustomerResponse = api.Customer
+	GetCustomerResponse = apiv1models.Customer
 	GetCustomerHandler  httptransport.HandlerWithArgs[GetCustomerRequest, GetCustomerResponse, GetCustomerParams]
 )
 
 type GetCustomerParams struct {
 	CustomerIDOrKey string
-	api.GetCustomerParams
+	apiv1models.GetCustomerParams
 }
 
 // GetCustomer returns a handler for getting a customer.
@@ -353,7 +353,7 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 					Namespace: ns,
 					IDOrKey:   params.CustomerIDOrKey,
 				},
-				Expands: lo.Map(lo.FromPtrOr(params.Expand, api.QueryCustomerListExpand{api.CustomerExpandSubscriptions}), func(item api.CustomerExpand, _ int) customer.Expand {
+				Expands: lo.Map(lo.FromPtrOr(params.Expand, apiv1models.QueryCustomerListExpand{apiv1models.CustomerExpandSubscriptions}), func(item apiv1models.CustomerExpand, _ int) customer.Expand {
 					return customer.Expand(item)
 				}),
 			}, nil
@@ -384,7 +384,7 @@ type (
 		customer.GetEntitlementValueInput
 		At time.Time
 	}
-	GetCustomerEntitlementValueResponse = api.EntitlementValue
+	GetCustomerEntitlementValueResponse = apiv1models.EntitlementValue
 	GetCustomerEntitlementValueParams   = struct {
 		CustomerIDOrKey string
 		FeatureKey      string
@@ -514,7 +514,7 @@ func (h *handler) GetCustomerEntitlementValueV2() GetCustomerEntitlementValueV2H
 
 type (
 	GetCustomerAccessRequest  = customer.GetCustomerInput
-	GetCustomerAccessResponse = api.CustomerAccess
+	GetCustomerAccessResponse = apiv1models.CustomerAccess
 	GetCustomerAccessParams   = struct {
 		CustomerIDOrKey string
 	}
@@ -628,7 +628,7 @@ func (h *handler) GetCustomerAccessV2() GetCustomerAccessV2Handler {
 }
 
 // mapCustomerWithSubscriptionsToAPI maps a customer to the API with its subscriptions.
-func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, cust customer.Customer, expand []customer.Expand) (api.Customer, error) {
+func (h *handler) mapCustomerWithSubscriptionsToAPI(ctx context.Context, cust customer.Customer, expand []customer.Expand) (apiv1models.Customer, error) {
 	if !lo.Contains(expand, customer.ExpandSubscriptions) {
 		return CustomerToAPI(cust, []subscription.Subscription{}, expand)
 	}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -31,12 +31,12 @@ type parserV2 struct{}
 var ParserV2 = parserV2{}
 
 // ToAPIGenericV2 maps a generic entitlement to the EntitlementV2 union, augmenting with customer fields
-func (parserV2) ToAPIGenericV2(e *entitlement.Entitlement, customerId string, customerKey *string) (*api.EntitlementV2, error) {
+func (parserV2) ToAPIGenericV2(e *entitlement.Entitlement, customerId string, customerKey *string) (*apiv1models.EntitlementV2, error) {
 	if e == nil {
 		return nil, fmt.Errorf("nil entitlement")
 	}
 
-	res := &api.EntitlementV2{}
+	res := &apiv1models.EntitlementV2{}
 
 	switch e.EntitlementType {
 	case entitlement.EntitlementTypeMetered:
@@ -92,11 +92,11 @@ func (parserV2) ToAPIGenericV2(e *entitlement.Entitlement, customerId string, cu
 	}
 }
 
-func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.Entitlement, customerId string, customerKey *string) (*api.EntitlementMeteredV2, error) {
-	v := api.EntitlementMeteredV2{
+func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.Entitlement, customerId string, customerKey *string) (*apiv1models.EntitlementMeteredV2, error) {
+	v := apiv1models.EntitlementMeteredV2{
 		ActiveFrom:         m.ActiveFromTime(),
 		ActiveTo:           m.ActiveToTime(),
-		Annotations:        lo.EmptyableToPtr(api.Annotations(e.Annotations)),
+		Annotations:        lo.EmptyableToPtr(apiv1models.Annotations(e.Annotations)),
 		CreatedAt:          m.CreatedAt,
 		CurrentUsagePeriod: mapPeriodValue(&m.CurrentUsagePeriod),
 		CustomerId:         customerId,
@@ -110,9 +110,9 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 		IssueAfterResetPriority: convert.SafeDeRef(m.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *uint8 {
 			return convert.SafeDeRef(i.Priority, func(p uint8) *uint8 { return &p })
 		}),
-		Issue: func() *api.IssueAfterReset {
+		Issue: func() *apiv1models.IssueAfterReset {
 			if m.IssueAfterReset != nil {
-				return &api.IssueAfterReset{
+				return &apiv1models.IssueAfterReset{
 					Amount:   m.IssueAfterReset.Amount,
 					Priority: m.IssueAfterReset.Priority,
 				}
@@ -124,7 +124,7 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 		MeasureUsageFrom:       m.MeasureUsageFrom,
 		Metadata:               convert.MapToPointer(m.Metadata),
 		PreserveOverageAtReset: convert.ToPointer(m.PreserveOverageAtReset),
-		Type:                   api.EntitlementMeteredV2TypeMetered,
+		Type:                   apiv1models.EntitlementMeteredV2TypeMetered,
 		UpdatedAt:              m.UpdatedAt,
 		UsagePeriod:            mapUsagePeriodValue(e.UsagePeriod),
 	}
@@ -132,11 +132,11 @@ func (parserV2) ToMeteredV2(m *meteredentitlement.Entitlement, e *entitlement.En
 	return &v, nil
 }
 
-func (parserV2) ToStaticV2(s *staticentitlement.Entitlement, e *entitlement.Entitlement, customerId string, customerKey *string) (*api.EntitlementStaticV2, error) {
-	v := api.EntitlementStaticV2{
+func (parserV2) ToStaticV2(s *staticentitlement.Entitlement, e *entitlement.Entitlement, customerId string, customerKey *string) (*apiv1models.EntitlementStaticV2, error) {
+	v := apiv1models.EntitlementStaticV2{
 		ActiveFrom:         s.ActiveFromTime(),
 		ActiveTo:           s.ActiveToTime(),
-		Annotations:        lo.EmptyableToPtr(api.Annotations(e.Annotations)),
+		Annotations:        lo.EmptyableToPtr(apiv1models.Annotations(e.Annotations)),
 		CreatedAt:          s.CreatedAt,
 		CustomerId:         customerId,
 		CustomerKey:        customerKey,
@@ -145,7 +145,7 @@ func (parserV2) ToStaticV2(s *staticentitlement.Entitlement, e *entitlement.Enti
 		FeatureKey:         s.FeatureKey,
 		Id:                 s.ID,
 		Metadata:           convert.MapToPointer(s.Metadata),
-		Type:               api.EntitlementStaticV2TypeStatic,
+		Type:               apiv1models.EntitlementStaticV2TypeStatic,
 		UpdatedAt:          s.UpdatedAt,
 		CurrentUsagePeriod: mapPeriodPtr(s.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriodPtr(e.UsagePeriod),
@@ -161,11 +161,11 @@ func (parserV2) ToStaticV2(s *staticentitlement.Entitlement, e *entitlement.Enti
 	return &v, nil
 }
 
-func (parserV2) ToBooleanV2(b *booleanentitlement.Entitlement, e *entitlement.Entitlement, customerId string, customerKey *string) (*api.EntitlementBooleanV2, error) {
-	v := api.EntitlementBooleanV2{
+func (parserV2) ToBooleanV2(b *booleanentitlement.Entitlement, e *entitlement.Entitlement, customerId string, customerKey *string) (*apiv1models.EntitlementBooleanV2, error) {
+	v := apiv1models.EntitlementBooleanV2{
 		ActiveFrom:         b.ActiveFromTime(),
 		ActiveTo:           b.ActiveToTime(),
-		Annotations:        lo.EmptyableToPtr(api.Annotations(e.Annotations)),
+		Annotations:        lo.EmptyableToPtr(apiv1models.Annotations(e.Annotations)),
 		CreatedAt:          b.CreatedAt,
 		CustomerId:         customerId,
 		CustomerKey:        customerKey,
@@ -173,7 +173,7 @@ func (parserV2) ToBooleanV2(b *booleanentitlement.Entitlement, e *entitlement.En
 		FeatureId:          b.FeatureID,
 		FeatureKey:         b.FeatureKey,
 		Id:                 b.ID,
-		Type:               api.EntitlementBooleanV2TypeBoolean,
+		Type:               apiv1models.EntitlementBooleanV2TypeBoolean,
 		UpdatedAt:          b.UpdatedAt,
 		CurrentUsagePeriod: mapPeriodPtr(b.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriodPtr(e.UsagePeriod),
@@ -182,22 +182,22 @@ func (parserV2) ToBooleanV2(b *booleanentitlement.Entitlement, e *entitlement.En
 	return &v, nil
 }
 
-func mapUsagePeriodValue(u *entitlement.UsagePeriod) api.RecurringPeriod {
+func mapUsagePeriodValue(u *entitlement.UsagePeriod) apiv1models.RecurringPeriod {
 	// If nil, return zero value; API type is non-pointer in V2 variants for metered, optional for others
 	if u == nil {
-		return api.RecurringPeriod{}
+		return apiv1models.RecurringPeriod{}
 	}
 
 	origi := u.GetOriginalValueAsUsagePeriodInput().GetValue()
 
-	return api.RecurringPeriod{
+	return apiv1models.RecurringPeriod{
 		Anchor:      origi.Anchor,
 		Interval:    entitlementdriver.MapRecurrenceToAPI(origi.Interval),
 		IntervalISO: origi.Interval.ISOString().String(),
 	}
 }
 
-func mapUsagePeriodPtr(u *entitlement.UsagePeriod) *api.RecurringPeriod {
+func mapUsagePeriodPtr(u *entitlement.UsagePeriod) *apiv1models.RecurringPeriod {
 	if u == nil {
 		return nil
 	}
@@ -207,29 +207,29 @@ func mapUsagePeriodPtr(u *entitlement.UsagePeriod) *api.RecurringPeriod {
 	return &v
 }
 
-func mapPeriodPtr(p *timeutil.ClosedPeriod) *api.Period {
+func mapPeriodPtr(p *timeutil.ClosedPeriod) *apiv1models.Period {
 	if p == nil {
 		return nil
 	}
 
-	return &api.Period{From: p.From, To: p.To}
+	return &apiv1models.Period{From: p.From, To: p.To}
 }
 
-func mapPeriodValue(p *timeutil.ClosedPeriod) api.Period {
+func mapPeriodValue(p *timeutil.ClosedPeriod) apiv1models.Period {
 	if p == nil {
-		return api.Period{}
+		return apiv1models.Period{}
 	}
 
-	return api.Period{From: p.From, To: p.To}
+	return apiv1models.Period{From: p.From, To: p.To}
 }
 
-func MapEntitlementGrantToAPIV2(grant *meteredentitlement.EntitlementGrant) api.EntitlementGrantV2 {
-	apiGrant := api.EntitlementGrantV2{
+func MapEntitlementGrantToAPIV2(grant *meteredentitlement.EntitlementGrant) apiv1models.EntitlementGrantV2 {
+	apiGrant := apiv1models.EntitlementGrantV2{
 		Amount:            grant.Amount,
 		CreatedAt:         grant.CreatedAt,
 		EffectiveAt:       grant.EffectiveAt,
 		Id:                grant.ID,
-		Annotations:       (*api.Annotations)(convert.MapToPointer(grant.Annotations)),
+		Annotations:       (*apiv1models.Annotations)(convert.MapToPointer(grant.Annotations)),
 		Metadata:          convert.MapToPointer(grant.Metadata),
 		Priority:          convert.ToPointer(grant.Priority),
 		UpdatedAt:         grant.UpdatedAt,
@@ -242,15 +242,15 @@ func MapEntitlementGrantToAPIV2(grant *meteredentitlement.EntitlementGrant) api.
 	}
 
 	if grant.Expiration != nil {
-		apiGrant.Expiration = &api.ExpirationPeriod{
+		apiGrant.Expiration = &apiv1models.ExpirationPeriod{
 			Count:    grant.Expiration.Count,
-			Duration: api.ExpirationDuration(grant.Expiration.Duration),
+			Duration: apiv1models.ExpirationDuration(grant.Expiration.Duration),
 		}
 		apiGrant.ExpiresAt = grant.ExpiresAt
 	}
 
 	if grant.Recurrence != nil {
-		apiGrant.Recurrence = &api.RecurringPeriod{
+		apiGrant.Recurrence = &apiv1models.RecurringPeriod{
 			Anchor:      grant.Recurrence.Anchor,
 			Interval:    entitlementdriver.MapRecurrenceToAPI(grant.Recurrence.Interval),
 			IntervalISO: grant.Recurrence.Interval.ISOString().String(),
@@ -260,7 +260,7 @@ func MapEntitlementGrantToAPIV2(grant *meteredentitlement.EntitlementGrant) api.
 	return apiGrant
 }
 
-func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageAttribution streaming.CustomerUsageAttribution) (entitlement.CreateEntitlementInputs, []entitlement.CreateEntitlementGrantInputs, error) {
+func ParseAPICreateInputV2(inp *apiv1models.EntitlementV2CreateInputs, ns string, usageAttribution streaming.CustomerUsageAttribution) (entitlement.CreateEntitlementInputs, []entitlement.CreateEntitlementGrantInputs, error) {
 	entCreateInp := entitlement.CreateEntitlementInputs{}
 	grantsInp := []entitlement.CreateEntitlementGrantInputs{}
 	if inp == nil {
@@ -273,7 +273,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 	}
 
 	switch v := value.(type) {
-	case api.EntitlementMeteredV2CreateInputs:
+	case apiv1models.EntitlementMeteredV2CreateInputs:
 		iv, err := entitlementdriver.MapAPIPeriodIntervalToRecurrence(v.UsagePeriod.Interval)
 		if err != nil {
 			return entCreateInp, grantsInp, fmt.Errorf("failed to map interval: %w", err)
@@ -316,7 +316,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 				entCreateInp.IssueAfterReset = issueAmount
 				entCreateInp.IssueAfterResetPriority = issuePriority
 			case len(lo.FromPtr(v.Grants)) != 0:
-				gs, err := slicesx.MapWithErr(lo.FromPtr(v.Grants), func(g api.EntitlementGrantCreateInputV2) (meteredentitlement.CreateEntitlementGrantInputs, error) {
+				gs, err := slicesx.MapWithErr(lo.FromPtr(v.Grants), func(g apiv1models.EntitlementGrantCreateInputV2) (meteredentitlement.CreateEntitlementGrantInputs, error) {
 					return MapAPIGrantV2ToCreateGrantInput(g)
 				})
 				if err != nil {
@@ -363,7 +363,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 
 			entCreateInp.MeasureUsageFrom = measureUsageFrom
 		}
-	case api.EntitlementStaticCreateInputs:
+	case apiv1models.EntitlementStaticCreateInputs:
 		entCreateInp = entitlement.CreateEntitlementInputs{
 			Namespace:        ns,
 			FeatureID:        v.FeatureId,
@@ -400,7 +400,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 		if v.Metadata != nil {
 			entCreateInp.Metadata = *v.Metadata
 		}
-	case api.EntitlementBooleanCreateInputs:
+	case apiv1models.EntitlementBooleanCreateInputs:
 		entCreateInp = entitlement.CreateEntitlementInputs{
 			Namespace:        ns,
 			FeatureID:        v.FeatureId,
@@ -436,7 +436,7 @@ func ParseAPICreateInputV2(inp *api.EntitlementV2CreateInputs, ns string, usageA
 	return entCreateInp, grantsInp, nil
 }
 
-func MapAPIGrantV2ToCreateGrantInput(g api.EntitlementGrantCreateInputV2) (meteredentitlement.CreateEntitlementGrantInputs, error) {
+func MapAPIGrantV2ToCreateGrantInput(g apiv1models.EntitlementGrantCreateInputV2) (meteredentitlement.CreateEntitlementGrantInputs, error) {
 	grantInput := meteredentitlement.CreateEntitlementGrantInputs{
 		CreateGrantInput: credit.CreateGrantInput{
 			Amount:           g.Amount,

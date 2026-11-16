@@ -8,15 +8,15 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 type (
-	ListEventsParams   = api.ListEventsParams
-	ListEventsResponse = []api.IngestedEvent
+	ListEventsParams   = apiv1models.ListEventsParams
+	ListEventsResponse = []apiv1models.IngestedEvent
 	ListEventsHandler  httptransport.HandlerWithArgs[ListEventsRequest, ListEventsResponse, ListEventsParams]
 )
 

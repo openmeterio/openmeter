@@ -8,7 +8,7 @@ import (
 	decimal "github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -20,10 +20,10 @@ import (
 
 // FromRateCard maps a rate card to its v1 shape. taxCodes must hold every Tax Code the rate cards
 // reference (see RateCards.TaxCodeIDs): a missing entry silently drops stripe.code from the output.
-func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCode) (api.RateCard, error) {
+func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCode) (apiv1models.RateCard, error) {
 	var err error
 
-	resp := api.RateCard{}
+	resp := apiv1models.RateCard{}
 
 	meta := r.AsMeta()
 
@@ -32,7 +32,7 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 		featureKey = meta.Feature.Key
 	}
 
-	var tmpl api.RateCardEntitlement
+	var tmpl apiv1models.RateCardEntitlement
 	if meta.EntitlementTemplate != nil {
 		tmpl, err = FromEntitlementTemplate(*meta.EntitlementTemplate)
 		if err != nil {
@@ -40,7 +40,7 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 		}
 	}
 
-	var taxConfig *api.TaxConfig
+	var taxConfig *apiv1models.TaxConfig
 	if meta.TaxConfig != nil {
 		tc, err := ToAPITaxConfig(*meta.TaxConfig, taxCodes)
 		if err != nil {
@@ -57,21 +57,21 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 			billingCadence = lo.ToPtr(bc.ISOString().String())
 		}
 
-		var price *api.FlatPriceWithPaymentTerm
+		var price *apiv1models.FlatPriceWithPaymentTerm
 		if meta.Price != nil {
 			flatPrice, err := meta.Price.AsFlat()
 			if err != nil {
 				return resp, fmt.Errorf("failed to cast FlatPrice: %w", err)
 			}
 
-			price = &api.FlatPriceWithPaymentTerm{
+			price = &apiv1models.FlatPriceWithPaymentTerm{
 				Amount:      flatPrice.Amount.String(),
 				PaymentTerm: lo.ToPtr(FromPaymentTerm(flatPrice.PaymentTerm)),
-				Type:        api.FlatPriceWithPaymentTermTypeFlat,
+				Type:        apiv1models.FlatPriceWithPaymentTermTypeFlat,
 			}
 		}
 
-		err = resp.FromRateCardFlatFee(api.RateCardFlatFee{
+		err = resp.FromRateCardFlatFee(apiv1models.RateCardFlatFee{
 			BillingCadence:      billingCadence,
 			Description:         meta.Description,
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
@@ -81,14 +81,14 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 			Name:                meta.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
-			Type:                api.RateCardFlatFeeTypeFlatFee,
+			Type:                apiv1models.RateCardFlatFeeTypeFlatFee,
 			Discounts:           FromDiscounts(meta.Discounts),
 		})
 		if err != nil {
 			return resp, fmt.Errorf("failed to cast FlatPriceRateCard: %w", err)
 		}
 	case productcatalog.UsageBasedRateCardType:
-		var price *api.RateCardUsageBasedPrice
+		var price *apiv1models.RateCardUsageBasedPrice
 		if meta.Price != nil {
 			ubpPrice, err := FromRateCardUsageBasedPrice(*meta.Price)
 			if err != nil {
@@ -103,14 +103,14 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 			return resp, errors.New("invalid UsageBasedRateCard: billing cadence must be set")
 		}
 
-		err = resp.FromRateCardUsageBased(api.RateCardUsageBased{
-			Type:                api.RateCardUsageBasedTypeUsageBased,
+		err = resp.FromRateCardUsageBased(apiv1models.RateCardUsageBased{
+			Type:                apiv1models.RateCardUsageBasedTypeUsageBased,
 			BillingCadence:      billingCadence.ISOString().String(),
 			Description:         meta.Description,
 			EntitlementTemplate: lo.EmptyableToPtr(tmpl),
 			FeatureKey:          featureKey,
 			Key:                 meta.Key,
-			Metadata:            lo.EmptyableToPtr(api.Metadata(meta.Metadata)),
+			Metadata:            lo.EmptyableToPtr(apiv1models.Metadata(meta.Metadata)),
 			Name:                meta.Name,
 			Price:               price,
 			TaxConfig:           taxConfig,
@@ -126,20 +126,20 @@ func FromRateCard(r productcatalog.RateCard, taxCodes map[string]*taxcode.TaxCod
 	return resp, nil
 }
 
-func FromRateCardUsageBasedPrice(price productcatalog.Price) (api.RateCardUsageBasedPrice, error) {
+func FromRateCardUsageBasedPrice(price productcatalog.Price) (apiv1models.RateCardUsageBasedPrice, error) {
 	return catalogconvert.ToAPIRateCardUsageBasedPrice(price)
 }
 
-func FromTaxConfig(c productcatalog.TaxConfig) api.TaxConfig {
+func FromTaxConfig(c productcatalog.TaxConfig) apiv1models.TaxConfig {
 	return catalogconvert.ToAPITaxConfig(c)
 }
 
 // ToAPITaxConfig maps a Tax Code reference to the v1 shape. The stripe.code comes from the
 // referenced Tax Code's current Stripe mapping, not the one the record was created with.
 // taxCodes must contain every referenced Tax Code.
-func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) (api.TaxConfig, error) {
-	out := api.TaxConfig{
-		Behavior:  (*api.TaxBehavior)(cfg.Clone().Behavior),
+func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxcode.TaxCode) (apiv1models.TaxConfig, error) {
+	out := apiv1models.TaxConfig{
+		Behavior:  (*apiv1models.TaxBehavior)(cfg.Clone().Behavior),
 		TaxCodeId: lo.EmptyableToPtr(cfg.TaxCodeID),
 	}
 
@@ -149,22 +149,22 @@ func ToAPITaxConfig(cfg productcatalog.TaxCodeConfig, taxCodes map[string]*taxco
 
 	tc := taxCodes[cfg.TaxCodeID]
 	if tc == nil {
-		return api.TaxConfig{}, fmt.Errorf("tax code %s not found in taxCodes", cfg.TaxCodeID)
+		return apiv1models.TaxConfig{}, fmt.Errorf("tax code %s not found in taxCodes", cfg.TaxCodeID)
 	}
 
 	if m, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
-		out.Stripe = &api.StripeTaxConfig{Code: m.TaxCode}
+		out.Stripe = &apiv1models.StripeTaxConfig{Code: m.TaxCode}
 	}
 
 	return out, nil
 }
 
-func FromPaymentTerm(t productcatalog.PaymentTermType) api.PricePaymentTerm {
+func FromPaymentTerm(t productcatalog.PaymentTermType) apiv1models.PricePaymentTerm {
 	return catalogconvert.ToAPIPricePaymentTerm(t)
 }
 
-func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCardEntitlement, error) {
-	result := api.RateCardEntitlement{}
+func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (apiv1models.RateCardEntitlement, error) {
+	result := apiv1models.RateCardEntitlement{}
 
 	switch t.Type() {
 	case entitlement.EntitlementTypeMetered:
@@ -173,13 +173,13 @@ func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCard
 			return result, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)
 		}
 
-		err = result.FromRateCardMeteredEntitlement(api.RateCardMeteredEntitlement{
+		err = result.FromRateCardMeteredEntitlement(apiv1models.RateCardMeteredEntitlement{
 			IsSoftLimit:             lo.ToPtr(metered.IsSoftLimit),
 			IssueAfterReset:         metered.IssueAfterReset,
 			IssueAfterResetPriority: metered.IssueAfterResetPriority,
-			Metadata:                lo.EmptyableToPtr(api.Metadata(metered.Metadata)),
+			Metadata:                lo.EmptyableToPtr(apiv1models.Metadata(metered.Metadata)),
 			PreserveOverageAtReset:  metered.PreserveOverageAtReset,
-			Type:                    api.RateCardMeteredEntitlementTypeMetered,
+			Type:                    apiv1models.RateCardMeteredEntitlementTypeMetered,
 			UsagePeriod:             lo.ToPtr(metered.UsagePeriod.ISOString().String()),
 		})
 		if err != nil {
@@ -191,9 +191,9 @@ func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCard
 			return result, fmt.Errorf("failed to cast Static EntitlementTemplate: %w", err)
 		}
 
-		err = result.FromRateCardStaticEntitlement(api.RateCardStaticEntitlement{
-			Metadata: lo.EmptyableToPtr(api.Metadata(static.Metadata)),
-			Type:     api.RateCardStaticEntitlementTypeStatic,
+		err = result.FromRateCardStaticEntitlement(apiv1models.RateCardStaticEntitlement{
+			Metadata: lo.EmptyableToPtr(apiv1models.Metadata(static.Metadata)),
+			Type:     apiv1models.RateCardStaticEntitlementTypeStatic,
 			Config:   static.Config,
 		})
 		if err != nil {
@@ -205,9 +205,9 @@ func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCard
 			return result, fmt.Errorf("failed to cast Static EntitlementTemplate: %w", err)
 		}
 
-		err = result.FromRateCardBooleanEntitlement(api.RateCardBooleanEntitlement{
-			Metadata: lo.EmptyableToPtr(api.Metadata(boolean.Metadata)),
-			Type:     api.RateCardBooleanEntitlementTypeBoolean,
+		err = result.FromRateCardBooleanEntitlement(apiv1models.RateCardBooleanEntitlement{
+			Metadata: lo.EmptyableToPtr(apiv1models.Metadata(boolean.Metadata)),
+			Type:     apiv1models.RateCardBooleanEntitlementTypeBoolean,
 		})
 		if err != nil {
 			return result, fmt.Errorf("failed to cast Boolean EntitlementTemplate: %w", err)
@@ -219,20 +219,20 @@ func FromEntitlementTemplate(t productcatalog.EntitlementTemplate) (api.RateCard
 	return result, nil
 }
 
-func FromDiscounts(discounts productcatalog.Discounts) *api.Discounts {
+func FromDiscounts(discounts productcatalog.Discounts) *apiv1models.Discounts {
 	if discounts.IsEmpty() {
 		return nil
 	}
 
-	discountsAPI := api.Discounts{}
+	discountsAPI := apiv1models.Discounts{}
 	if discounts.Usage != nil {
-		discountsAPI.Usage = &api.DiscountUsage{
+		discountsAPI.Usage = &apiv1models.DiscountUsage{
 			Quantity: discounts.Usage.Quantity.String(),
 		}
 	}
 
 	if discounts.Percentage != nil {
-		discountsAPI.Percentage = &api.DiscountPercentage{
+		discountsAPI.Percentage = &apiv1models.DiscountPercentage{
 			Percentage: discounts.Percentage.Percentage,
 		}
 	}
@@ -240,7 +240,7 @@ func FromDiscounts(discounts productcatalog.Discounts) *api.Discounts {
 	return &discountsAPI
 }
 
-func AsRateCards(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, rcs []api.RateCard) (productcatalog.RateCards, error) {
+func AsRateCards(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, rcs []apiv1models.RateCard) (productcatalog.RateCards, error) {
 	var rateCards productcatalog.RateCards
 
 	if len(rcs) > 0 {
@@ -259,7 +259,7 @@ func AsRateCards(ctx context.Context, resolver productcatalog.TaxCodeBackfillRes
 	return rateCards, nil
 }
 
-func AsRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, r api.RateCard) (productcatalog.RateCard, error) {
+func AsRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, r apiv1models.RateCard) (productcatalog.RateCard, error) {
 	rType, err := r.Discriminator()
 	if err != nil {
 		return nil, fmt.Errorf("failed to cast type: %w", err)
@@ -295,7 +295,7 @@ func AsRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillReso
 	}
 }
 
-func AsFlatFeeRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, flat api.RateCardFlatFee) (productcatalog.FlatFeeRateCard, error) {
+func AsFlatFeeRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, flat apiv1models.RateCardFlatFee) (productcatalog.FlatFeeRateCard, error) {
 	var err error
 
 	rc := productcatalog.FlatFeeRateCard{
@@ -344,9 +344,9 @@ func AsFlatFeeRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackf
 		var paymentTerm productcatalog.PaymentTermType
 		if flat.Price.PaymentTerm != nil {
 			switch *flat.Price.PaymentTerm {
-			case api.PricePaymentTermInArrears:
+			case apiv1models.PricePaymentTermInArrears:
 				paymentTerm = productcatalog.InArrearsPaymentTerm
-			case api.PricePaymentTermInAdvance:
+			case apiv1models.PricePaymentTermInAdvance:
 				paymentTerm = productcatalog.InAdvancePaymentTerm
 			default:
 				paymentTerm = productcatalog.DefaultPaymentTerm
@@ -371,7 +371,7 @@ func AsFlatFeeRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackf
 	return rc, nil
 }
 
-func AsUsageBasedRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, usage api.RateCardUsageBased) (productcatalog.UsageBasedRateCard, error) {
+func AsUsageBasedRateCard(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, usage apiv1models.RateCardUsageBased) (productcatalog.UsageBasedRateCard, error) {
 	var err error
 
 	rc := productcatalog.UsageBasedRateCard{
@@ -428,7 +428,7 @@ func AsUsageBasedRateCard(ctx context.Context, resolver productcatalog.TaxCodeBa
 	return rc, nil
 }
 
-func AsDiscounts(discounts *api.Discounts) (productcatalog.Discounts, error) {
+func AsDiscounts(discounts *apiv1models.Discounts) (productcatalog.Discounts, error) {
 	out := productcatalog.Discounts{}
 
 	if discounts == nil {
@@ -452,7 +452,7 @@ func AsDiscounts(discounts *api.Discounts) (productcatalog.Discounts, error) {
 	return out, nil
 }
 
-func AsUsageDiscount(d api.DiscountUsage) (productcatalog.UsageDiscount, error) {
+func AsUsageDiscount(d apiv1models.DiscountUsage) (productcatalog.UsageDiscount, error) {
 	quantity, err := decimal.NewFromString(d.Quantity)
 	if err != nil {
 		return productcatalog.UsageDiscount{}, fmt.Errorf("failed to parse Quantity of DiscountUsage: %w", err)
@@ -463,13 +463,13 @@ func AsUsageDiscount(d api.DiscountUsage) (productcatalog.UsageDiscount, error) 
 	}, nil
 }
 
-func AsPercentageDiscount(d api.DiscountPercentage) productcatalog.PercentageDiscount {
+func AsPercentageDiscount(d apiv1models.DiscountPercentage) productcatalog.PercentageDiscount {
 	return productcatalog.PercentageDiscount{
 		Percentage: d.Percentage,
 	}
 }
 
-func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
+func AsPrice(p apiv1models.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 	var price *productcatalog.Price
 
 	usagePriceType, err := p.Discriminator()
@@ -478,7 +478,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 	}
 
 	switch usagePriceType {
-	case string(api.FlatPriceTypeFlat):
+	case string(apiv1models.FlatPriceTypeFlat):
 		flat, err := p.AsFlatPriceWithPaymentTerm()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast FlatPrice: %w", err)
@@ -493,9 +493,9 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 
 		if flat.PaymentTerm != nil {
 			switch *flat.PaymentTerm {
-			case api.PricePaymentTermInArrears:
+			case apiv1models.PricePaymentTermInArrears:
 				flatPrice.PaymentTerm = productcatalog.InArrearsPaymentTerm
-			case api.PricePaymentTermInAdvance:
+			case apiv1models.PricePaymentTermInAdvance:
 				flatPrice.PaymentTerm = productcatalog.InAdvancePaymentTerm
 			default:
 				flatPrice.PaymentTerm = productcatalog.DefaultPaymentTerm
@@ -503,7 +503,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 		}
 
 		price = productcatalog.NewPriceFrom(flatPrice)
-	case string(api.UnitPriceTypeUnit):
+	case string(apiv1models.UnitPriceTypeUnit):
 		unit, err := p.AsUnitPriceWithCommitments()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast UnitPrice: %w", err)
@@ -535,7 +535,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 		}
 
 		price = productcatalog.NewPriceFrom(unitPrice)
-	case string(api.TieredPriceWithCommitmentsTypeTiered):
+	case string(apiv1models.TieredPriceWithCommitmentsTypeTiered):
 		tiered, err := p.AsTieredPriceWithCommitments()
 		if err != nil {
 			return price, fmt.Errorf("failed to cast TieredPrice: %w", err)
@@ -581,7 +581,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 		}
 
 		price = productcatalog.NewPriceFrom(tieredPrice)
-	case string(api.DynamicPriceWithCommitmentsTypeDynamic):
+	case string(apiv1models.DynamicPriceWithCommitmentsTypeDynamic):
 		dynamic, err := p.AsDynamicPriceWithCommitments()
 		if err != nil {
 			return price, fmt.Errorf("failed to cast DynamicPrice: %w", err)
@@ -620,7 +620,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 		}
 
 		price = productcatalog.NewPriceFrom(dynamicPrice)
-	case string(api.PackagePriceWithCommitmentsTypePackage):
+	case string(apiv1models.PackagePriceWithCommitmentsTypePackage):
 		packagePriceAPI, err := p.AsPackagePriceWithCommitments()
 		if err != nil {
 			return price, fmt.Errorf("failed to cast PackagePrice: %w", err)
@@ -665,7 +665,7 @@ func AsPrice(p api.RateCardUsageBasedPrice) (*productcatalog.Price, error) {
 	return price, nil
 }
 
-func AsPriceTier(t api.PriceTier) (productcatalog.PriceTier, error) {
+func AsPriceTier(t apiv1models.PriceTier) (productcatalog.PriceTier, error) {
 	tier := productcatalog.PriceTier{
 		UpToAmount: nil,
 		FlatPrice:  nil,
@@ -706,7 +706,7 @@ func AsPriceTier(t api.PriceTier) (productcatalog.PriceTier, error) {
 	return tier, nil
 }
 
-func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
+func AsEntitlementTemplate(e apiv1models.RateCardEntitlement, billingCadence *datetime.ISODuration) (*productcatalog.EntitlementTemplate, error) {
 	tmpl := &productcatalog.EntitlementTemplate{}
 
 	eType, err := e.Discriminator()
@@ -715,7 +715,7 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datetime.I
 	}
 
 	switch eType {
-	case string(api.RateCardMeteredEntitlementTypeMetered):
+	case string(apiv1models.RateCardMeteredEntitlementTypeMetered):
 		metered, err := e.AsRateCardMeteredEntitlement()
 		if err != nil {
 			return nil, fmt.Errorf("failed to cast Metered EntitlementTemplate: %w", err)
@@ -751,7 +751,7 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datetime.I
 		}
 
 		tmpl = productcatalog.NewEntitlementTemplateFrom(meteredTemplate)
-	case string(api.RateCardStaticEntitlementTypeStatic):
+	case string(apiv1models.RateCardStaticEntitlementTypeStatic):
 		static, err := e.AsRateCardStaticEntitlement()
 		if err != nil {
 			return tmpl, fmt.Errorf("failed to cast Static EntitlementTemplate: %w", err)
@@ -763,7 +763,7 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datetime.I
 		}
 
 		tmpl = productcatalog.NewEntitlementTemplateFrom(staticTemplate)
-	case string(api.RateCardBooleanEntitlementTypeBoolean):
+	case string(apiv1models.RateCardBooleanEntitlementTypeBoolean):
 		boolean, err := e.AsRateCardBooleanEntitlement()
 		if err != nil {
 			return tmpl, fmt.Errorf("failed to cast Boolean EntitlementTemplate: %w", err)
@@ -781,7 +781,7 @@ func AsEntitlementTemplate(e api.RateCardEntitlement, billingCadence *datetime.I
 	return tmpl, nil
 }
 
-func AsTaxConfig(c api.TaxConfig) productcatalog.TaxConfig {
+func AsTaxConfig(c apiv1models.TaxConfig) productcatalog.TaxConfig {
 	tc := productcatalog.TaxConfig{
 		Behavior:  (*productcatalog.TaxBehavior)(c.Behavior),
 		TaxCodeID: c.TaxCodeId,
@@ -816,7 +816,7 @@ func (e *TaxCodeResolutionError) Unwrap() error {
 //
 // stripe.code is format-checked even when taxCodeId wins, because the API always rejected
 // malformed codes with a 400.
-func FromAPITaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, in api.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
+func FromAPITaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, in apiv1models.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
 	stripeCode := lo.FromPtr(in.Stripe).Code
 
 	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {
@@ -869,12 +869,12 @@ func FromAPITaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfi
 	return lo.ToPtr(out.Clone()), nil
 }
 
-func FromMetadata(metadata models.Metadata) *api.Metadata {
+func FromMetadata(metadata models.Metadata) *apiv1models.Metadata {
 	if len(metadata) == 0 {
 		return nil
 	}
 
-	result := make(api.Metadata)
+	result := make(apiv1models.Metadata)
 	if len(metadata) > 0 {
 		for k, v := range metadata {
 			result[k] = v
@@ -884,12 +884,12 @@ func FromMetadata(metadata models.Metadata) *api.Metadata {
 	return &result
 }
 
-func FromValidationAttributes(attrs models.Attributes) *api.Annotations {
+func FromValidationAttributes(attrs models.Attributes) *apiv1models.Annotations {
 	if len(attrs) == 0 {
 		return nil
 	}
 
-	out := api.Annotations(attrs.AsStringMap())
+	out := apiv1models.Annotations(attrs.AsStringMap())
 
 	if len(out) == 0 {
 		return nil
@@ -898,23 +898,23 @@ func FromValidationAttributes(attrs models.Attributes) *api.Annotations {
 	return &out
 }
 
-func FromAnnotations(annotations models.Annotations) *api.Annotations {
+func FromAnnotations(annotations models.Annotations) *apiv1models.Annotations {
 	if len(annotations) == 0 {
 		return nil
 	}
 
-	return lo.ToPtr(api.Annotations(annotations))
+	return lo.ToPtr(apiv1models.Annotations(annotations))
 }
 
-func FromValidationErrors(issues models.ValidationIssues) *[]api.ValidationError {
+func FromValidationErrors(issues models.ValidationIssues) *[]apiv1models.ValidationError {
 	if len(issues) == 0 {
 		return nil
 	}
 
-	var result []api.ValidationError
+	var result []apiv1models.ValidationError
 
 	for _, issue := range issues {
-		result = append(result, api.ValidationError{
+		result = append(result, apiv1models.ValidationError{
 			Message:    issue.Message(),
 			Field:      issue.Field().JSONPath(),
 			Code:       string(issue.Code()),

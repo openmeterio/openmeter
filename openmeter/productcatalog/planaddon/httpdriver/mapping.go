@@ -5,7 +5,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	addonhttp "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -15,16 +15,16 @@ import (
 
 // FromPlanAddon maps a plan add-on assignment to its v1 shape. taxCodes must hold every Tax Code
 // referenced by the add-on's rate cards: a missing entry is an error.
-func FromPlanAddon(a planaddon.PlanAddon, taxCodes map[string]*taxcode.TaxCode) (api.PlanAddon, error) {
+func FromPlanAddon(a planaddon.PlanAddon, taxCodes map[string]*taxcode.TaxCode) (apiv1models.PlanAddon, error) {
 	validationIssues, _ := a.AsProductCatalogPlanAddon().ValidationErrors()
 
 	apiAddon, err := addonhttp.FromAddon(a.Addon, taxCodes)
 	if err != nil {
-		return api.PlanAddon{}, fmt.Errorf("failed to cast add-on [namespace=%s id=%s key=%s]: %w",
+		return apiv1models.PlanAddon{}, fmt.Errorf("failed to cast add-on [namespace=%s id=%s key=%s]: %w",
 			a.Addon.Namespace, a.Addon.ID, a.Addon.Key, err)
 	}
 
-	resp := api.PlanAddon{
+	resp := apiv1models.PlanAddon{
 		Addon:            apiAddon,
 		FromPlanPhase:    a.PlanAddonConfig.FromPlanPhase,
 		MaxQuantity:      a.PlanAddonConfig.MaxQuantity,
@@ -39,7 +39,7 @@ func FromPlanAddon(a planaddon.PlanAddon, taxCodes map[string]*taxcode.TaxCode) 
 	return resp, nil
 }
 
-func AsCreatePlanAddonRequest(a api.PlanAddonCreate, namespace string, planID string) (CreatePlanAddonRequest, error) {
+func AsCreatePlanAddonRequest(a apiv1models.PlanAddonCreate, namespace string, planID string) (CreatePlanAddonRequest, error) {
 	var metadata models.Metadata
 
 	if a.Metadata != nil {
@@ -60,7 +60,7 @@ func AsCreatePlanAddonRequest(a api.PlanAddonCreate, namespace string, planID st
 	return req, nil
 }
 
-func AsUpdatePlanAddonRequest(a api.PlanAddonReplaceUpdate, namespace string, planID string, addonID string) (UpdatePlanAddonRequest, error) {
+func AsUpdatePlanAddonRequest(a apiv1models.PlanAddonReplaceUpdate, namespace string, planID string, addonID string) (UpdatePlanAddonRequest, error) {
 	var metadata *models.Metadata
 
 	if a.Metadata != nil {
@@ -81,7 +81,7 @@ func AsUpdatePlanAddonRequest(a api.PlanAddonReplaceUpdate, namespace string, pl
 	return req, nil
 }
 
-func AsMetadata(metadata api.Metadata) models.Metadata {
+func AsMetadata(metadata apiv1models.Metadata) models.Metadata {
 	var result models.Metadata
 
 	if len(metadata) > 0 {

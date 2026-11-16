@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -22,7 +22,7 @@ type (
 func (h *handler) UpdateStripeAPIKey() UpdateStripeAPIKeyHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, appID string) (UpdateStripeAPIKeyRequest, error) {
-			body := api.UpdateStripeAPIKeyJSONRequestBody{}
+			body := apiv1models.UpdateStripeAPIKeyJSONRequestBody{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateStripeAPIKeyRequest{}, fmt.Errorf("field to decode replace stripe api key request: %w", err)
 			}

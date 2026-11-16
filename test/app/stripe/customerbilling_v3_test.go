@@ -14,8 +14,9 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
 	customersbilling "github.com/openmeterio/openmeter/api/v3/handlers/customers/billing"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/oasmiddleware"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
@@ -92,10 +93,10 @@ func TestCustomerBillingV3(t *testing.T) {
 		// then the profile is pinned and no app data is created
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		var got api.BillingCustomerData
+		var got apiv3models.BillingCustomerData
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
-		require.Equal(t, api.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
-		require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: pinnedProfile.ID}), got.BillingProfile)
+		require.Equal(t, apiv3models.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
+		require.Equal(t, nullable.NewNullableWithValue(apiv3models.BillingProfileReference{Id: pinnedProfile.ID}), got.BillingProfile)
 
 		override, err := env.Billing().GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: cus.GetID(),
@@ -140,7 +141,7 @@ func TestCustomerBillingV3(t *testing.T) {
 				rec := doJSONRequest(router, request.method, "/openmeter/customers/"+cus.ID+"/billing", request.body)
 				require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 				// then: omission preserves the pin and the effective profile is always present.
-				var got api.BillingCustomerData
+				var got apiv3models.BillingCustomerData
 				require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 				require.Equal(t, tc.effectiveID, got.EffectiveBillingProfile.Id)
 				if tc.pinID == "" {
@@ -149,7 +150,7 @@ func TestCustomerBillingV3(t *testing.T) {
 					require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &fields))
 					require.NotContains(t, fields, "billing_profile")
 				} else {
-					require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: tc.pinID}), got.BillingProfile)
+					require.Equal(t, nullable.NewNullableWithValue(apiv3models.BillingProfileReference{Id: tc.pinID}), got.BillingProfile)
 				}
 			}
 		})
@@ -164,9 +165,9 @@ func TestCustomerBillingV3(t *testing.T) {
 			`{"billing_profile":{"id":"`+defaultProfile.ID+`"}}`)
 		// then: the response preserves the pin even though it equals the effective default.
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
-		var got api.BillingCustomerData
+		var got apiv3models.BillingCustomerData
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
-		require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: defaultProfile.ID}), got.BillingProfile)
+		require.Equal(t, nullable.NewNullableWithValue(apiv3models.BillingProfileReference{Id: defaultProfile.ID}), got.BillingProfile)
 		require.Equal(t, defaultProfile.ID, got.EffectiveBillingProfile.Id)
 	})
 
@@ -210,10 +211,10 @@ func TestCustomerBillingV3(t *testing.T) {
 		getRec := doJSONRequest(router, http.MethodGet, "/openmeter/customers/"+cus.ID+"/billing", "")
 		require.Equal(t, http.StatusOK, getRec.Code, "body: %s", getRec.Body.String())
 
-		var got api.BillingCustomerData
+		var got apiv3models.BillingCustomerData
 		require.NoError(t, json.Unmarshal(getRec.Body.Bytes(), &got))
-		require.Equal(t, nullable.NewNullableWithValue(api.BillingProfileReference{Id: pinnedProfile.ID}), got.BillingProfile)
-		require.Equal(t, api.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
+		require.Equal(t, nullable.NewNullableWithValue(apiv3models.BillingProfileReference{Id: pinnedProfile.ID}), got.BillingProfile)
+		require.Equal(t, apiv3models.BillingProfileReference{Id: pinnedProfile.ID}, got.EffectiveBillingProfile)
 		require.NotNil(t, got.AppData)
 		stripeData, err := got.AppData.Stripe.Get()
 		require.NoError(t, err)
@@ -348,7 +349,7 @@ func TestCustomerBillingV3(t *testing.T) {
 		// then the response returns the stripe customer id
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		var got api.BillingCustomerData
+		var got apiv3models.BillingCustomerData
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 		require.NotNil(t, got.AppData)
 		require.True(t, got.AppData.Stripe.IsSpecified())
@@ -380,7 +381,7 @@ func TestCustomerBillingV3(t *testing.T) {
 		// then the read succeeds and reports the stripe app data as explicit null
 		require.Equal(t, http.StatusOK, rec.Code, "body: %s", rec.Body.String())
 
-		var got api.BillingCustomerData
+		var got apiv3models.BillingCustomerData
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &got))
 		require.NotNil(t, got.AppData)
 		require.True(t, got.AppData.Stripe.IsSpecified())
@@ -391,7 +392,7 @@ func TestCustomerBillingV3(t *testing.T) {
 func newCustomerBillingRouter(t *testing.T, env TestEnv, namespace string) http.Handler {
 	t.Helper()
 
-	doc, err := api.GetSpec()
+	doc, err := apiv3.GetSpec()
 	require.NoError(t, err)
 
 	validationRouter, err := oasmiddleware.NewValidationRouter(t.Context(), doc, &oasmiddleware.ValidationRouterOpts{

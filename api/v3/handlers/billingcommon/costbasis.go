@@ -6,12 +6,12 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
-func FromAPIChargeCostBasis(in *api.BillingChargeCostBasis) (*costbasis.Intent, error) {
+func FromAPIChargeCostBasis(in *apiv3models.BillingChargeCostBasis) (*costbasis.Intent, error) {
 	if in == nil {
 		return nil, nil
 	}
@@ -21,11 +21,11 @@ func FromAPIChargeCostBasis(in *api.BillingChargeCostBasis) (*costbasis.Intent, 
 		return nil, fmt.Errorf("invalid cost basis: %w", err)
 	}
 
-	var fiatCurrencyCode *api.CurrencyCode
+	var fiatCurrencyCode *apiv3models.CurrencyCode
 	var input costbasis.NewIntentFromFieldsInput
 
 	switch costBasisType {
-	case string(api.BillingChargeCostBasisDynamicTypeDynamic):
+	case string(apiv3models.BillingChargeCostBasisDynamicTypeDynamic):
 		dynamic, err := in.AsBillingChargeCostBasisDynamic()
 		if err != nil {
 			return nil, fmt.Errorf("invalid dynamic cost basis: %w", err)
@@ -33,7 +33,7 @@ func FromAPIChargeCostBasis(in *api.BillingChargeCostBasis) (*costbasis.Intent, 
 
 		input.Mode = costbasis.ModeDynamic
 		fiatCurrencyCode = &dynamic.FiatCurrency
-	case string(api.BillingChargeCostBasisManualTypeManual):
+	case string(apiv3models.BillingChargeCostBasisManualTypeManual):
 		manual, err := in.AsBillingChargeCostBasisManual()
 		if err != nil {
 			return nil, fmt.Errorf("invalid manual cost basis: %w", err)
@@ -47,7 +47,7 @@ func FromAPIChargeCostBasis(in *api.BillingChargeCostBasis) (*costbasis.Intent, 
 		input.Mode = costbasis.ModeManual
 		input.Rate = &rate
 		fiatCurrencyCode = manual.FiatCurrency
-	case string(api.BillingChargeCostBasisPinnedTypePinned):
+	case string(apiv3models.BillingChargeCostBasisPinnedTypePinned):
 		pinned, err := in.AsBillingChargeCostBasisPinned()
 		if err != nil {
 			return nil, fmt.Errorf("invalid pinned cost basis: %w", err)
@@ -77,7 +77,7 @@ func FromAPIChargeCostBasis(in *api.BillingChargeCostBasis) (*costbasis.Intent, 
 
 // ToAPIChargeResolvedCostBasis pairs the resolved state with the fiat currency
 // it converts into, which is not part of the state itself.
-func ToAPIChargeResolvedCostBasis(fiat *currencyx.FiatCurrency, state *costbasis.State) (*api.BillingChargeResolvedCostBasis, error) {
+func ToAPIChargeResolvedCostBasis(fiat *currencyx.FiatCurrency, state *costbasis.State) (*apiv3models.BillingChargeResolvedCostBasis, error) {
 	if state == nil {
 		return nil, nil
 	}
@@ -86,8 +86,8 @@ func ToAPIChargeResolvedCostBasis(fiat *currencyx.FiatCurrency, state *costbasis
 		return nil, errors.New("resolved cost basis without a fiat currency")
 	}
 
-	return &api.BillingChargeResolvedCostBasis{
-		FiatCurrency: api.CurrencyCode(fiat.Details().Code),
+	return &apiv3models.BillingChargeResolvedCostBasis{
+		FiatCurrency: apiv3models.CurrencyCode(fiat.Details().Code),
 		Rate:         state.CostBasis.String(),
 		CostBasisId:  state.CostBasisID,
 		ResolvedAt:   state.ResolvedAt,

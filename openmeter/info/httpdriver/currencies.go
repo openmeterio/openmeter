@@ -7,14 +7,14 @@ import (
 	"github.com/invopop/gobl/currency"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 type (
 	ListCurrenciesRequest  struct{}
-	ListCurrenciesResponse []api.Currency
+	ListCurrenciesResponse []apiv1models.Currency
 	ListCurrenciesHandler  httptransport.Handler[ListCurrenciesRequest, ListCurrenciesResponse]
 )
 
@@ -32,9 +32,9 @@ func (h *handler) ListCurrencies() ListCurrenciesHandler {
 					// NOTE: this filters out non-iso currencies such as crypto
 					return def.ISONumeric != ""
 				},
-			), func(def *currency.Def, _ int) api.Currency {
-				return api.Currency{
-					Code:     api.CurrencyCode(def.ISOCode),
+			), func(def *currency.Def, _ int) apiv1models.Currency {
+				return apiv1models.Currency{
+					Code:     apiv1models.CurrencyCode(def.ISOCode),
 					Name:     def.Name,
 					Symbol:   def.Symbol,
 					Subunits: def.Subunits,

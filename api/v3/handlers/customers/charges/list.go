@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -15,10 +15,10 @@ import (
 
 type (
 	ListCustomerChargesRequest  = billingcharges.ListCustomerChargesInput
-	ListCustomerChargesResponse = response.PagePaginationResponse[api.BillingCharge]
+	ListCustomerChargesResponse = response.PagePaginationResponse[apiv3models.BillingCharge]
 	ListCustomerChargesParams   struct {
-		CustomerID api.ULID
-		Params     api.ListCustomerChargesParams
+		CustomerID apiv3models.ULID
+		Params     apiv3models.ListCustomerChargesParams
 	}
 	ListCustomerChargesHandler = httptransport.HandlerWithArgs[ListCustomerChargesRequest, ListCustomerChargesResponse, ListCustomerChargesParams]
 )
@@ -39,7 +39,7 @@ func (h *handler) ListCustomerCharges() ListCustomerChargesHandler {
 			req.CustomerIDs = []string{args.CustomerID}
 
 			if args.Params.Filter != nil {
-				if err := fromAPIListChargesParamsFilter(ctx, &api.ListChargesParamsFilter{
+				if err := fromAPIListChargesParamsFilter(ctx, &apiv3models.ListChargesParamsFilter{
 					Status:            args.Params.Filter.Status,
 					FeatureId:         args.Params.Filter.FeatureId,
 					FeatureKey:        args.Params.Filter.FeatureKey,

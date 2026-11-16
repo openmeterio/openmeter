@@ -8,13 +8,13 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	apiconverter "github.com/openmeterio/openmeter/openmeter/apiconverter"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
-func convertListEventsV2Params(params api.ListEventsV2Params, namespace string) (meterevent.ListEventsV2Params, error) {
+func convertListEventsV2Params(params apiv1models.ListEventsV2Params, namespace string) (meterevent.ListEventsV2Params, error) {
 	cursor, err := apiconverter.ConvertCursorPtr(params.Cursor)
 	if err != nil {
 		return meterevent.ListEventsV2Params{}, err
@@ -40,7 +40,7 @@ func convertListEventsV2Params(params api.ListEventsV2Params, namespace string) 
 	return p, nil
 }
 
-func convertEvent(e meterevent.Event) (api.IngestedEvent, error) {
+func convertEvent(e meterevent.Event) (apiv1models.IngestedEvent, error) {
 	ev := event.New()
 	ev.SetID(e.ID)
 	ev.SetType(e.Type)
@@ -52,12 +52,12 @@ func convertEvent(e meterevent.Event) (api.IngestedEvent, error) {
 		var data interface{}
 		err := json.Unmarshal([]byte(e.Data), &data)
 		if err != nil {
-			return api.IngestedEvent{}, fmt.Errorf("parse cloudevents data as json: %w", err)
+			return apiv1models.IngestedEvent{}, fmt.Errorf("parse cloudevents data as json: %w", err)
 		}
 
 		err = ev.SetData(event.ApplicationJSON, data)
 		if err != nil {
-			return api.IngestedEvent{}, fmt.Errorf("set cloudevents data: %w", err)
+			return apiv1models.IngestedEvent{}, fmt.Errorf("set cloudevents data: %w", err)
 		}
 	}
 
@@ -66,7 +66,7 @@ func convertEvent(e meterevent.Event) (api.IngestedEvent, error) {
 		validationError = lo.EmptyableToPtr(errors.Join(e.ValidationErrors...).Error())
 	}
 
-	return api.IngestedEvent{
+	return apiv1models.IngestedEvent{
 		Event:           ev,
 		CustomerId:      e.CustomerID,
 		IngestedAt:      e.IngestedAt,
@@ -75,18 +75,18 @@ func convertEvent(e meterevent.Event) (api.IngestedEvent, error) {
 	}, nil
 }
 
-func convertListEventsV2Response(events pagination.Result[meterevent.Event]) (api.IngestedEventCursorPaginatedResponse, error) {
-	items := make([]api.IngestedEvent, len(events.Items))
+func convertListEventsV2Response(events pagination.Result[meterevent.Event]) (apiv1models.IngestedEventCursorPaginatedResponse, error) {
+	items := make([]apiv1models.IngestedEvent, len(events.Items))
 	for i, e := range events.Items {
 		ev, err := convertEvent(e)
 		if err != nil {
-			return api.IngestedEventCursorPaginatedResponse{}, err
+			return apiv1models.IngestedEventCursorPaginatedResponse{}, err
 		}
 
 		items[i] = ev
 	}
 
-	return api.IngestedEventCursorPaginatedResponse{
+	return apiv1models.IngestedEventCursorPaginatedResponse{
 		Items:      items,
 		NextCursor: events.NextCursor.EncodePtr(),
 	}, nil

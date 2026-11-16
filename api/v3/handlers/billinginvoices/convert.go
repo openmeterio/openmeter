@@ -6,14 +6,14 @@ import (
 
 	"github.com/samber/lo"
 
-	apilegacy "github.com/openmeterio/openmeter/api"
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	"github.com/openmeterio/openmeter/api/v3/handlers/tax"
 	"github.com/openmeterio/openmeter/api/v3/labels"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
@@ -29,19 +29,19 @@ import (
 )
 
 // ToAPIBillingInvoice converts a billing.Invoice domain union to the v3 API type.
-func ToAPIBillingInvoice(inv billing.Invoice) (api.BillingInvoice, error) {
+func ToAPIBillingInvoice(inv billing.Invoice) (apiv3models.BillingInvoice, error) {
 	switch inv.Type() {
 	case billing.InvoiceTypeStandard:
 		std, err := inv.AsStandardInvoice()
 		if err != nil {
-			return api.BillingInvoice{}, fmt.Errorf("reading standard invoice: %w", err)
+			return apiv3models.BillingInvoice{}, fmt.Errorf("reading standard invoice: %w", err)
 		}
 
 		return ToAPIStandardInvoice(std)
 	default:
 		genericInv, _ := inv.AsGenericInvoice()
 
-		return api.BillingInvoice{}, billing.NotFoundError{
+		return apiv3models.BillingInvoice{}, billing.NotFoundError{
 			ID:     genericInv.GetID(),
 			Entity: billing.EntityInvoice,
 			Err:    fmt.Errorf("unsupported invoice type %q", inv.Type()),
@@ -49,8 +49,8 @@ func ToAPIBillingInvoice(inv billing.Invoice) (api.BillingInvoice, error) {
 	}
 }
 
-func ToAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoice, error) {
-	var out api.BillingInvoice
+func ToAPIStandardInvoice(std billing.StandardInvoice) (apiv3models.BillingInvoice, error) {
+	var out apiv3models.BillingInvoice
 	stdAPI, err := toAPIStandardInvoice(std)
 	if err != nil {
 		return out, err
@@ -66,13 +66,13 @@ func ToAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoice, erro
 // ToAPIChargeRealizationInvoice maps a realization's invoice to the charges
 // API's own embedded invoice model: the standard invoice without the customer
 // snapshot, which the embedding charge already identifies.
-func ToAPIChargeRealizationInvoice(std billing.StandardInvoice) (api.BillingChargeRealizationInvoice, error) {
+func ToAPIChargeRealizationInvoice(std billing.StandardInvoice) (apiv3models.BillingChargeRealizationInvoice, error) {
 	stdAPI, err := toAPIStandardInvoice(std)
 	if err != nil {
-		return api.BillingChargeRealizationInvoice{}, err
+		return apiv3models.BillingChargeRealizationInvoice{}, err
 	}
 
-	return api.BillingChargeRealizationInvoice{
+	return apiv3models.BillingChargeRealizationInvoice{
 		CollectionAt:          stdAPI.CollectionAt,
 		CreatedAt:             stdAPI.CreatedAt,
 		Currency:              stdAPI.Currency,
@@ -92,28 +92,28 @@ func ToAPIChargeRealizationInvoice(std billing.StandardInvoice) (api.BillingChar
 		StatusDetails:         stdAPI.StatusDetails,
 		Supplier:              stdAPI.Supplier,
 		Totals:                stdAPI.Totals,
-		Type:                  api.BillingChargeRealizationInvoiceTypeStandard,
+		Type:                  apiv3models.BillingChargeRealizationInvoiceTypeStandard,
 		UpdatedAt:             stdAPI.UpdatedAt,
 		ValidationIssues:      stdAPI.ValidationIssues,
 		Workflow:              stdAPI.Workflow,
 	}, nil
 }
 
-func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoiceStandard, error) {
+func toAPIStandardInvoice(std billing.StandardInvoice) (apiv3models.BillingInvoiceStandard, error) {
 	// Sort lines for consistent output — matches v1 behavior.
 	std.SortLines()
 
 	workflow, err := toAPIWorkflow(std.Workflow)
 	if err != nil {
-		return api.BillingInvoiceStandard{}, fmt.Errorf("converting workflow: %w", err)
+		return apiv3models.BillingInvoiceStandard{}, fmt.Errorf("converting workflow: %w", err)
 	}
 
 	outLines, err := mapLines(std.Lines.OrEmpty())
 	if err != nil {
-		return api.BillingInvoiceStandard{}, err
+		return apiv3models.BillingInvoiceStandard{}, err
 	}
 
-	return api.BillingInvoiceStandard{
+	return apiv3models.BillingInvoiceStandard{
 		Id:                    std.ID,
 		Number:                std.Number,
 		Description:           std.Description,
@@ -127,10 +127,10 @@ func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoiceStanda
 		DraftUntil:            std.DraftUntil,
 		SentToCustomerAt:      std.SentToCustomerAt,
 		QuantitySnapshottedAt: std.QuantitySnapshotedAt,
-		ServicePeriod:         api.ClosedPeriod(lo.FromPtr(std.Period)),
-		Currency:              api.CurrencyCode(std.Currency),
-		Type:                  api.BillingInvoiceStandardTypeStandard,
-		Status:                api.BillingInvoiceStandardStatus(std.Status.ShortStatus()),
+		ServicePeriod:         apiv3models.ClosedPeriod(lo.FromPtr(std.Period)),
+		Currency:              apiv3models.CurrencyCode(std.Currency),
+		Type:                  apiv3models.BillingInvoiceStandardTypeStandard,
+		Status:                apiv3models.BillingInvoiceStandardStatus(std.Status.ShortStatus()),
 		StatusDetails:         toAPIStatusDetails(std.StatusDetails, std.Status),
 		Customer:              toAPIInvoiceCustomer(std.Customer),
 		Supplier:              billingprofiles.ToAPIBillingSupplier(std.Supplier),
@@ -142,12 +142,12 @@ func toAPIStandardInvoice(std billing.StandardInvoice) (api.BillingInvoiceStanda
 	}, nil
 }
 
-func toAPIStatusDetails(d billing.StandardInvoiceStatusDetails, status billing.StandardInvoiceStatus) api.BillingInvoiceStatusDetails {
-	return api.BillingInvoiceStatusDetails{
+func toAPIStatusDetails(d billing.StandardInvoiceStatusDetails, status billing.StandardInvoiceStatus) apiv3models.BillingInvoiceStatusDetails {
+	return apiv3models.BillingInvoiceStatusDetails{
 		Immutable:      d.Immutable,
 		Failed:         d.Failed,
 		ExtendedStatus: string(status),
-		AvailableActions: api.BillingInvoiceAvailableActions{
+		AvailableActions: apiv3models.BillingInvoiceAvailableActions{
 			Advance:            toAPIActionDetails(d.AvailableActions.Advance),
 			Approve:            toAPIActionDetails(d.AvailableActions.Approve),
 			Delete:             toAPIActionDetails(d.AvailableActions.Delete),
@@ -158,36 +158,36 @@ func toAPIStatusDetails(d billing.StandardInvoiceStatusDetails, status billing.S
 	}
 }
 
-func toAPIActionDetails(d *billing.StandardInvoiceAvailableActionDetails) *api.BillingInvoiceAvailableActionDetails {
+func toAPIActionDetails(d *billing.StandardInvoiceAvailableActionDetails) *apiv3models.BillingInvoiceAvailableActionDetails {
 	if d == nil {
 		return nil
 	}
 
-	return &api.BillingInvoiceAvailableActionDetails{
+	return &apiv3models.BillingInvoiceAvailableActionDetails{
 		ResultingState: string(d.ResultingState),
 	}
 }
 
-func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer {
-	out := api.BillingInvoiceCustomer{
+func toAPIInvoiceCustomer(c billing.InvoiceCustomer) apiv3models.BillingInvoiceCustomer {
+	out := apiv3models.BillingInvoiceCustomer{
 		Id:   c.CustomerID,
 		Key:  c.Key,
 		Name: c.Name,
 	}
 
 	if c.UsageAttribution != nil {
-		out.UsageAttribution = &api.BillingCustomerUsageAttribution{
+		out.UsageAttribution = &apiv3models.BillingCustomerUsageAttribution{
 			SubjectKeys: c.UsageAttribution.SubjectKeys,
 		}
 	}
 
 	if c.BillingAddress != nil && !lo.IsEmpty(*c.BillingAddress) {
-		var country *api.CountryCode
+		var country *apiv3models.CountryCode
 		if c.BillingAddress.Country != nil {
-			country = lo.ToPtr(api.CountryCode(*c.BillingAddress.Country))
+			country = lo.ToPtr(apiv3models.CountryCode(*c.BillingAddress.Country))
 		}
 
-		out.BillingAddress = &api.Address{
+		out.BillingAddress = &apiv3models.Address{
 			City:        c.BillingAddress.City,
 			Country:     country,
 			Line1:       c.BillingAddress.Line1,
@@ -201,85 +201,85 @@ func toAPIInvoiceCustomer(c billing.InvoiceCustomer) api.BillingInvoiceCustomer 
 	return out
 }
 
-func toAPIWorkflow(w billing.InvoiceWorkflow) (api.BillingInvoiceWorkflowSettings, error) {
+func toAPIWorkflow(w billing.InvoiceWorkflow) (apiv3models.BillingInvoiceWorkflowSettings, error) {
 	config := w.Config
 
-	invoicing := &api.BillingInvoiceWorkflowInvoicingSettings{
+	invoicing := &apiv3models.BillingInvoiceWorkflowInvoicingSettings{
 		AutoAdvance: lo.ToPtr(config.Invoicing.AutoAdvance),
 		DraftPeriod: lo.ToPtr(config.Invoicing.DraftPeriod.String()),
 		DueAfter:    lo.EmptyableToPtr(config.Invoicing.DueAfter.String()),
 	}
 
-	var payment *api.BillingWorkflowPaymentSettings
+	var payment *apiv3models.BillingWorkflowPaymentSettings
 	switch config.Payment.CollectionMethod {
 	case billing.CollectionMethodChargeAutomatically:
-		p := api.BillingWorkflowPaymentSettings{}
-		if err := p.FromBillingWorkflowPaymentChargeAutomaticallySettings(api.BillingWorkflowPaymentChargeAutomaticallySettings{
+		p := apiv3models.BillingWorkflowPaymentSettings{}
+		if err := p.FromBillingWorkflowPaymentChargeAutomaticallySettings(apiv3models.BillingWorkflowPaymentChargeAutomaticallySettings{
 			CollectionMethod: "charge_automatically",
 		}); err != nil {
-			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
+			return apiv3models.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
 		}
 
 		payment = &p
 	case billing.CollectionMethodSendInvoice:
-		p := api.BillingWorkflowPaymentSettings{}
-		if err := p.FromBillingWorkflowPaymentSendInvoiceSettings(api.BillingWorkflowPaymentSendInvoiceSettings{
+		p := apiv3models.BillingWorkflowPaymentSettings{}
+		if err := p.FromBillingWorkflowPaymentSendInvoiceSettings(apiv3models.BillingWorkflowPaymentSendInvoiceSettings{
 			CollectionMethod: "send_invoice",
 			DueAfter:         lo.ToPtr(config.Invoicing.DueAfter.String()),
 		}); err != nil {
-			return api.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
+			return apiv3models.BillingInvoiceWorkflowSettings{}, fmt.Errorf("converting payment settings: %w", err)
 		}
 
 		payment = &p
 	}
 
-	return api.BillingInvoiceWorkflowSettings{
-		Apps: &api.BillingInvoiceWorkflowAppsReferences{
-			Invoicing: api.BillingAppReference{
+	return apiv3models.BillingInvoiceWorkflowSettings{
+		Apps: &apiv3models.BillingInvoiceWorkflowAppsReferences{
+			Invoicing: apiv3models.BillingAppReference{
 				Id: w.AppReferences.Invoicing.ID,
 			},
-			Payment: api.BillingAppReference{
+			Payment: apiv3models.BillingAppReference{
 				Id: w.AppReferences.Payment.ID,
 			},
-			Tax: api.BillingAppReference{
+			Tax: apiv3models.BillingAppReference{
 				Id: w.AppReferences.Tax.ID,
 			},
 		},
-		SourceBillingProfile: api.BillingProfileReference{
+		SourceBillingProfile: apiv3models.BillingProfileReference{
 			Id: w.SourceBillingProfileID,
 		},
-		Workflow: api.BillingInvoiceWorkflow{
+		Workflow: apiv3models.BillingInvoiceWorkflow{
 			Invoicing: invoicing,
 			Payment:   payment,
 		},
 	}, nil
 }
 
-func toAPIInvoiceExternalReferences(e externalid.InvoiceExternalIDs) *api.BillingInvoiceExternalReferences {
+func toAPIInvoiceExternalReferences(e externalid.InvoiceExternalIDs) *apiv3models.BillingInvoiceExternalReferences {
 	if e.Invoicing == "" && e.Payment == "" {
 		return nil
 	}
 
-	return &api.BillingInvoiceExternalReferences{
+	return &apiv3models.BillingInvoiceExternalReferences{
 		InvoicingId: lo.EmptyableToPtr(e.Invoicing),
 		PaymentId:   lo.EmptyableToPtr(e.Payment),
 	}
 }
 
-func mapLines(lines []*billing.StandardLine) (*[]api.BillingInvoiceLine, error) {
+func mapLines(lines []*billing.StandardLine) (*[]apiv3models.BillingInvoiceLine, error) {
 	if len(lines) == 0 {
 		return nil, nil
 	}
 
-	out, err := lo.MapErr(lines, func(line *billing.StandardLine, _ int) (api.BillingInvoiceLine, error) {
+	out, err := lo.MapErr(lines, func(line *billing.StandardLine, _ int) (apiv3models.BillingInvoiceLine, error) {
 		mapped, err := mapStandardLine(line)
 		if err != nil {
-			return api.BillingInvoiceLine{}, fmt.Errorf("mapping line[%s]: %w", line.ID, err)
+			return apiv3models.BillingInvoiceLine{}, fmt.Errorf("mapping line[%s]: %w", line.ID, err)
 		}
 
-		var invoiceLine api.BillingInvoiceLine
+		var invoiceLine apiv3models.BillingInvoiceLine
 		if err := invoiceLine.FromBillingInvoiceStandardLine(mapped); err != nil {
-			return api.BillingInvoiceLine{}, fmt.Errorf("setting standard line union: %w", err)
+			return apiv3models.BillingInvoiceLine{}, fmt.Errorf("setting standard line union: %w", err)
 		}
 
 		return invoiceLine, nil
@@ -291,24 +291,24 @@ func mapLines(lines []*billing.StandardLine) (*[]api.BillingInvoiceLine, error) 
 	return &out, nil
 }
 
-func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine, error) {
+func mapStandardLine(line *billing.StandardLine) (apiv3models.BillingInvoiceStandardLine, error) {
 	rateCard, err := mapRateCard(line)
 	if err != nil {
-		return api.BillingInvoiceStandardLine{}, fmt.Errorf("mapping rate card: %w", err)
+		return apiv3models.BillingInvoiceStandardLine{}, fmt.Errorf("mapping rate card: %w", err)
 	}
 
 	line.SortDetailedLines()
 	detailedLines, err := mapDetailedLines(line.DetailedLines)
 	if err != nil {
-		return api.BillingInvoiceStandardLine{}, fmt.Errorf("mapping detailed lines: %w", err)
+		return apiv3models.BillingInvoiceStandardLine{}, fmt.Errorf("mapping detailed lines: %w", err)
 	}
 
-	var chargeRef *api.BillingChargeReference
+	var chargeRef *apiv3models.BillingChargeReference
 	if line.ChargeID != nil {
-		chargeRef = &api.BillingChargeReference{Id: *line.ChargeID}
+		chargeRef = &apiv3models.BillingChargeReference{Id: *line.ChargeID}
 	}
 
-	var subRef *api.BillingSubscriptionReference
+	var subRef *apiv3models.BillingSubscriptionReference
 	if line.Subscription != nil {
 		subRef = lo.ToPtr(billingcommon.ConvertSubscriptionRefToAPI(meta.SubscriptionReference{
 			SubscriptionID: line.Subscription.SubscriptionID,
@@ -317,7 +317,7 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 		}))
 	}
 
-	return api.BillingInvoiceStandardLine{
+	return apiv3models.BillingInvoiceStandardLine{
 		Id:                  lo.ToPtr(line.ID),
 		Name:                line.Name,
 		Description:         line.Description,
@@ -325,7 +325,7 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 		CreatedAt:           line.CreatedAt,
 		UpdatedAt:           line.UpdatedAt,
 		DeletedAt:           line.DeletedAt,
-		Type:                api.BillingInvoiceStandardLineTypeStandardLine,
+		Type:                apiv3models.BillingInvoiceStandardLineTypeStandardLine,
 		LifecycleController: billingcommon.ConvertLifecycleControllerToAPI(line.ManagedBy),
 		ServicePeriod:       billingcommon.ConvertClosedPeriodToAPI(line.Period),
 		Totals:              billingcommon.ToAPIBillingTotals(line.Totals),
@@ -347,7 +347,7 @@ func mapStandardLine(line *billing.StandardLine) (api.BillingInvoiceStandardLine
 // existing invoices are byte-identical: non-usage-based lines and the charges
 // custom-currency overage path (synthetic metered quantity, no config) both
 // have a nil UnitConfig and emit nothing.
-func toAPIUsageQuantityDetail(line *billing.StandardLine) *api.BillingInvoiceUsageQuantityDetail {
+func toAPIUsageQuantityDetail(line *billing.StandardLine) *apiv3models.BillingInvoiceUsageQuantityDetail {
 	uc := line.GetUnitConfig()
 	if line.UsageBased == nil || uc == nil {
 		return nil
@@ -359,28 +359,28 @@ func toAPIUsageQuantityDetail(line *billing.StandardLine) *api.BillingInvoiceUsa
 		return nil
 	}
 
-	return &api.BillingInvoiceUsageQuantityDetail{
+	return &apiv3models.BillingInvoiceUsageQuantityDetail{
 		RawQuantity:      line.UsageBased.MeteredQuantity.String(),
 		InvoicedQuantity: line.UsageBased.Quantity.String(),
 		DisplayUnit:      uc.DisplayUnit,
 	}
 }
 
-func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, error) {
+func mapRateCard(line *billing.StandardLine) (apiv3models.BillingInvoiceLineRateCard, error) {
 	if line.UsageBased == nil {
-		return api.BillingInvoiceLineRateCard{}, fmt.Errorf("standard line %s has no usage-based configuration", line.ID)
+		return apiv3models.BillingInvoiceLineRateCard{}, fmt.Errorf("standard line %s has no usage-based configuration", line.ID)
 	}
 
 	if line.UsageBased.Price == nil {
-		return api.BillingInvoiceLineRateCard{}, fmt.Errorf("standard line %s has no price set", line.ID)
+		return apiv3models.BillingInvoiceLineRateCard{}, fmt.Errorf("standard line %s has no price set", line.ID)
 	}
 
 	price, err := plans.ToAPIBillingPrice(line.UsageBased.Price)
 	if err != nil {
-		return api.BillingInvoiceLineRateCard{}, fmt.Errorf("mapping price: %w", err)
+		return apiv3models.BillingInvoiceLineRateCard{}, fmt.Errorf("mapping price: %w", err)
 	}
 
-	rc := api.BillingInvoiceLineRateCard{
+	rc := apiv3models.BillingInvoiceLineRateCard{
 		Price:      price,
 		FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		Discounts:  toAPIRateCardDiscounts(line.RateCardDiscounts),
@@ -396,30 +396,30 @@ func mapRateCard(line *billing.StandardLine) (api.BillingInvoiceLineRateCard, er
 	return rc, nil
 }
 
-func mapDetailedLines(dls billing.DetailedLines) ([]api.BillingInvoiceDetailedLine, error) {
+func mapDetailedLines(dls billing.DetailedLines) ([]apiv3models.BillingInvoiceDetailedLine, error) {
 	if len(dls) == 0 {
-		return lo.Empty[[]api.BillingInvoiceDetailedLine](), nil
+		return lo.Empty[[]apiv3models.BillingInvoiceDetailedLine](), nil
 	}
 
-	return lo.MapErr(dls, func(dl billing.DetailedLine, _ int) (api.BillingInvoiceDetailedLine, error) {
+	return lo.MapErr(dls, func(dl billing.DetailedLine, _ int) (apiv3models.BillingInvoiceDetailedLine, error) {
 		mapped, err := mapDetailedLine(dl)
 		if err != nil {
-			return api.BillingInvoiceDetailedLine{}, fmt.Errorf("mapping detailed line[%s]: %w", dl.ID, err)
+			return apiv3models.BillingInvoiceDetailedLine{}, fmt.Errorf("mapping detailed line[%s]: %w", dl.ID, err)
 		}
 
 		return mapped, nil
 	})
 }
 
-func mapDetailedLine(dl billing.DetailedLine) (api.BillingInvoiceDetailedLine, error) {
-	return api.BillingInvoiceDetailedLine{
+func mapDetailedLine(dl billing.DetailedLine) (apiv3models.BillingInvoiceDetailedLine, error) {
+	return apiv3models.BillingInvoiceDetailedLine{
 		Id:                 dl.ID,
 		Name:               dl.Name,
 		Description:        dl.Description,
 		CreatedAt:          dl.CreatedAt,
 		UpdatedAt:          dl.UpdatedAt,
 		DeletedAt:          dl.DeletedAt,
-		Category:           api.BillingInvoiceDetailedLineCostCategory(dl.Category),
+		Category:           apiv3models.BillingInvoiceDetailedLineCostCategory(dl.Category),
 		ServicePeriod:      billingcommon.ConvertClosedPeriodToAPI(dl.ServicePeriod),
 		Quantity:           dl.Quantity.String(),
 		UnitPrice:          dl.PerUnitAmount.String(),
@@ -430,12 +430,12 @@ func mapDetailedLine(dl billing.DetailedLine) (api.BillingInvoiceDetailedLine, e
 	}, nil
 }
 
-func toAPIRateCardDiscounts(d billing.Discounts) *api.BillingRateCardDiscounts {
+func toAPIRateCardDiscounts(d billing.Discounts) *apiv3models.BillingRateCardDiscounts {
 	if d.IsEmpty() {
 		return nil
 	}
 
-	result := &api.BillingRateCardDiscounts{}
+	result := &apiv3models.BillingRateCardDiscounts{}
 
 	if d.Percentage != nil {
 		pct := float32(d.Percentage.Percentage.InexactFloat64())
@@ -450,13 +450,13 @@ func toAPIRateCardDiscounts(d billing.Discounts) *api.BillingRateCardDiscounts {
 	return result
 }
 
-func mapCreditApplies(ca creditsapplied.CreditsApplied) *[]api.BillingInvoiceLineCreditsApplied {
+func mapCreditApplies(ca creditsapplied.CreditsApplied) *[]apiv3models.BillingInvoiceLineCreditsApplied {
 	if len(ca) == 0 {
 		return nil
 	}
 
-	out := lo.Map(ca, func(c creditsapplied.CreditApplied, _ int) api.BillingInvoiceLineCreditsApplied {
-		return api.BillingInvoiceLineCreditsApplied{
+	out := lo.Map(ca, func(c creditsapplied.CreditApplied, _ int) apiv3models.BillingInvoiceLineCreditsApplied {
+		return apiv3models.BillingInvoiceLineCreditsApplied{
 			Amount:      c.Amount.String(),
 			Description: lo.EmptyableToPtr(c.Description),
 		}
@@ -467,65 +467,65 @@ func mapCreditApplies(ca creditsapplied.CreditsApplied) *[]api.BillingInvoiceLin
 
 // mapLineDiscounts maps usage discounts from a parent StandardLine (amount discounts live on
 // child detailed lines and are mapped separately via mapAmountDiscounts).
-func mapLineDiscounts(d billing.StandardLineDiscounts) *api.BillingInvoiceLineDiscounts {
+func mapLineDiscounts(d billing.StandardLineDiscounts) *apiv3models.BillingInvoiceLineDiscounts {
 	if len(d.Usage) == 0 {
 		return nil
 	}
 
-	usageDiscounts := lo.Map(d.Usage, func(ud billing.UsageLineDiscountManaged, _ int) api.BillingInvoiceLineUsageDiscount {
-		return api.BillingInvoiceLineUsageDiscount{
+	usageDiscounts := lo.Map(d.Usage, func(ud billing.UsageLineDiscountManaged, _ int) apiv3models.BillingInvoiceLineUsageDiscount {
+		return apiv3models.BillingInvoiceLineUsageDiscount{
 			Id:                 ud.ID,
 			Quantity:           ud.Quantity.String(),
 			Description:        ud.Description,
 			ExternalReferences: toAPILineExternalReferences(ud.ExternalIDs),
-			Reason:             api.BillingInvoiceDiscountReason(ud.Reason.Type()),
+			Reason:             apiv3models.BillingInvoiceDiscountReason(ud.Reason.Type()),
 		}
 	})
 
-	return &api.BillingInvoiceLineDiscounts{
+	return &apiv3models.BillingInvoiceLineDiscounts{
 		Usage: &usageDiscounts,
 	}
 }
 
-func mapAmountDiscounts(d billing.AmountLineDiscountsManaged) *api.BillingInvoiceLineDiscounts {
+func mapAmountDiscounts(d billing.AmountLineDiscountsManaged) *apiv3models.BillingInvoiceLineDiscounts {
 	if len(d) == 0 {
 		return nil
 	}
 
-	amountDiscounts := lo.Map(d, func(ad billing.AmountLineDiscountManaged, _ int) api.BillingInvoiceLineAmountDiscount {
-		return api.BillingInvoiceLineAmountDiscount{
+	amountDiscounts := lo.Map(d, func(ad billing.AmountLineDiscountManaged, _ int) apiv3models.BillingInvoiceLineAmountDiscount {
+		return apiv3models.BillingInvoiceLineAmountDiscount{
 			Id:                 ad.ID,
 			Amount:             ad.Amount.String(),
 			Description:        ad.Description,
 			ExternalReferences: toAPILineExternalReferences(ad.ExternalIDs),
-			Reason:             api.BillingInvoiceDiscountReason(ad.Reason.Type()),
+			Reason:             apiv3models.BillingInvoiceDiscountReason(ad.Reason.Type()),
 		}
 	})
 
-	return &api.BillingInvoiceLineDiscounts{
+	return &apiv3models.BillingInvoiceLineDiscounts{
 		Amount: &amountDiscounts,
 	}
 }
 
-func toAPILineExternalReferences(e externalid.LineExternalIDs) *api.BillingInvoiceLineExternalReferences {
+func toAPILineExternalReferences(e externalid.LineExternalIDs) *apiv3models.BillingInvoiceLineExternalReferences {
 	if e.Invoicing == "" {
 		return nil
 	}
 
-	return &api.BillingInvoiceLineExternalReferences{
+	return &apiv3models.BillingInvoiceLineExternalReferences{
 		InvoicingId: lo.ToPtr(e.Invoicing),
 	}
 }
 
 // invoiceSortField maps v3 sort field names to the billing domain's InvoiceOrderBy values.
-func FromAPIInvoiceSortField(ctx context.Context, field string) (apilegacy.InvoiceOrderBy, error) {
+func FromAPIInvoiceSortField(ctx context.Context, field string) (apiv1models.InvoiceOrderBy, error) {
 	switch field {
 	case "issued_at":
-		return apilegacy.InvoiceOrderByIssuedAt, nil
+		return apiv1models.InvoiceOrderByIssuedAt, nil
 	case "created_at":
-		return apilegacy.InvoiceOrderByCreatedAt, nil
+		return apiv1models.InvoiceOrderByCreatedAt, nil
 	case "service_period_start":
-		return apilegacy.InvoiceOrderByPeriodStart, nil
+		return apiv1models.InvoiceOrderByPeriodStart, nil
 	default:
 		return "", apierrors.NewUnsupportedSortFieldError(ctx, field, "issued_at", "created_at", "service_period_start")
 	}
@@ -534,7 +534,7 @@ func FromAPIInvoiceSortField(ctx context.Context, field string) (apilegacy.Invoi
 // mergeStandardInvoiceFromAPI applies the mutable fields of an update request onto an
 // already-loaded standard invoice, in place. Only description, labels, supplier, customer,
 // workflow, and top-level lines are mutable; all other invoice fields are left untouched.
-func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req api.UpdateInvoiceStandardRequest) error {
+func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req apiv3models.UpdateInvoiceStandardRequest) error {
 	inv.Description = req.Description
 
 	metadata, err := labels.ToMetadata(req.Labels)
@@ -567,11 +567,11 @@ func mergeStandardInvoiceFromAPI(inv *billing.StandardInvoice, req api.UpdateInv
 // mergeInvoiceSupplierFromAPI applies the editable BillingSupplier snapshot fields (name, tax
 // id, address) onto the existing supplier contact. The party ID is not part of the update
 // request and is left untouched.
-func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updated api.UpdateSupplier) billing.SupplierContact {
+func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updated apiv3models.UpdateSupplier) billing.SupplierContact {
 	existing.Name = lo.FromPtrOr(updated.Name, "")
 
 	if updated.Addresses != nil {
-		existing.Address = billingprofiles.FromAPIAddress(api.Address(updated.Addresses.BillingAddress))
+		existing.Address = billingprofiles.FromAPIAddress(apiv3models.Address(updated.Addresses.BillingAddress))
 	} else {
 		existing.Address = models.Address{}
 	}
@@ -589,11 +589,11 @@ func mergeInvoiceSupplierFromAPI(existing billing.SupplierContact, updated api.U
 // address) onto the existing customer snapshot. CustomerID, key, and usage attribution are
 // immutable identity fields tied to the customer at invoice creation time and are left
 // untouched, regardless of what the request echoes back for them.
-func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updated api.UpdateInvoiceCustomer) billing.InvoiceCustomer {
+func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updated apiv3models.UpdateInvoiceCustomer) billing.InvoiceCustomer {
 	existing.Name = updated.Name
 
 	if updated.BillingAddress != nil {
-		addr := billingprofiles.FromAPIAddress(api.Address(*updated.BillingAddress))
+		addr := billingprofiles.FromAPIAddress(apiv3models.Address(*updated.BillingAddress))
 		existing.BillingAddress = &addr
 	} else {
 		existing.BillingAddress = nil
@@ -607,7 +607,7 @@ func mergeInvoiceCustomerFromAPI(existing billing.InvoiceCustomer, updated api.U
 // config. Omitting the invoicing or payment sub-object leaves that part of the config
 // unchanged; omitted fields within a provided sub-object fall back to
 // billing.DefaultWorkflowConfig, mirroring the v1 replace-update semantics.
-func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.UpdateInvoiceWorkflowSettings) (billing.InvoiceWorkflow, error) {
+func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated apiv3models.UpdateInvoiceWorkflowSettings) (billing.InvoiceWorkflow, error) {
 	if invoicing := updated.Workflow.Invoicing; invoicing != nil {
 		existing.Config.Invoicing.AutoAdvance = lo.FromPtrOr(invoicing.AutoAdvance, billing.DefaultWorkflowConfig.Invoicing.AutoAdvance)
 
@@ -663,7 +663,7 @@ func mergeInvoiceWorkflowFromAPI(existing billing.InvoiceWorkflow, updated api.U
 // update request: lines matched by ID are merged in place, lines without an ID (or with an
 // unknown ID) are created, and existing lines omitted from the request are tombstoned. A nil
 // lines pointer leaves the invoice's lines untouched, since it means the field wasn't sent.
-func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api.UpdateInvoiceLine) (billing.StandardInvoiceLines, error) {
+func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]apiv3models.UpdateInvoiceLine) (billing.StandardInvoiceLines, error) {
 	if lines == nil {
 		return inv.Lines, nil
 	}
@@ -732,7 +732,7 @@ func mergeStandardInvoiceLinesFromAPI(inv *billing.StandardInvoice, lines *[]api
 
 // standardLineFromAPI builds a new top-level standard line from an update request line that
 // has no matching existing line (empty or unrecognized ID).
-func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.StandardInvoice) (*billing.StandardLine, error) {
+func standardLineFromAPI(line apiv3models.UpdateInvoiceStandardLine, inv *billing.StandardInvoice) (*billing.StandardLine, error) {
 	price, taxConfig, featureKey, desiredDiscounts, err := mapRateCardFromAPI(line.RateCard)
 	if err != nil {
 		return nil, fmt.Errorf("mapping rate card: %w", err)
@@ -778,7 +778,7 @@ func standardLineFromAPI(line api.UpdateInvoiceStandardLine, inv *billing.Standa
 
 // mergeStandardLineFromAPI applies the editable fields of an update request line onto an
 // existing top-level standard line, matched by ID.
-func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInvoiceStandardLine) (*billing.StandardLine, error) {
+func mergeStandardLineFromAPI(existing *billing.StandardLine, line apiv3models.UpdateInvoiceStandardLine) (*billing.StandardLine, error) {
 	price, taxConfig, featureKey, desiredDiscounts, err := mapRateCardFromAPI(line.RateCard)
 	if err != nil {
 		return nil, fmt.Errorf("mapping rate card: %w", err)
@@ -811,15 +811,15 @@ func mergeStandardLineFromAPI(existing *billing.StandardLine, line api.UpdateInv
 // mapRateCardFromAPI maps an update request's rate card onto its domain price, tax config,
 // feature key, and discounts. Feature key requiredness relative to the price type is enforced
 // by billing.UsageBasedLine.Validate downstream, not here.
-func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, productcatalog.Discounts, error) {
-	price, err := plans.FromAPIBillingPrice(api.BillingPrice(rc.Price), nil)
+func mapRateCardFromAPI(rc apiv3models.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, productcatalog.Discounts, error) {
+	price, err := plans.FromAPIBillingPrice(apiv3models.BillingPrice(rc.Price), nil)
 	if err != nil {
 		return nil, nil, "", productcatalog.Discounts{}, fmt.Errorf("mapping price: %w", err)
 	}
 
 	var discounts productcatalog.Discounts
 	if rc.Discounts != nil {
-		pcDiscounts, err := plans.FromAPIBillingRateCardDiscounts(api.BillingRateCardDiscounts(*rc.Discounts))
+		pcDiscounts, err := plans.FromAPIBillingRateCardDiscounts(apiv3models.BillingRateCardDiscounts(*rc.Discounts))
 		if err != nil {
 			return nil, nil, "", productcatalog.Discounts{}, fmt.Errorf("mapping discounts: %w", err)
 		}
@@ -847,17 +847,17 @@ func mapRateCardFromAPI(rc api.UpdateInvoiceLineRateCard) (*productcatalog.Price
 	return price, taxConfig, lo.FromPtrOr(rc.FeatureKey, ""), discounts, nil
 }
 
-func fromAPIUpdateTaxCodeConfig(taxConfig *api.UpdateTaxCodeConfig) *api.TaxCodeConfig {
+func fromAPIUpdateTaxCodeConfig(taxConfig *apiv3models.UpdateTaxCodeConfig) *apiv3models.TaxCodeConfig {
 	if taxConfig == nil {
 		return nil
 	}
 
-	result := &api.TaxCodeConfig{
+	result := &apiv3models.TaxCodeConfig{
 		Behavior: taxConfig.Behavior,
 	}
 
 	if taxConfig.Code != nil {
-		result.Code = &api.TaxCodeReference{
+		result.Code = &apiv3models.TaxCodeReference{
 			Id: taxConfig.Code.Id,
 		}
 	}

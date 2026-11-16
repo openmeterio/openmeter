@@ -8,7 +8,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
@@ -27,9 +27,9 @@ const (
 
 type (
 	ListPlanAddonsRequest  = planaddon.ListPlanAddonsInput
-	ListPlanAddonsResponse = api.PlanAddonPaginatedResponse
+	ListPlanAddonsResponse = apiv1models.PlanAddonPaginatedResponse
 	ListPlanAddonsParams   struct {
-		api.ListPlanAddonsParams
+		apiv1models.ListPlanAddonsParams
 
 		// AddonID or Key.
 		PlanIDOrKey string
@@ -56,8 +56,8 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 					PageSize:   lo.FromPtrOr(params.PageSize, DefaultPageSize),
 					PageNumber: lo.FromPtrOr(params.Page, DefaultPageNumber),
 				},
-				OrderBy:          planaddon.OrderBy(lo.FromPtrOr(params.OrderBy, api.PlanAddonOrderById)),
-				Order:            sortx.Order(lo.FromPtrOr(params.Order, api.SortOrderDESC)),
+				OrderBy:          planaddon.OrderBy(lo.FromPtrOr(params.OrderBy, apiv1models.PlanAddonOrderById)),
+				Order:            sortx.Order(lo.FromPtrOr(params.Order, apiv1models.SortOrderDESC)),
 				Namespaces:       []string{ns},
 				AddonKeyVersions: lo.FromPtrOr(params.KeyVersion, nil),
 				IncludeDeleted:   lo.FromPtr(params.IncludeDeleted),
@@ -94,10 +94,10 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 				return ListPlanAddonsResponse{}, err
 			}
 
-			items := make([]api.PlanAddon, 0, len(resp.Items))
+			items := make([]apiv1models.PlanAddon, 0, len(resp.Items))
 
 			for _, a := range resp.Items {
-				var item api.PlanAddon
+				var item apiv1models.PlanAddon
 
 				if a.Plan.HasUnitConfig() || a.Addon.AsProductCatalogAddon().HasUnitConfig() {
 					return ListPlanAddonsResponse{}, productcatalog.ErrUnitConfigNotRepresentable
@@ -138,14 +138,14 @@ func (h *handler) ListPlanAddons() ListPlanAddonsHandler {
 
 type (
 	CreatePlanAddonRequest  = planaddon.CreatePlanAddonInput
-	CreatePlanAddonResponse = api.PlanAddon
+	CreatePlanAddonResponse = apiv1models.PlanAddon
 	CreatePlanAddonHandler  httptransport.HandlerWithArgs[CreatePlanAddonRequest, CreatePlanAddonResponse, string]
 )
 
 func (h *handler) CreatePlanAddon() CreatePlanAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, planID string) (CreatePlanAddonRequest, error) {
-			body := api.PlanAddonCreate{}
+			body := apiv1models.PlanAddonCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreatePlanAddonRequest{}, fmt.Errorf("failed to decode create plan add-on assignment request: %w", err)
 			}
@@ -195,14 +195,14 @@ type (
 		PlanID  string
 		AddonID string
 	}
-	UpdatePlanAddonResponse = api.PlanAddon
+	UpdatePlanAddonResponse = apiv1models.PlanAddon
 	UpdatePlanAddonHandler  httptransport.HandlerWithArgs[UpdatePlanAddonRequest, UpdatePlanAddonResponse, UpdatePlanAddonParams]
 )
 
 func (h *handler) UpdatePlanAddon() UpdatePlanAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params UpdatePlanAddonParams) (UpdatePlanAddonRequest, error) {
-			body := api.PlanAddonReplaceUpdate{}
+			body := apiv1models.PlanAddonReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdatePlanAddonRequest{}, fmt.Errorf("failed to decode update plan add-on assignment request: %w", err)
 			}
@@ -296,7 +296,7 @@ type (
 		PlanIDOrKey  string
 		AddonIDOrKey string
 	}
-	GetPlanAddonResponse = api.PlanAddon
+	GetPlanAddonResponse = apiv1models.PlanAddon
 	GetPlanAddonHandler  httptransport.HandlerWithArgs[GetPlanAddonRequest, GetPlanAddonResponse, GetPlanAddonParams]
 )
 

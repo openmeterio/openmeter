@@ -8,7 +8,7 @@ import (
 
 	"github.com/cloudevents/sdk-go/v2/event"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -36,7 +36,7 @@ func (h *handler) IngestEvents() IngestEventsHandler {
 
 			switch contentType {
 			case "application/json":
-				var apiRequest api.IngestEventsBody
+				var apiRequest apiv1models.IngestEventsBody
 
 				err := json.NewDecoder(r.Body).Decode(&apiRequest)
 				if err != nil {
@@ -64,7 +64,7 @@ func (h *handler) IngestEvents() IngestEventsHandler {
 					}
 				}
 			case "application/cloudevents+json":
-				var apiRequest api.IngestEventsApplicationCloudeventsPlusJSONRequestBody
+				var apiRequest apiv1models.IngestEventsApplicationCloudeventsPlusJSONRequestBody
 
 				err := json.NewDecoder(r.Body).Decode(&apiRequest)
 				if err != nil {
@@ -75,7 +75,7 @@ func (h *handler) IngestEvents() IngestEventsHandler {
 
 				req.Events = []event.Event{apiRequest}
 			case "application/cloudevents-batch+json":
-				var apiRequest api.IngestEventsApplicationCloudeventsBatchPlusJSONBody
+				var apiRequest apiv1models.IngestEventsApplicationCloudeventsBatchPlusJSONBody
 
 				err := json.NewDecoder(r.Body).Decode(&apiRequest)
 				if err != nil {

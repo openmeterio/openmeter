@@ -6,15 +6,15 @@ package billingcommon
 import (
 	"github.com/samber/lo"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
-	return api.BillingTotals{
+func ToAPIBillingTotals(t totals.Totals) apiv3models.BillingTotals {
+	return apiv3models.BillingTotals{
 		Amount:              t.Amount.String(),
 		ChargesTotal:        t.ChargesTotal.String(),
 		CreditsTotal:        t.CreditsTotal.String(),
@@ -26,32 +26,32 @@ func ToAPIBillingTotals(t totals.Totals) api.BillingTotals {
 	}
 }
 
-func ToAPIValidationIssues(issues billing.ValidationIssues) *[]api.BillingValidationIssue {
+func ToAPIValidationIssues(issues billing.ValidationIssues) *[]apiv3models.BillingValidationIssue {
 	if len(issues) == 0 {
 		return nil
 	}
 
-	out := make([]api.BillingValidationIssue, len(issues))
+	out := make([]apiv3models.BillingValidationIssue, len(issues))
 	for idx, issue := range issues {
-		out[idx] = api.BillingValidationIssue{
+		out[idx] = apiv3models.BillingValidationIssue{
 			Attributes: lo.EmptyableToPtr(map[string]any(issue.Attributes)),
 			Code:       issue.Code,
 			Component:  lo.EmptyableToPtr(string(issue.Component)),
 			Field:      lo.EmptyableToPtr(issue.Path),
 			Message:    issue.Message,
-			Severity:   api.BillingValidationIssueSeverity(issue.Severity),
+			Severity:   apiv3models.BillingValidationIssueSeverity(issue.Severity),
 		}
 	}
 
 	return &out
 }
 
-func ConvertClosedPeriodToAPI(p timeutil.ClosedPeriod) api.ClosedPeriod {
-	return api.ClosedPeriod{From: p.From, To: p.To}
+func ConvertClosedPeriodToAPI(p timeutil.ClosedPeriod) apiv3models.ClosedPeriod {
+	return apiv3models.ClosedPeriod{From: p.From, To: p.To}
 }
 
-func ConvertSubscriptionRefToAPI(ref meta.SubscriptionReference) api.BillingSubscriptionReference {
-	var out api.BillingSubscriptionReference
+func ConvertSubscriptionRefToAPI(ref meta.SubscriptionReference) apiv3models.BillingSubscriptionReference {
+	var out apiv3models.BillingSubscriptionReference
 	out.Id = ref.SubscriptionID
 	out.Phase.Id = ref.PhaseID
 	out.Phase.Item.Id = ref.ItemID
@@ -73,15 +73,15 @@ func WithManualOverride(manualOverride bool) LifecycleControllerOption {
 	}
 }
 
-func ConvertLifecycleControllerToAPI(mb billing.InvoiceLineManagedBy, options ...LifecycleControllerOption) api.BillingLifecycleController {
+func ConvertLifecycleControllerToAPI(mb billing.InvoiceLineManagedBy, options ...LifecycleControllerOption) apiv3models.BillingLifecycleController {
 	config := lifecycleControllerConfig{}
 	for _, option := range options {
 		option(&config)
 	}
 
 	if config.manualOverride || mb == billing.ManuallyManagedLine {
-		return api.BillingLifecycleControllerManual
+		return apiv3models.BillingLifecycleControllerManual
 	}
 
-	return api.BillingLifecycleControllerSystem
+	return apiv3models.BillingLifecycleControllerSystem
 }

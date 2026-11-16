@@ -13,7 +13,8 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3 "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
@@ -30,11 +31,11 @@ func (s invoiceChargesBillingService) InvoicePendingLines(ctx context.Context, i
 }
 
 type invoiceChargesServer struct {
-	api.Unimplemented
+	apiv3.Unimplemented
 	handler Handler
 }
 
-func (s invoiceChargesServer) InvoiceCustomerCharges(w http.ResponseWriter, r *http.Request, customerID api.ULID) {
+func (s invoiceChargesServer) InvoiceCustomerCharges(w http.ResponseWriter, r *http.Request, customerID apiv3models.ULID) {
 	s.handler.InvoiceCustomerCharges().With(customerID).ServeHTTP(w, r)
 }
 
@@ -89,7 +90,7 @@ func TestInvoiceCustomerChargesManualCollection(t *testing.T) {
 				},
 			}
 			handler := New(func(context.Context) (string, error) { return "ns", nil }, service)
-			router := api.Handler(invoiceChargesServer{handler: handler})
+			router := apiv3.Handler(invoiceChargesServer{handler: handler})
 
 			// when: manually collecting through the generated customer route.
 			req := httptest.NewRequest(http.MethodPost, "/openmeter/customers/"+invoiceChargesCustomerID+"/charges/invoice", strings.NewReader(test.body))
@@ -100,16 +101,16 @@ func TestInvoiceCustomerChargesManualCollection(t *testing.T) {
 			// then: both standard invoices are returned after forwarding the manual options.
 			require.Equal(t, http.StatusCreated, res.Code, res.Body.String())
 			require.True(t, called)
-			var result api.InvoiceCustomerChargesResult
+			var result apiv3models.InvoiceCustomerChargesResult
 			require.NoError(t, json.Unmarshal(res.Body.Bytes(), &result))
 			require.Len(t, result.Invoices, 2)
 			usdInvoice, err := result.Invoices[0].AsBillingInvoiceStandard()
 			require.NoError(t, err)
 			require.Equal(t, "usd-invoice", usdInvoice.Id)
-			require.Equal(t, api.CurrencyCode("USD"), usdInvoice.Currency)
+			require.Equal(t, apiv3models.CurrencyCode("USD"), usdInvoice.Currency)
 			eurInvoice, err := result.Invoices[1].AsBillingInvoiceStandard()
 			require.NoError(t, err)
-			require.Equal(t, api.CurrencyCode("EUR"), eurInvoice.Currency)
+			require.Equal(t, apiv3models.CurrencyCode("EUR"), eurInvoice.Currency)
 		})
 	}
 }

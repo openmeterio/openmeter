@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -14,14 +14,14 @@ import (
 
 type (
 	CreateNotificationRuleRequest  = notification.CreateRuleInput
-	CreateNotificationRuleResponse = api.BillingNotificationRule
+	CreateNotificationRuleResponse = apiv3models.BillingNotificationRule
 	CreateNotificationRuleHandler  = httptransport.Handler[CreateNotificationRuleRequest, CreateNotificationRuleResponse]
 )
 
 func (h *handler) CreateNotificationRule() CreateNotificationRuleHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateNotificationRuleRequest, error) {
-			body := api.BillingNotificationRuleRequest{}
+			body := apiv3models.BillingNotificationRuleRequest{}
 			if err := request.ParseBody(r, &body); err != nil {
 				return CreateNotificationRuleRequest{}, err
 			}

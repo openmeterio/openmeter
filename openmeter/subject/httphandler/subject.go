@@ -12,7 +12,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/subject"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -22,7 +22,7 @@ import (
 
 type (
 	GetSubjectParams   = string
-	GetSubjectResponse = api.Subject
+	GetSubjectResponse = apiv1models.Subject
 	GetSubjectHandler  httptransport.HandlerWithArgs[GetSubjectRequest, GetSubjectResponse, GetSubjectParams]
 )
 
@@ -64,7 +64,7 @@ func (h *handler) GetSubject() GetSubjectHandler {
 }
 
 type (
-	ListSubjectsResponse = []api.Subject
+	ListSubjectsResponse = []apiv1models.Subject
 	ListSubjectsHandler  httptransport.Handler[ListSubjectsRequest, ListSubjectsResponse]
 )
 
@@ -92,7 +92,7 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 			}
 
 			// Response
-			resp := pagination.MapResult(result, func(sub subject.Subject) api.Subject {
+			resp := pagination.MapResult(result, func(sub subject.Subject) apiv1models.Subject {
 				return FromSubject(sub)
 			})
 
@@ -110,14 +110,14 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 // If the subject doesn't exist, it will be created.
 // If the subject exists, it will be partially updated with the provided fields.
 type (
-	UpsertSubjectResponse = []api.Subject
+	UpsertSubjectResponse = []apiv1models.Subject
 	UpsertSubjectHandler  httptransport.Handler[UpsertSubjectRequest, UpsertSubjectResponse]
 )
 
 type UpsertSubjectRequest struct {
 	namespace   string
 	rawPayloads []map[string]interface{}
-	subjects    []api.SubjectUpsert
+	subjects    []apiv1models.SubjectUpsert
 }
 
 // UpsertSubject returns a new httptransport.Handler for creating a report.
@@ -141,7 +141,7 @@ func (h *handler) UpsertSubject() UpsertSubjectHandler {
 			r.Body.Close() //  must close
 			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-			body := []api.SubjectUpsert{}
+			body := []apiv1models.SubjectUpsert{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpsertSubjectRequest{}, fmt.Errorf("failed to decode update report request: %w", err)
 			}
@@ -245,7 +245,7 @@ func (h *handler) UpsertSubject() UpsertSubjectHandler {
 			}
 
 			// Respond with updated subject(s)
-			var list []api.Subject
+			var list []apiv1models.Subject
 
 			for _, sub := range subjects {
 				list = append(list, FromSubject(sub))

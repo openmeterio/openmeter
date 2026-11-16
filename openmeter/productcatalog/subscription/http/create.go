@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	plansubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -26,17 +26,17 @@ type (
 	// for legacy stripe.code values, which has to happen in the same transaction as the create.
 	CreateSubscriptionHandlerRequest struct {
 		CreateSubscriptionRequest
-		CustomPlan *api.CustomPlanInput
+		CustomPlan *apiv1models.CustomPlanInput
 	}
 
-	CreateSubscriptionResponse = api.Subscription
+	CreateSubscriptionResponse = apiv1models.Subscription
 	CreateSubscriptionHandler  = httptransport.Handler[CreateSubscriptionHandlerRequest, CreateSubscriptionResponse]
 )
 
 func (h *handler) CreateSubscription() CreateSubscriptionHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateSubscriptionHandlerRequest, error) {
-			body := api.CreateSubscriptionJSONRequestBody{}
+			body := apiv1models.CreateSubscriptionJSONRequestBody{}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateSubscriptionHandlerRequest{}, err

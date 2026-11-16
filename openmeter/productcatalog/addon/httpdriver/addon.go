@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -25,8 +25,8 @@ import (
 
 type (
 	ListAddonsRequest  = addon.ListAddonsInput
-	ListAddonsResponse = api.AddonPaginatedResponse
-	ListAddonsParams   = api.ListAddonsParams
+	ListAddonsResponse = apiv1models.AddonPaginatedResponse
+	ListAddonsParams   = apiv1models.ListAddonsParams
 
 	ListAddonsHandlerRequest struct {
 		Namespace string
@@ -46,14 +46,14 @@ func (h *handler) ListAddons() ListAddonsHandler {
 
 			var statusFilter []productcatalog.AddonStatus
 			if params.Status != nil {
-				statusFilter = lo.Map(*params.Status, func(status api.AddonStatus, _ int) productcatalog.AddonStatus {
+				statusFilter = lo.Map(*params.Status, func(status apiv1models.AddonStatus, _ int) productcatalog.AddonStatus {
 					return productcatalog.AddonStatus(status)
 				})
 			}
 
 			req := ListAddonsRequest{
-				OrderBy: addon.OrderBy(lo.FromPtrOr(params.OrderBy, api.AddonOrderById)),
-				Order:   sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderDESC)),
+				OrderBy: addon.OrderBy(lo.FromPtrOr(params.OrderBy, apiv1models.AddonOrderById)),
+				Order:   sortx.Order(defaultx.WithDefault(params.Order, apiv1models.SortOrderDESC)),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
@@ -96,10 +96,10 @@ func (h *handler) ListAddons() ListAddonsHandler {
 				return ListAddonsResponse{}, err
 			}
 
-			items := make([]api.Addon, 0, len(resp.Items))
+			items := make([]apiv1models.Addon, 0, len(resp.Items))
 
 			for _, a := range resp.Items {
-				var item api.Addon
+				var item apiv1models.Addon
 
 				item, err = FromAddon(a, taxCodes)
 				if err != nil {
@@ -131,16 +131,16 @@ type (
 	// legacy stripe.code values, which has to happen in the same transaction as the create.
 	CreateAddonHandlerRequest struct {
 		Namespace string
-		Body      api.AddonCreate
+		Body      apiv1models.AddonCreate
 	}
-	CreateAddonResponse = api.Addon
+	CreateAddonResponse = apiv1models.Addon
 	CreateAddonHandler  httptransport.Handler[CreateAddonHandlerRequest, CreateAddonResponse]
 )
 
 func (h *handler) CreateAddon() CreateAddonHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (CreateAddonHandlerRequest, error) {
-			body := api.AddonCreate{}
+			body := apiv1models.AddonCreate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return CreateAddonHandlerRequest{}, fmt.Errorf("failed to decode create add-on request: %w", err)
 			}
@@ -203,16 +203,16 @@ type (
 	// CreateAddonHandlerRequest.
 	UpdateAddonHandlerRequest struct {
 		models.NamespacedID
-		Body api.AddonReplaceUpdate
+		Body apiv1models.AddonReplaceUpdate
 	}
-	UpdateAddonResponse = api.Addon
+	UpdateAddonResponse = apiv1models.Addon
 	UpdateAddonHandler  httptransport.HandlerWithArgs[UpdateAddonHandlerRequest, UpdateAddonResponse, string]
 )
 
 func (h *handler) UpdateAddon() UpdateAddonHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, addonID string) (UpdateAddonHandlerRequest, error) {
-			body := api.AddonReplaceUpdate{}
+			body := apiv1models.AddonReplaceUpdate{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpdateAddonHandlerRequest{}, fmt.Errorf("failed to decode update add-on request: %w", err)
 			}
@@ -325,7 +325,7 @@ type (
 		// Version is not set.
 		IncludeLatest bool
 	}
-	GetAddonResponse = api.Addon
+	GetAddonResponse = apiv1models.Addon
 	GetAddonHandler  httptransport.HandlerWithArgs[GetAddonRequest, GetAddonResponse, GetAddonRequestParams]
 )
 
@@ -386,7 +386,7 @@ func (h *handler) GetAddon() GetAddonHandler {
 
 type (
 	PublishAddonRequest  = addon.PublishAddonInput
-	PublishAddonResponse = api.Addon
+	PublishAddonResponse = apiv1models.Addon
 	PublishAddonHandler  httptransport.HandlerWithArgs[PublishAddonRequest, PublishAddonResponse, string]
 )
 
@@ -438,7 +438,7 @@ func (h *handler) PublishAddon() PublishAddonHandler {
 
 type (
 	ArchiveAddonRequest  = addon.ArchiveAddonInput
-	ArchiveAddonResponse = api.Addon
+	ArchiveAddonResponse = apiv1models.Addon
 	ArchiveAddonHandler  httptransport.HandlerWithArgs[ArchiveAddonRequest, ArchiveAddonResponse, string]
 )
 

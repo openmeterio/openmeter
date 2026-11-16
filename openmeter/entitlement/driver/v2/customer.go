@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -24,9 +24,9 @@ type (
 	CreateCustomerEntitlementHandlerRequest = struct {
 		Namespace       string
 		CustomerIDOrKey string
-		APIInput        *api.EntitlementV2CreateInputs
+		APIInput        *apiv1models.EntitlementV2CreateInputs
 	}
-	CreateCustomerEntitlementHandlerResponse = api.EntitlementV2
+	CreateCustomerEntitlementHandlerResponse = apiv1models.EntitlementV2
 	CreateCustomerEntitlementHandlerParams   = string // customerIdOrKey
 )
 
@@ -39,7 +39,7 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 		CreateCustomerEntitlementHandlerParams,
 	](
 		func(ctx context.Context, r *http.Request, customerIdOrKey string) (CreateCustomerEntitlementHandlerRequest, error) {
-			inp := &api.EntitlementV2CreateInputs{}
+			inp := &apiv1models.EntitlementV2CreateInputs{}
 			def := CreateCustomerEntitlementHandlerRequest{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
 				return def, err
@@ -83,12 +83,12 @@ func (h *entitlementHandler) CreateCustomerEntitlement() CreateCustomerEntitleme
 
 			ent, err := h.connector.CreateEntitlement(ctx, createInp, grantsInp)
 			if err != nil {
-				return api.EntitlementV2{}, err
+				return apiv1models.EntitlementV2{}, err
 			}
 
 			v2, err := ParserV2.ToAPIGenericV2(ent, cus.ID, cus.Key)
 			if err != nil {
-				return api.EntitlementV2{}, err
+				return apiv1models.EntitlementV2{}, err
 			}
 
 			return *v2, nil
@@ -108,10 +108,10 @@ type (
 		CustomerIdOrKey string
 		ListParams      entitlement.ListEntitlementsParams
 	}
-	ListCustomerEntitlementsHandlerResponse = api.EntitlementV2PaginatedResponse
+	ListCustomerEntitlementsHandlerResponse = apiv1models.EntitlementV2PaginatedResponse
 	ListCustomerEntitlementsHandlerParams   struct {
 		CustomerIdOrKey string
-		Params          api.ListCustomerEntitlementsV2Params
+		Params          apiv1models.ListCustomerEntitlementsV2Params
 	}
 )
 
@@ -157,7 +157,7 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 					OrderBy: entitlement.ListEntitlementsOrderBy(
 						strcase.CamelToSnake(defaultx.WithDefault((*string)(p.Params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
 					),
-					Order:               commonhttp.GetSortOrder(api.SortOrderASC, p.Params.Order),
+					Order:               commonhttp.GetSortOrder(apiv1models.SortOrderASC, p.Params.Order),
 					IncludeDeletedAfter: now,
 				},
 			}, nil
@@ -168,15 +168,15 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 				return ListCustomerEntitlementsHandlerResponse{}, err
 			}
 
-			mapped, err := pagination.MapResultErr(ents.Entitlements, func(e entitlement.Entitlement) (api.EntitlementV2, error) {
+			mapped, err := pagination.MapResultErr(ents.Entitlements, func(e entitlement.Entitlement) (apiv1models.EntitlementV2, error) {
 				cust, ok := ents.CustomersByID[models.NamespacedID{Namespace: e.Namespace, ID: e.CustomerID}]
 				if !ok {
-					return api.EntitlementV2{}, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
+					return apiv1models.EntitlementV2{}, models.NewGenericPreConditionFailedError(fmt.Errorf("customer not found [namespace=%s customer.id=%s]", e.Namespace, e.CustomerID))
 				}
 
 				v2, err := ParserV2.ToAPIGenericV2(&e, cust.ID, cust.Key)
 				if err != nil {
-					return api.EntitlementV2{}, err
+					return apiv1models.EntitlementV2{}, err
 				}
 
 				return lo.FromPtr(v2), nil
@@ -185,7 +185,7 @@ func (h *entitlementHandler) ListCustomerEntitlements() ListCustomerEntitlements
 				return ListCustomerEntitlementsHandlerResponse{}, err
 			}
 
-			return api.EntitlementV2PaginatedResponse{
+			return apiv1models.EntitlementV2PaginatedResponse{
 				Items:      mapped.Items,
 				TotalCount: mapped.TotalCount,
 				Page:       mapped.Page.PageNumber,
@@ -211,7 +211,7 @@ type (
 		EntitlementIdOrFeatureKey string
 		Namespace                 string
 	}
-	GetCustomerEntitlementHandlerResponse = *api.EntitlementV2
+	GetCustomerEntitlementHandlerResponse = *apiv1models.EntitlementV2
 )
 
 type GetCustomerEntitlementHandler httptransport.HandlerWithArgs[GetCustomerEntitlementHandlerRequest, GetCustomerEntitlementHandlerResponse, GetCustomerEntitlementHandlerParams]
@@ -343,9 +343,9 @@ type (
 		EntitlementIDOrFeatureKey string
 		CustomerIDOrKey           string
 		Namespace                 string
-		APIInput                  *api.EntitlementV2CreateInputs
+		APIInput                  *apiv1models.EntitlementV2CreateInputs
 	}
-	OverrideCustomerEntitlementHandlerResponse = *api.EntitlementV2
+	OverrideCustomerEntitlementHandlerResponse = *apiv1models.EntitlementV2
 )
 
 type OverrideCustomerEntitlementHandler httptransport.HandlerWithArgs[OverrideCustomerEntitlementHandlerRequest, OverrideCustomerEntitlementHandlerResponse, OverrideCustomerEntitlementHandlerParams]
@@ -358,7 +358,7 @@ func (h *entitlementHandler) OverrideCustomerEntitlement() OverrideCustomerEntit
 				return OverrideCustomerEntitlementHandlerRequest{}, err
 			}
 
-			apiInp := &api.EntitlementV2CreateInputs{}
+			apiInp := &apiv1models.EntitlementV2CreateInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &apiInp); err != nil {
 				return OverrideCustomerEntitlementHandlerRequest{}, err
 			}

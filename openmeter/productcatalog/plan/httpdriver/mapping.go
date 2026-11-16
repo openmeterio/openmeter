@@ -6,7 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/http"
@@ -19,10 +19,10 @@ import (
 
 // FromPlan maps a plan to its v1 shape. taxCodes must hold every Tax Code the plan's rate cards
 // reference: a missing entry is an error.
-func FromPlan(p plan.Plan, taxCodes map[string]*taxcode.TaxCode) (api.Plan, error) {
+func FromPlan(p plan.Plan, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Plan, error) {
 	validationIssues, _ := p.AsProductCatalogPlan().ValidationErrors()
 
-	resp := api.Plan{
+	resp := apiv1models.Plan{
 		CreatedAt:        p.CreatedAt,
 		Currency:         p.Currency.GetCode().String(),
 		DeletedAt:        p.DeletedAt,
@@ -31,17 +31,17 @@ func FromPlan(p plan.Plan, taxCodes map[string]*taxcode.TaxCode) (api.Plan, erro
 		EffectiveTo:      p.EffectiveTo,
 		Id:               p.ID,
 		Key:              p.Key,
-		Metadata:         lo.EmptyableToPtr(api.Metadata(p.Metadata)),
+		Metadata:         lo.EmptyableToPtr(apiv1models.Metadata(p.Metadata)),
 		Name:             p.Name,
 		UpdatedAt:        p.UpdatedAt,
 		Version:          p.Version,
 		BillingCadence:   p.BillingCadence.String(),
 		ProRatingConfig:  fromProRatingConfig(p.ProRatingConfig),
-		SettlementMode:   lo.ToPtr(api.BillingSettlementMode(p.SettlementMode)),
+		SettlementMode:   lo.ToPtr(apiv1models.BillingSettlementMode(p.SettlementMode)),
 		ValidationErrors: http.FromValidationErrors(validationIssues),
 	}
 
-	resp.Phases = make([]api.PlanPhase, 0, len(p.Phases))
+	resp.Phases = make([]apiv1models.PlanPhase, 0, len(p.Phases))
 	for _, phase := range p.Phases {
 		planPhase, err := FromPlanPhase(phase, taxCodes)
 		if err != nil {
@@ -51,16 +51,16 @@ func FromPlan(p plan.Plan, taxCodes map[string]*taxcode.TaxCode) (api.Plan, erro
 		resp.Phases = append(resp.Phases, planPhase)
 	}
 
-	var status api.PlanStatus
+	var status apiv1models.PlanStatus
 	switch p.Status() {
 	case productcatalog.PlanStatusDraft:
-		status = api.PlanStatusDraft
+		status = apiv1models.PlanStatusDraft
 	case productcatalog.PlanStatusActive:
-		status = api.PlanStatusActive
+		status = apiv1models.PlanStatusActive
 	case productcatalog.PlanStatusArchived:
-		status = api.PlanStatusArchived
+		status = apiv1models.PlanStatusArchived
 	case productcatalog.PlanStatusScheduled:
-		status = api.PlanStatusScheduled
+		status = apiv1models.PlanStatusScheduled
 	default:
 		return resp, fmt.Errorf("invalid PlanStatus: %s", p.Status())
 	}
@@ -70,8 +70,8 @@ func FromPlan(p plan.Plan, taxCodes map[string]*taxcode.TaxCode) (api.Plan, erro
 	return resp, nil
 }
 
-func FromPlanPhase(p plan.Phase, taxCodes map[string]*taxcode.TaxCode) (api.PlanPhase, error) {
-	resp := api.PlanPhase{
+func FromPlanPhase(p plan.Phase, taxCodes map[string]*taxcode.TaxCode) (apiv1models.PlanPhase, error) {
+	resp := apiv1models.PlanPhase{
 		Description: p.Description,
 		Key:         p.Key,
 		Metadata:    http.FromMetadata(p.Metadata),
@@ -79,7 +79,7 @@ func FromPlanPhase(p plan.Phase, taxCodes map[string]*taxcode.TaxCode) (api.Plan
 		Duration:    (*string)(p.Duration.ISOStringPtrOrNil()),
 	}
 
-	resp.RateCards = make([]api.RateCard, 0, len(p.RateCards))
+	resp.RateCards = make([]apiv1models.RateCard, 0, len(p.RateCards))
 	for _, rateCard := range p.RateCards {
 		rc, err := http.FromRateCard(rateCard, taxCodes)
 		if err != nil {
@@ -92,7 +92,7 @@ func FromPlanPhase(p plan.Phase, taxCodes map[string]*taxcode.TaxCode) (api.Plan
 	return resp, nil
 }
 
-func AsCreatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.PlanCreate, namespace string) (CreatePlanRequest, error) {
+func AsCreatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a apiv1models.PlanCreate, namespace string) (CreatePlanRequest, error) {
 	var err error
 
 	req := CreatePlanRequest{
@@ -141,15 +141,15 @@ func AsCreatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBac
 }
 
 // fromProRatingConfig converts domain ProRatingConfig to API ProRatingConfig
-func fromProRatingConfig(p productcatalog.ProRatingConfig) *api.ProRatingConfig {
-	return &api.ProRatingConfig{
+func fromProRatingConfig(p productcatalog.ProRatingConfig) *apiv1models.ProRatingConfig {
+	return &apiv1models.ProRatingConfig{
 		Enabled: p.Enabled,
-		Mode:    api.ProRatingMode(p.Mode),
+		Mode:    apiv1models.ProRatingMode(p.Mode),
 	}
 }
 
 // asProRatingConfig converts API ProRatingConfig to domain ProRatingConfig
-func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
+func asProRatingConfig(p *apiv1models.ProRatingConfig) productcatalog.ProRatingConfig {
 	if p == nil {
 		// Return default configuration when not provided
 		return productcatalog.ProRatingConfig{
@@ -164,7 +164,7 @@ func asProRatingConfig(p *api.ProRatingConfig) productcatalog.ProRatingConfig {
 	}
 }
 
-func AsPlanPhase(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, a api.PlanPhase) (productcatalog.Phase, error) {
+func AsPlanPhase(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, a apiv1models.PlanPhase) (productcatalog.Phase, error) {
 	var err error
 
 	phase := productcatalog.Phase{
@@ -189,7 +189,7 @@ func AsPlanPhase(ctx context.Context, resolver productcatalog.TaxCodeBackfillRes
 	return phase, nil
 }
 
-func AsUpdatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a api.PlanReplaceUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
+func AsUpdatePlanRequest(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, a apiv1models.PlanReplaceUpdate, namespace string, planID string) (UpdatePlanRequest, error) {
 	req := UpdatePlanRequest{
 		NamespacedID: models.NamespacedID{
 			Namespace: namespace,

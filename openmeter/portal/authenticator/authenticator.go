@@ -12,7 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -188,7 +188,7 @@ func (a Authenticator) validateSecurityRequirement(securityRequirement openapi3.
 
 func (a Authenticator) getAuthenticatorFunc(securitySchemaName string) func(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
 	switch securitySchemaName {
-	case strings.Split(string(api.PortalTokenAuthScopes), ".")[0]:
+	case strings.Split(string(apiv1models.PortalTokenAuthScopes), ".")[0]:
 		return a.verifyPortalToken
 	default:
 		return nil

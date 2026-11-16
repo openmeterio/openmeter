@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	api "github.com/openmeterio/openmeter/api/v3"
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -13,7 +13,7 @@ import (
 
 type (
 	GetNotificationRuleRequest  = notification.GetRuleInput
-	GetNotificationRuleResponse = api.BillingNotificationRule
+	GetNotificationRuleResponse = apiv3models.BillingNotificationRule
 	GetNotificationRuleParams   = string
 	GetNotificationRuleHandler  = httptransport.HandlerWithArgs[GetNotificationRuleRequest, GetNotificationRuleResponse, GetNotificationRuleParams]
 )

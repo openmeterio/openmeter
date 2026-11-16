@@ -7,7 +7,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
@@ -23,12 +23,12 @@ import (
 
 type (
 	ListCustomerDataRequest  = app.ListCustomerInput
-	ListCustomerDataResponse = api.CustomerAppDataPaginatedResponse
+	ListCustomerDataResponse = apiv1models.CustomerAppDataPaginatedResponse
 	ListCustomerDataHandler  httptransport.HandlerWithArgs[ListCustomerDataRequest, ListCustomerDataResponse, ListCustomerDataParams]
 )
 
 type ListCustomerDataParams struct {
-	api.ListCustomerAppDataParams
+	apiv1models.ListCustomerAppDataParams
 	CustomerIdOrKey string
 }
 
@@ -81,7 +81,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 				return ListCustomerDataResponse{}, fmt.Errorf("failed to list customers: %w", err)
 			}
 
-			items := make([]api.CustomerAppData, 0, len(resp.Items))
+			items := make([]apiv1models.CustomerAppData, 0, len(resp.Items))
 
 			for _, customerApp := range resp.Items {
 				item, err := h.toAPICustomerAppData(customerApp)
@@ -109,7 +109,7 @@ func (h *handler) ListCustomerData() ListCustomerDataHandler {
 
 type UpsertCustomerDataRequest struct {
 	CustomerId customer.CustomerID
-	Data       []api.CustomerAppData
+	Data       []apiv1models.CustomerAppData
 }
 
 type UpsertCustomerDataParams struct {
@@ -148,7 +148,7 @@ func (h *handler) UpsertCustomerData() UpsertCustomerDataHandler {
 					)
 			}
 
-			var body []api.CustomerAppData
+			var body []apiv1models.CustomerAppData
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
 				return UpsertCustomerDataRequest{},
@@ -262,7 +262,7 @@ func (h *handler) DeleteCustomerData() DeleteCustomerDataHandler {
 }
 
 // toCustomerData converts an API CustomerAppData to a CustomerData model
-func (h *handler) toCustomerData(ctx context.Context, customerID customer.CustomerID, apiApp api.CustomerAppData) (app.App, app.CustomerData, error) {
+func (h *handler) toCustomerData(ctx context.Context, customerID customer.CustomerID, apiApp apiv1models.CustomerAppData) (app.App, app.CustomerData, error) {
 	// Get app type
 	appType, err := apiApp.Discriminator()
 	if err != nil {
@@ -357,8 +357,8 @@ func (h *handler) resolveCustomerApp(ctx context.Context, customerID customer.Cu
 }
 
 // toAPICustomerAppData converts a CustomerApp to an API CustomerAppData
-func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, error) {
-	apiCustomerAppData := api.CustomerAppData{}
+func (h *handler) toAPICustomerAppData(a app.CustomerApp) (apiv1models.CustomerAppData, error) {
+	apiCustomerAppData := apiv1models.CustomerAppData{}
 	appId := a.App.GetID().ID
 
 	switch customerAppData := a.CustomerData.(type) {
@@ -385,9 +385,9 @@ func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, 
 
 		apiApp := appconvert.ToAPISandboxApp(sandboxApp.Meta)
 
-		apiSandboxCustomerAppData := api.SandboxCustomerAppData{
+		apiSandboxCustomerAppData := apiv1models.SandboxCustomerAppData{
 			Id:   &appId,
-			Type: api.SandboxCustomerAppDataTypeSandbox,
+			Type: apiv1models.SandboxCustomerAppDataTypeSandbox,
 			App:  &apiApp,
 		}
 
@@ -404,9 +404,9 @@ func (h *handler) toAPICustomerAppData(a app.CustomerApp) (api.CustomerAppData, 
 
 		apiApp := appconvert.ToAPICustomInvoicingApp(customInvoicingApp.Meta)
 
-		apiCustomInvoicingCustomerAppData := api.CustomInvoicingCustomerAppData{
+		apiCustomInvoicingCustomerAppData := apiv1models.CustomInvoicingCustomerAppData{
 			Id:   &appId,
-			Type: api.CustomInvoicingCustomerAppDataTypeCustomInvoicing,
+			Type: apiv1models.CustomInvoicingCustomerAppDataTypeCustomInvoicing,
 			App:  &apiApp,
 		}
 

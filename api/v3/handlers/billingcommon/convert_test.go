@@ -7,7 +7,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	api "github.com/openmeterio/openmeter/api/v3"
+	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -18,7 +18,7 @@ func TestToAPIValidationIssues(t *testing.T) {
 		require.Nil(t, issues)
 
 		body, err := json.Marshal(struct {
-			ValidationIssues *[]api.BillingValidationIssue `json:"validation_issues,omitempty"`
+			ValidationIssues *[]apiv3models.BillingValidationIssue `json:"validation_issues,omitempty"`
 		}{ValidationIssues: issues})
 		require.NoError(t, err)
 		require.JSONEq(t, `{}`, string(body))
@@ -36,9 +36,9 @@ func TestToAPIValidationIssues(t *testing.T) {
 			},
 		})
 		require.NotNil(t, issues)
-		require.Equal(t, []api.BillingValidationIssue{
+		require.Equal(t, []apiv3models.BillingValidationIssue{
 			{
-				Severity:   api.BillingValidationIssueSeverityWarning,
+				Severity:   apiv3models.BillingValidationIssueSeverityWarning,
 				Message:    "line needs attention",
 				Code:       "line_context",
 				Component:  lo.ToPtr("openmeter.invoicing"),

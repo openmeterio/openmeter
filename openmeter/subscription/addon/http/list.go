@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	subscriptionaddon "github.com/openmeterio/openmeter/openmeter/subscription/addon"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -21,7 +21,7 @@ type (
 	ListSubscriptionAddonsRequest = struct {
 		SubscriptionID models.NamespacedID
 	}
-	ListSubscriptionAddonsResponse = []api.SubscriptionAddon
+	ListSubscriptionAddonsResponse = []apiv1models.SubscriptionAddon
 	ListSubscriptionAddonsHandler  = httptransport.HandlerWithArgs[ListSubscriptionAddonsRequest, ListSubscriptionAddonsResponse, ListSubscriptionAddonsParams]
 )
 
@@ -61,9 +61,9 @@ func (h *handler) ListSubscriptionAddons() ListSubscriptionAddonsHandler {
 			// Deliberately fails the whole list, not just the unrepresentable item: this is
 			// an actual-state surface (what the customer is billed for), which rejects,
 			// unlike catalog-list endpoints such as ListAddons, which omit instead.
-			return slicesx.MapWithErr(res.Items, func(item subscriptionaddon.SubscriptionAddon) (api.SubscriptionAddon, error) {
+			return slicesx.MapWithErr(res.Items, func(item subscriptionaddon.SubscriptionAddon) (apiv1models.SubscriptionAddon, error) {
 				if item.Addon.AsProductCatalogAddon().HasUnitConfig() {
-					return api.SubscriptionAddon{}, productcatalog.ErrUnitConfigNotRepresentable
+					return apiv1models.SubscriptionAddon{}, productcatalog.ErrUnitConfigNotRepresentable
 				}
 
 				return MapSubscriptionAddonToResponse(view, item, taxCodes)

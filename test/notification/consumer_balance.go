@@ -11,7 +11,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
@@ -221,9 +221,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	require.Equal(t, TestEntitlementID, event.Payload.BalanceThreshold.Entitlement.Id, "Event must be associated with the entitlement")
 	require.NotEmpty(t, event.Annotations[notification.AnnotationBalanceEventDedupeHash], "Event must have a deduplication hash")
 	require.NoError(t, event.Payload.BalanceThreshold.Validate(), "Event must be valid")
-	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
+	require.Equal(t, apiv1models.NotificationRuleBalanceThresholdValue{
 		Value: 95,
-		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
+		Type:  apiv1models.NotificationRuleBalanceThresholdValueTypePercent,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 3: Additional events hitting the same 95% threshold should not create new events
@@ -291,9 +291,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	event = events.Items[0]
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
 	require.NotEmpty(t, event.Annotations[notification.AnnotationBalanceEventDedupeHash], "Event must have a deduplication hash")
-	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
+	require.Equal(t, apiv1models.NotificationRuleBalanceThresholdValue{
 		Value: 1000,
-		Type:  api.NotificationRuleBalanceThresholdValueTypeNumber,
+		Type:  apiv1models.NotificationRuleBalanceThresholdValueTypeNumber,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 6: The user hits the 95% threshold again
@@ -319,9 +319,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	// Let's sanity check the resulting event
 	event = events.Items[0]
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
-	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
+	require.Equal(t, apiv1models.NotificationRuleBalanceThresholdValue{
 		Value: 95,
-		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
+		Type:  apiv1models.NotificationRuleBalanceThresholdValueTypePercent,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 7: The user gets +1000 credits, given that the 95% threshold is no longer valid
@@ -350,9 +350,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	// Let's sanity check the resulting event
 	event = events.Items[0]
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
-	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
+	require.Equal(t, apiv1models.NotificationRuleBalanceThresholdValue{
 		Value: 1000,
-		Type:  api.NotificationRuleBalanceThresholdValueTypeNumber,
+		Type:  apiv1models.NotificationRuleBalanceThresholdValueTypeNumber,
 	}, event.Payload.BalanceThreshold.Threshold)
 
 	// Step 8: The entitlement gets reset, no events should be created
@@ -414,9 +414,9 @@ func (s *BalanceNotificaiontHandlerTestSuite) TestGrantingFlow(ctx context.Conte
 	// Let's sanity check the resulting event
 	event = events.Items[0]
 	require.Equal(t, notification.EventTypeBalanceThreshold, event.Payload.Type, "Event must be of type balance threshold")
-	require.Equal(t, api.NotificationRuleBalanceThresholdValue{
+	require.Equal(t, apiv1models.NotificationRuleBalanceThresholdValue{
 		Value: 95,
-		Type:  api.NotificationRuleBalanceThresholdValueTypePercent,
+		Type:  apiv1models.NotificationRuleBalanceThresholdValueTypePercent,
 	}, event.Payload.BalanceThreshold.Threshold)
 }
 
