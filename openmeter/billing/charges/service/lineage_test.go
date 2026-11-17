@@ -192,7 +192,8 @@ func (s *CreditRealizationLineageTestSuite) TestFlatFeeCreditOnlyAllocationCreat
 	defer clock.UnFreeze()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -269,7 +270,8 @@ func (s *CreditRealizationLineageTestSuite) TestUsageBasedCreditOnlyAllocationCr
 	defer clock.UnFreeze()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),

@@ -329,6 +329,26 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			wantNoErr: true,
 		},
 		{
+			// An inherited ID the batch could not resolve (outside the namespace or gone) keeps
+			// the ID on the line without an entity instead of failing calculation.
+			name: "line TaxCodeID missing from deps.TaxCodesByID keeps the ID with no entity",
+			invoice: newSnapshotTestInvoice(
+				billing.StandardInvoiceStatusDraftCollecting,
+				newSnapshotTestLine(&productcatalog.TaxConfig{
+					TaxCodeID: lo.ToPtr("tc-missing"),
+				}),
+			),
+			deps: StandardInvoiceCalculatorDependencies{
+				TaxCodesByID: TaxCodesByID{"tc-1": &tc1},
+			},
+			wantTC: &billing.TaxConfig{
+				TaxConfig: productcatalog.TaxConfig{
+					TaxCodeID: lo.ToPtr("tc-missing"),
+				},
+			},
+			wantNoErr: true,
+		},
+		{
 			name: "nil TaxConfig line with no DefaultTaxConfig stays nil",
 			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,

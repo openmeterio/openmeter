@@ -834,7 +834,8 @@ func (s *VoidGrantTestSuite) mustConsumeCredits(ctx context.Context, ns string, 
 	}
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       customerID,

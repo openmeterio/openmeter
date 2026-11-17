@@ -15,6 +15,7 @@ import (
 	metricnoop "go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -40,6 +41,7 @@ import (
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -306,6 +308,141 @@ func (s *ReconciliationTestSuite) createSubscriptionForReconciliation(in reconci
 	}
 
 	return view
+}
+
+// createTaxedSubscriptionForReconciliation creates a subscription whose only rate card carries a
+// Tax Code by ID, without an initial sync. The caller deletes the Tax Code before syncing so the
+// created lines and charges inherit the deleted reference.
+func (s *ReconciliationTestSuite) createTaxedSubscriptionForReconciliation(taxCodeID string) subscription.SubscriptionView {
+	s.T().Helper()
+	ctx := s.T().Context()
+
+	customerEntity, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: s.Namespace,
+		CustomerMutate: customer.CustomerMutate{
+			Key:            lo.ToPtr(ulid.Make().String()),
+			Name:           "Subscription reconciliation deleted tax code",
+			PrimaryEmail:   lo.ToPtr("test@example.com"),
+			BillingAddress: &models.Address{Country: lo.ToPtr(models.CountryCode("US"))},
+		},
+	})
+	s.Require().NoError(err)
+	s.Customer = customerEntity
+	_, err = s.LedgerDeps.ResolversService.CreateCustomerAccounts(ctx, s.Customer.GetID())
+	s.Require().NoError(err)
+
+	planInput := plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Subscription reconciliation deleted tax code",
+				Key:            ulid.Make().String(),
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default phase"},
+				RateCards: productcatalog.RateCards{
+					&productcatalog.FlatFeeRateCard{
+						RateCardMeta: productcatalog.RateCardMeta{
+							Key:  "flat-fee-taxed",
+							Name: "Flat fee taxed",
+							TaxConfig: &productcatalog.TaxCodeConfig{
+								TaxCodeID: taxCodeID,
+							},
+							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+								Amount:      alpacadecimal.NewFromInt(1),
+								PaymentTerm: productcatalog.InAdvancePaymentTerm,
+							}),
+						},
+						BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+					},
+				},
+			}},
+		},
+	}
+	createdPlan, err := s.PlanService.CreatePlan(ctx, planInput)
+	s.Require().NoError(err)
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, s.Namespace, productcatalogsubscription.PlanRefInput{
+		Key:     createdPlan.Key,
+		Version: lo.ToPtr(1),
+	})
+	s.Require().NoError(err)
+
+	activeFrom := clock.Now().Add(24 * time.Hour)
+	view, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Custom: lo.ToPtr(activeFrom)},
+			Name:   "Subscription for the deleted tax code",
+		},
+		Namespace:  s.Namespace,
+		CustomerID: s.Customer.ID,
+	}, subscriptionPlan)
+	s.Require().NoError(err)
+
+	return view
+}
+
+// TestSyncKeepsDeletedTaxCodeOnLinesAndCharges verifies that a subscription sync after the
+// subscription item's Tax Code was soft-deleted still provisions invoice lines (and, in the
+// charges mode, charges) referencing the deleted Tax Code ID: the sync's references are
+// inherited, not authored by this request.
+func (s *ReconciliationTestSuite) TestSyncKeepsDeletedTaxCodeOnLinesAndCharges() {
+	ctx := s.T().Context()
+	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// given: a subscription whose item's Tax Code is deleted before the first sync
+	taxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), s.Namespace, taxcode.CreateTaxCodeInput{
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+		},
+	})
+	view := s.createTaxedSubscriptionForReconciliation(taxCode.ID)
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: taxCode.NamespacedID}))
+
+	// when: the subscription is synced
+	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, view.Subscription.ActiveFrom.Add(time.Minute)))
+
+	// then: the provisioned lines keep the deleted Tax Code ID with its Stripe mapping resolved
+	invoice := s.gatheringInvoice()
+	s.Require().NotEmpty(invoice.Lines.OrEmpty())
+	for _, line := range invoice.Lines.OrEmpty() {
+		s.Require().NotNil(line.TaxConfig)
+		s.Equal(lo.ToPtr(taxCode.ID), line.TaxConfig.TaxCodeID)
+		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, line.TaxConfig.Stripe)
+	}
+
+	// and: in the charges mode the charge carries the deleted Tax Code ID too
+	if s.UseCharges {
+		chargeList, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{view.Subscription.NamespacedID.ID},
+		})
+		s.Require().NoError(err)
+		s.Require().NotEmpty(chargeList.Items)
+
+		for _, charge := range chargeList.Items {
+			var intentTaxConfig productcatalog.TaxCodeConfig
+			switch charge.Type() {
+			case chargesmeta.ChargeTypeFlatFee:
+				flatFee, err := charge.AsFlatFeeCharge()
+				s.Require().NoError(err)
+				intentTaxConfig = flatFee.Intent.GetTaxConfig()
+			case chargesmeta.ChargeTypeUsageBased:
+				usageBased, err := charge.AsUsageBasedCharge()
+				s.Require().NoError(err)
+				intentTaxConfig = usageBased.Intent.GetTaxConfig()
+			default:
+				s.Failf("unexpected charge type", "unexpected charge type: %s", charge.Type())
+			}
+
+			s.Equal(taxCode.ID, intentTaxConfig.TaxCodeID)
+		}
+	}
 }
 
 func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
@@ -598,8 +735,9 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRepeated() {
 	view := s.createSubscriptionForReconciliation(reconciliationSubscriptionInput{})
 	subscriptionID := view.Subscription.NamespacedID
 	pending, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: s.Customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     s.Customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines(billing.GatheringLines{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:        timeutil.ClosedPeriod{From: now.Add(-2 * time.Hour), To: now.Add(-time.Hour)},

@@ -214,7 +214,8 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareFlatFeeCustomCurrencyL
 
 	// given: a 10 TOKENS flat fee with no custom credits and 3 USD of existing credits
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -306,7 +307,8 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareUsageBasedCustomCurren
 
 	// given: 5 metered units priced at 2 TOKENS with no custom credits and 3 USD of existing credits
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(usagebased.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,

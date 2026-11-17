@@ -287,8 +287,9 @@ func (s *CreditThenInvoiceTestSuite) createAndDiscountFlatFeeDraft(servicePeriod
 	}
 	intent.BillingPeriod = intent.FullServicePeriod
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
-		Intents:   charges.NewCreateChargeIntents(charges.NewChargeIntent(intent)),
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
+		Intents:      charges.NewCreateChargeIntents(charges.NewChargeIntent(intent)),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)

@@ -57,8 +57,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeDraftSync() {
 			defer apiRequestsTotal.Cleanup()
 
 			_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: cust.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     cust.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					emptyInvoiceModeUsageLine(period, apiRequestsTotal.Feature.Key),
 				}),
@@ -121,8 +122,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceModeDraftEdit() {
 				Return([]stripeclient.StripeInvoiceItemWithLineID{}, nil)
 
 			_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: cust.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     cust.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Namespace:     namespace,
@@ -726,9 +728,10 @@ func (s *StripeInvoiceTestSuite) createEmptyInvoiceModeDraft(ctx context.Context
 	s.T().Helper()
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
-		Lines:    billing.NewCreatePendingInvoiceLines(lines),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
+		Lines:        billing.NewCreatePendingInvoiceLines(lines),
 	})
 	s.Require().NoError(err)
 

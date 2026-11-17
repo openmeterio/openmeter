@@ -115,7 +115,8 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 
 	t.Run("given settled purchased credits and a credit-then-invoice usage charge", func(t *testing.T) {
 		creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createCreditPurchaseIntent(createCreditPurchaseIntentInput{
 					customer:      cust.GetID(),
@@ -139,7 +140,8 @@ func (s *StripeInvoiceTestSuite) TestUsageBasedCreditThenInvoiceProgressiveBilli
 		s.mustSettleExternalCreditPurchase(ctx, creditPurchaseCharge.GetChargeID())
 
 		usageChargeRes, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),

@@ -77,7 +77,8 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchase() {
 	})
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			intent,
 		),
@@ -185,8 +186,9 @@ func (s *CreditPurchaseTestSuite) TestPromotionalCreditPurchaseWithCustomCurrenc
 		}()
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
-			Intents:   charges.NewCreateChargeIntents(intent),
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
+			Intents:      charges.NewCreateChargeIntents(intent),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -273,7 +275,8 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsFiatCostBasisForCusto
 			})
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{
-				Namespace: ns,
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    ns,
 				Intents: charges.NewCreateChargeIntents(
 					intent,
 				),
@@ -355,7 +358,8 @@ func (s *CreditPurchaseTestSuite) TestCreditPurchaseRejectsNonPositiveCostBasisB
 			})
 
 			res, err := s.Charges.Create(ctx, charges.CreateInput{
-				Namespace: ns,
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    ns,
 				Intents: charges.NewCreateChargeIntents(
 					intent,
 				),
@@ -502,7 +506,8 @@ func (s *CreditPurchaseTestSuite) TestExternalAuthorizedCreditPurchaseAutoSettle
 		assert.Equal(t, creditpurchase.StatusActivePaymentSettled, charge.Status, "charge status should be payment settled")
 	})
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			intent,
 		),
@@ -590,7 +595,8 @@ func (s *CreditPurchaseTestSuite) TestStandardInvoiceCreditPurchaseDeferred() {
 
 	s.Run("initiated", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				intent,
 			),

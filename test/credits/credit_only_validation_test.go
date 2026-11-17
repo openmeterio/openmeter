@@ -72,7 +72,8 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyAdvanceMissingMeterI
 		// then:
 		// - the charge is active and waits for the end of its service period
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -191,7 +192,8 @@ func (s *CreditOnlyValidationSuite) TestUsageBasedCreditOnlyNegativeUsageKeepsRa
 
 	// Given a credit-only SUM meter with negative usage.
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -327,7 +329,8 @@ func (s *CreditOnlyValidationSuite) TestFlatFeeCreditOnlyAdvancesWhenSiblingUsag
 	// - a credit-only usage charge is active and not due until the end of its service period
 	// - a credit-only in-advance flat fee for the same customer becomes due first
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -420,7 +423,8 @@ func (s *CreditOnlyValidationSuite) TestFlatFeeCreditOnlyIgnoresMissingMeterOnOw
 	// given:
 	// - a credit-only in-advance flat fee references a metered feature and is not yet due
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
