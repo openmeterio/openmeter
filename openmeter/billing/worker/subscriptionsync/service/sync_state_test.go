@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -16,9 +15,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler"
-	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/targetstate"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
@@ -35,100 +31,43 @@ func TestNextReconciliationAt(t *testing.T) {
 	end := start.Add(10 * 24 * time.Hour)
 	period := timeutil.ClosedPeriod{From: start, To: end}
 	for _, tc := range []struct {
-		name              string
-		nextBillingPeriod *timeutil.ClosedPeriod
-		reconciledAt      time.Time
-		billingEndsAt     *time.Time
-		fraction          float64
-		want              time.Time
-	}{
-		{
-			name:              "ongoing subscription uses eighty percent of the whole period",
-			nextBillingPeriod: &period,
-			reconciledAt:      start.Add(5 * 24 * time.Hour),
-			want:              start.Add(8 * 24 * time.Hour),
-		},
-		{
-			name:              "ongoing subscription uses ninety-five percent of the whole period",
-			nextBillingPeriod: &period,
-			reconciledAt:      start,
-			fraction:          1,
-			want:              start.Add(228 * time.Hour),
-		},
-		{
-			name:              "cancellation after the next period still uses jitter",
-			nextBillingPeriod: &period,
-			reconciledAt:      start,
-			billingEndsAt:     lo.ToPtr(end.Add(24 * time.Hour)),
-			want:              start.Add(8 * 24 * time.Hour),
-		},
-		{
-			name:          "no next period schedules the subscription end exactly",
-			reconciledAt:  start,
-			billingEndsAt: &end,
-			want:          end,
-		},
-		{
-			name:          "no next period preserves an end before the billing boundary",
-			reconciledAt:  start,
-			billingEndsAt: lo.ToPtr(end.Add(-time.Hour)),
-			want:          end.Add(-time.Hour),
-		},
-		{
-			name:              "selected deadline equal to completion moves to the period end",
-			nextBillingPeriod: &period,
-			reconciledAt:      start.Add(8 * 24 * time.Hour),
-			want:              end,
-		},
-		{
-			name:              "late sync does not reschedule a deadline in the past",
-			nextBillingPeriod: &period,
-			reconciledAt:      start.Add(9 * 24 * time.Hour),
-			want:              end,
-		},
-		{
-			name:              "historical period remains due",
-			nextBillingPeriod: &period,
-			reconciledAt:      end.Add(time.Hour),
-			want:              end,
-		},
-		{
-			name:          "historical subscription end remains due",
-			reconciledAt:  end.Add(time.Hour),
-			billingEndsAt: &end,
-			want:          end,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			service := &Service{}
-			got, err := service.getNextReconciliationAt(nextReconciliationAtInput{
-				NextBillingPeriod: tc.nextBillingPeriod,
-				BillingEndsAt:     tc.billingEndsAt,
-				ReconciledAt:      tc.reconciledAt,
-				RandomFraction:    tc.fraction,
-			})
-			require.NoError(t, err)
-			require.Equal(t, tc.want, got)
-		})
-	}
-}
-
-func TestNextReconciliationAtRequiresPeriodOrEnd(t *testing.T) {
-	for _, tc := range []struct {
 		name          string
 		billingEndsAt *time.Time
+		fraction      float64
+		want          time.Time
 	}{
-		{name: "missing end"},
-		{name: "zero end", billingEndsAt: lo.ToPtr(time.Time{})},
+		{
+			name: "ongoing subscription uses eighty percent of the whole period",
+			want: start.Add(8 * 24 * time.Hour),
+		},
+		{
+			name:     "ongoing subscription uses ninety-five percent of the whole period",
+			fraction: 1,
+			want:     start.Add(228 * time.Hour),
+		},
+		{
+			name:          "billing end after the period still uses jitter",
+			billingEndsAt: lo.ToPtr(end.Add(24 * time.Hour)),
+			want:          start.Add(8 * 24 * time.Hour),
+		},
+		{
+			name:          "period ending with billing schedules the end exactly",
+			billingEndsAt: &end,
+			want:          end,
+		},
+		{
+			name:          "customer deletion inside the period schedules the deletion exactly",
+			billingEndsAt: lo.ToPtr(start.Add(5 * 24 * time.Hour)),
+			want:          start.Add(5 * 24 * time.Hour),
+		},
+		{
+			name:          "billing end before the period stays due",
+			billingEndsAt: lo.ToPtr(start.Add(-time.Hour)),
+			want:          start.Add(-time.Hour),
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// An active result cannot lose its deadline when the plan has no next period.
-			service := &Service{}
-			_, err := service.getNextReconciliationAt(nextReconciliationAtInput{
-				BillingEndsAt: tc.billingEndsAt,
-				ReconciledAt:  time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
-			})
-			require.ErrorContains(t, err, "billing ends at is required when there is no next billing period")
+			require.Equal(t, tc.want, nextReconciliationAt(period, tc.billingEndsAt, tc.fraction))
 		})
 	}
 }
@@ -148,12 +87,33 @@ func (s *SyncStateTestSuite) BeforeTest(suiteName, testName string) {
 	s.Service = s.LegacySyncService
 }
 
-type syncStateSubscriptionInput struct {
-	Start  time.Time
-	Phases []productcatalog.Phase
+// forEachBackend runs the scenario against legacy billing and charges. Scenarios
+// call useNewCustomer so the two runs do not share a customer.
+func (s *SyncStateTestSuite) forEachBackend(scenario func()) {
+	for _, backend := range []struct {
+		name    string
+		service *Service
+	}{
+		{name: "legacy billing", service: s.LegacySyncService},
+		{name: "charges", service: s.ChargeSyncService},
+	} {
+		s.Run(backend.name, func() {
+			s.Service = backend.service
+			scenario()
+		})
+	}
 }
 
-func (s *SyncStateTestSuite) createSyncStateSubscription(input syncStateSubscriptionInput) subscription.SubscriptionView {
+// useNewCustomer gives a scenario its own customer, so its subscription cannot
+// overlap one created by another case.
+func (s *SyncStateTestSuite) useNewCustomer() {
+	s.T().Helper()
+	s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
+	_, err := s.LedgerResolver.CreateCustomerAccounts(s.T().Context(), s.Customer.GetID())
+	s.Require().NoError(err)
+}
+
+func (s *SyncStateTestSuite) createSyncStateSubscription(start time.Time, phases ...productcatalog.Phase) subscription.SubscriptionView {
 	s.T().Helper()
 
 	return s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
@@ -167,9 +127,9 @@ func (s *SyncStateTestSuite) createSyncStateSubscription(input syncStateSubscrip
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
 			},
-			Phases: input.Phases,
+			Phases: phases,
 		},
-	}, input.Start)
+	}, start)
 }
 
 func (s *SyncStateTestSuite) paidMonthlyPhase() productcatalog.Phase {
@@ -220,85 +180,96 @@ func (s *SyncStateTestSuite) requireActiveDeadline(subscriptionID models.Namespa
 	return *state.NextReconciliationAt
 }
 
-// requireMonthlyItems checks all provisioned periods, so duplicate or missing
-// upcoming items fail even if the reconciliation deadline itself is correct.
-func (s *SyncStateTestSuite) requireMonthlyItems(view subscription.SubscriptionView, periods []timeutil.ClosedPeriod) {
+// requireUnscheduled checks that the sync that just ran recorded the given state
+// without a next reconciliation deadline. Only active results are scheduled.
+func (s *SyncStateTestSuite) requireUnscheduled(subscriptionID models.NamespacedID, want subscriptionsync.SyncStateV2State) {
 	s.T().Helper()
+	state := s.getSyncStateV2(subscriptionID)
+	s.Equal(want, state.LastSuccessState)
+	s.Equal(lo.ToPtr(clock.Now().UTC()), state.LastSuccessAt)
+	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
+	s.Nil(state.NextReconciliationAt)
+}
+
+// requireFees checks every provisioned in-advance fee by its sync identity, so
+// duplicate or missing items fail even if the reconciliation deadline is correct.
+func (s *SyncStateTestSuite) requireFees(view subscription.SubscriptionView, expected map[string]timeutil.ClosedPeriod) {
+	s.T().Helper()
+	actual := make(map[string]timeutil.ClosedPeriod)
 	if s.Service == s.ChargeSyncService {
 		result, err := s.Charges.ListCharges(s.T().Context(), charges.ListChargesInput{
 			Namespace:       s.Namespace,
 			SubscriptionIDs: []string{view.Subscription.ID},
 		})
 		s.Require().NoError(err)
-		s.Require().Len(result.Items, len(periods))
-		expectedIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: len(periods) - 1}).ChildIDs(view.Subscription.ID)
-		actualIDs := make([]string, 0, len(result.Items))
-		actualPeriods := make([]timeutil.ClosedPeriod, 0, len(result.Items))
+		s.Require().Len(result.Items, len(expected))
 		for _, item := range result.Items {
 			charge, err := item.AsFlatFeeCharge()
 			s.Require().NoError(err)
 			intent := charge.Intent.GetBaseIntent()
-			s.Equal(intent.ServicePeriod.From, intent.InvoiceAt, "in-advance fee is invoiceable at its service period start")
-			actualPeriods = append(actualPeriods, intent.ServicePeriod)
 			reference, err := item.GetUniqueReferenceID()
 			s.Require().NoError(err)
 			s.Require().NotNil(reference)
-			actualIDs = append(actualIDs, *reference)
+			s.Equal(intent.ServicePeriod.From, intent.InvoiceAt, "in-advance fee is invoiceable at its service period start")
+			actual[*reference] = intent.ServicePeriod
 		}
-
-		s.ElementsMatch(expectedIDs, actualIDs)
-		s.ElementsMatch(periods, actualPeriods)
-
-		return
+	} else {
+		invoice := s.gatheringInvoice(s.T().Context(), s.Namespace, s.Customer.ID)
+		s.Require().Len(invoice.Lines.OrEmpty(), len(expected))
+		for _, line := range invoice.Lines.OrEmpty() {
+			s.Require().NotNil(line.ChildUniqueReferenceID)
+			s.Equal(line.GetServicePeriod().From, line.InvoiceAt, "in-advance fee is invoiceable at its service period start")
+			actual[*line.ChildUniqueReferenceID] = line.GetServicePeriod()
+		}
 	}
 
-	invoice := s.gatheringInvoice(s.T().Context(), s.Namespace, s.Customer.ID)
-	s.expectLines(invoice, view.Subscription.ID, []expectedLine{{
-		Matcher:   recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: len(periods) - 1},
-		Periods:   periods,
-		InvoiceAt: mo.Some(lo.Map(periods, func(period timeutil.ClosedPeriod, _ int) time.Time { return period.From })),
-	}})
+	s.Equal(expected, actual)
 }
 
-func (s *SyncStateTestSuite) TestMonthlyLegacyProgression() {
-	s.requireMonthlyProgression()
-}
-
-func (s *SyncStateTestSuite) TestMonthlyChargeProgression() {
-	s.Service = s.ChargeSyncService
-	s.requireMonthlyProgression()
-}
-
-func (s *SyncStateTestSuite) requireMonthlyProgression() {
+// requireMonthlyItems expects exactly one monthly fee of the paid phase per period.
+func (s *SyncStateTestSuite) requireMonthlyItems(view subscription.SubscriptionView, periods []timeutil.ClosedPeriod) {
 	s.T().Helper()
-	// Given a monthly in-advance fee, beginning November 1.
-	start := s.mustParseTime("2026-11-01T00:00:00Z")
-	clock.FreezeTime(start)
-	defer clock.UnFreeze()
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{Start: start, Phases: []productcatalog.Phase{s.paidMonthlyPhase()}})
-
-	// When each persisted deadline arrives, sync provisions the next month's fee.
-	// February's shorter period also verifies that scheduling follows the calendar.
-	periods := []timeutil.ClosedPeriod{
-		{From: start, To: s.mustParseTime("2026-12-01T00:00:00Z")},
-		{From: s.mustParseTime("2026-12-01T00:00:00Z"), To: s.mustParseTime("2027-01-01T00:00:00Z")},
-		{From: s.mustParseTime("2027-01-01T00:00:00Z"), To: s.mustParseTime("2027-02-01T00:00:00Z")},
-		{From: s.mustParseTime("2027-02-01T00:00:00Z"), To: s.mustParseTime("2027-03-01T00:00:00Z")},
-		{From: s.mustParseTime("2027-03-01T00:00:00Z"), To: s.mustParseTime("2027-04-01T00:00:00Z")},
-	}
-	syncAt := start
+	ids := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: len(periods) - 1}).ChildIDs(view.Subscription.ID)
+	expected := make(map[string]timeutil.ClosedPeriod, len(periods))
 	for index, period := range periods {
-		s.Run(period.From.Format("January"), func() {
-			clock.FreezeTime(syncAt)
-			defer clock.UnFreeze()
-			s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
-
-			// Then all prior fees remain, the upcoming fee is provisioned exactly once,
-			// and the next invocation belongs to that upcoming billing period.
-			s.requireMonthlyItems(view, periods[:index+1])
-			syncAt = s.requireActiveDeadline(view.Subscription.NamespacedID, period)
-		})
+		expected[ids[index]] = period
 	}
+
+	s.requireFees(view, expected)
+}
+
+func (s *SyncStateTestSuite) TestMonthlyProgression() {
+	s.forEachBackend(func() {
+		// Given a monthly in-advance fee, beginning November 1.
+		start := s.mustParseTime("2026-11-01T00:00:00Z")
+		clock.FreezeTime(start)
+		defer clock.UnFreeze()
+		s.useNewCustomer()
+		view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
+
+		// When each persisted deadline arrives, sync provisions the next month's fee.
+		// February's shorter period also verifies that scheduling follows the calendar.
+		periods := []timeutil.ClosedPeriod{
+			{From: start, To: s.mustParseTime("2026-12-01T00:00:00Z")},
+			{From: s.mustParseTime("2026-12-01T00:00:00Z"), To: s.mustParseTime("2027-01-01T00:00:00Z")},
+			{From: s.mustParseTime("2027-01-01T00:00:00Z"), To: s.mustParseTime("2027-02-01T00:00:00Z")},
+			{From: s.mustParseTime("2027-02-01T00:00:00Z"), To: s.mustParseTime("2027-03-01T00:00:00Z")},
+			{From: s.mustParseTime("2027-03-01T00:00:00Z"), To: s.mustParseTime("2027-04-01T00:00:00Z")},
+		}
+		syncAt := start
+		for index, period := range periods {
+			s.Run(period.From.Format("January"), func() {
+				clock.FreezeTime(syncAt)
+				defer clock.UnFreeze()
+				s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
+
+				// Then all prior fees remain, the upcoming fee is provisioned exactly once,
+				// and the next invocation belongs to that upcoming billing period.
+				s.requireMonthlyItems(view, periods[:index+1])
+				syncAt = s.requireActiveDeadline(view.Subscription.NamespacedID, period)
+			})
+		}
+	})
 }
 
 func (s *SyncStateTestSuite) TestFutureStartProgression() {
@@ -309,7 +280,7 @@ func (s *SyncStateTestSuite) TestFutureStartProgression() {
 	february := s.mustParseTime("2027-02-01T00:00:00Z")
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{Start: start, Phases: []productcatalog.Phase{s.paidMonthlyPhase()}})
+	view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 
 	// When synced before its start, the first fee and first-period deadline are provisioned.
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
@@ -334,13 +305,7 @@ func (s *SyncStateTestSuite) TestFreeToPaidProgression() {
 	february := s.mustParseTime("2027-02-01T00:00:00Z")
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-		Start: start,
-		Phases: []productcatalog.Phase{
-			s.freeMonthlyPhase("P1M"),
-			s.paidMonthlyPhase(),
-		},
-	})
+	view := s.createSyncStateSubscription(start, s.freeMonthlyPhase("P1M"), s.paidMonthlyPhase())
 
 	// When syncing during the free phase, the first paid period is already provisioned.
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
@@ -358,111 +323,52 @@ func (s *SyncStateTestSuite) TestFreeToPaidProgression() {
 }
 
 func (s *SyncStateTestSuite) TestPaidToPaidPhaseTransitionProvisionsAdvanceFeeOnTime() {
-	for _, tc := range []struct {
-		name    string
-		service *Service
-		asOf    time.Time
-	}{
-		{
-			name:    "legacy billing before the phase boundary",
-			service: s.LegacySyncService,
-			asOf:    s.mustParseTime("2026-11-25T00:00:00Z"),
-		},
-		{
-			name:    "charges before the phase boundary",
-			service: s.ChargeSyncService,
-			asOf:    s.mustParseTime("2026-11-25T00:00:00Z"),
-		},
-		{
-			name:    "legacy billing at the phase boundary",
-			service: s.LegacySyncService,
-			asOf:    s.mustParseTime("2026-12-01T00:00:00Z"),
-		},
-		{
-			name:    "charges at the phase boundary",
-			service: s.ChargeSyncService,
-			asOf:    s.mustParseTime("2026-12-01T00:00:00Z"),
-		},
-	} {
-		s.Run(tc.name, func() {
-			// Given two paid phases, the second phase's advance fee is due on December 1.
-			ctx := s.T().Context()
-			start := s.mustParseTime("2026-11-01T00:00:00Z")
-			december := s.mustParseTime("2026-12-01T00:00:00Z")
-			january := s.mustParseTime("2027-01-01T00:00:00Z")
-			february := s.mustParseTime("2027-02-01T00:00:00Z")
-			clock.FreezeTime(start)
-			defer clock.UnFreeze()
-			s.Service = tc.service
-			s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
-			_, err := s.LedgerResolver.CreateCustomerAccounts(ctx, s.Customer.GetID())
-			s.Require().NoError(err)
+	s.forEachBackend(func() {
+		for _, tc := range []struct {
+			name string
+			asOf time.Time
+		}{
+			{name: "before the phase boundary", asOf: s.mustParseTime("2026-11-25T00:00:00Z")},
+			{name: "at the phase boundary", asOf: s.mustParseTime("2026-12-01T00:00:00Z")},
+		} {
+			s.Run(tc.name, func() {
+				// Given two paid phases, the second phase's advance fee is due on December 1.
+				ctx := s.T().Context()
+				start := s.mustParseTime("2026-11-01T00:00:00Z")
+				december := s.mustParseTime("2026-12-01T00:00:00Z")
+				january := s.mustParseTime("2027-01-01T00:00:00Z")
+				february := s.mustParseTime("2027-02-01T00:00:00Z")
+				clock.FreezeTime(start)
+				defer clock.UnFreeze()
+				s.useNewCustomer()
 
-			firstPhase := s.paidMonthlyPhase()
-			firstPhase.PhaseMeta = s.phaseMeta("first-paid", "P1M")
-			view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-				Start: start,
-				Phases: []productcatalog.Phase{
-					firstPhase,
-					s.paidMonthlyPhase(),
-				},
+				firstPhase := s.paidMonthlyPhase()
+				firstPhase.PhaseMeta = s.phaseMeta("first-paid", "P1M")
+				view := s.createSyncStateSubscription(start, firstPhase, s.paidMonthlyPhase())
+				firstFeeID := (recurringLineMatcher{PhaseKey: "first-paid", ItemKey: "monthly-fee"}).ChildIDs(view.Subscription.ID)[0]
+				secondPhaseFeeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: 1}).ChildIDs(view.Subscription.ID)
+				expectedFees := map[string]timeutil.ClosedPeriod{
+					firstFeeID:           {From: start, To: december},
+					secondPhaseFeeIDs[0]: {From: december, To: january},
+				}
+
+				// When sync generates through December 1, it must include the second phase's fee.
+				clock.FreezeTime(tc.asOf)
+				defer clock.UnFreeze()
+				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+				s.requireFees(view, expectedFees)
+				next := s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: december, To: january})
+
+				// Then following the December deadline adds January's fee without duplicating earlier fees.
+				clock.FreezeTime(next)
+				defer clock.UnFreeze()
+				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+				expectedFees[secondPhaseFeeIDs[1]] = timeutil.ClosedPeriod{From: january, To: february}
+				s.requireFees(view, expectedFees)
+				s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: january, To: february})
 			})
-			firstFeeID := (recurringLineMatcher{PhaseKey: "first-paid", ItemKey: "monthly-fee"}).ChildIDs(view.Subscription.ID)[0]
-			secondPhaseFeeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: 1}).ChildIDs(view.Subscription.ID)
-			expectedFees := map[string]timeutil.ClosedPeriod{
-				firstFeeID:           {From: start, To: december},
-				secondPhaseFeeIDs[0]: {From: december, To: january},
-			}
-
-			// When sync generates through December 1, it must include the second phase's fee.
-			clock.FreezeTime(tc.asOf)
-			defer clock.UnFreeze()
-			s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
-			s.requirePhaseTransitionFees(view, expectedFees)
-			next := s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: december, To: january})
-
-			// Then following the December deadline adds January's fee without duplicating earlier fees.
-			clock.FreezeTime(next)
-			defer clock.UnFreeze()
-			s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
-			expectedFees[secondPhaseFeeIDs[1]] = timeutil.ClosedPeriod{From: january, To: february}
-			s.requirePhaseTransitionFees(view, expectedFees)
-			s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: january, To: february})
-		})
-	}
-}
-
-func (s *SyncStateTestSuite) requirePhaseTransitionFees(view subscription.SubscriptionView, expected map[string]timeutil.ClosedPeriod) {
-	s.T().Helper()
-	actual := make(map[string]timeutil.ClosedPeriod)
-	if s.Service == s.ChargeSyncService {
-		result, err := s.Charges.ListCharges(s.T().Context(), charges.ListChargesInput{
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{view.Subscription.ID},
-		})
-		s.Require().NoError(err)
-		s.Require().Len(result.Items, len(expected))
-		for _, item := range result.Items {
-			charge, err := item.AsFlatFeeCharge()
-			s.Require().NoError(err)
-			intent := charge.Intent.GetBaseIntent()
-			reference, err := item.GetUniqueReferenceID()
-			s.Require().NoError(err)
-			s.Require().NotNil(reference)
-			s.Equal(intent.ServicePeriod.From, intent.InvoiceAt)
-			actual[*reference] = intent.ServicePeriod
 		}
-	} else {
-		invoice := s.gatheringInvoice(s.T().Context(), s.Namespace, s.Customer.ID)
-		s.Require().Len(invoice.Lines.OrEmpty(), len(expected))
-		for _, line := range invoice.Lines.OrEmpty() {
-			s.Require().NotNil(line.ChildUniqueReferenceID)
-			s.Equal(line.GetServicePeriod().From, line.InvoiceAt)
-			actual[*line.ChildUniqueReferenceID] = line.GetServicePeriod()
-		}
-	}
-
-	s.Equal(expected, actual)
+	})
 }
 
 func (s *SyncStateTestSuite) TestNoBillablesHasNoReconciliationDeadline() {
@@ -470,18 +376,11 @@ func (s *SyncStateTestSuite) TestNoBillablesHasNoReconciliationDeadline() {
 	start := s.mustParseTime("2026-11-01T00:00:00Z")
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-		Start:  start,
-		Phases: []productcatalog.Phase{s.freeMonthlyPhase("")},
-	})
+	view := s.createSyncStateSubscription(start, s.freeMonthlyPhase(""))
 
 	// When sync completes, it acknowledges the subscription without scheduling more work.
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
-	state := s.getSyncStateV2(view.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateNoBillables, state.LastSuccessState)
-	s.Equal(&start, state.LastSuccessAt)
-	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-	s.Nil(state.NextReconciliationAt)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
 
 	// Then neither legacy billing nor charge-based billing has artifacts to collect.
 	s.expectNoGatheringInvoice(s.T().Context(), s.Namespace, s.Customer.ID)
@@ -502,10 +401,7 @@ func (s *SyncStateTestSuite) TestRemovingAndRestoringBillablesUpdatesReconciliat
 	defer clock.UnFreeze()
 
 	// Given a paid subscription at its start, with its first fee and active deadline.
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-		Start:  start,
-		Phases: []productcatalog.Phase{s.paidMonthlyPhase()},
-	})
+	view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
 	period := timeutil.ClosedPeriod{From: start, To: end}
 	s.requireActiveDeadline(view.Subscription.NamespacedID, period)
@@ -524,11 +420,7 @@ func (s *SyncStateTestSuite) TestRemovingAndRestoringBillablesUpdatesReconciliat
 	_, err = s.SubscriptionService.Update(ctx, view.Subscription.NamespacedID, freeSpec)
 	s.Require().NoError(err)
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
-	state := s.getSyncStateV2(view.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateNoBillables, state.LastSuccessState)
-	s.Equal(&now, state.LastSuccessAt)
-	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-	s.Nil(state.NextReconciliationAt)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 
 	// Then a later edit restoring the price can provision the fee and resume scheduling.
@@ -564,17 +456,14 @@ func (s *SyncStateTestSuite) TestOneTimeFeeWaitsForCancellation() {
 		Amount:      alpacadecimal.NewFromInt(10),
 		PaymentTerm: productcatalog.InArrearsPaymentTerm,
 	})
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-		Start: start,
-		Phases: []productcatalog.Phase{{
-			PhaseMeta: s.phaseMeta("one-time", ""),
-			RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
-				RateCardMeta: productcatalog.RateCardMeta{
-					Key:   "completion-fee",
-					Name:  "Completion fee",
-					Price: price,
-				},
-			}},
+	view := s.createSyncStateSubscription(start, productcatalog.Phase{
+		PhaseMeta: s.phaseMeta("one-time", ""),
+		RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:   "completion-fee",
+				Name:  "Completion fee",
+				Price: price,
+			},
 		}},
 	})
 
@@ -606,24 +495,14 @@ func (s *SyncStateTestSuite) TestOneTimeFeeWaitsForCancellation() {
 	}}
 	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.expectLines(invoice, view.Subscription.ID, expectedLines)
-	state := s.getSyncStateV2(view.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateEnded, state.LastSuccessState)
-	s.Equal(&end, state.LastSuccessAt)
-	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-	s.Nil(state.NextReconciliationAt)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
 
 	// Then a retried cancellation sync keeps the single fee line and stays ended.
-	clock.FreezeTime(end)
-	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
 	finalInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.expectLines(finalInvoice, view.Subscription.ID, expectedLines)
 	s.Equal(invoice.Lines.OrEmpty()[0].ID, finalInvoice.Lines.OrEmpty()[0].ID)
-	state = s.getSyncStateV2(view.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateEnded, state.LastSuccessState)
-	s.Equal(&end, state.LastSuccessAt)
-	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-	s.Nil(state.NextReconciliationAt)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
 }
 
 func (s *SyncStateTestSuite) TestCancellationProgression() {
@@ -634,7 +513,7 @@ func (s *SyncStateTestSuite) TestCancellationProgression() {
 	end := s.mustParseTime("2027-02-01T00:00:00Z")
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{Start: start, Phases: []productcatalog.Phase{s.paidMonthlyPhase()}})
+	view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 	_, err := s.SubscriptionService.Cancel(s.T().Context(), view.Subscription.NamespacedID, subscription.Timing{Custom: &end})
 	s.Require().NoError(err)
 
@@ -660,15 +539,11 @@ func (s *SyncStateTestSuite) TestCancellationProgression() {
 	s.Require().Equal(&end, state.NextReconciliationAt)
 
 	// Then the final saved deadline records completion without provisioning February.
-	clock.FreezeTime(*state.NextReconciliationAt)
+	clock.FreezeTime(end)
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
 	s.requireMonthlyItems(view, periods)
-	state = s.getSyncStateV2(view.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateEnded, state.LastSuccessState)
-	s.Equal(&end, state.LastSuccessAt)
-	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-	s.Nil(state.NextReconciliationAt)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
 }
 
 func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
@@ -677,7 +552,7 @@ func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	end := s.mustParseTime("2026-12-01T00:00:00Z")
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{Start: start, Phases: []productcatalog.Phase{s.paidMonthlyPhase()}})
+	view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
 	initial := s.getSyncStateV2(view.Subscription.NamespacedID)
 
@@ -698,6 +573,9 @@ func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: end}})
 }
 
+// TestCustomerDeletionReconciliation covers what is specific to customer deletion:
+// it can end billing before ActiveTo. How the worker clock and AsOf decide between
+// active and ended is covered for ActiveTo by TestEndedSubscriptionSyncResult.
 func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 	createdAt := s.mustParseTime("2026-11-01T00:00:00Z")
 	november15 := s.mustParseTime("2026-11-15T00:00:00Z")
@@ -705,215 +583,149 @@ func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 	december15 := s.mustParseTime("2026-12-15T00:00:00Z")
 	january := s.mustParseTime("2027-01-01T00:00:00Z")
 
-	for _, backend := range []struct {
-		name    string
-		service *Service
-	}{
-		{name: "legacy billing", service: s.LegacySyncService},
-		{name: "charges", service: s.ChargeSyncService},
-	} {
-		s.Run(backend.name, func() {
-			s.Service = backend.service
-			for _, tc := range []struct {
-				name                 string
-				deletedAt            time.Time
-				subscriptionActiveTo *time.Time
-				now                  time.Time
-				asOf                 time.Time
-				withoutBillables     bool
-				wantState            subscriptionsync.SyncStateV2State
-				wantDeadline         *time.Time
-			}{
-				{
-					name:         "future deletion schedules the final sync",
-					deletedAt:    december,
-					now:          november15,
-					asOf:         november15,
-					wantState:    subscriptionsync.SyncStateV2StateActive,
-					wantDeadline: &december,
-				},
-				{
-					name:         "future horizon cannot retire a customer before deletion",
-					deletedAt:    december,
-					now:          november15,
-					asOf:         december15,
-					wantState:    subscriptionsync.SyncStateV2StateActive,
-					wantDeadline: &december,
-				},
-				{
-					name:      "sync at deletion records completion",
-					deletedAt: december,
-					now:       december,
-					asOf:      december,
-					wantState: subscriptionsync.SyncStateV2StateEnded,
-				},
-				{
-					name:      "sync after deletion clears the final deadline",
-					deletedAt: december,
-					now:       december15,
-					asOf:      december15,
-					wantState: subscriptionsync.SyncStateV2StateEnded,
-				},
-				{
-					name:         "historical horizon does not record completion",
-					deletedAt:    december,
-					now:          december15,
-					asOf:         november15,
-					wantState:    subscriptionsync.SyncStateV2StateActive,
-					wantDeadline: &december,
-				},
-				{
-					name:                 "subscription end before deletion wins",
-					deletedAt:            january,
-					subscriptionActiveTo: &december,
-					now:                  december15,
-					asOf:                 december15,
-					wantState:            subscriptionsync.SyncStateV2StateEnded,
-				},
-				{
-					name:                 "deletion before subscription end wins",
-					deletedAt:            december,
-					subscriptionActiveTo: &january,
-					now:                  december15,
-					asOf:                 december15,
-					wantState:            subscriptionsync.SyncStateV2StateEnded,
-				},
-				{
-					name:             "empty plan still records completion",
-					deletedAt:        december,
-					now:              december15,
-					asOf:             december15,
-					withoutBillables: true,
-					wantState:        subscriptionsync.SyncStateV2StateEnded,
-				},
-			} {
-				s.Run(tc.name, func() {
-					// Given a subscription whose customer deletion may end billing before ActiveTo.
-					ctx := s.T().Context()
-					clock.FreezeTime(createdAt)
-					defer clock.UnFreeze()
-					s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
-					_, err := s.LedgerResolver.CreateCustomerAccounts(ctx, s.Customer.GetID())
+	s.forEachBackend(func() {
+		for _, tc := range []struct {
+			name                 string
+			deletedAt            time.Time
+			subscriptionActiveTo *time.Time
+			now                  time.Time
+			withoutBillables     bool
+			wantState            subscriptionsync.SyncStateV2State
+			wantDeadline         *time.Time
+		}{
+			{
+				name:         "future deletion schedules the final sync",
+				deletedAt:    december,
+				now:          november15,
+				wantState:    subscriptionsync.SyncStateV2StateActive,
+				wantDeadline: &december,
+			},
+			{
+				name:      "sync after deletion clears the final deadline",
+				deletedAt: december,
+				now:       december15,
+				wantState: subscriptionsync.SyncStateV2StateEnded,
+			},
+			{
+				name:                 "subscription end before deletion wins",
+				deletedAt:            january,
+				subscriptionActiveTo: &december,
+				now:                  december15,
+				wantState:            subscriptionsync.SyncStateV2StateEnded,
+			},
+			{
+				name:                 "deletion before subscription end wins",
+				deletedAt:            december,
+				subscriptionActiveTo: &january,
+				now:                  december15,
+				wantState:            subscriptionsync.SyncStateV2StateEnded,
+			},
+			{
+				name:             "empty plan still records completion",
+				deletedAt:        december,
+				now:              december15,
+				withoutBillables: true,
+				wantState:        subscriptionsync.SyncStateV2StateEnded,
+			},
+		} {
+			s.Run(tc.name, func() {
+				// Given a subscription whose customer deletion may end billing before ActiveTo.
+				ctx := s.T().Context()
+				clock.FreezeTime(createdAt)
+				defer clock.UnFreeze()
+				s.useNewCustomer()
+
+				phase := s.paidMonthlyPhase()
+				if tc.withoutBillables {
+					phase = s.freeMonthlyPhase("")
+				}
+
+				view := s.createSyncStateSubscription(createdAt, phase)
+				if tc.subscriptionActiveTo != nil {
+					_, err := s.SubscriptionService.Cancel(ctx, view.Subscription.NamespacedID, subscription.Timing{Custom: tc.subscriptionActiveTo})
 					s.Require().NoError(err)
+				}
 
-					phase := s.paidMonthlyPhase()
-					if tc.withoutBillables {
-						phase = s.freeMonthlyPhase("")
-					}
+				// Deleted customers no longer resolve subject keys; retain an identifiable invoice snapshot.
+				s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).
+					SetKey(s.Customer.ID).
+					SetDeletedAt(tc.deletedAt).Exec(ctx))
 
-					view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-						Start:  createdAt,
-						Phases: []productcatalog.Phase{phase},
-					})
-					if tc.subscriptionActiveTo != nil {
-						_, err := s.SubscriptionService.Cancel(ctx, view.Subscription.NamespacedID, subscription.Timing{Custom: tc.subscriptionActiveTo})
-						s.Require().NoError(err)
-					}
+				// First record the future deadline, so completion must clear an existing active result.
+				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, createdAt))
+				if !tc.withoutBillables {
+					initial := s.getSyncStateV2(view.Subscription.NamespacedID)
+					s.Equal(subscriptionsync.SyncStateV2StateActive, initial.LastSuccessState)
+					s.Equal(&december, initial.NextReconciliationAt)
+				}
 
-					// Deleted customers no longer resolve subject keys; retain an identifiable invoice snapshot.
-					s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).
-						SetKey(s.Customer.ID).
-						SetDeletedAt(tc.deletedAt).Exec(ctx))
+				// When sync completes, its result and deadline must use the same end as billing generation.
+				clock.FreezeTime(tc.now)
+				defer clock.UnFreeze()
+				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.now))
+				state := s.getSyncStateV2(view.Subscription.NamespacedID)
+				s.Equal(tc.wantState, state.LastSuccessState)
+				s.Equal(tc.wantDeadline, state.NextReconciliationAt)
+				s.Equal(&tc.now, state.LastSuccessAt)
+				s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
+				if tc.withoutBillables {
+					s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+				} else {
+					s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: createdAt, To: december}})
+				}
 
-					// First record the future deadline, so completion must clear an existing active result.
-					s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, createdAt))
-					if !tc.withoutBillables {
-						initial := s.getSyncStateV2(view.Subscription.NamespacedID)
-						s.Equal(subscriptionsync.SyncStateV2StateActive, initial.LastSuccessState)
-						s.Equal(&december, initial.NextReconciliationAt)
-					}
-
-					// When sync completes, its result and deadline must use the same end as billing generation.
-					clock.FreezeTime(tc.now)
+				// Then retrying a completed reconciliation stays ended and does not add billing artifacts.
+				if tc.wantState == subscriptionsync.SyncStateV2StateEnded {
+					clock.FreezeTime(tc.now.Add(time.Minute))
 					defer clock.UnFreeze()
-					s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.asOf))
-					state := s.getSyncStateV2(view.Subscription.NamespacedID)
-					s.Equal(tc.wantState, state.LastSuccessState)
-					s.Equal(tc.wantDeadline, state.NextReconciliationAt)
-					s.Equal(&tc.now, state.LastSuccessAt)
-					s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-					if tc.withoutBillables {
-						s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-					} else {
+					s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.now))
+					s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+					if !tc.withoutBillables {
 						s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: createdAt, To: december}})
 					}
-
-					// Then retrying a completed reconciliation stays ended and does not add billing artifacts.
-					if tc.wantState == subscriptionsync.SyncStateV2StateEnded {
-						retryAt := tc.now.Add(time.Minute)
-						clock.FreezeTime(retryAt)
-						defer clock.UnFreeze()
-						s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.asOf))
-						retried := s.getSyncStateV2(view.Subscription.NamespacedID)
-						s.Equal(subscriptionsync.SyncStateV2StateEnded, retried.LastSuccessState)
-						s.Nil(retried.NextReconciliationAt)
-						s.Equal(&retryAt, retried.LastSuccessAt)
-						if !tc.withoutBillables {
-							s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: createdAt, To: december}})
-						}
-					}
-				})
-			}
-		})
-	}
+				}
+			})
+		}
+	})
 }
 
 func (s *SyncStateTestSuite) TestMidPeriodCustomerDeletionTruncatesServicePeriod() {
-	for _, tc := range []struct {
-		name    string
-		service *Service
-	}{
-		{name: "legacy billing", service: s.LegacySyncService},
-		{name: "charges", service: s.ChargeSyncService},
-	} {
-		s.Run(tc.name, func() {
-			// Given an open-ended subscription with its November monthly fee already provisioned.
-			ctx := s.T().Context()
-			start := s.mustParseTime("2026-11-01T00:00:00Z")
-			deletedAt := s.mustParseTime("2026-11-15T00:00:00Z")
-			syncAt := s.mustParseTime("2026-11-20T00:00:00Z")
-			periodEnd := s.mustParseTime("2026-12-01T00:00:00Z")
-			clock.FreezeTime(start)
-			defer clock.UnFreeze()
-			s.Service = tc.service
-			s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
-			_, err := s.LedgerResolver.CreateCustomerAccounts(ctx, s.Customer.GetID())
-			require.NoError(s.T(), err)
+	s.forEachBackend(func() {
+		// Given an open-ended subscription with its November monthly fee already provisioned.
+		ctx := s.T().Context()
+		start := s.mustParseTime("2026-11-01T00:00:00Z")
+		deletedAt := s.mustParseTime("2026-11-15T00:00:00Z")
+		syncAt := s.mustParseTime("2026-11-20T00:00:00Z")
+		periodEnd := s.mustParseTime("2026-12-01T00:00:00Z")
+		clock.FreezeTime(start)
+		defer clock.UnFreeze()
+		s.useNewCustomer()
 
-			view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-				Start:  start,
-				Phases: []productcatalog.Phase{s.paidMonthlyPhase()},
-			})
-			require.Nil(s.T(), view.Spec.ActiveTo)
-			require.NoError(s.T(), s.Service.SyncByID(ctx, view.Subscription.NamespacedID, start))
-			s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: periodEnd}})
+		view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
+		s.Require().Nil(view.Spec.ActiveTo)
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, start))
+		s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: periodEnd}})
 
-			// Simulate an existing customer deletion that did not cancel the subscription.
-			// Retain the customer key because deleted customers no longer resolve subject keys.
-			require.NoError(s.T(), s.DBClient.Customer.UpdateOneID(s.Customer.ID).
-				SetKey(s.Customer.ID).
-				SetDeletedAt(deletedAt).Exec(ctx))
+		// Simulate an existing customer deletion that did not cancel the subscription.
+		// Retain the customer key because deleted customers no longer resolve subject keys.
+		s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).
+			SetKey(s.Customer.ID).
+			SetDeletedAt(deletedAt).Exec(ctx))
 
-			// When sync reconciles after the mid-period deletion, it must shorten the existing fee.
-			clock.FreezeTime(syncAt)
-			defer clock.UnFreeze()
-			err = s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt)
-			require.NoError(s.T(), err)
+		// When sync reconciles after the mid-period deletion, it must shorten the existing fee.
+		clock.FreezeTime(syncAt)
+		defer clock.UnFreeze()
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt))
 
-			// Then no service after November 15 remains billable, and final reconciliation is complete.
-			s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
-			state := s.getSyncStateV2(view.Subscription.NamespacedID)
-			s.Equal(subscriptionsync.SyncStateV2StateEnded, state.LastSuccessState)
-			s.Nil(state.NextReconciliationAt)
+		// Then no service after November 15 remains billable, and final reconciliation is complete.
+		s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
+		s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
 
-			// Repeating cleanup must preserve the same subscription-sync identities and periods.
-			require.NoError(s.T(), s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt))
-			s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
-			retried := s.getSyncStateV2(view.Subscription.NamespacedID)
-			s.Equal(subscriptionsync.SyncStateV2StateEnded, retried.LastSuccessState)
-			s.Nil(retried.NextReconciliationAt)
-		})
-	}
+		// Repeating cleanup must preserve the same subscription-sync identities and periods.
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt))
+		s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
+		s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+	})
 }
 
 func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
@@ -923,7 +735,7 @@ func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 	defer clock.UnFreeze()
 
 	// Given a successfully synced subscription whose next success write will fail in PostgreSQL.
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{Start: now, Phases: []productcatalog.Phase{s.paidMonthlyPhase()}})
+	view := s.createSyncStateSubscription(now, s.paidMonthlyPhase())
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
 	before := s.getSyncStateV2(view.Subscription.NamespacedID)
 	legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
@@ -951,104 +763,4 @@ func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 	s.Require().NoError(err)
 	s.Equal(legacyBefore, states)
 	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
-}
-
-type nilPlanReconciler struct {
-	reconciler.Reconciler
-}
-
-func (nilPlanReconciler) Plan(context.Context, reconciler.PlanInput) (*reconciler.Plan, error) {
-	return nil, nil
-}
-
-func (s *SyncStateTestSuite) TestNilPlanPreservesPreviousSyncResult() {
-	ctx := s.T().Context()
-	start := s.mustParseTime("2026-11-01T00:00:00Z")
-	end := s.mustParseTime("2026-12-01T00:00:00Z")
-	clock.FreezeTime(start)
-	defer clock.UnFreeze()
-
-	// Given a successful sync with an existing fee and reconciliation deadline.
-	view := s.createSyncStateSubscription(syncStateSubscriptionInput{
-		Start:  start,
-		Phases: []productcatalog.Phase{s.paidMonthlyPhase()},
-	})
-	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, start))
-	before := s.getSyncStateV2(view.Subscription.NamespacedID)
-	legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
-	s.Require().NoError(err)
-	s.Require().NotNil(before.NextReconciliationAt)
-
-	// When the next sync unexpectedly receives no plan and no error from the reconciler.
-	clock.FreezeTime(*before.NextReconciliationAt)
-	defer clock.UnFreeze()
-	brokenService := *s.Service
-	brokenService.reconciler = nilPlanReconciler{Reconciler: s.Service.reconciler}
-	err = brokenService.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now())
-	s.Require().ErrorContains(err, "building subscription sync plan returned nil without an error")
-
-	// Then it must not record success or replace either saved schedule with fallback values.
-	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
-	legacyAfter, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
-	s.Require().NoError(err)
-	s.Equal(legacyBefore, legacyAfter)
-	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: end}})
-}
-
-func (s *SyncStateTestSuite) TestNextBillingPeriodForMidPeriodCustomerDeletion() {
-	now := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
-	end := now.AddDate(0, 1, 0)
-	clock.FreezeTime(now)
-	defer clock.UnFreeze()
-
-	for _, tc := range []struct {
-		name              string
-		asOf              time.Time
-		customerDeletedAt *time.Time
-		generationLimit   time.Time
-	}{
-		{
-			name:              "customer deletion ends the current period early",
-			asOf:              now.Add(14 * 24 * time.Hour),
-			customerDeletedAt: lo.ToPtr(now.Add(20 * 24 * time.Hour)),
-			generationLimit:   now.Add(20 * 24 * time.Hour),
-		},
-		{
-			name:              "customer deletion ends the following period early",
-			asOf:              now.Add(14 * 24 * time.Hour),
-			customerDeletedAt: lo.ToPtr(end.Add(14 * 24 * time.Hour)),
-			generationLimit:   end,
-		},
-		{
-			name:              "past customer deletion leaves no next period",
-			asOf:              now.Add(14 * 24 * time.Hour),
-			customerDeletedAt: lo.ToPtr(now.Add(10 * 24 * time.Hour)),
-			generationLimit:   now.Add(10 * 24 * time.Hour),
-		},
-	} {
-		s.Run(tc.name, func() {
-			// Given a real subscription and its effective service end.
-			ctx := s.T().Context()
-			view := s.createSubscriptionForRevisionChange(now)
-
-			currentView, err := s.SubscriptionService.GetView(ctx, view.Subscription.NamespacedID)
-			s.Require().NoError(err)
-
-			// When generation completes, scheduling follows that coverage rather than AsOf.
-			builder := targetstate.NewBuilder(s.Service.logger, s.Service.tracer)
-			target, err := builder.Build(ctx, targetstate.BuildInput{
-				AsOf:              tc.asOf,
-				SubscriptionView:  &currentView,
-				CustomerDeletedAt: tc.customerDeletedAt,
-				Persisted: persistedstate.State{
-					ByUniqueID: map[string]persistedstate.Item{},
-					Invoices:   persistedstate.Invoices{},
-				},
-			})
-			s.Require().NoError(err)
-			s.Equal(tc.generationLimit, target.MaxGenerationTimeLimit)
-			s.Equal(tc.customerDeletedAt, target.BillingEndsAt)
-			s.Nil(target.NextBillingPeriod)
-		})
-	}
 }

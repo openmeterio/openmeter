@@ -187,24 +187,25 @@ and legacy scheduling, even when the plan was empty. Both a missing row and
 `last_success_at`. Dry runs and failed syncs do not record outcomes.
 
 An `active` result requires `next_reconciliation_at`, enforced by domain validation
-and a PostgreSQL check. Sync records a deadline even when no billing patches were
-needed. After generating the target, the plan resolves `NextBillingPeriod` from
-the generation limit. Looking up a billing boundary yields the following period;
-an exact-start sync can still use the period beginning at that start. Subscriptions
-without billables return no next billing period and record `no_billables` with no
-reconciliation deadline. Sync still applies billing changes before recording this
-result, so removing the last billable item also removes its pending billing artifacts.
+and a PostgreSQL check. No other state may keep one, so `no_billables` and terminal
+results clear a previous deadline. Sync records the result even when no billing
+patches were needed, and only after applying billing changes: removing the last
+billable item removes its pending artifacts before `no_billables` is recorded.
 
-For ongoing subscriptions, sync chooses a random point 80–95% through that whole
-billing period. If the selected time is already due, it schedules the period end
-instead. If generation reaches `ActiveTo`, or the next period would reach it,
-`NextBillingPeriod` is nil and sync schedules exactly at `ActiveTo`. This uses the
-effective end returned by target generation, including customer deletion when that
-shortens service. Once both the worker clock and `AsOf` reach that end, successful
-reconciliation records `ended` and clears the deadline.
-A historical deadline remains due.
-`no_billables` and terminal results clear any previous active deadline. Periodic workers still use
-legacy scheduling; the v2 deadline does not yet change candidate selection.
+Sync picks the deadline from the billing period that follows what it just
+generated. This is the period at the generation limit; at a billing boundary
+that is the period starting there.
+
+- If that period reaches the effective billing end (the earlier of `ActiveTo` and
+  customer deletion), the deadline is exactly that end, so the final sync can
+  record `ended`.
+- Otherwise the deadline is a random point 80–95% through the period.
+- `ended` is recorded once both the worker clock and `AsOf` reach the effective end.
+- A sync with a historical `AsOf` can leave a deadline in the past. That is
+  intended: the subscription stays due until a sync with a current `AsOf` catches up.
+
+Periodic workers still use legacy scheduling; the v2 deadline does not yet change
+candidate selection.
 
 Subscription create, update, cancel, continue, and delete hooks mark changes in
 the subscription command's transaction. If no v2 row exists, the hook inserts

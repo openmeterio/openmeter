@@ -44,6 +44,25 @@ const (
 	SyncStateV2StateTooOld SyncStateV2State = "too_old"
 )
 
+// validateNextReconciliationAt keeps the deadline in step with the state: an active
+// result without one would silently drop out of reconciliation, and a leftover
+// deadline on any other state would schedule work that is not needed.
+func (s SyncStateV2State) validateNextReconciliationAt(at *time.Time) error {
+	if s != SyncStateV2StateActive {
+		if at != nil {
+			return errors.New("next reconciliation at is only allowed for an active sync result")
+		}
+
+		return nil
+	}
+
+	if at == nil || at.IsZero() {
+		return errors.New("next reconciliation at is required for an active sync result")
+	}
+
+	return nil
+}
+
 func (SyncStateV2State) Values() []string {
 	return []string{
 		string(SyncStateV2StateNew),
@@ -136,12 +155,8 @@ func (i SyncStateV2) Validate() error {
 		errs = append(errs, errors.New("last success at is required for a recorded sync result"))
 	}
 
-	if i.LastSuccessState == SyncStateV2StateActive && (i.NextReconciliationAt == nil || i.NextReconciliationAt.IsZero()) {
-		errs = append(errs, errors.New("next reconciliation at is required for an active sync result"))
-	}
-
-	if i.LastSuccessState != SyncStateV2StateActive && i.NextReconciliationAt != nil {
-		errs = append(errs, errors.New("next reconciliation at is only allowed for an active sync result"))
+	if err := i.LastSuccessState.validateNextReconciliationAt(i.NextReconciliationAt); err != nil {
+		errs = append(errs, err)
 	}
 
 	if i.LastSyncedSubsRevision == "" {
@@ -173,12 +188,8 @@ func (i RecordSyncResultV2Input) Validate() error {
 		errs = append(errs, errors.New("last success at is required"))
 	}
 
-	if i.LastSuccessState == SyncStateV2StateActive && (i.NextReconciliationAt == nil || i.NextReconciliationAt.IsZero()) {
-		errs = append(errs, errors.New("next reconciliation at is required for an active sync result"))
-	}
-
-	if i.LastSuccessState != SyncStateV2StateActive && i.NextReconciliationAt != nil {
-		errs = append(errs, errors.New("next reconciliation at is only allowed for an active sync result"))
+	if err := i.LastSuccessState.validateNextReconciliationAt(i.NextReconciliationAt); err != nil {
+		errs = append(errs, err)
 	}
 
 	if i.LastSyncedSubsRevision == "" {
