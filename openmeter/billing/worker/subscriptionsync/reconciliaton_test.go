@@ -727,6 +727,13 @@ func (s *ReconciliationTestSuite) TestEndedSubscriptionSyncResult() {
 			wantState:     subscriptionsync.SyncStateV2StateActive,
 		},
 		{
+			// No billing period exists this far past the end; the final sync still waits for ActiveTo.
+			name:          "horizon several periods past a future cancellation waits for the end",
+			syncOffset:    -time.Hour,
+			horizonOffset: 90 * 24 * time.Hour,
+			wantState:     subscriptionsync.SyncStateV2StateActive,
+		},
+		{
 			name:          "historical horizon does not record final reconciliation",
 			syncOffset:    24 * time.Hour,
 			horizonOffset: -time.Hour,

@@ -197,8 +197,8 @@ generated. This is the period at the generation limit; at a billing boundary
 that is the period starting there.
 
 - If that period reaches the effective billing end (the earlier of `ActiveTo` and
-  customer deletion), the deadline is exactly that end, so the final sync can
-  record `ended`.
+  customer deletion), or generation already covers that end, the deadline is
+  exactly that end, so the final sync can record `ended`.
 - Otherwise the deadline is a random point 80–95% through the period.
 - `ended` is recorded once both the worker clock and `AsOf` reach the effective end.
 - A sync with a historical `AsOf` can leave a deadline in the past. That is

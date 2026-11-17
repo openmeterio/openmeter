@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"time"
 
@@ -120,20 +121,47 @@ func (i synchronizeSubscriptionInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// nextReconciliationAt picks when an active subscription must be synced again.
-// The period is the billing period that follows what the sync just generated.
-// A deadline in the past is fine: it keeps the subscription due until a sync
-// with a current AsOf catches up.
-func nextReconciliationAt(period timeutil.ClosedPeriod, billingEndsAt *time.Time, randomFraction float64) time.Time {
-	// The period that ends billing gets an exact final sync instead of a jittered
-	// one, so completion is recorded as soon as billing ends.
-	if billingEndsAt != nil && !period.To.Before(*billingEndsAt) {
-		return *billingEndsAt
+type nextReconciliationAtInput struct {
+	// BillingPeriod is the billing period that follows what the sync just generated.
+	BillingPeriod  timeutil.ClosedPeriod
+	BillingEndsAt  *time.Time
+	RandomFraction float64
+}
+
+func (i nextReconciliationAtInput) Validate() error {
+	var errs []error
+	if err := i.BillingPeriod.ValidateAsRequired(); err != nil {
+		errs = append(errs, fmt.Errorf("billing period: %w", err))
 	}
 
-	percentage := nextReconciliationMinPercentage + (nextReconciliationMaxPercentage-nextReconciliationMinPercentage)*randomFraction
+	if i.BillingEndsAt != nil && i.BillingEndsAt.IsZero() {
+		errs = append(errs, errors.New("billing ends at must not be zero when set"))
+	}
 
-	return period.From.Add(time.Duration(float64(period.Duration()) * percentage / 100))
+	if math.IsNaN(i.RandomFraction) || i.RandomFraction < 0 || i.RandomFraction > 1 {
+		errs = append(errs, errors.New("random fraction must be between 0 and 1"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// nextReconciliationAt picks when an active subscription must be synced again.
+// A deadline in the past is fine: it keeps the subscription due until a sync
+// with a current AsOf catches up.
+func nextReconciliationAt(in nextReconciliationAtInput) (time.Time, error) {
+	if err := in.Validate(); err != nil {
+		return time.Time{}, err
+	}
+
+	// The period that ends billing gets an exact final sync instead of a jittered
+	// one, so completion is recorded as soon as billing ends.
+	if in.BillingEndsAt != nil && !in.BillingPeriod.To.Before(*in.BillingEndsAt) {
+		return *in.BillingEndsAt, nil
+	}
+
+	percentage := nextReconciliationMinPercentage + (nextReconciliationMaxPercentage-nextReconciliationMinPercentage)*in.RandomFraction
+
+	return in.BillingPeriod.From.Add(time.Duration(float64(in.BillingPeriod.Duration()) * percentage / 100)), nil
 }
 
 func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSubscriptionInput) (*synchronizeSubscriptionResult, error) {
@@ -323,15 +351,33 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 						generatedUntil = subsView.Spec.ActiveFrom
 					}
 
-					// At a billing boundary this returns the following period. Do not advance
-					// by another cadence: an exact-start sync may only have generated through that start.
-					nextBillingPeriod, err := subsView.Spec.GetAlignedBillingPeriodAt(generatedUntil)
-					if err != nil {
-						return nil, fmt.Errorf("getting next billing period: %w", err)
-					}
-
 					result.LastSuccessState = subscriptionsync.SyncStateV2StateActive
-					result.NextReconciliationAt = lo.ToPtr(nextReconciliationAt(nextBillingPeriod, billingEndsAt, rand.Float64()))
+
+					if billingEndsAt != nil && !generatedUntil.Before(*billingEndsAt) {
+						// Generation already covers the rest of billing, for example when the sync
+						// horizon is past a future cancellation. There is no billing period left to
+						// schedule in, and a lookup after the end returns an inverted period, so the
+						// final sync waits for the end itself.
+						result.NextReconciliationAt = billingEndsAt
+					} else {
+						// At a billing boundary this returns the following period. Do not advance
+						// by another cadence: an exact-start sync may only have generated through that start.
+						nextBillingPeriod, err := subsView.Spec.GetAlignedBillingPeriodAt(generatedUntil)
+						if err != nil {
+							return nil, fmt.Errorf("getting next billing period: %w", err)
+						}
+
+						next, err := nextReconciliationAt(nextReconciliationAtInput{
+							BillingPeriod:  nextBillingPeriod,
+							BillingEndsAt:  billingEndsAt,
+							RandomFraction: rand.Float64(),
+						})
+						if err != nil {
+							return nil, fmt.Errorf("calculating next reconciliation at: %w", err)
+						}
+
+						result.NextReconciliationAt = &next
+					}
 				}
 			}
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -67,7 +68,44 @@ func TestNextReconciliationAt(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.want, nextReconciliationAt(period, tc.billingEndsAt, tc.fraction))
+			got, err := nextReconciliationAt(nextReconciliationAtInput{
+				BillingPeriod:  period,
+				BillingEndsAt:  tc.billingEndsAt,
+				RandomFraction: tc.fraction,
+			})
+			require.NoError(t, err)
+			require.Equal(t, tc.want, got)
+		})
+	}
+
+	for _, tc := range []struct {
+		name  string
+		input nextReconciliationAtInput
+	}{
+		{
+			name:  "missing billing period",
+			input: nextReconciliationAtInput{},
+		},
+		{
+			name:  "inverted billing period",
+			input: nextReconciliationAtInput{BillingPeriod: timeutil.ClosedPeriod{From: end, To: start}},
+		},
+		{
+			name:  "zero billing end",
+			input: nextReconciliationAtInput{BillingPeriod: period, BillingEndsAt: &time.Time{}},
+		},
+		{
+			name:  "random fraction above one",
+			input: nextReconciliationAtInput{BillingPeriod: period, RandomFraction: 1.5},
+		},
+		{
+			name:  "random fraction not a number",
+			input: nextReconciliationAtInput{BillingPeriod: period, RandomFraction: math.NaN()},
+		},
+	} {
+		t.Run("rejects "+tc.name, func(t *testing.T) {
+			_, err := nextReconciliationAt(tc.input)
+			require.True(t, models.IsGenericValidationError(err), "unexpected error: %v", err)
 		})
 	}
 }
