@@ -52,6 +52,9 @@ type AppStripe func(*sql.Selector)
 // AppStripeCustomer is the predicate function for appstripecustomer builders.
 type AppStripeCustomer func(*sql.Selector)
 
+// AppStripeInvoiceGeneration is the predicate function for appstripeinvoicegeneration builders.
+type AppStripeInvoiceGeneration func(*sql.Selector)
+
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 

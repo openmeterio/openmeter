@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicegeneration"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -129,6 +130,8 @@ type Client struct {
 	AppStripe *AppStripeClient
 	// AppStripeCustomer is the client for interacting with the AppStripeCustomer builders.
 	AppStripeCustomer *AppStripeCustomerClient
+	// AppStripeInvoiceGeneration is the client for interacting with the AppStripeInvoiceGeneration builders.
+	AppStripeInvoiceGeneration *AppStripeInvoiceGenerationClient
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
 	// BillingCustomerLock is the client for interacting with the BillingCustomerLock builders.
@@ -312,6 +315,7 @@ func (c *Client) init() {
 	c.AppCustomer = NewAppCustomerClient(c.config)
 	c.AppStripe = NewAppStripeClient(c.config)
 	c.AppStripeCustomer = NewAppStripeCustomerClient(c.config)
+	c.AppStripeInvoiceGeneration = NewAppStripeInvoiceGenerationClient(c.config)
 	c.BalanceSnapshot = NewBalanceSnapshotClient(c.config)
 	c.BillingCustomerLock = NewBillingCustomerLockClient(c.config)
 	c.BillingCustomerOverride = NewBillingCustomerOverrideClient(c.config)
@@ -494,6 +498,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		AppCustomer:                        NewAppCustomerClient(cfg),
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
+		AppStripeInvoiceGeneration:         NewAppStripeInvoiceGenerationClient(cfg),
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
@@ -603,6 +608,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		AppCustomer:                        NewAppCustomerClient(cfg),
 		AppStripe:                          NewAppStripeClient(cfg),
 		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
+		AppStripeInvoiceGeneration:         NewAppStripeInvoiceGenerationClient(cfg),
 		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
 		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
 		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
@@ -716,11 +722,12 @@ func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
-		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingGatheringInvoiceLine, c.BillingInvoice, c.BillingInvoiceLine,
-		c.BillingInvoiceLineUsageDiscount, c.BillingInvoiceSplitLineGroup,
-		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
-		c.BillingInvoiceWriteSchemaLevel, c.BillingProfile, c.BillingSequenceNumbers,
+		c.AppStripeInvoiceGeneration, c.BalanceSnapshot, c.BillingCustomerLock,
+		c.BillingCustomerOverride, c.BillingGatheringInvoiceLine, c.BillingInvoice,
+		c.BillingInvoiceLine, c.BillingInvoiceLineUsageDiscount,
+		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
+		c.BillingInvoiceValidationIssue, c.BillingInvoiceWriteSchemaLevel,
+		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCostBasis,
@@ -757,11 +764,12 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Addon, c.AddonRateCard, c.App, c.AppCustomInvoicing,
 		c.AppCustomInvoicingCustomer, c.AppCustomer, c.AppStripe, c.AppStripeCustomer,
-		c.BalanceSnapshot, c.BillingCustomerLock, c.BillingCustomerOverride,
-		c.BillingGatheringInvoiceLine, c.BillingInvoice, c.BillingInvoiceLine,
-		c.BillingInvoiceLineUsageDiscount, c.BillingInvoiceSplitLineGroup,
-		c.BillingInvoiceUsageBasedLineConfig, c.BillingInvoiceValidationIssue,
-		c.BillingInvoiceWriteSchemaLevel, c.BillingProfile, c.BillingSequenceNumbers,
+		c.AppStripeInvoiceGeneration, c.BalanceSnapshot, c.BillingCustomerLock,
+		c.BillingCustomerOverride, c.BillingGatheringInvoiceLine, c.BillingInvoice,
+		c.BillingInvoiceLine, c.BillingInvoiceLineUsageDiscount,
+		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
+		c.BillingInvoiceValidationIssue, c.BillingInvoiceWriteSchemaLevel,
+		c.BillingProfile, c.BillingSequenceNumbers,
 		c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCostBasis,
@@ -811,6 +819,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.AppStripe.mutate(ctx, m)
 	case *AppStripeCustomerMutation:
 		return c.AppStripeCustomer.mutate(ctx, m)
+	case *AppStripeInvoiceGenerationMutation:
+		return c.AppStripeInvoiceGeneration.mutate(ctx, m)
 	case *BalanceSnapshotMutation:
 		return c.BalanceSnapshot.mutate(ctx, m)
 	case *BillingCustomerLockMutation:
@@ -2439,6 +2449,139 @@ func (c *AppStripeCustomerClient) mutate(ctx context.Context, m *AppStripeCustom
 		return (&AppStripeCustomerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown AppStripeCustomer mutation op: %q", m.Op())
+	}
+}
+
+// AppStripeInvoiceGenerationClient is a client for the AppStripeInvoiceGeneration schema.
+type AppStripeInvoiceGenerationClient struct {
+	config
+}
+
+// NewAppStripeInvoiceGenerationClient returns a client for the AppStripeInvoiceGeneration from the given config.
+func NewAppStripeInvoiceGenerationClient(c config) *AppStripeInvoiceGenerationClient {
+	return &AppStripeInvoiceGenerationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `appstripeinvoicegeneration.Hooks(f(g(h())))`.
+func (c *AppStripeInvoiceGenerationClient) Use(hooks ...Hook) {
+	c.hooks.AppStripeInvoiceGeneration = append(c.hooks.AppStripeInvoiceGeneration, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `appstripeinvoicegeneration.Intercept(f(g(h())))`.
+func (c *AppStripeInvoiceGenerationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AppStripeInvoiceGeneration = append(c.inters.AppStripeInvoiceGeneration, interceptors...)
+}
+
+// Create returns a builder for creating a AppStripeInvoiceGeneration entity.
+func (c *AppStripeInvoiceGenerationClient) Create() *AppStripeInvoiceGenerationCreate {
+	mutation := newAppStripeInvoiceGenerationMutation(c.config, OpCreate)
+	return &AppStripeInvoiceGenerationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AppStripeInvoiceGeneration entities.
+func (c *AppStripeInvoiceGenerationClient) CreateBulk(builders ...*AppStripeInvoiceGenerationCreate) *AppStripeInvoiceGenerationCreateBulk {
+	return &AppStripeInvoiceGenerationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AppStripeInvoiceGenerationClient) MapCreateBulk(slice any, setFunc func(*AppStripeInvoiceGenerationCreate, int)) *AppStripeInvoiceGenerationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AppStripeInvoiceGenerationCreateBulk{err: fmt.Errorf("calling to AppStripeInvoiceGenerationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AppStripeInvoiceGenerationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AppStripeInvoiceGenerationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AppStripeInvoiceGeneration.
+func (c *AppStripeInvoiceGenerationClient) Update() *AppStripeInvoiceGenerationUpdate {
+	mutation := newAppStripeInvoiceGenerationMutation(c.config, OpUpdate)
+	return &AppStripeInvoiceGenerationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AppStripeInvoiceGenerationClient) UpdateOne(_m *AppStripeInvoiceGeneration) *AppStripeInvoiceGenerationUpdateOne {
+	mutation := newAppStripeInvoiceGenerationMutation(c.config, OpUpdateOne, withAppStripeInvoiceGeneration(_m))
+	return &AppStripeInvoiceGenerationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AppStripeInvoiceGenerationClient) UpdateOneID(id string) *AppStripeInvoiceGenerationUpdateOne {
+	mutation := newAppStripeInvoiceGenerationMutation(c.config, OpUpdateOne, withAppStripeInvoiceGenerationID(id))
+	return &AppStripeInvoiceGenerationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AppStripeInvoiceGeneration.
+func (c *AppStripeInvoiceGenerationClient) Delete() *AppStripeInvoiceGenerationDelete {
+	mutation := newAppStripeInvoiceGenerationMutation(c.config, OpDelete)
+	return &AppStripeInvoiceGenerationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AppStripeInvoiceGenerationClient) DeleteOne(_m *AppStripeInvoiceGeneration) *AppStripeInvoiceGenerationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AppStripeInvoiceGenerationClient) DeleteOneID(id string) *AppStripeInvoiceGenerationDeleteOne {
+	builder := c.Delete().Where(appstripeinvoicegeneration.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AppStripeInvoiceGenerationDeleteOne{builder}
+}
+
+// Query returns a query builder for AppStripeInvoiceGeneration.
+func (c *AppStripeInvoiceGenerationClient) Query() *AppStripeInvoiceGenerationQuery {
+	return &AppStripeInvoiceGenerationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAppStripeInvoiceGeneration},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AppStripeInvoiceGeneration entity by its id.
+func (c *AppStripeInvoiceGenerationClient) Get(ctx context.Context, id string) (*AppStripeInvoiceGeneration, error) {
+	return c.Query().Where(appstripeinvoicegeneration.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AppStripeInvoiceGenerationClient) GetX(ctx context.Context, id string) *AppStripeInvoiceGeneration {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AppStripeInvoiceGenerationClient) Hooks() []Hook {
+	return c.hooks.AppStripeInvoiceGeneration
+}
+
+// Interceptors returns the client interceptors.
+func (c *AppStripeInvoiceGenerationClient) Interceptors() []Interceptor {
+	return c.inters.AppStripeInvoiceGeneration
+}
+
+func (c *AppStripeInvoiceGenerationClient) mutate(ctx context.Context, m *AppStripeInvoiceGenerationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AppStripeInvoiceGenerationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AppStripeInvoiceGenerationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AppStripeInvoiceGenerationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AppStripeInvoiceGenerationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown AppStripeInvoiceGeneration mutation op: %q", m.Op())
 	}
 }
 
@@ -18241,12 +18384,13 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 type (
 	hooks struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
-		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerLock, BillingCustomerOverride, BillingGatheringInvoiceLine,
-		BillingInvoice, BillingInvoiceLine, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
-		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
+		AppCustomer, AppStripe, AppStripeCustomer, AppStripeInvoiceGeneration,
+		BalanceSnapshot, BillingCustomerLock, BillingCustomerOverride,
+		BillingGatheringInvoiceLine, BillingInvoice, BillingInvoiceLine,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingInvoiceWriteSchemaLevel, BillingProfile, BillingSequenceNumbers,
+		BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCostBasis,
 		ChargeCreditPurchaseCreditGrant, ChargeCreditPurchaseExternalPayment,
@@ -18271,12 +18415,13 @@ type (
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
-		AppCustomer, AppStripe, AppStripeCustomer, BalanceSnapshot,
-		BillingCustomerLock, BillingCustomerOverride, BillingGatheringInvoiceLine,
-		BillingInvoice, BillingInvoiceLine, BillingInvoiceLineUsageDiscount,
-		BillingInvoiceSplitLineGroup, BillingInvoiceUsageBasedLineConfig,
-		BillingInvoiceValidationIssue, BillingInvoiceWriteSchemaLevel, BillingProfile,
-		BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
+		AppCustomer, AppStripe, AppStripeCustomer, AppStripeInvoiceGeneration,
+		BalanceSnapshot, BillingCustomerLock, BillingCustomerOverride,
+		BillingGatheringInvoiceLine, BillingInvoice, BillingInvoiceLine,
+		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
+		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
+		BillingInvoiceWriteSchemaLevel, BillingProfile, BillingSequenceNumbers,
+		BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCostBasis,
 		ChargeCreditPurchaseCreditGrant, ChargeCreditPurchaseExternalPayment,

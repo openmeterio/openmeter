@@ -471,6 +471,39 @@ var (
 			},
 		},
 	}
+	// AppStripeInvoiceGenerationsColumns holds the columns for the "app_stripe_invoice_generations" table.
+	AppStripeInvoiceGenerationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "invoice_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "generation", Type: field.TypeInt, Default: 0},
+	}
+	// AppStripeInvoiceGenerationsTable holds the schema information for the "app_stripe_invoice_generations" table.
+	AppStripeInvoiceGenerationsTable = &schema.Table{
+		Name:       "app_stripe_invoice_generations",
+		Columns:    AppStripeInvoiceGenerationsColumns,
+		PrimaryKey: []*schema.Column{AppStripeInvoiceGenerationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "appstripeinvoicegeneration_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeInvoiceGenerationsColumns[0]},
+			},
+			{
+				Name:    "appstripeinvoicegeneration_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{AppStripeInvoiceGenerationsColumns[1]},
+			},
+			{
+				Name:    "appstripeinvoicegeneration_namespace_invoice_id",
+				Unique:  true,
+				Columns: []*schema.Column{AppStripeInvoiceGenerationsColumns[1], AppStripeInvoiceGenerationsColumns[5]},
+			},
+		},
+	}
 	// BalanceSnapshotsColumns holds the columns for the "balance_snapshots" table.
 	BalanceSnapshotsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -6243,6 +6276,7 @@ var (
 		AppCustomersTable,
 		AppStripesTable,
 		AppStripeCustomersTable,
+		AppStripeInvoiceGenerationsTable,
 		BalanceSnapshotsTable,
 		BillingCustomerLocksTable,
 		BillingCustomerOverridesTable,
