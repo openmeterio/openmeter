@@ -114,6 +114,14 @@ func (c *StripeAppClientMock) GetInvoice(ctx context.Context, input stripeclient
 		return nil, err
 	}
 
+	// Every invoice create reads the invoice back, so tests only stub the read when its result matters.
+	stubbed := slices.ContainsFunc(c.ExpectedCalls, func(call *mock.Call) bool {
+		return call.Method == "GetInvoice"
+	})
+	if !stubbed {
+		return &stripe.Invoice{ID: input.StripeInvoiceID, Status: stripe.InvoiceStatusDraft}, nil
+	}
+
 	args := c.Called(input)
 
 	return args.Get(0).(*stripe.Invoice), args.Error(1)

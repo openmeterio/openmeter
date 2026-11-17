@@ -26,6 +26,7 @@ type idempotentStripeInvoices struct {
 	deleted       map[string]bool
 	createKeys    []string
 	createFailure error
+	deleteFailure error
 }
 
 func (s *StripeInvoiceTestSuite) stubIdempotentStripeInvoices() *idempotentStripeInvoices {
@@ -83,12 +84,20 @@ func (s *StripeInvoiceTestSuite) stubIdempotentStripeInvoices() *idempotentStrip
 			getInvoice.ReturnArguments = mock.Arguments{invoice, nil}
 		})
 
-	s.StripeAppClient.
+	var deleteInvoice *mock.Call
+	deleteInvoice = s.StripeAppClient.
 		On("DeleteInvoice", mock.Anything).
 		Run(func(args mock.Arguments) {
+			if fake.deleteFailure != nil {
+				deleteInvoice.ReturnArguments = mock.Arguments{fake.deleteFailure}
+				fake.deleteFailure = nil
+
+				return
+			}
+
 			fake.deleted[args.Get(0).(stripeclient.DeleteInvoiceInput).StripeInvoiceID] = true
-		}).
-		Return(nil)
+			deleteInvoice.ReturnArguments = mock.Arguments{nil}
+		})
 
 	var addInvoiceLines *mock.Call
 	addInvoiceLines = s.StripeAppClient.
@@ -185,11 +194,111 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterStri
 	})
 	s.Require().NoError(err)
 
-	// then: the create request does not reuse the key Stripe answers with the deleted invoice
-	s.NotEqual(stripeInvoices.createKeys[0], lo.LastOrEmpty(stripeInvoices.createKeys))
+	// then: reading back the replayed invoice fails, which increments the generation
+	generation, err := s.AppStripeService.GetLatestInvoiceGeneration(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(1, generation)
+
+	// then: the create request is repeated with a key Stripe has no stored response for
+	s.Require().Len(stripeInvoices.createKeys, 3)
+	s.Equal(stripeInvoices.createKeys[0], stripeInvoices.createKeys[1])
+	s.NotEqual(stripeInvoices.createKeys[0], stripeInvoices.createKeys[2])
 
 	// then: the invoice is synced to a new Stripe invoice
 	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	s.Equal("in_2", invoice.ExternalIDs.Invoicing)
 	s.Equal(billing.InvoicingAppStatus{}, invoice.InvoicingAppStatus)
+}
+
+func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterFailedCreate() {
+	ctx := s.T().Context()
+	namespace := "ns-invoice-idempotency-failed-create"
+	period := emptyInvoiceModeServicePeriod()
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	cust := s.setupEmptyInvoiceModeCustomer(ctx, namespace, billing.EmptyInvoiceModeCreate)
+	defer s.StripeAppClient.Restore()
+
+	stripeInvoices := s.stubIdempotentStripeInvoices()
+
+	// given: Stripe rejects the first create request, and would keep answering its key the same way
+	stripeInvoices.createFailure = errors.New("rate limited")
+
+	// when: the draft is synced to Stripe
+	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+			emptyInvoiceModeFlatFeeLine(namespace, period, 10),
+		}),
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
+
+	// then: the sync fails and the generation is incremented
+	s.Require().Equal(billing.StandardInvoiceStatusDraftSyncFailed, invoice.Status)
+	s.Require().Empty(invoice.ExternalIDs.Invoicing)
+
+	generation, err := s.AppStripeService.GetLatestInvoiceGeneration(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Require().Equal(1, generation)
+
+	// when: the sync is retried
+	invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+
+	// then: the create request uses a new key and the invoice is synced
+	s.Require().Len(stripeInvoices.createKeys, 2)
+	s.NotEqual(stripeInvoices.createKeys[0], stripeInvoices.createKeys[1])
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Equal("in_1", invoice.ExternalIDs.Invoicing)
+}
+
+func (s *StripeInvoiceTestSuite) TestInvoiceGenerationIncrementsAfterFailedDelete() {
+	ctx := s.T().Context()
+	namespace := "ns-invoice-idempotency-failed-delete"
+	period := emptyInvoiceModeServicePeriod()
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	cust := s.setupEmptyInvoiceModeCustomer(ctx, namespace, billing.EmptyInvoiceModeOmit)
+	defer s.StripeAppClient.Restore()
+
+	stripeInvoices := s.stubIdempotentStripeInvoices()
+
+	// given: a draft with a $10 flat fee, synced to Stripe
+	invoice := s.createEmptyInvoiceModeDraft(ctx, cust, emptyInvoiceModeFlatFeeLine(namespace, period, 10))
+	s.Require().Equal("in_1", invoice.ExternalIDs.Invoicing)
+
+	// when: the flat fee is removed, but Stripe fails to delete the invoice
+	stripeInvoices.deleteFailure = errors.New("stripe is unavailable")
+
+	invoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(i *billing.StandardInvoice) error {
+			for _, line := range i.Lines.OrEmpty() {
+				line.DeletedAt = lo.ToPtr(clock.Now())
+			}
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+
+	// then: the sync fails and the generation is incremented
+	s.Equal(billing.StandardInvoiceStatusDraftSyncFailed, invoice.Status)
+
+	generation, err := s.AppStripeService.GetLatestInvoiceGeneration(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(1, generation)
 }

@@ -12,6 +12,8 @@ import (
 	stripeapi "github.com/stripe/stripe-go/v80/client"
 
 	app "github.com/openmeterio/openmeter/openmeter/app"
+	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
 func TestDeleteInvoice(t *testing.T) {
@@ -76,6 +78,66 @@ func TestDeleteInvoice(t *testing.T) {
 			}
 
 			require.NoError(t, err)
+		})
+	}
+}
+
+func TestCreateInvoiceIdempotencyKey(t *testing.T) {
+	tests := []struct {
+		name       string
+		generation int
+		wantKey    string
+	}{
+		{
+			// Has to stay the key used before generations existed.
+			name:       "first generation",
+			generation: 0,
+			wantKey:    "invoice-create-inv_123",
+		},
+		{
+			name:       "later generation",
+			generation: 2,
+			wantKey:    "invoice-create-inv_123-2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var idempotencyKeys []string
+
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				idempotencyKeys = append(idempotencyKeys, r.Header.Get("Idempotency-Key"))
+
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"id":"in_123","object":"invoice","status":"draft"}`))
+			}))
+			defer server.Close()
+
+			backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
+				URL:               lo.ToPtr(server.URL),
+				MaxNetworkRetries: lo.ToPtr(int64(0)),
+			})
+
+			api := &stripeapi.API{}
+			api.Init("sk_test_123", &stripe.Backends{API: backend, Connect: backend, Uploads: backend})
+
+			stripeClient := &stripeAppClient{
+				appID:  app.AppID{Namespace: "ns", ID: "app"},
+				client: api,
+				logger: slog.New(slog.DiscardHandler),
+			}
+
+			_, err := stripeClient.CreateInvoice(t.Context(), CreateInvoiceInput{
+				AppID:            app.AppID{Namespace: "ns", ID: "app"},
+				CustomerID:       customer.CustomerID{Namespace: "ns", ID: "cus"},
+				InvoiceID:        "inv_123",
+				Generation:       tt.generation,
+				CollectionMethod: billing.CollectionMethodChargeAutomatically,
+				Currency:         "USD",
+				StripeCustomerID: "cus_123",
+			})
+			require.NoError(t, err)
+			require.Equal(t, []string{tt.wantKey}, idempotencyKeys)
 		})
 	}
 }

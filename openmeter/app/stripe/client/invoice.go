@@ -150,9 +150,11 @@ func (c *stripeAppClient) GetInvoice(ctx context.Context, input GetInvoiceInput)
 
 // CreateInvoiceInput is the input for creating a new invoice in Stripe.
 type CreateInvoiceInput struct {
-	AppID                        app.AppID
-	CustomerID                   customer.CustomerID
-	InvoiceID                    string
+	AppID      app.AppID
+	CustomerID customer.CustomerID
+	InvoiceID  string
+	// Generation counts how many times the Stripe invoice of the invoice had to be given up.
+	Generation                   int
 	AutomaticTaxEnabled          bool
 	CollectionMethod             billing.CollectionMethod
 	Currency                     currencyx.FiatCode
@@ -163,9 +165,15 @@ type CreateInvoiceInput struct {
 }
 
 // IdempotencyKey identifies the create request towards Stripe, which replays the first response
-// it stored for a key on every later request with the same key.
+// it stored for a key on every later request with the same key. A new generation gives a new key.
 func (i CreateInvoiceInput) IdempotencyKey() string {
-	return fmt.Sprintf("invoice-create-%s", i.InvoiceID)
+	// Generation 0 keeps the key used before generations existed, so create requests in flight
+	// during a deploy are still recognized by Stripe.
+	if i.Generation == 0 {
+		return fmt.Sprintf("invoice-create-%s", i.InvoiceID)
+	}
+
+	return fmt.Sprintf("invoice-create-%s-%d", i.InvoiceID, i.Generation)
 }
 
 func (i CreateInvoiceInput) Validate() error {
@@ -181,6 +189,10 @@ func (i CreateInvoiceInput) Validate() error {
 
 	if i.InvoiceID == "" {
 		errs = append(errs, errors.New("invoice id is required"))
+	}
+
+	if i.Generation < 0 {
+		errs = append(errs, errors.New("generation cannot be negative"))
 	}
 
 	if i.CollectionMethod == "" {
