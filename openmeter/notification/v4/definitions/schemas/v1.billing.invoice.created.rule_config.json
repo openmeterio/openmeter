@@ -1,0 +1,10 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.billing.invoice.created.rule_config",
+    "type": "object",
+    "properties": {},
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Rule configuration of `v1.billing.invoice.created`. Invoice Rules have no\ntype-specific settings."
+}

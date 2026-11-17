@@ -818,6 +818,18 @@ export interface PagePaginationQuery {
 export type PublicLabels = Record<string, string>
 
 /**
+ * Rule configuration of `v1.billing.invoice.created`. Invoice Rules have no
+ * type-specific settings.
+ */
+export type InvoiceCreatedV1RuleConfig = Record<string, never>
+
+/**
+ * Rule configuration of `v1.billing.invoice.updated`. Invoice Rules have no
+ * type-specific settings.
+ */
+export type InvoiceUpdatedV1RuleConfig = Record<string, never>
+
+/**
  * The system account access token is meant for automations and integrations that
  * are not directly associated with a human identity.
  */
@@ -3881,6 +3893,24 @@ export interface CustomerProfile {
   effectiveBillingProfile: ProfileReference
 }
 
+/** The feature filter shared by the entitlement Rule configurations. */
+export interface EntitlementFeaturesRuleConfig {
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Rule configuration of `v1.entitlement.usage_period.reset`. */
+export interface EntitlementUsagePeriodResetV1RuleConfig {
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
 /**
  * Tax configuration for a billable resource.
  *
@@ -5527,6 +5557,17 @@ export interface NotificationRuleBalanceThresholdRequest {
    * deleted.
    */
   channels: NotificationChannelReference[]
+  /** The thresholds that generate an event when crossed. */
+  thresholds: NotificationBalanceThreshold[]
+  /**
+   * The features the rule applies to. When omitted, the rule applies to every
+   * feature.
+   */
+  features?: FeatureReference[]
+}
+
+/** Rule configuration of `v1.entitlement.balance_threshold.triggered`. */
+export interface EntitlementBalanceThresholdTriggeredV1RuleConfig {
   /** The thresholds that generate an event when crossed. */
   thresholds: NotificationBalanceThreshold[]
   /**
@@ -7958,6 +7999,42 @@ export interface NotificationEventV1BillingWorkflowCollectionSettings {
 }
 
 /**
+ * Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
+ * `entitlements.balance.threshold` Event type.
+ */
+export interface EntitlementBalanceThresholdTriggeredV1Payload {
+  /** Entitlement. */
+  entitlement: NotificationEventV1EntitlementMetered
+  /** Feature. */
+  feature: NotificationEventV1Feature
+  /** Subject. */
+  subject: NotificationEventV1Subject
+  /** Entitlement Value. */
+  value: NotificationEventV1EntitlementValue
+  /** Customer. */
+  customer?: NotificationEventV1Customer
+  /** Threshold. */
+  threshold: NotificationEventV1RuleBalanceThresholdValue
+}
+
+/**
+ * Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
+ * Event type.
+ */
+export interface EntitlementUsagePeriodResetV1Payload {
+  /** Entitlement. */
+  entitlement: NotificationEventV1EntitlementMetered
+  /** Feature. */
+  feature: NotificationEventV1Feature
+  /** Subject. */
+  subject: NotificationEventV1Subject
+  /** Entitlement Value. */
+  value: NotificationEventV1EntitlementValue
+  /** Customer. */
+  customer?: NotificationEventV1Customer
+}
+
+/**
  * Data of the payload for notification event with `entitlements.balance.threshold`
  * type.
  */
@@ -8572,7 +8649,7 @@ export interface NotificationEventBalanceThresholdPayload {
   /** When the event was generated. */
   timestamp: Date
   /** The entities and threshold the event refers to. */
-  data: NotificationEventV1BalanceThresholdPayloadData
+  data: EntitlementBalanceThresholdTriggeredV1Payload
 }
 
 /** An entitlement reset notification event payload. */
@@ -8584,7 +8661,7 @@ export interface NotificationEventResetPayload {
   /** When the event was generated. */
   timestamp: Date
   /** The entities the event refers to. */
-  data: NotificationEventV1EntitlementValuePayloadBase
+  data: EntitlementUsagePeriodResetV1Payload
 }
 
 /**
@@ -9367,6 +9444,268 @@ export interface UpdateInvoiceStandardRequest {
   lines?: UpdateInvoiceLine[]
 }
 
+/**
+ * Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
+ * type: the invoice as it was created.
+ */
+export interface InvoiceCreatedV1Payload {
+  /** A unique identifier for the resource. */
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /**
+   * Type of the invoice.
+   *
+   * The type of invoice determines the purpose of the invoice and how it should be
+   * handled.
+   *
+   * Supported types:
+   *
+   * - standard: A regular commercial invoice document between a supplier and
+   * customer.
+   * - credit_note: Reflects a refund either partial or complete of the preceding
+   * document. A credit note effectively _extends_ the previous document.
+   */
+  type: 'standard' | 'credit_note'
+  /** The taxable entity supplying the goods or services. */
+  supplier: NotificationEventV1BillingParty
+  /** Legal entity receiving the goods or services. */
+  customer: NotificationEventV1BillingInvoiceCustomerExtendedDetails
+  /**
+   * Number specifies the human readable key used to reference this Invoice.
+   *
+   * The invoice number can change in the draft phases, as we are allocating
+   * temporary draft invoice numbers, but it's final as soon as the invoice gets
+   * finalized (issued state).
+   *
+   * Please note that the number is (depending on the upstream settings) either
+   * unique for the whole organization or unique for the customer, or in multi
+   * (stripe) account setups unique for the account.
+   */
+  number: string
+  /**
+   * Currency for all invoice line items.
+   *
+   * Multi currency invoices are not supported yet.
+   */
+  currency: string
+  /**
+   * Key information regarding previous invoices and potentially details as to why
+   * they were corrected.
+   */
+  preceding?: NotificationEventV1InvoiceDocumentRef[]
+  /** Summary of all the invoice totals, including taxes (calculated). */
+  totals: NotificationEventV1InvoiceTotals
+  /**
+   * The status of the invoice.
+   *
+   * This field only conatins a simplified status, for more detailed information use
+   * the statusDetails field.
+   */
+  status:
+    | 'gathering'
+    | 'draft'
+    | 'issuing'
+    | 'issued'
+    | 'payment_processing'
+    | 'overdue'
+    | 'paid'
+    | 'uncollectible'
+    | 'voided'
+  /** The details of the current invoice status. */
+  statusDetails: NotificationEventV1InvoiceStatusDetails
+  /**
+   * The time the invoice was issued.
+   *
+   * Depending on the status of the invoice this can mean multiple things:
+   *
+   * - draft, gathering: The time the invoice will be issued based on the workflow
+   * settings.
+   * - issued: The time the invoice was issued.
+   */
+  issuedAt?: Date
+  /**
+   * The time until the invoice is in draft status.
+   *
+   * On draft invoice creation it is calculated from the workflow settings.
+   *
+   * If manual approval is required, the draftUntil time is set.
+   */
+  draftUntil?: Date
+  /** The time when the quantity snapshots on the invoice lines were taken. */
+  quantitySnapshotedAt?: Date
+  /** The time when the invoice will be/has been collected. */
+  collectionAt?: Date
+  /** Due time of the fulfillment of the invoice (if available). */
+  dueAt?: Date
+  /** The period the invoice covers. If the invoice has no line items, it's not set. */
+  period?: NotificationEventV1Period
+  /**
+   * The time the invoice was voided.
+   *
+   * If the invoice was voided, this field will be set to the time the invoice was
+   * voided.
+   */
+  voidedAt?: Date
+  /** The time the invoice was sent to customer. */
+  sentToCustomerAt?: Date
+  /**
+   * The workflow associated with the invoice.
+   *
+   * It is always a snapshot of the workflow settings at the time of invoice
+   * creation. The field is optional as it should be explicitly requested with expand
+   * options.
+   */
+  workflow: NotificationEventV1InvoiceWorkflowSettings
+  /** List of invoice lines representing each of the items sold to the customer. */
+  lines?: NotificationEventV1InvoiceLine[]
+  /** Information on when, how, and to whom the invoice should be paid. */
+  payment?: NotificationEventV1InvoicePaymentTerms
+  /** Validation issues reported by the invoice workflow. */
+  validationIssues?: NotificationEventV1ValidationIssue[]
+  /** External IDs of the invoice in other apps such as Stripe. */
+  externalIds?: NotificationEventV1InvoiceAppExternalIds
+}
+
+/**
+ * Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
+ * type: the invoice after the update.
+ */
+export interface InvoiceUpdatedV1Payload {
+  /** A unique identifier for the resource. */
+  id: string
+  /** Optional description of the resource. Maximum 1024 characters. */
+  description?: string
+  /** Additional metadata for the resource. */
+  metadata?: NotificationEventV1Metadata | null
+  /** Timestamp of when the resource was created. */
+  createdAt: Date
+  /** Timestamp of when the resource was last updated. */
+  updatedAt: Date
+  /** Timestamp of when the resource was permanently deleted. */
+  deletedAt?: Date
+  /**
+   * Type of the invoice.
+   *
+   * The type of invoice determines the purpose of the invoice and how it should be
+   * handled.
+   *
+   * Supported types:
+   *
+   * - standard: A regular commercial invoice document between a supplier and
+   * customer.
+   * - credit_note: Reflects a refund either partial or complete of the preceding
+   * document. A credit note effectively _extends_ the previous document.
+   */
+  type: 'standard' | 'credit_note'
+  /** The taxable entity supplying the goods or services. */
+  supplier: NotificationEventV1BillingParty
+  /** Legal entity receiving the goods or services. */
+  customer: NotificationEventV1BillingInvoiceCustomerExtendedDetails
+  /**
+   * Number specifies the human readable key used to reference this Invoice.
+   *
+   * The invoice number can change in the draft phases, as we are allocating
+   * temporary draft invoice numbers, but it's final as soon as the invoice gets
+   * finalized (issued state).
+   *
+   * Please note that the number is (depending on the upstream settings) either
+   * unique for the whole organization or unique for the customer, or in multi
+   * (stripe) account setups unique for the account.
+   */
+  number: string
+  /**
+   * Currency for all invoice line items.
+   *
+   * Multi currency invoices are not supported yet.
+   */
+  currency: string
+  /**
+   * Key information regarding previous invoices and potentially details as to why
+   * they were corrected.
+   */
+  preceding?: NotificationEventV1InvoiceDocumentRef[]
+  /** Summary of all the invoice totals, including taxes (calculated). */
+  totals: NotificationEventV1InvoiceTotals
+  /**
+   * The status of the invoice.
+   *
+   * This field only conatins a simplified status, for more detailed information use
+   * the statusDetails field.
+   */
+  status:
+    | 'gathering'
+    | 'draft'
+    | 'issuing'
+    | 'issued'
+    | 'payment_processing'
+    | 'overdue'
+    | 'paid'
+    | 'uncollectible'
+    | 'voided'
+  /** The details of the current invoice status. */
+  statusDetails: NotificationEventV1InvoiceStatusDetails
+  /**
+   * The time the invoice was issued.
+   *
+   * Depending on the status of the invoice this can mean multiple things:
+   *
+   * - draft, gathering: The time the invoice will be issued based on the workflow
+   * settings.
+   * - issued: The time the invoice was issued.
+   */
+  issuedAt?: Date
+  /**
+   * The time until the invoice is in draft status.
+   *
+   * On draft invoice creation it is calculated from the workflow settings.
+   *
+   * If manual approval is required, the draftUntil time is set.
+   */
+  draftUntil?: Date
+  /** The time when the quantity snapshots on the invoice lines were taken. */
+  quantitySnapshotedAt?: Date
+  /** The time when the invoice will be/has been collected. */
+  collectionAt?: Date
+  /** Due time of the fulfillment of the invoice (if available). */
+  dueAt?: Date
+  /** The period the invoice covers. If the invoice has no line items, it's not set. */
+  period?: NotificationEventV1Period
+  /**
+   * The time the invoice was voided.
+   *
+   * If the invoice was voided, this field will be set to the time the invoice was
+   * voided.
+   */
+  voidedAt?: Date
+  /** The time the invoice was sent to customer. */
+  sentToCustomerAt?: Date
+  /**
+   * The workflow associated with the invoice.
+   *
+   * It is always a snapshot of the workflow settings at the time of invoice
+   * creation. The field is optional as it should be explicitly requested with expand
+   * options.
+   */
+  workflow: NotificationEventV1InvoiceWorkflowSettings
+  /** List of invoice lines representing each of the items sold to the customer. */
+  lines?: NotificationEventV1InvoiceLine[]
+  /** Information on when, how, and to whom the invoice should be paid. */
+  payment?: NotificationEventV1InvoicePaymentTerms
+  /** Validation issues reported by the invoice workflow. */
+  validationIssues?: NotificationEventV1ValidationIssue[]
+  /** External IDs of the invoice in other apps such as Stripe. */
+  externalIds?: NotificationEventV1InvoiceAppExternalIds
+}
+
 /** Invoice represents an invoice in the system. */
 export interface NotificationEventV1Invoice {
   /** A unique identifier for the resource. */
@@ -9530,7 +9869,7 @@ export interface NotificationEventInvoiceCreatedPayload {
   /** When the event was generated. */
   timestamp: Date
   /** The invoice the event refers to. */
-  data: NotificationEventV1Invoice
+  data: InvoiceCreatedV1Payload
 }
 
 /** An invoice updated notification event payload. */
@@ -9542,7 +9881,7 @@ export interface NotificationEventInvoiceUpdatedPayload {
   /** When the event was generated. */
   timestamp: Date
   /** The invoice the event refers to. */
-  data: NotificationEventV1Invoice
+  data: InvoiceUpdatedV1Payload
 }
 
 /** A flat fee charge for a customer. */

@@ -6366,6 +6366,135 @@ type BillingInvoiceAvailableActions struct {
 	SnapshotQuantities *BillingInvoiceAvailableActionDetails `json:"snapshot_quantities,omitempty"`
 }
 
+// BillingInvoiceCreatedV1Payload Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
+// type: the invoice as it was created.
+type BillingInvoiceCreatedV1Payload struct {
+	// CollectionAt The time when the invoice will be/has been collected.
+	CollectionAt *time.Time `json:"collection_at,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// Currency Currency for all invoice line items.
+	//
+	// Multi currency invoices are not supported yet.
+	Currency BillingNotificationEventV1CurrencyCode `json:"currency"`
+
+	// Customer Legal entity receiving the goods or services.
+	Customer BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails `json:"customer"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// DraftUntil The time until the invoice is in draft status.
+	//
+	// On draft invoice creation it is calculated from the workflow settings.
+	//
+	// If manual approval is required, the draftUntil time is set.
+	DraftUntil *time.Time `json:"draft_until,omitempty"`
+
+	// DueAt Due time of the fulfillment of the invoice (if available).
+	DueAt *time.Time `json:"due_at,omitempty"`
+
+	// ExternalIds External IDs of the invoice in other apps such as Stripe.
+	ExternalIds *BillingNotificationEventV1InvoiceAppExternalIds `json:"external_ids,omitempty"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// IssuedAt The time the invoice was issued.
+	//
+	// Depending on the status of the invoice this can mean multiple things:
+	//
+	// - draft, gathering: The time the invoice will be issued based on the workflow
+	// settings.
+	// - issued: The time the invoice was issued.
+	IssuedAt *time.Time `json:"issued_at,omitempty"`
+
+	// Lines List of invoice lines representing each of the items sold to the customer.
+	Lines *[]BillingNotificationEventV1InvoiceLine `json:"lines,omitempty"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Number Number specifies the human readable key used to reference this Invoice.
+	//
+	// The invoice number can change in the draft phases, as we are allocating
+	// temporary draft invoice numbers, but it's final as soon as the invoice gets
+	// finalized (issued state).
+	//
+	// Please note that the number is (depending on the upstream settings) either
+	// unique for the whole organization or unique for the customer, or in multi
+	// (stripe) account setups unique for the account.
+	Number BillingNotificationEventV1InvoiceNumber `json:"number"`
+
+	// Payment Information on when, how, and to whom the invoice should be paid.
+	Payment *BillingNotificationEventV1InvoicePaymentTerms `json:"payment,omitempty"`
+
+	// Period The period the invoice covers. If the invoice has no line items, it's not set.
+	Period *BillingNotificationEventV1Period `json:"period,omitempty"`
+
+	// Preceding Key information regarding previous invoices and potentially details as to why
+	// they were corrected.
+	Preceding *[]BillingNotificationEventV1InvoiceDocumentRef `json:"preceding,omitempty"`
+
+	// QuantitySnapshotedAt The time when the quantity snapshots on the invoice lines were taken.
+	QuantitySnapshotedAt *time.Time `json:"quantity_snapshoted_at,omitempty"`
+
+	// SentToCustomerAt The time the invoice was sent to customer.
+	SentToCustomerAt *time.Time `json:"sent_to_customer_at,omitempty"`
+
+	// Status The status of the invoice.
+	//
+	// This field only conatins a simplified status, for more detailed information use
+	// the statusDetails field.
+	Status BillingNotificationEventV1InvoiceStatus `json:"status"`
+
+	// StatusDetails The details of the current invoice status.
+	StatusDetails BillingNotificationEventV1InvoiceStatusDetails `json:"status_details"`
+
+	// Supplier The taxable entity supplying the goods or services.
+	Supplier BillingNotificationEventV1BillingParty `json:"supplier"`
+
+	// Totals Summary of all the invoice totals, including taxes (calculated).
+	Totals BillingNotificationEventV1InvoiceTotals `json:"totals"`
+
+	// Type Type of the invoice.
+	//
+	// The type of invoice determines the purpose of the invoice and how it should be
+	// handled.
+	//
+	// Supported types:
+	//
+	// - standard: A regular commercial invoice document between a supplier and
+	// customer.
+	// - credit_note: Reflects a refund either partial or complete of the preceding
+	// document. A credit note effectively _extends_ the previous document.
+	Type BillingNotificationEventV1InvoiceType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// ValidationIssues Validation issues reported by the invoice workflow.
+	ValidationIssues *[]BillingNotificationEventV1ValidationIssue `json:"validation_issues,omitempty"`
+
+	// VoidedAt The time the invoice was voided.
+	//
+	// If the invoice was voided, this field will be set to the time the invoice was
+	// voided.
+	VoidedAt *time.Time `json:"voided_at,omitempty"`
+
+	// Workflow The workflow associated with the invoice.
+	//
+	// It is always a snapshot of the workflow settings at the time of invoice
+	// creation. The field is optional as it should be explicitly requested with expand
+	// options.
+	Workflow BillingNotificationEventV1InvoiceWorkflowSettings `json:"workflow"`
+}
+
 // BillingInvoiceCustomer Snapshot of the customer's information at the time the invoice was issued.
 type BillingInvoiceCustomer struct {
 	// BillingAddress The billing address of the customer. Used for tax and invoicing.
@@ -6762,6 +6891,135 @@ type BillingInvoiceStatusDetails struct {
 	Immutable bool `json:"immutable"`
 }
 
+// BillingInvoiceUpdatedV1Payload Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
+// type: the invoice after the update.
+type BillingInvoiceUpdatedV1Payload struct {
+	// CollectionAt The time when the invoice will be/has been collected.
+	CollectionAt *time.Time `json:"collection_at,omitempty"`
+
+	// CreatedAt Timestamp of when the resource was created.
+	CreatedAt time.Time `json:"created_at"`
+
+	// Currency Currency for all invoice line items.
+	//
+	// Multi currency invoices are not supported yet.
+	Currency BillingNotificationEventV1CurrencyCode `json:"currency"`
+
+	// Customer Legal entity receiving the goods or services.
+	Customer BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails `json:"customer"`
+
+	// DeletedAt Timestamp of when the resource was permanently deleted.
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+
+	// Description Optional description of the resource. Maximum 1024 characters.
+	Description *string `json:"description,omitempty"`
+
+	// DraftUntil The time until the invoice is in draft status.
+	//
+	// On draft invoice creation it is calculated from the workflow settings.
+	//
+	// If manual approval is required, the draftUntil time is set.
+	DraftUntil *time.Time `json:"draft_until,omitempty"`
+
+	// DueAt Due time of the fulfillment of the invoice (if available).
+	DueAt *time.Time `json:"due_at,omitempty"`
+
+	// ExternalIds External IDs of the invoice in other apps such as Stripe.
+	ExternalIds *BillingNotificationEventV1InvoiceAppExternalIds `json:"external_ids,omitempty"`
+
+	// Id A unique identifier for the resource.
+	Id string `json:"id"`
+
+	// IssuedAt The time the invoice was issued.
+	//
+	// Depending on the status of the invoice this can mean multiple things:
+	//
+	// - draft, gathering: The time the invoice will be issued based on the workflow
+	// settings.
+	// - issued: The time the invoice was issued.
+	IssuedAt *time.Time `json:"issued_at,omitempty"`
+
+	// Lines List of invoice lines representing each of the items sold to the customer.
+	Lines *[]BillingNotificationEventV1InvoiceLine `json:"lines,omitempty"`
+
+	// Metadata Additional metadata for the resource.
+	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
+
+	// Number Number specifies the human readable key used to reference this Invoice.
+	//
+	// The invoice number can change in the draft phases, as we are allocating
+	// temporary draft invoice numbers, but it's final as soon as the invoice gets
+	// finalized (issued state).
+	//
+	// Please note that the number is (depending on the upstream settings) either
+	// unique for the whole organization or unique for the customer, or in multi
+	// (stripe) account setups unique for the account.
+	Number BillingNotificationEventV1InvoiceNumber `json:"number"`
+
+	// Payment Information on when, how, and to whom the invoice should be paid.
+	Payment *BillingNotificationEventV1InvoicePaymentTerms `json:"payment,omitempty"`
+
+	// Period The period the invoice covers. If the invoice has no line items, it's not set.
+	Period *BillingNotificationEventV1Period `json:"period,omitempty"`
+
+	// Preceding Key information regarding previous invoices and potentially details as to why
+	// they were corrected.
+	Preceding *[]BillingNotificationEventV1InvoiceDocumentRef `json:"preceding,omitempty"`
+
+	// QuantitySnapshotedAt The time when the quantity snapshots on the invoice lines were taken.
+	QuantitySnapshotedAt *time.Time `json:"quantity_snapshoted_at,omitempty"`
+
+	// SentToCustomerAt The time the invoice was sent to customer.
+	SentToCustomerAt *time.Time `json:"sent_to_customer_at,omitempty"`
+
+	// Status The status of the invoice.
+	//
+	// This field only conatins a simplified status, for more detailed information use
+	// the statusDetails field.
+	Status BillingNotificationEventV1InvoiceStatus `json:"status"`
+
+	// StatusDetails The details of the current invoice status.
+	StatusDetails BillingNotificationEventV1InvoiceStatusDetails `json:"status_details"`
+
+	// Supplier The taxable entity supplying the goods or services.
+	Supplier BillingNotificationEventV1BillingParty `json:"supplier"`
+
+	// Totals Summary of all the invoice totals, including taxes (calculated).
+	Totals BillingNotificationEventV1InvoiceTotals `json:"totals"`
+
+	// Type Type of the invoice.
+	//
+	// The type of invoice determines the purpose of the invoice and how it should be
+	// handled.
+	//
+	// Supported types:
+	//
+	// - standard: A regular commercial invoice document between a supplier and
+	// customer.
+	// - credit_note: Reflects a refund either partial or complete of the preceding
+	// document. A credit note effectively _extends_ the previous document.
+	Type BillingNotificationEventV1InvoiceType `json:"type"`
+
+	// UpdatedAt Timestamp of when the resource was last updated.
+	UpdatedAt time.Time `json:"updated_at"`
+
+	// ValidationIssues Validation issues reported by the invoice workflow.
+	ValidationIssues *[]BillingNotificationEventV1ValidationIssue `json:"validation_issues,omitempty"`
+
+	// VoidedAt The time the invoice was voided.
+	//
+	// If the invoice was voided, this field will be set to the time the invoice was
+	// voided.
+	VoidedAt *time.Time `json:"voided_at,omitempty"`
+
+	// Workflow The workflow associated with the invoice.
+	//
+	// It is always a snapshot of the workflow settings at the time of invoice
+	// creation. The field is optional as it should be explicitly requested with expand
+	// options.
+	Workflow BillingNotificationEventV1InvoiceWorkflowSettings `json:"workflow"`
+}
+
 // BillingInvoiceUsageQuantityDetail Usage quantity details on an invoice line item when UnitConfig is in effect.
 //
 // Provides the full audit trail from raw meter output to the invoiced amount.
@@ -6938,7 +7196,7 @@ type BillingNotificationEvent struct {
 // BillingNotificationEventBalanceThresholdPayload A balance threshold notification event payload.
 type BillingNotificationEventBalanceThresholdPayload struct {
 	// Data The entities and threshold the event refers to.
-	Data BillingNotificationEventV1BalanceThresholdPayloadData `json:"data"`
+	Data EntitlementBalanceThresholdTriggeredV1Payload `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -7011,7 +7269,7 @@ type BillingNotificationEventDeliveryStatus struct {
 // BillingNotificationEventInvoiceCreatedPayload An invoice created notification event payload.
 type BillingNotificationEventInvoiceCreatedPayload struct {
 	// Data The invoice the event refers to.
-	Data BillingNotificationEventV1Invoice `json:"data"`
+	Data BillingInvoiceCreatedV1Payload `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -7029,7 +7287,7 @@ type BillingNotificationEventInvoiceCreatedPayloadType string
 // BillingNotificationEventInvoiceUpdatedPayload An invoice updated notification event payload.
 type BillingNotificationEventInvoiceUpdatedPayload struct {
 	// Data The invoice the event refers to.
-	Data BillingNotificationEventV1Invoice `json:"data"`
+	Data BillingInvoiceUpdatedV1Payload `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -7052,7 +7310,7 @@ type BillingNotificationEventPayload struct {
 // BillingNotificationEventResetPayload An entitlement reset notification event payload.
 type BillingNotificationEventResetPayload struct {
 	// Data The entities the event refers to.
-	Data BillingNotificationEventV1EntitlementValuePayloadBase `json:"data"`
+	Data EntitlementUsagePeriodResetV1Payload `json:"data"`
 
 	// Id The identifier of the event the payload belongs to.
 	Id ULID `json:"id"`
@@ -7137,28 +7395,6 @@ type BillingNotificationEventV1AppStatus string
 
 // BillingNotificationEventV1AppType Type of the app.
 type BillingNotificationEventV1AppType string
-
-// BillingNotificationEventV1BalanceThresholdPayloadData Data of the payload for notification event with `entitlements.balance.threshold`
-// type.
-type BillingNotificationEventV1BalanceThresholdPayloadData struct {
-	// Customer Customer.
-	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
-
-	// Entitlement Entitlement.
-	Entitlement BillingNotificationEventV1EntitlementMetered `json:"entitlement"`
-
-	// Feature Feature.
-	Feature BillingNotificationEventV1Feature `json:"feature"`
-
-	// Subject Subject.
-	Subject BillingNotificationEventV1Subject `json:"subject"`
-
-	// Threshold Threshold.
-	Threshold BillingNotificationEventV1RuleBalanceThresholdValue `json:"threshold"`
-
-	// Value Entitlement Value.
-	Value BillingNotificationEventV1EntitlementValue `json:"value"`
-}
 
 // BillingNotificationEventV1BillingDiscountPercentage A percentage discount.
 type BillingNotificationEventV1BillingDiscountPercentage struct {
@@ -7725,24 +7961,6 @@ type BillingNotificationEventV1EntitlementValue struct {
 	Usage *float64 `json:"usage,omitempty"`
 }
 
-// BillingNotificationEventV1EntitlementValuePayloadBase Base data for any payload with entitlement entitlement value.
-type BillingNotificationEventV1EntitlementValuePayloadBase struct {
-	// Customer Customer.
-	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
-
-	// Entitlement Entitlement.
-	Entitlement BillingNotificationEventV1EntitlementMetered `json:"entitlement"`
-
-	// Feature Feature.
-	Feature BillingNotificationEventV1Feature `json:"feature"`
-
-	// Subject Subject.
-	Subject BillingNotificationEventV1Subject `json:"subject"`
-
-	// Value Entitlement Value.
-	Value BillingNotificationEventV1EntitlementValue `json:"value"`
-}
-
 // BillingNotificationEventV1Feature Represents a feature that can be enabled or disabled for a plan. Used both for
 // product catalog and entitlements.
 type BillingNotificationEventV1Feature struct {
@@ -7949,134 +8167,6 @@ type BillingNotificationEventV1IDResource struct {
 
 // BillingNotificationEventV1InstallMethod Install method of the application.
 type BillingNotificationEventV1InstallMethod string
-
-// BillingNotificationEventV1Invoice Invoice represents an invoice in the system.
-type BillingNotificationEventV1Invoice struct {
-	// CollectionAt The time when the invoice will be/has been collected.
-	CollectionAt *time.Time `json:"collection_at,omitempty"`
-
-	// CreatedAt Timestamp of when the resource was created.
-	CreatedAt time.Time `json:"created_at"`
-
-	// Currency Currency for all invoice line items.
-	//
-	// Multi currency invoices are not supported yet.
-	Currency BillingNotificationEventV1CurrencyCode `json:"currency"`
-
-	// Customer Legal entity receiving the goods or services.
-	Customer BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails `json:"customer"`
-
-	// DeletedAt Timestamp of when the resource was permanently deleted.
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-
-	// Description Optional description of the resource. Maximum 1024 characters.
-	Description *string `json:"description,omitempty"`
-
-	// DraftUntil The time until the invoice is in draft status.
-	//
-	// On draft invoice creation it is calculated from the workflow settings.
-	//
-	// If manual approval is required, the draftUntil time is set.
-	DraftUntil *time.Time `json:"draft_until,omitempty"`
-
-	// DueAt Due time of the fulfillment of the invoice (if available).
-	DueAt *time.Time `json:"due_at,omitempty"`
-
-	// ExternalIds External IDs of the invoice in other apps such as Stripe.
-	ExternalIds *BillingNotificationEventV1InvoiceAppExternalIds `json:"external_ids,omitempty"`
-
-	// Id A unique identifier for the resource.
-	Id string `json:"id"`
-
-	// IssuedAt The time the invoice was issued.
-	//
-	// Depending on the status of the invoice this can mean multiple things:
-	//
-	// - draft, gathering: The time the invoice will be issued based on the workflow
-	// settings.
-	// - issued: The time the invoice was issued.
-	IssuedAt *time.Time `json:"issued_at,omitempty"`
-
-	// Lines List of invoice lines representing each of the items sold to the customer.
-	Lines *[]BillingNotificationEventV1InvoiceLine `json:"lines,omitempty"`
-
-	// Metadata Additional metadata for the resource.
-	Metadata nullable.Nullable[BillingNotificationEventV1Metadata] `json:"metadata,omitempty"`
-
-	// Number Number specifies the human readable key used to reference this Invoice.
-	//
-	// The invoice number can change in the draft phases, as we are allocating
-	// temporary draft invoice numbers, but it's final as soon as the invoice gets
-	// finalized (issued state).
-	//
-	// Please note that the number is (depending on the upstream settings) either
-	// unique for the whole organization or unique for the customer, or in multi
-	// (stripe) account setups unique for the account.
-	Number BillingNotificationEventV1InvoiceNumber `json:"number"`
-
-	// Payment Information on when, how, and to whom the invoice should be paid.
-	Payment *BillingNotificationEventV1InvoicePaymentTerms `json:"payment,omitempty"`
-
-	// Period The period the invoice covers. If the invoice has no line items, it's not set.
-	Period *BillingNotificationEventV1Period `json:"period,omitempty"`
-
-	// Preceding Key information regarding previous invoices and potentially details as to why
-	// they were corrected.
-	Preceding *[]BillingNotificationEventV1InvoiceDocumentRef `json:"preceding,omitempty"`
-
-	// QuantitySnapshotedAt The time when the quantity snapshots on the invoice lines were taken.
-	QuantitySnapshotedAt *time.Time `json:"quantity_snapshoted_at,omitempty"`
-
-	// SentToCustomerAt The time the invoice was sent to customer.
-	SentToCustomerAt *time.Time `json:"sent_to_customer_at,omitempty"`
-
-	// Status The status of the invoice.
-	//
-	// This field only conatins a simplified status, for more detailed information use
-	// the statusDetails field.
-	Status BillingNotificationEventV1InvoiceStatus `json:"status"`
-
-	// StatusDetails The details of the current invoice status.
-	StatusDetails BillingNotificationEventV1InvoiceStatusDetails `json:"status_details"`
-
-	// Supplier The taxable entity supplying the goods or services.
-	Supplier BillingNotificationEventV1BillingParty `json:"supplier"`
-
-	// Totals Summary of all the invoice totals, including taxes (calculated).
-	Totals BillingNotificationEventV1InvoiceTotals `json:"totals"`
-
-	// Type Type of the invoice.
-	//
-	// The type of invoice determines the purpose of the invoice and how it should be
-	// handled.
-	//
-	// Supported types:
-	//
-	// - standard: A regular commercial invoice document between a supplier and
-	// customer.
-	// - credit_note: Reflects a refund either partial or complete of the preceding
-	// document. A credit note effectively _extends_ the previous document.
-	Type BillingNotificationEventV1InvoiceType `json:"type"`
-
-	// UpdatedAt Timestamp of when the resource was last updated.
-	UpdatedAt time.Time `json:"updated_at"`
-
-	// ValidationIssues Validation issues reported by the invoice workflow.
-	ValidationIssues *[]BillingNotificationEventV1ValidationIssue `json:"validation_issues,omitempty"`
-
-	// VoidedAt The time the invoice was voided.
-	//
-	// If the invoice was voided, this field will be set to the time the invoice was
-	// voided.
-	VoidedAt *time.Time `json:"voided_at,omitempty"`
-
-	// Workflow The workflow associated with the invoice.
-	//
-	// It is always a snapshot of the workflow settings at the time of invoice
-	// creation. The field is optional as it should be explicitly requested with expand
-	// options.
-	Workflow BillingNotificationEventV1InvoiceWorkflowSettings `json:"workflow"`
-}
 
 // BillingNotificationEventV1InvoiceAppExternalIds InvoiceAppExternalIds contains the external IDs of the invoice in other apps
 // such as Stripe.
@@ -12256,6 +12346,28 @@ type EntitlementAccessQueryResult struct {
 	UpdatedAt DateTime `json:"updated_at"`
 }
 
+// EntitlementBalanceThresholdTriggeredV1Payload Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
+// `entitlements.balance.threshold` Event type.
+type EntitlementBalanceThresholdTriggeredV1Payload struct {
+	// Customer Customer.
+	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
+
+	// Entitlement Entitlement.
+	Entitlement BillingNotificationEventV1EntitlementMetered `json:"entitlement"`
+
+	// Feature Feature.
+	Feature BillingNotificationEventV1Feature `json:"feature"`
+
+	// Subject Subject.
+	Subject BillingNotificationEventV1Subject `json:"subject"`
+
+	// Threshold Threshold.
+	Threshold BillingNotificationEventV1RuleBalanceThresholdValue `json:"threshold"`
+
+	// Value Entitlement Value.
+	Value BillingNotificationEventV1EntitlementValue `json:"value"`
+}
+
 // EntitlementFeatureAccess Access status for a single feature.
 type EntitlementFeatureAccess struct {
 	// HasAccess Whether the customer currently has access to the feature.
@@ -12300,6 +12412,25 @@ type EntitlementPagePaginatedResponse struct {
 
 	// Meta returns the pagination information
 	Meta PaginatedMeta `json:"meta"`
+}
+
+// EntitlementUsagePeriodResetV1Payload Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
+// Event type.
+type EntitlementUsagePeriodResetV1Payload struct {
+	// Customer Customer.
+	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
+
+	// Entitlement Entitlement.
+	Entitlement BillingNotificationEventV1EntitlementMetered `json:"entitlement"`
+
+	// Feature Feature.
+	Feature BillingNotificationEventV1Feature `json:"feature"`
+
+	// Subject Subject.
+	Subject BillingNotificationEventV1Subject `json:"subject"`
+
+	// Value Entitlement Value.
+	Value BillingNotificationEventV1EntitlementValue `json:"value"`
 }
 
 // ExternalResourceKey ExternalResourceKey is a unique string that is used to identify a resource in an

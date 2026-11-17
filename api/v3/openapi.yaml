@@ -10400,6 +10400,218 @@ components:
         status.
 
         A field is present only when that action is permitted from the current state.
+    BillingInvoiceCreatedV1Payload:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - type
+        - supplier
+        - customer
+        - number
+        - currency
+        - totals
+        - status
+        - status_details
+        - workflow
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceType'
+          description: |-
+            Type of the invoice.
+
+            The type of invoice determines the purpose of the invoice and how it should be
+            handled.
+
+            Supported types:
+
+            - standard: A regular commercial invoice document between a supplier and
+            customer.
+            - credit_note: Reflects a refund either partial or complete of the preceding
+            document. A credit note effectively _extends_ the previous document.
+          readOnly: true
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingParty'
+          description: The taxable entity supplying the goods or services.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails'
+          description: Legal entity receiving the goods or services.
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceNumber'
+          description: |-
+            Number specifies the human readable key used to reference this Invoice.
+
+            The invoice number can change in the draft phases, as we are allocating
+            temporary draft invoice numbers, but it's final as soon as the invoice gets
+            finalized (issued state).
+
+            Please note that the number is (depending on the upstream settings) either
+            unique for the whole organization or unique for the customer, or in multi
+            (stripe) account setups unique for the account.
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: |-
+            Currency for all invoice line items.
+
+            Multi currency invoices are not supported yet.
+        preceding:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDocumentRef'
+          description: |-
+            Key information regarding previous invoices and potentially details as to why
+            they were corrected.
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceTotals'
+          description: Summary of all the invoice totals, including taxes (calculated).
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatus'
+          description: |-
+            The status of the invoice.
+
+            This field only conatins a simplified status, for more detailed information use
+            the statusDetails field.
+          readOnly: true
+        status_details:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatusDetails'
+          description: The details of the current invoice status.
+          readOnly: true
+        issued_at:
+          type: string
+          format: date-time
+          description: |-
+            The time the invoice was issued.
+
+            Depending on the status of the invoice this can mean multiple things:
+
+            - draft, gathering: The time the invoice will be issued based on the workflow
+            settings.
+            - issued: The time the invoice was issued.
+          readOnly: true
+        draft_until:
+          type: string
+          format: date-time
+          description: |-
+            The time until the invoice is in draft status.
+
+            On draft invoice creation it is calculated from the workflow settings.
+
+            If manual approval is required, the draftUntil time is set.
+        quantity_snapshoted_at:
+          type: string
+          format: date-time
+          description: The time when the quantity snapshots on the invoice lines were taken.
+          readOnly: true
+        collection_at:
+          type: string
+          format: date-time
+          description: The time when the invoice will be/has been collected.
+          readOnly: true
+        due_at:
+          type: string
+          format: date-time
+          description: Due time of the fulfillment of the invoice (if available).
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
+          description: The period the invoice covers. If the invoice has no line items, it's not set.
+        voided_at:
+          type: string
+          format: date-time
+          description: |-
+            The time the invoice was voided.
+
+            If the invoice was voided, this field will be set to the time the invoice was
+            voided.
+          readOnly: true
+        sent_to_customer_at:
+          type: string
+          format: date-time
+          description: The time the invoice was sent to customer.
+          readOnly: true
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceWorkflowSettings'
+          description: |-
+            The workflow associated with the invoice.
+
+            It is always a snapshot of the workflow settings at the time of invoice
+            creation. The field is optional as it should be explicitly requested with expand
+            options.
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLine'
+          description: List of invoice lines representing each of the items sold to the customer.
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoicePaymentTerms'
+          description: Information on when, how, and to whom the invoice should be paid.
+          readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1ValidationIssue'
+          description: Validation issues reported by the invoice workflow.
+          readOnly: true
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
+        type: the invoice as it was created.
     BillingInvoiceCustomer:
       type: object
       required:
@@ -11128,6 +11340,218 @@ components:
           readOnly: true
       additionalProperties: false
       description: Detailed status information for a standard invoice.
+    BillingInvoiceUpdatedV1Payload:
+      type: object
+      required:
+        - id
+        - created_at
+        - updated_at
+        - type
+        - supplier
+        - customer
+        - number
+        - currency
+        - totals
+        - status
+        - status_details
+        - workflow
+      properties:
+        id:
+          type: string
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: A unique identifier for the resource.
+          title: ID
+          readOnly: true
+        description:
+          type: string
+          maxLength: 1024
+          description: Optional description of the resource. Maximum 1024 characters.
+          title: Description
+        metadata:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
+          nullable: true
+          description: Additional metadata for the resource.
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was created.
+          title: Creation Time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was last updated.
+          title: Last Update Time
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the resource was permanently deleted.
+          title: Deletion Time
+          readOnly: true
+        type:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceType'
+          description: |-
+            Type of the invoice.
+
+            The type of invoice determines the purpose of the invoice and how it should be
+            handled.
+
+            Supported types:
+
+            - standard: A regular commercial invoice document between a supplier and
+            customer.
+            - credit_note: Reflects a refund either partial or complete of the preceding
+            document. A credit note effectively _extends_ the previous document.
+          readOnly: true
+        supplier:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingParty'
+          description: The taxable entity supplying the goods or services.
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails'
+          description: Legal entity receiving the goods or services.
+        number:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceNumber'
+          description: |-
+            Number specifies the human readable key used to reference this Invoice.
+
+            The invoice number can change in the draft phases, as we are allocating
+            temporary draft invoice numbers, but it's final as soon as the invoice gets
+            finalized (issued state).
+
+            Please note that the number is (depending on the upstream settings) either
+            unique for the whole organization or unique for the customer, or in multi
+            (stripe) account setups unique for the account.
+          readOnly: true
+        currency:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
+          description: |-
+            Currency for all invoice line items.
+
+            Multi currency invoices are not supported yet.
+        preceding:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDocumentRef'
+          description: |-
+            Key information regarding previous invoices and potentially details as to why
+            they were corrected.
+          readOnly: true
+        totals:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceTotals'
+          description: Summary of all the invoice totals, including taxes (calculated).
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatus'
+          description: |-
+            The status of the invoice.
+
+            This field only conatins a simplified status, for more detailed information use
+            the statusDetails field.
+          readOnly: true
+        status_details:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatusDetails'
+          description: The details of the current invoice status.
+          readOnly: true
+        issued_at:
+          type: string
+          format: date-time
+          description: |-
+            The time the invoice was issued.
+
+            Depending on the status of the invoice this can mean multiple things:
+
+            - draft, gathering: The time the invoice will be issued based on the workflow
+            settings.
+            - issued: The time the invoice was issued.
+          readOnly: true
+        draft_until:
+          type: string
+          format: date-time
+          description: |-
+            The time until the invoice is in draft status.
+
+            On draft invoice creation it is calculated from the workflow settings.
+
+            If manual approval is required, the draftUntil time is set.
+        quantity_snapshoted_at:
+          type: string
+          format: date-time
+          description: The time when the quantity snapshots on the invoice lines were taken.
+          readOnly: true
+        collection_at:
+          type: string
+          format: date-time
+          description: The time when the invoice will be/has been collected.
+          readOnly: true
+        due_at:
+          type: string
+          format: date-time
+          description: Due time of the fulfillment of the invoice (if available).
+          readOnly: true
+        period:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
+          description: The period the invoice covers. If the invoice has no line items, it's not set.
+        voided_at:
+          type: string
+          format: date-time
+          description: |-
+            The time the invoice was voided.
+
+            If the invoice was voided, this field will be set to the time the invoice was
+            voided.
+          readOnly: true
+        sent_to_customer_at:
+          type: string
+          format: date-time
+          description: The time the invoice was sent to customer.
+          readOnly: true
+        workflow:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceWorkflowSettings'
+          description: |-
+            The workflow associated with the invoice.
+
+            It is always a snapshot of the workflow settings at the time of invoice
+            creation. The field is optional as it should be explicitly requested with expand
+            options.
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLine'
+          description: List of invoice lines representing each of the items sold to the customer.
+        payment:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoicePaymentTerms'
+          description: Information on when, how, and to whom the invoice should be paid.
+          readOnly: true
+        validation_issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventV1ValidationIssue'
+          description: Validation issues reported by the invoice workflow.
+          readOnly: true
+        external_ids:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAppExternalIds'
+          description: External IDs of the invoice in other apps such as Stripe.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
+        type: the invoice after the update.
     BillingInvoiceUsageQuantityDetail:
       type: object
       required:
@@ -11455,7 +11879,7 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1BalanceThresholdPayloadData'
+            - $ref: '#/components/schemas/EntitlementBalanceThresholdTriggeredV1Payload'
           description: The entities and threshold the event refers to.
           readOnly: true
       additionalProperties: false
@@ -11594,7 +12018,7 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Invoice'
+            - $ref: '#/components/schemas/BillingInvoiceCreatedV1Payload'
           description: The invoice the event refers to.
           readOnly: true
       additionalProperties: false
@@ -11625,7 +12049,7 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Invoice'
+            - $ref: '#/components/schemas/BillingInvoiceUpdatedV1Payload'
           description: The invoice the event refers to.
           readOnly: true
       additionalProperties: false
@@ -11671,7 +12095,7 @@ components:
           readOnly: true
         data:
           allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValuePayloadBase'
+            - $ref: '#/components/schemas/EntitlementUsagePeriodResetV1Payload'
           description: The entities the event refers to.
           readOnly: true
       additionalProperties: false
@@ -11795,55 +12219,6 @@ components:
         - sandbox
         - custom_invoicing
       description: Type of the app.
-    BillingNotificationEventV1BalanceThresholdPayloadData:
-      type: object
-      required:
-        - entitlement
-        - feature
-        - subject
-        - value
-        - threshold
-      properties:
-        entitlement:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementMetered'
-          description: Entitlement.
-          title: Entitlement
-          readOnly: true
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Feature'
-          description: Feature.
-          title: Feature
-          readOnly: true
-        subject:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Subject'
-          description: Subject.
-          title: Subject
-          readOnly: true
-        value:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValue'
-          description: Entitlement Value.
-          title: Entitlement Value
-          readOnly: true
-        customer:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Customer'
-          description: Customer.
-          title: Customer
-          readOnly: true
-        threshold:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1RuleBalanceThresholdValue'
-          description: Threshold.
-          title: Threshold
-          readOnly: true
-      additionalProperties: false
-      description: |-
-        Data of the payload for notification event with `entitlements.balance.threshold`
-        type.
     BillingNotificationEventV1BillingDiscountPercentage:
       type: object
       required:
@@ -12773,46 +13148,6 @@ components:
       description: |-
         Entitlements are the core of OpenMeter access management. They define access to
         features for subjects. Entitlements can be metered, boolean, or static.
-    BillingNotificationEventV1EntitlementValuePayloadBase:
-      type: object
-      required:
-        - entitlement
-        - feature
-        - subject
-        - value
-      properties:
-        entitlement:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementMetered'
-          description: Entitlement.
-          title: Entitlement
-          readOnly: true
-        feature:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Feature'
-          description: Feature.
-          title: Feature
-          readOnly: true
-        subject:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Subject'
-          description: Subject.
-          title: Subject
-          readOnly: true
-        value:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValue'
-          description: Entitlement Value.
-          title: Entitlement Value
-          readOnly: true
-        customer:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Customer'
-          description: Customer.
-          title: Customer
-          readOnly: true
-      additionalProperties: false
-      description: Base data for any payload with entitlement entitlement value.
     BillingNotificationEventV1Feature:
       type: object
       required:
@@ -13170,216 +13505,6 @@ components:
         - with_api_key
         - no_credentials_required
       description: Install method of the application.
-    BillingNotificationEventV1Invoice:
-      type: object
-      required:
-        - id
-        - created_at
-        - updated_at
-        - type
-        - supplier
-        - customer
-        - number
-        - currency
-        - totals
-        - status
-        - status_details
-        - workflow
-      properties:
-        id:
-          type: string
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: A unique identifier for the resource.
-          title: ID
-          readOnly: true
-        description:
-          type: string
-          maxLength: 1024
-          description: Optional description of the resource. Maximum 1024 characters.
-          title: Description
-        metadata:
-          type: object
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Metadata'
-          nullable: true
-          description: Additional metadata for the resource.
-          title: Metadata
-        created_at:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was created.
-          title: Creation Time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was last updated.
-          title: Last Update Time
-          readOnly: true
-        deleted_at:
-          type: string
-          format: date-time
-          description: Timestamp of when the resource was permanently deleted.
-          title: Deletion Time
-          readOnly: true
-        type:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceType'
-          description: |-
-            Type of the invoice.
-
-            The type of invoice determines the purpose of the invoice and how it should be
-            handled.
-
-            Supported types:
-
-            - standard: A regular commercial invoice document between a supplier and
-            customer.
-            - credit_note: Reflects a refund either partial or complete of the preceding
-            document. A credit note effectively _extends_ the previous document.
-          readOnly: true
-        supplier:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1BillingParty'
-          description: The taxable entity supplying the goods or services.
-        customer:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1BillingInvoiceCustomerExtendedDetails'
-          description: Legal entity receiving the goods or services.
-        number:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceNumber'
-          description: |-
-            Number specifies the human readable key used to reference this Invoice.
-
-            The invoice number can change in the draft phases, as we are allocating
-            temporary draft invoice numbers, but it's final as soon as the invoice gets
-            finalized (issued state).
-
-            Please note that the number is (depending on the upstream settings) either
-            unique for the whole organization or unique for the customer, or in multi
-            (stripe) account setups unique for the account.
-          readOnly: true
-        currency:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1CurrencyCode'
-          description: |-
-            Currency for all invoice line items.
-
-            Multi currency invoices are not supported yet.
-        preceding:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceDocumentRef'
-          description: |-
-            Key information regarding previous invoices and potentially details as to why
-            they were corrected.
-          readOnly: true
-        totals:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceTotals'
-          description: Summary of all the invoice totals, including taxes (calculated).
-          readOnly: true
-        status:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatus'
-          description: |-
-            The status of the invoice.
-
-            This field only conatins a simplified status, for more detailed information use
-            the statusDetails field.
-          readOnly: true
-        status_details:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceStatusDetails'
-          description: The details of the current invoice status.
-          readOnly: true
-        issued_at:
-          type: string
-          format: date-time
-          description: |-
-            The time the invoice was issued.
-
-            Depending on the status of the invoice this can mean multiple things:
-
-            - draft, gathering: The time the invoice will be issued based on the workflow
-            settings.
-            - issued: The time the invoice was issued.
-          readOnly: true
-        draft_until:
-          type: string
-          format: date-time
-          description: |-
-            The time until the invoice is in draft status.
-
-            On draft invoice creation it is calculated from the workflow settings.
-
-            If manual approval is required, the draftUntil time is set.
-        quantity_snapshoted_at:
-          type: string
-          format: date-time
-          description: The time when the quantity snapshots on the invoice lines were taken.
-          readOnly: true
-        collection_at:
-          type: string
-          format: date-time
-          description: The time when the invoice will be/has been collected.
-          readOnly: true
-        due_at:
-          type: string
-          format: date-time
-          description: Due time of the fulfillment of the invoice (if available).
-          readOnly: true
-        period:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1Period'
-          description: The period the invoice covers. If the invoice has no line items, it's not set.
-        voided_at:
-          type: string
-          format: date-time
-          description: |-
-            The time the invoice was voided.
-
-            If the invoice was voided, this field will be set to the time the invoice was
-            voided.
-          readOnly: true
-        sent_to_customer_at:
-          type: string
-          format: date-time
-          description: The time the invoice was sent to customer.
-          readOnly: true
-        workflow:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceWorkflowSettings'
-          description: |-
-            The workflow associated with the invoice.
-
-            It is always a snapshot of the workflow settings at the time of invoice
-            creation. The field is optional as it should be explicitly requested with expand
-            options.
-        lines:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingNotificationEventV1InvoiceLine'
-          description: List of invoice lines representing each of the items sold to the customer.
-        payment:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoicePaymentTerms'
-          description: Information on when, how, and to whom the invoice should be paid.
-          readOnly: true
-        validation_issues:
-          type: array
-          items:
-            $ref: '#/components/schemas/BillingNotificationEventV1ValidationIssue'
-          description: Validation issues reported by the invoice workflow.
-          readOnly: true
-        external_ids:
-          allOf:
-            - $ref: '#/components/schemas/BillingNotificationEventV1InvoiceAppExternalIds'
-          description: External IDs of the invoice in other apps such as Stripe.
-          readOnly: true
-      additionalProperties: false
-      description: Invoice represents an invoice in the system.
     BillingNotificationEventV1InvoiceAppExternalIds:
       type: object
       properties:
@@ -20417,6 +20542,55 @@ components:
           readOnly: true
       additionalProperties: false
       description: Access evaluation result for a single resolved customer.
+    EntitlementBalanceThresholdTriggeredV1Payload:
+      type: object
+      required:
+        - entitlement
+        - feature
+        - subject
+        - value
+        - threshold
+      properties:
+        entitlement:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementMetered'
+          description: Entitlement.
+          title: Entitlement
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Feature'
+          description: Feature.
+          title: Feature
+          readOnly: true
+        subject:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Subject'
+          description: Subject.
+          title: Subject
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValue'
+          description: Entitlement Value.
+          title: Entitlement Value
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Customer'
+          description: Customer.
+          title: Customer
+          readOnly: true
+        threshold:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1RuleBalanceThresholdValue'
+          description: Threshold.
+          title: Threshold
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
+        `entitlements.balance.threshold` Event type.
     EntitlementFeatureAccess:
       type: object
       required:
@@ -20505,6 +20679,48 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    EntitlementUsagePeriodResetV1Payload:
+      type: object
+      required:
+        - entitlement
+        - feature
+        - subject
+        - value
+      properties:
+        entitlement:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementMetered'
+          description: Entitlement.
+          title: Entitlement
+          readOnly: true
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Feature'
+          description: Feature.
+          title: Feature
+          readOnly: true
+        subject:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Subject'
+          description: Subject.
+          title: Subject
+          readOnly: true
+        value:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1EntitlementValue'
+          description: Entitlement Value.
+          title: Entitlement Value
+          readOnly: true
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/BillingNotificationEventV1Customer'
+          description: Customer.
+          title: Customer
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
+        Event type.
     ExternalResourceKey:
       type: string
       minLength: 1

@@ -1,0 +1,86 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.entitlement.balance_threshold.triggered.rule_config",
+    "type": "object",
+    "properties": {
+        "thresholds": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/NotificationBalanceThreshold"
+            },
+            "minItems": 1,
+            "maxItems": 10,
+            "description": "The thresholds that generate an event when crossed."
+        },
+        "features": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/ResourceReferenceFeature"
+            },
+            "description": "The features the rule applies to. When omitted, the rule applies to every\nfeature."
+        }
+    },
+    "required": [
+        "thresholds"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Rule configuration of `v1.entitlement.balance_threshold.triggered`.",
+    "$defs": {
+        "NotificationBalanceThreshold": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/$defs/NotificationBalanceThresholdType",
+                    "description": "What the threshold value is measured against."
+                },
+                "value": {
+                    "type": "number",
+                    "description": "The threshold value."
+                }
+            },
+            "required": [
+                "type",
+                "value"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "A balance threshold of a notification rule. Crossing it generates an\n`entitlements.balance.threshold` event."
+        },
+        "ResourceReferenceFeature": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/$defs/ULID"
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Feature reference."
+        },
+        "NotificationBalanceThresholdType": {
+            "type": "string",
+            "enum": [
+                "balance_value",
+                "usage_percentage",
+                "usage_value"
+            ],
+            "description": "What a balance threshold is measured against."
+        },
+        "ULID": {
+            "type": "string",
+            "examples": [
+                "01G65Z755AFWAKHE12NY0CQ9FH"
+            ],
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "description": "ULID (Universally Unique Lexicographically Sortable Identifier).",
+            "title": "ULID"
+        }
+    }
+}

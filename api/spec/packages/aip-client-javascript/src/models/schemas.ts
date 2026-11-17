@@ -2239,6 +2239,20 @@ export const subscriptionEditOperationType = z
     'The type of a subscription edit operation. - `add_item`: Add a rate card to a phase. - `remove_item`: Remove a rate card from a phase. - `add_phase`: Add a new phase to the subscription. - `remove_phase`: Remove a phase from the subscription. - `stretch_phase`: Extend the duration of a phase. - `unschedule_edit`: Discard scheduled edits on the current phase.',
   )
 
+export const invoiceCreatedV1RuleConfig = z
+  .object({})
+
+  .describe(
+    'Rule configuration of `v1.billing.invoice.created`. Invoice Rules have no type-specific settings.',
+  )
+
+export const invoiceUpdatedV1RuleConfig = z
+  .object({})
+
+  .describe(
+    'Rule configuration of `v1.billing.invoice.updated`. Invoice Rules have no type-specific settings.',
+  )
+
 export const systemAccountAccessToken = z
   .object({
     type: z.literal('http').describe('Http authentication'),
@@ -5289,6 +5303,31 @@ export const customerProfile = z
   })
   .describe('Customer billing profile selection.')
 
+export const entitlementFeaturesRuleConfig = z
+  .object({
+    features: z
+      .array(featureReference)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe('The feature filter shared by the entitlement Rule configurations.')
+
+export const entitlementUsagePeriodResetV1RuleConfig = z
+  .object({
+    features: z
+      .array(featureReference)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+  .describe('Rule configuration of `v1.entitlement.usage_period.reset`.')
+
 export const createChargeCostBasis = z
   .discriminatedUnion('type', [
     createChargeCostBasisDynamic,
@@ -6822,6 +6861,26 @@ export const notificationRuleBalanceThresholdRequest = z
       ),
   })
   .describe('Request body for a balance threshold rule.')
+
+export const entitlementBalanceThresholdTriggeredV1RuleConfig = z
+  .object({
+    thresholds: z
+      .array(notificationBalanceThreshold)
+      .min(1)
+      .max(10)
+      .describe('The thresholds that generate an event when crossed.'),
+    features: z
+      .array(featureReference)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe(
+    'Rule configuration of `v1.entitlement.balance_threshold.triggered`.',
+  )
 
 export const notificationEventDeliveryStatus = z
   .object({
@@ -9141,6 +9200,33 @@ export const notificationEventV1BillingWorkflowCollectionSettings = z
     'Workflow collection specifies how to collect the pending line items for an invoice',
   )
 
+export const entitlementBalanceThresholdTriggeredV1Payload = z
+  .object({
+    entitlement: notificationEventV1EntitlementMetered,
+    feature: notificationEventV1Feature,
+    subject: notificationEventV1Subject,
+    value: notificationEventV1EntitlementValue,
+    customer: notificationEventV1Customer.optional(),
+    threshold: notificationEventV1RuleBalanceThresholdValue,
+  })
+
+  .describe(
+    'Payload of `v1.entitlement.balance_threshold.triggered`, the legacy `entitlements.balance.threshold` Event type.',
+  )
+
+export const entitlementUsagePeriodResetV1Payload = z
+  .object({
+    entitlement: notificationEventV1EntitlementMetered,
+    feature: notificationEventV1Feature,
+    subject: notificationEventV1Subject,
+    value: notificationEventV1EntitlementValue,
+    customer: notificationEventV1Customer.optional(),
+  })
+
+  .describe(
+    'Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset` Event type.',
+  )
+
 export const notificationEventV1BalanceThresholdPayloadData = z
   .object({
     entitlement: notificationEventV1EntitlementMetered,
@@ -9635,7 +9721,7 @@ export const notificationEventBalanceThresholdPayload = z
       .literal('entitlements.balance.threshold')
       .describe('The type of the event.'),
     timestamp: dateTime,
-    data: notificationEventV1BalanceThresholdPayloadData,
+    data: entitlementBalanceThresholdTriggeredV1Payload,
   })
   .describe('A balance threshold notification event payload.')
 
@@ -9644,7 +9730,7 @@ export const notificationEventResetPayload = z
     id: ulid,
     type: z.literal('entitlements.reset').describe('The type of the event.'),
     timestamp: dateTime,
-    data: notificationEventV1EntitlementValuePayloadBase,
+    data: entitlementUsagePeriodResetV1Payload,
   })
   .describe('An entitlement reset notification event payload.')
 
@@ -10274,6 +10360,210 @@ export const updateInvoiceStandardRequest = z
   })
   .describe('InvoiceStandard update request.')
 
+export const invoiceCreatedV1Payload = z
+  .object({
+    id: z
+      .string()
+      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
+      .describe('A unique identifier for the resource.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    metadata: notificationEventV1Metadata
+      .nullable()
+      .optional()
+      .describe('Additional metadata for the resource.'),
+    createdAt: z.date().describe('Timestamp of when the resource was created.'),
+    updatedAt: z
+      .date()
+      .describe('Timestamp of when the resource was last updated.'),
+    deletedAt: z
+      .date()
+      .optional()
+      .describe('Timestamp of when the resource was permanently deleted.'),
+    type: notificationEventV1InvoiceType,
+    supplier: notificationEventV1BillingParty,
+    customer: notificationEventV1BillingInvoiceCustomerExtendedDetails,
+    number: notificationEventV1InvoiceNumber,
+    currency: notificationEventV1CurrencyCode,
+    preceding: z
+      .array(notificationEventV1InvoiceDocumentRef)
+      .optional()
+
+      .describe(
+        'Key information regarding previous invoices and potentially details as to why they were corrected.',
+      ),
+    totals: notificationEventV1InvoiceTotals,
+    status: notificationEventV1InvoiceStatus,
+    statusDetails: notificationEventV1InvoiceStatusDetails,
+    issuedAt: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time the invoice was issued. Depending on the status of the invoice this can mean multiple things: - draft, gathering: The time the invoice will be issued based on the workflow settings. - issued: The time the invoice was issued.',
+      ),
+    draftUntil: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time until the invoice is in draft status. On draft invoice creation it is calculated from the workflow settings. If manual approval is required, the draftUntil time is set.',
+      ),
+    quantitySnapshotedAt: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time when the quantity snapshots on the invoice lines were taken.',
+      ),
+    collectionAt: z
+      .date()
+      .optional()
+      .describe('The time when the invoice will be/has been collected.'),
+    dueAt: z
+      .date()
+      .optional()
+      .describe('Due time of the fulfillment of the invoice (if available).'),
+    period: notificationEventV1Period.optional(),
+    voidedAt: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time the invoice was voided. If the invoice was voided, this field will be set to the time the invoice was voided.',
+      ),
+    sentToCustomerAt: z
+      .date()
+      .optional()
+      .describe('The time the invoice was sent to customer.'),
+    workflow: notificationEventV1InvoiceWorkflowSettings,
+    lines: z
+      .array(notificationEventV1InvoiceLine)
+      .optional()
+
+      .describe(
+        'List of invoice lines representing each of the items sold to the customer.',
+      ),
+    payment: notificationEventV1InvoicePaymentTerms.optional(),
+    validationIssues: z
+      .array(notificationEventV1ValidationIssue)
+      .optional()
+      .describe('Validation issues reported by the invoice workflow.'),
+    externalIds: notificationEventV1InvoiceAppExternalIds.optional(),
+  })
+
+  .describe(
+    'Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event type: the invoice as it was created.',
+  )
+
+export const invoiceUpdatedV1Payload = z
+  .object({
+    id: z
+      .string()
+      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
+      .describe('A unique identifier for the resource.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    metadata: notificationEventV1Metadata
+      .nullable()
+      .optional()
+      .describe('Additional metadata for the resource.'),
+    createdAt: z.date().describe('Timestamp of when the resource was created.'),
+    updatedAt: z
+      .date()
+      .describe('Timestamp of when the resource was last updated.'),
+    deletedAt: z
+      .date()
+      .optional()
+      .describe('Timestamp of when the resource was permanently deleted.'),
+    type: notificationEventV1InvoiceType,
+    supplier: notificationEventV1BillingParty,
+    customer: notificationEventV1BillingInvoiceCustomerExtendedDetails,
+    number: notificationEventV1InvoiceNumber,
+    currency: notificationEventV1CurrencyCode,
+    preceding: z
+      .array(notificationEventV1InvoiceDocumentRef)
+      .optional()
+
+      .describe(
+        'Key information regarding previous invoices and potentially details as to why they were corrected.',
+      ),
+    totals: notificationEventV1InvoiceTotals,
+    status: notificationEventV1InvoiceStatus,
+    statusDetails: notificationEventV1InvoiceStatusDetails,
+    issuedAt: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time the invoice was issued. Depending on the status of the invoice this can mean multiple things: - draft, gathering: The time the invoice will be issued based on the workflow settings. - issued: The time the invoice was issued.',
+      ),
+    draftUntil: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time until the invoice is in draft status. On draft invoice creation it is calculated from the workflow settings. If manual approval is required, the draftUntil time is set.',
+      ),
+    quantitySnapshotedAt: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time when the quantity snapshots on the invoice lines were taken.',
+      ),
+    collectionAt: z
+      .date()
+      .optional()
+      .describe('The time when the invoice will be/has been collected.'),
+    dueAt: z
+      .date()
+      .optional()
+      .describe('Due time of the fulfillment of the invoice (if available).'),
+    period: notificationEventV1Period.optional(),
+    voidedAt: z
+      .date()
+      .optional()
+
+      .describe(
+        'The time the invoice was voided. If the invoice was voided, this field will be set to the time the invoice was voided.',
+      ),
+    sentToCustomerAt: z
+      .date()
+      .optional()
+      .describe('The time the invoice was sent to customer.'),
+    workflow: notificationEventV1InvoiceWorkflowSettings,
+    lines: z
+      .array(notificationEventV1InvoiceLine)
+      .optional()
+
+      .describe(
+        'List of invoice lines representing each of the items sold to the customer.',
+      ),
+    payment: notificationEventV1InvoicePaymentTerms.optional(),
+    validationIssues: z
+      .array(notificationEventV1ValidationIssue)
+      .optional()
+      .describe('Validation issues reported by the invoice workflow.'),
+    externalIds: notificationEventV1InvoiceAppExternalIds.optional(),
+  })
+
+  .describe(
+    'Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event type: the invoice after the update.',
+  )
+
 export const notificationEventV1Invoice = z
   .object({
     id: z
@@ -10414,7 +10704,7 @@ export const notificationEventInvoiceCreatedPayload = z
     id: ulid,
     type: z.literal('invoice.created').describe('The type of the event.'),
     timestamp: dateTime,
-    data: notificationEventV1Invoice,
+    data: invoiceCreatedV1Payload,
   })
   .describe('An invoice created notification event payload.')
 
@@ -10423,7 +10713,7 @@ export const notificationEventInvoiceUpdatedPayload = z
     id: ulid,
     type: z.literal('invoice.updated').describe('The type of the event.'),
     timestamp: dateTime,
-    data: notificationEventV1Invoice,
+    data: invoiceUpdatedV1Payload,
   })
   .describe('An invoice updated notification event payload.')
 
@@ -14251,6 +14541,20 @@ export const subscriptionEditOperationTypeWire = z
     'The type of a subscription edit operation. - `add_item`: Add a rate card to a phase. - `remove_item`: Remove a rate card from a phase. - `add_phase`: Add a new phase to the subscription. - `remove_phase`: Remove a phase from the subscription. - `stretch_phase`: Extend the duration of a phase. - `unschedule_edit`: Discard scheduled edits on the current phase.',
   )
 
+export const invoiceCreatedV1RuleConfigWire = z
+  .strictObject({})
+
+  .describe(
+    'Rule configuration of `v1.billing.invoice.created`. Invoice Rules have no type-specific settings.',
+  )
+
+export const invoiceUpdatedV1RuleConfigWire = z
+  .strictObject({})
+
+  .describe(
+    'Rule configuration of `v1.billing.invoice.updated`. Invoice Rules have no type-specific settings.',
+  )
+
 export const systemAccountAccessTokenWire = z
   .strictObject({
     type: z.literal('http').describe('Http authentication'),
@@ -17292,6 +17596,31 @@ export const customerProfileWire = z
   })
   .describe('Customer billing profile selection.')
 
+export const entitlementFeaturesRuleConfigWire = z
+  .strictObject({
+    features: z
+      .array(featureReferenceWire)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe('The feature filter shared by the entitlement Rule configurations.')
+
+export const entitlementUsagePeriodResetV1RuleConfigWire = z
+  .strictObject({
+    features: z
+      .array(featureReferenceWire)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+  .describe('Rule configuration of `v1.entitlement.usage_period.reset`.')
+
 export const createChargeCostBasisWire = z
   .discriminatedUnion('type', [
     createChargeCostBasisDynamicWire,
@@ -18816,6 +19145,26 @@ export const notificationRuleBalanceThresholdRequestWire = z
       ),
   })
   .describe('Request body for a balance threshold rule.')
+
+export const entitlementBalanceThresholdTriggeredV1RuleConfigWire = z
+  .strictObject({
+    thresholds: z
+      .array(notificationBalanceThresholdWire)
+      .min(1)
+      .max(10)
+      .describe('The thresholds that generate an event when crossed.'),
+    features: z
+      .array(featureReferenceWire)
+      .optional()
+
+      .describe(
+        'The features the rule applies to. When omitted, the rule applies to every feature.',
+      ),
+  })
+
+  .describe(
+    'Rule configuration of `v1.entitlement.balance_threshold.triggered`.',
+  )
 
 export const notificationEventDeliveryStatusWire = z
   .strictObject({
@@ -21203,6 +21552,33 @@ export const notificationEventV1BillingWorkflowCollectionSettingsWire = z
     'Workflow collection specifies how to collect the pending line items for an invoice',
   )
 
+export const entitlementBalanceThresholdTriggeredV1PayloadWire = z
+  .strictObject({
+    entitlement: notificationEventV1EntitlementMeteredWire,
+    feature: notificationEventV1FeatureWire,
+    subject: notificationEventV1SubjectWire,
+    value: notificationEventV1EntitlementValueWire,
+    customer: notificationEventV1CustomerWire.optional(),
+    threshold: notificationEventV1RuleBalanceThresholdValueWire,
+  })
+
+  .describe(
+    'Payload of `v1.entitlement.balance_threshold.triggered`, the legacy `entitlements.balance.threshold` Event type.',
+  )
+
+export const entitlementUsagePeriodResetV1PayloadWire = z
+  .strictObject({
+    entitlement: notificationEventV1EntitlementMeteredWire,
+    feature: notificationEventV1FeatureWire,
+    subject: notificationEventV1SubjectWire,
+    value: notificationEventV1EntitlementValueWire,
+    customer: notificationEventV1CustomerWire.optional(),
+  })
+
+  .describe(
+    'Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset` Event type.',
+  )
+
 export const notificationEventV1BalanceThresholdPayloadDataWire = z
   .strictObject({
     entitlement: notificationEventV1EntitlementMeteredWire,
@@ -21706,7 +22082,7 @@ export const notificationEventBalanceThresholdPayloadWire = z
       .literal('entitlements.balance.threshold')
       .describe('The type of the event.'),
     timestamp: dateTimeWire,
-    data: notificationEventV1BalanceThresholdPayloadDataWire,
+    data: entitlementBalanceThresholdTriggeredV1PayloadWire,
   })
   .describe('A balance threshold notification event payload.')
 
@@ -21715,7 +22091,7 @@ export const notificationEventResetPayloadWire = z
     id: ulidWire,
     type: z.literal('entitlements.reset').describe('The type of the event.'),
     timestamp: dateTimeWire,
-    data: notificationEventV1EntitlementValuePayloadBaseWire,
+    data: entitlementUsagePeriodResetV1PayloadWire,
   })
   .describe('An entitlement reset notification event payload.')
 
@@ -22348,6 +22724,234 @@ export const updateInvoiceStandardRequestWire = z
   })
   .describe('InvoiceStandard update request.')
 
+export const invoiceCreatedV1PayloadWire = z
+  .strictObject({
+    id: z
+      .string()
+      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
+      .describe('A unique identifier for the resource.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    metadata: notificationEventV1MetadataWire
+      .nullable()
+      .optional()
+      .describe('Additional metadata for the resource.'),
+    created_at: z
+      .string()
+      .datetime({ offset: true })
+      .describe('Timestamp of when the resource was created.'),
+    updated_at: z
+      .string()
+      .datetime({ offset: true })
+      .describe('Timestamp of when the resource was last updated.'),
+    deleted_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('Timestamp of when the resource was permanently deleted.'),
+    type: notificationEventV1InvoiceTypeWire,
+    supplier: notificationEventV1BillingPartyWire,
+    customer: notificationEventV1BillingInvoiceCustomerExtendedDetailsWire,
+    number: notificationEventV1InvoiceNumberWire,
+    currency: notificationEventV1CurrencyCodeWire,
+    preceding: z
+      .array(notificationEventV1InvoiceDocumentRefWire)
+      .optional()
+
+      .describe(
+        'Key information regarding previous invoices and potentially details as to why they were corrected.',
+      ),
+    totals: notificationEventV1InvoiceTotalsWire,
+    status: notificationEventV1InvoiceStatusWire,
+    status_details: notificationEventV1InvoiceStatusDetailsWire,
+    issued_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time the invoice was issued. Depending on the status of the invoice this can mean multiple things: - draft, gathering: The time the invoice will be issued based on the workflow settings. - issued: The time the invoice was issued.',
+      ),
+    draft_until: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time until the invoice is in draft status. On draft invoice creation it is calculated from the workflow settings. If manual approval is required, the draftUntil time is set.',
+      ),
+    quantity_snapshoted_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time when the quantity snapshots on the invoice lines were taken.',
+      ),
+    collection_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('The time when the invoice will be/has been collected.'),
+    due_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('Due time of the fulfillment of the invoice (if available).'),
+    period: notificationEventV1PeriodWire.optional(),
+    voided_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time the invoice was voided. If the invoice was voided, this field will be set to the time the invoice was voided.',
+      ),
+    sent_to_customer_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('The time the invoice was sent to customer.'),
+    workflow: notificationEventV1InvoiceWorkflowSettingsWire,
+    lines: z
+      .array(notificationEventV1InvoiceLineWire)
+      .optional()
+
+      .describe(
+        'List of invoice lines representing each of the items sold to the customer.',
+      ),
+    payment: notificationEventV1InvoicePaymentTermsWire.optional(),
+    validation_issues: z
+      .array(notificationEventV1ValidationIssueWire)
+      .optional()
+      .describe('Validation issues reported by the invoice workflow.'),
+    external_ids: notificationEventV1InvoiceAppExternalIdsWire.optional(),
+  })
+
+  .describe(
+    'Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event type: the invoice as it was created.',
+  )
+
+export const invoiceUpdatedV1PayloadWire = z
+  .strictObject({
+    id: z
+      .string()
+      .regex(new RegExp('^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$'))
+      .describe('A unique identifier for the resource.'),
+    description: z
+      .string()
+      .max(1024)
+      .optional()
+
+      .describe(
+        'Optional description of the resource. Maximum 1024 characters.',
+      ),
+    metadata: notificationEventV1MetadataWire
+      .nullable()
+      .optional()
+      .describe('Additional metadata for the resource.'),
+    created_at: z
+      .string()
+      .datetime({ offset: true })
+      .describe('Timestamp of when the resource was created.'),
+    updated_at: z
+      .string()
+      .datetime({ offset: true })
+      .describe('Timestamp of when the resource was last updated.'),
+    deleted_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('Timestamp of when the resource was permanently deleted.'),
+    type: notificationEventV1InvoiceTypeWire,
+    supplier: notificationEventV1BillingPartyWire,
+    customer: notificationEventV1BillingInvoiceCustomerExtendedDetailsWire,
+    number: notificationEventV1InvoiceNumberWire,
+    currency: notificationEventV1CurrencyCodeWire,
+    preceding: z
+      .array(notificationEventV1InvoiceDocumentRefWire)
+      .optional()
+
+      .describe(
+        'Key information regarding previous invoices and potentially details as to why they were corrected.',
+      ),
+    totals: notificationEventV1InvoiceTotalsWire,
+    status: notificationEventV1InvoiceStatusWire,
+    status_details: notificationEventV1InvoiceStatusDetailsWire,
+    issued_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time the invoice was issued. Depending on the status of the invoice this can mean multiple things: - draft, gathering: The time the invoice will be issued based on the workflow settings. - issued: The time the invoice was issued.',
+      ),
+    draft_until: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time until the invoice is in draft status. On draft invoice creation it is calculated from the workflow settings. If manual approval is required, the draftUntil time is set.',
+      ),
+    quantity_snapshoted_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time when the quantity snapshots on the invoice lines were taken.',
+      ),
+    collection_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('The time when the invoice will be/has been collected.'),
+    due_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('Due time of the fulfillment of the invoice (if available).'),
+    period: notificationEventV1PeriodWire.optional(),
+    voided_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+
+      .describe(
+        'The time the invoice was voided. If the invoice was voided, this field will be set to the time the invoice was voided.',
+      ),
+    sent_to_customer_at: z
+      .string()
+      .datetime({ offset: true })
+      .optional()
+      .describe('The time the invoice was sent to customer.'),
+    workflow: notificationEventV1InvoiceWorkflowSettingsWire,
+    lines: z
+      .array(notificationEventV1InvoiceLineWire)
+      .optional()
+
+      .describe(
+        'List of invoice lines representing each of the items sold to the customer.',
+      ),
+    payment: notificationEventV1InvoicePaymentTermsWire.optional(),
+    validation_issues: z
+      .array(notificationEventV1ValidationIssueWire)
+      .optional()
+      .describe('Validation issues reported by the invoice workflow.'),
+    external_ids: notificationEventV1InvoiceAppExternalIdsWire.optional(),
+  })
+
+  .describe(
+    'Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event type: the invoice after the update.',
+  )
+
 export const notificationEventV1InvoiceWire = z
   .strictObject({
     id: z
@@ -22500,7 +23104,7 @@ export const notificationEventInvoiceCreatedPayloadWire = z
     id: ulidWire,
     type: z.literal('invoice.created').describe('The type of the event.'),
     timestamp: dateTimeWire,
-    data: notificationEventV1InvoiceWire,
+    data: invoiceCreatedV1PayloadWire,
   })
   .describe('An invoice created notification event payload.')
 
@@ -22509,7 +23113,7 @@ export const notificationEventInvoiceUpdatedPayloadWire = z
     id: ulidWire,
     type: z.literal('invoice.updated').describe('The type of the event.'),
     timestamp: dateTimeWire,
-    data: notificationEventV1InvoiceWire,
+    data: invoiceUpdatedV1PayloadWire,
   })
   .describe('An invoice updated notification event payload.')
 

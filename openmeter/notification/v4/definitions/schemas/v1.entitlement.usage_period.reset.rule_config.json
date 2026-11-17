@@ -1,0 +1,44 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "v1.entitlement.usage_period.reset.rule_config",
+    "type": "object",
+    "properties": {
+        "features": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/ResourceReferenceFeature"
+            },
+            "description": "The features the rule applies to. When omitted, the rule applies to every\nfeature."
+        }
+    },
+    "unevaluatedProperties": {
+        "not": {}
+    },
+    "description": "Rule configuration of `v1.entitlement.usage_period.reset`.",
+    "$defs": {
+        "ResourceReferenceFeature": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/$defs/ULID"
+                }
+            },
+            "required": [
+                "id"
+            ],
+            "unevaluatedProperties": {
+                "not": {}
+            },
+            "description": "Feature reference."
+        },
+        "ULID": {
+            "type": "string",
+            "examples": [
+                "01G65Z755AFWAKHE12NY0CQ9FH"
+            ],
+            "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$",
+            "description": "ULID (Universally Unique Lexicographically Sortable Identifier).",
+            "title": "ULID"
+        }
+    }
+}

@@ -224,7 +224,7 @@ export async function $onEmit(context) {
       })
       lines.push(
         `// ${stem}RuleConfigJSONSchema is the JSON Schema (draft 2020-12) of`,
-        `// apiv3models.${goName(program, e.ruleConfig)}, the Rule configuration of ${e.eventType}.`,
+        `// ${goName(program, e.ruleConfig)}, the Rule configuration of ${e.eventType}.`,
         '//',
         `//go:embed schemas/${ruleConfigSchema}`,
         `var ${stem}RuleConfigJSONSchema []byte`,

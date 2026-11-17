@@ -16,6 +16,7 @@ patchedDependencies:
   '@typespec/http-client': patches/@typespec__http-client.patch
   '@typespec/http-client-python': patches/@typespec__http-client-python.patch
   '@typespec/http@1.16.0': patches/@typespec__http@1.16.0.patch
+  '@typespec/json-schema@1.16.0': patches/@typespec__json-schema@1.16.0.patch
   '@typespec/openapi3@1.16.0': patches/@typespec__openapi3@1.16.0.patch
   '@typespec/openapi@1.16.0': patches/@typespec__openapi@1.16.0.patch
 overrides:
