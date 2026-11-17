@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -16,9 +17,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
-type fixedSources struct{ selectors []rte.DemandSelector }
+type fixedSources struct {
+	mu        sync.Mutex
+	selectors []rte.DemandSelector
+}
 
-func (s fixedSources) Resolve(context.Context, marshaler.Event) ([]rte.DemandSelector, error) {
+func (s *fixedSources) Resolve(context.Context, marshaler.Event) ([]rte.DemandSelector, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	return s.selectors, nil
 }
 
@@ -69,7 +76,9 @@ func TestIngestInvalidatesCreditDemandRegisteredDuringVisibilityWait(t *testing.
 		done := make(chan error, 1)
 		go func() { done <- w.handleSource(msg, event) }()
 		synctest.Wait()
+		sources.mu.Lock()
 		sources.selectors = []rte.DemandSelector{{Namespace: "ns", Kind: rte.CalculationKindCreditBalance, OwnerIDs: []string{"customer"}}}
+		sources.mu.Unlock()
 
 		// Then the worker includes the new demand when the storage second closes.
 		require.NoError(t, <-done)
@@ -86,7 +95,7 @@ func TestLedgerFactInvalidatesDemandImmediately(t *testing.T) {
 		require.NoError(t, err)
 		msg.SetContext(t.Context())
 
-		sources := fixedSources{selectors: []rte.DemandSelector{{Namespace: "ns", Kind: rte.CalculationKindCreditBalance}}}
+		sources := &fixedSources{selectors: []rte.DemandSelector{{Namespace: "ns", Kind: rte.CalculationKindCreditBalance}}}
 		var invalidations []rte.InvalidateInput
 		w := sourceWorker(t, sources, func(_ context.Context, input rte.InvalidateInput) error {
 			invalidations = append(invalidations, input)
@@ -126,5 +135,8 @@ func sourceWorker(t *testing.T, sources rte.UpstreamResolver, invalidate func(co
 	lag, err := meter.Float64Histogram("lag")
 	require.NoError(t, err)
 
-	return &worker{sources: sources, demand: recordingDemand{invalidate: invalidate}, sourceEvents: count, sourceLag: lag}
+	routing, err := meter.Float64Histogram("routing")
+	require.NoError(t, err)
+
+	return &worker{routingDuration: routing, sources: sources, demand: recordingDemand{invalidate: invalidate}, sourceEvents: count, sourceLag: lag}
 }

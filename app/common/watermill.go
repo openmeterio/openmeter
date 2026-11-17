@@ -31,6 +31,8 @@ var WatermillNoPublisher = wire.NewSet(
 	wire.Struct(new(watermillkafka.PublisherOptions), "*"),
 
 	NewDeploymentEventBusPublisher,
+	NewRTEShadowRecorder,
+	NewRTESourcePublisher,
 )
 
 var WatermillRouter = wire.NewSet(

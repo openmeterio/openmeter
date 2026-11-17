@@ -1,33 +1,36 @@
 # Calculation demand
 
-Demand identifies which stored calculation keys need maintenance. Push activation
-keeps a key active until deactivation. Optional refresh intervals account for
-time-dependent results. A pull keeps invalidation interest for its TTL and
-calculates only when `EnsureFresh` is called. Pull-only keys never calculate in
-the background. `Get` still reads stored state without tracking or calculating.
+RTE tracks whether a balance needs recalculating after its inputs change.
+
+- **Background refresh** (`Activate`). When a tracked input changes, the worker recalculates
+  the balance even if nobody asks for it. An optional interval also refreshes it as time passes.
+- **On-demand refresh** (`EnsureFresh`). RTE remembers changes between requests for
+  `PullTTL`. With background refresh off, those changes wait for the next `EnsureFresh`
+  call, which recalculates if needed.
+
+`Get` reads the last stored balance. Only `Activate` enables background refresh.
 
 ## Choosing a freshness policy
 
 | Setting | What it controls |
 | --- | --- |
-| `ActivateDemandInput.RefreshInterval` | Optional background refresh when time alone changes the result. Zero schedules work only on activation or invalidation. |
-| `EnsureFreshInput.PullTTL` | How long this key should keep receiving invalidations between pulls. Must be positive. |
-| `EnsureFreshInput.MaxAge` | How old a completed calculation a pull accepts. Zero accepts any age if the key is active and clean. |
+| `ActivateDemandInput.RefreshInterval` | Optional background refresh when time alone changes the result. Zero disables periodic refreshes. |
+| `EnsureFreshInput.PullTTL` | How long to track changes between calls to `EnsureFresh`. Must be positive. |
+| `EnsureFreshInput.MaxAge` | How old a completed calculation `EnsureFresh` accepts. Zero accepts any age if the key is active and clean. |
 
-For example, a client might pull every ten seconds, keep interest for a minute,
-and accept a result up to thirty seconds old. A second pull ten seconds later
-can reuse the first one. Two matching facts before the next pull require one
-calculation. If pull interest expires and there is no push interest, the next
-pull calculates again because changes may have occurred during the gap.
+For example, a client calls `EnsureFresh` every ten seconds with `PullTTL=1m` and
+`MaxAge=30s`. If nothing changes, the second call can reuse the first result. If two usage
+batches arrive between calls, one recalculation covers both. With background refresh off, a
+gap longer than a minute means the next call recalculates because tracking expired.
 
 Demand is shared per semantic key. `Activate` on an already active key updates
-its refresh policy. `Deactivate` clears both push and pull interest for that key.
+its refresh policy. `Deactivate` stops background refresh and change tracking for that key.
 There is no per-caller ownership count. Coordinate deactivation when several
 consumers depend on the same balance.
 
 When a metered entitlement has a scheduled deletion, demand remains active until
-its effective time. That deadline wakes a push key even with periodic refresh
-disabled. A pull-only key checks the deadline on its next pull. Once deletion
+its effective time. With background refresh enabled, the worker checks the deadline even when
+periodic refreshes are disabled. Otherwise, `EnsureFresh` checks it on the next call. Once deletion
 takes effect, processing clears demand and leaves the last successful result
 available through `Get`. An explicit `EnsureFresh` returns the entitlement's
 not-found error.
@@ -42,7 +45,7 @@ under their usual consistency rules.
 
 `EnsureFresh` accepts a clean version, with an optional maximum age, or calculates
 it synchronously. A freshness call already in progress can finish after
-deactivation. Deactivation removes future interest.
+deactivation.
 
 An invalidation receipt uses the immutable source and event ID. Inserting its
 receipt and marking all matching active keys happen in one transaction. Duplicate
@@ -60,7 +63,7 @@ Size retention to the expected source replay window to avoid that extra work.
 
 ## Concurrent work and retries
 
-A worker locks one ready push key with `FOR UPDATE SKIP LOCKED`. The lock spans
+A worker locks one key due for background refresh with `FOR UPDATE SKIP LOCKED`. The lock spans
 calculation, stored state, its update outbox entry, and completion. Another worker
 can work on another key. An invalidation arriving during calculation waits for
 the lock, then advances dirtiness after completion. Successful state and
@@ -68,7 +71,7 @@ completion commit together. A crash rolls both back, leaving the work ready.
 
 Failed attempts roll back their writes to a savepoint and commit bounded
 exponential retry backoff. New input still advances the dirty version during backoff.
-The next scheduled push attempt covers those changes. An explicit pull can retry immediately.
+The next background attempt covers those changes. An explicit `EnsureFresh` can retry immediately.
 Polls order work by its next attempt time and ID, so one failing key does not monopolize the queue.
 Each attempt has a configured timeout, while retry bookkeeping uses the outer
 context. A canceled database read can close its connection. After rolling that

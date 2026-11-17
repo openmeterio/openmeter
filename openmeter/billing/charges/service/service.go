@@ -43,7 +43,7 @@ type service struct {
 	subscriptionService charges.SubscriptionService
 
 	fsNamespaceLockdown  []string
-	inputChangePublisher eventbus.Publisher
+	inputChangePublisher eventbus.AfterCommitPublisher
 }
 
 type Config struct {
@@ -67,9 +67,8 @@ type Config struct {
 	SubscriptionService charges.SubscriptionService
 
 	FSNamespaceLockdown []string
-	// InputChangePublisher optionally queues customer input facts in Create and
-	// ApplyPatches transactions. Configure the system-event outbox for atomicity.
-	InputChangePublisher eventbus.Publisher
+	// InputChangePublisher reports committed charge changes to the shadow experiment.
+	InputChangePublisher eventbus.AfterCommitPublisher
 }
 
 func (c Config) Validate() error {

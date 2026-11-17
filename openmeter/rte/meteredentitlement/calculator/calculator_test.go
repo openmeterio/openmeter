@@ -34,7 +34,7 @@ func TestCalculateUsesExistingEntitlementBalance(t *testing.T) {
 	calc, err := calculator.New(calculator.Config{
 		Logger: testutils.NewDiscardLogger(t),
 		Source: sourceFunc(func(gotCtx context.Context, id models.NamespacedID, gotAt time.Time) (*meteredentitlement.EntitlementBalance, error) {
-			require.Equal(t, ctx, gotCtx)
+			require.Equal(t, ctx.Done(), gotCtx.Done(), "propagate caller cancellation")
 			require.Equal(t, key.EntitlementID, id)
 			require.Equal(t, at, gotAt, "minute rounding belongs to the existing calculator")
 

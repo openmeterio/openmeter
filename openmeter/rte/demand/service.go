@@ -64,10 +64,11 @@ func (c Config) Validate() error {
 }
 
 type service struct {
-	config      Config
-	operations  metric.Int64Counter
-	invalidated metric.Int64Counter
-	lastPrune   atomic.Int64
+	config         Config
+	operations     metric.Int64Counter
+	ensureDuration metric.Float64Histogram
+	invalidated    metric.Int64Counter
+	lastPrune      atomic.Int64
 }
 
 func New(config Config) (rte.DemandService, error) {
@@ -89,7 +90,12 @@ func New(config Config) (rte.DemandService, error) {
 		return nil, err
 	}
 
-	return &service{config: config, operations: operations, invalidated: invalidated}, nil
+	ensureDuration, err := config.MetricMeter.Float64Histogram("rte.demand.ensure_fresh.duration", rte.DurationBuckets(), metric.WithUnit("s"), metric.WithDescription("Elapsed time to register demand and refresh a balance when needed"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &service{config: config, operations: operations, invalidated: invalidated, ensureDuration: ensureDuration}, nil
 }
 
 func (s *service) Activate(ctx context.Context, input rte.ActivateDemandInput) error {
@@ -105,29 +111,34 @@ func (s *service) EnsureFresh(ctx context.Context, input rte.EnsureFreshInput) e
 		return err
 	}
 
+	start := time.Now()
+	outcome := "error"
+	defer func() {
+		s.record(ctx, "pull", outcome)
+		s.ensureDuration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(attribute.String("kind", string(input.Target.Kind)), attribute.String("outcome", outcome)))
+	}()
+
 	clean, err := s.config.Repository.EnsurePull(ctx, input)
 	if err != nil {
 		return err
 	}
 
 	if clean {
-		s.record(ctx, "pull", "cache_hit")
+		outcome = "cache_hit"
 		return nil
 	}
 
 	processed, err := s.process(ctx, &input.Target)
-	outcome := "cache_hit"
+	if err != nil {
+		return err
+	}
+
+	outcome = "cache_hit"
 	if processed {
 		outcome = "calculated"
 	}
 
-	if err != nil {
-		outcome = "error"
-	}
-
-	s.record(ctx, "pull", outcome)
-
-	return err
+	return nil
 }
 
 func (s *service) Deactivate(ctx context.Context, target rte.CalculationTarget) error {

@@ -382,7 +382,8 @@ func (h *handler) GetCustomer() GetCustomerHandler {
 type (
 	GetCustomerEntitlementValueRequest struct {
 		customer.GetEntitlementValueInput
-		At time.Time
+		At      time.Time
+		current bool
 	}
 	GetCustomerEntitlementValueResponse = apiv1models.EntitlementValue
 	GetCustomerEntitlementValueParams   = struct {
@@ -430,10 +431,15 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 					FeatureKey: params.FeatureKey,
 					CustomerID: cus.GetID(),
 				},
-				At: defaultx.WithDefault(params.Time, clock.Now()),
+				At:      defaultx.WithDefault(params.Time, clock.Now()),
+				current: params.Time == nil,
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
+			if request.current {
+				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
+			}
+
 			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)
 			if err != nil {
 				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {
@@ -486,10 +492,15 @@ func (h *handler) GetCustomerEntitlementValueV2() GetCustomerEntitlementValueV2H
 					FeatureKey: params.FeatureKey,
 					CustomerID: cus.GetID(),
 				},
-				At: defaultx.WithDefault(params.Time, clock.Now()),
+				At:      defaultx.WithDefault(params.Time, clock.Now()),
+				current: params.Time == nil,
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueV2Response, error) {
+			if request.current {
+				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
+			}
+
 			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)
 			if err != nil {
 				if _, ok := lo.ErrorsAs[*entitlement.NotFoundError](err); ok {

@@ -29,7 +29,7 @@ var BalanceWorker = wire.NewSet(
 	BalanceWorkerProvisionTopics,
 	BalanceWorkerSubscriber,
 	NewBalanceWorkerSubscriptionStatus,
-	NewEntitlementRegistry,
+	Entitlement,
 	NewBalanceWorkerOptions,
 	NewBalanceWorker,
 	BalanceWorkerGroup,

@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	historicaladapter "github.com/openmeterio/openmeter/openmeter/ledger/historical/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
@@ -44,6 +45,7 @@ import (
 	rteadapter "github.com/openmeterio/openmeter/openmeter/rte/adapter"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	rtemetered "github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
+	"github.com/openmeterio/openmeter/openmeter/rte/shadow"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	streamingclickhouse "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
@@ -144,8 +146,65 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		s.Require().NoError(err)
 	}
 	fund(100)
+	recorder, closeRecorder, err := common.NewRTEShadowRecorder(ctx, live.conf.RTE, live.conf.Events,
+		live.publisher, noop.NewMeterProvider().Meter("test"), logger)
+	s.Require().NoError(err)
+	defer closeRecorder()
+
 	postingLedger = historical.NewLedger(historicaladapter.NewRepo(s.DBClient), s.LedgerAccountService,
-		s.LedgerAccountService, routingrules.DefaultValidator, historical.WithEventPublisher(live.bus))
+		s.LedgerAccountService, routingrules.DefaultValidator, historical.WithSourcePublisher(common.NewRTESourcePublisher(recorder, logger)))
+	s.Run("product reads create demand and emit paired timings", func() {
+		t := s.T()
+		facade, err := common.NewCustomerBalanceFacadeWithShadow(s.CustomerBalanceSvc, live.conf.Credits, recorder)
+		require.NoError(t, err)
+		request := customerbalance.GetBalancesInput{CustomerID: cust.GetID()}
+
+		// The first product read should create demand without an explicit Activate.
+		// A second read of that key should reuse it and still fetch stored state.
+		for n := 1; n <= 2; n++ {
+			balances, err := facade.GetBalances(ctx, request)
+			require.NoError(t, err)
+			require.Len(t, balances, 1)
+			require.Equal(t, float64(100), balances[0].Balance.Live().InexactFloat64())
+
+			require.Eventually(t, func() bool {
+				body := live.metrics(t)
+				for _, variant := range []string{"direct", "rte"} {
+					if metricCount(body, "rte_comparison_duration_milliseconds_count", `kind="credit_balance"`, `operation="read"`, `variant="`+variant+`"`) != float64(n) {
+						return false
+					}
+				}
+
+				return true
+			}, 15*time.Second, 100*time.Millisecond)
+		}
+
+		body := live.metrics(t)
+		require.Equal(t, float64(1), metricCount(body, "rte_demand_ensure_fresh_duration_seconds_count", `kind="credit_balance"`, `outcome="calculated"`))
+		require.Equal(t, float64(1), metricCount(body, "rte_demand_ensure_fresh_duration_seconds_count", `kind="credit_balance"`, `outcome="cache_hit"`))
+		require.Equal(t, float64(2), metricCount(body, "rte_state_read_duration_seconds_count", `kind="credit_balance"`, `outcome="hit"`))
+	})
+	s.Run("metered reads and worker calculations emit distinct timings", func() {
+		t := s.T()
+		source := shadow.ObserveMeteredValues(s.Entitlements.MeteredEntitlement, recorder)
+		for _, operation := range []entitlement.CurrentValueOperation{entitlement.CurrentValueOperationRead, entitlement.CurrentValueOperationCalculate} {
+			_, err := source.GetValue(operation.WithContext(ctx), ent, time.Now())
+			require.NoError(t, err)
+		}
+
+		require.Eventually(t, func() bool {
+			body := live.metrics(t)
+			for _, op := range []string{"read", "calculate"} {
+				for _, variant := range []string{"direct", "rte"} {
+					if metricCount(body, "rte_comparison_duration_milliseconds_count", `kind="metered_entitlement"`, `operation="`+op+`"`, `variant="`+variant+`"`) != 1 {
+						return false
+					}
+				}
+			}
+
+			return true
+		}, 15*time.Second, 100*time.Millisecond)
+	})
 	s.Require().NoError(demand.Activate(ctx, rte.ActivateDemandInput{Target: creditTarget}))
 	s.Require().NoError(demand.Activate(ctx, rte.ActivateDemandInput{Target: meteredTarget}))
 
@@ -312,6 +371,8 @@ func (s *RTELiveProcessSuite) startLiveProcess() *liveProcess {
 		v.Set("events."+field+".autoProvision.partitions", 1)
 	}
 
+	v.Set("rte.enabled", true)
+	v.Set("rte.shadowSamplePercent", 100)
 	v.Set("rte.consumerGroupName", "rte_live_"+suffix)
 	v.Set("rte.dlq.topic", "rte_live_"+suffix+"_dlq")
 	v.Set("rte.dlq.autoProvision.enabled", true)

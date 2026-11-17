@@ -37,6 +37,7 @@ func (h *handler) GetCustomerEntitlementAccess() GetCustomerEntitlementAccessHan
 			}, nil
 		},
 		func(ctx context.Context, request entitlement.GetCustomerEntitlementAccessInput) (GetCustomerEntitlementAccessResponse, error) {
+			ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request)
 			if err != nil {
 				return GetCustomerEntitlementAccessResponse{}, err

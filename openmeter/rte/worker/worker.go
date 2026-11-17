@@ -67,14 +67,16 @@ func (c Config) Validate() error {
 }
 
 type worker struct {
-	service      rte.Service
-	router       *message.Router
-	demand       rte.DemandService
-	sources      rte.UpstreamResolver
-	pollInterval time.Duration
-	logger       *slog.Logger
-	sourceEvents metric.Int64Counter
-	sourceLag    metric.Float64Histogram
+	service         rte.Service
+	router          *message.Router
+	demand          rte.DemandService
+	sources         rte.UpstreamResolver
+	pollInterval    time.Duration
+	logger          *slog.Logger
+	sourceEvents    metric.Int64Counter
+	sourceLag       metric.Float64Histogram
+	routingDuration metric.Float64Histogram
+	comparison      *comparisonMetrics
 }
 
 func New(config Config) (rte.Worker, error) {
@@ -97,14 +99,26 @@ func New(config Config) (rte.Worker, error) {
 		return nil, err
 	}
 
+	routingDuration, err := config.Router.MetricMeter.Float64Histogram("rte.upstream.routing.duration", metric.WithUnit("s"), rte.DurationBuckets(),
+		metric.WithDescription("Time to resolve a source event and mark matching balances dirty"))
+	if err != nil {
+		return nil, err
+	}
+
+	comparison, err := newComparisonMetrics(config.Router.MetricMeter)
+	if err != nil {
+		return nil, err
+	}
+
 	w := &worker{
 		service: config.Service, router: r, demand: config.Demand, sources: config.Sources,
 		pollInterval: config.PollInterval, logger: config.Router.Logger,
-		sourceEvents: sourceEvents, sourceLag: sourceLag,
+		sourceEvents: sourceEvents, sourceLag: sourceLag, routingDuration: routingDuration, comparison: comparison,
 	}
 
 	handler, err := grouphandler.NewNoPublishingHandler(config.Marshaler, config.Router.MetricMeter,
 		grouphandler.NewGroupEventHandler(w.handleRequested),
+		grouphandler.NewGroupEventHandler(w.handleComparison),
 	)
 	if err != nil {
 		return nil, err
@@ -152,6 +166,12 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 			return err
 		}
 	}
+
+	// Measure routing separately from waiting for the stored usage to become visible.
+	start := time.Now()
+	defer func() {
+		w.routingDuration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(name, attribute.String("outcome", outcome)))
+	}()
 
 	selectors, err := w.sources.Resolve(ctx, event)
 	if err != nil {

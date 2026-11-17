@@ -1,8 +1,8 @@
 # Routing source changes
 
-The resolver translates a committed source fact into selectors for active calculation keys. For
-push demand this can schedule a refresh. For pull-only demand it marks the key dirty for the next
-pull. Resolving a fact does not activate keys.
+The resolver translates a committed source fact into selectors for active calculation keys. With
+background refresh enabled, a matching change schedules a recalculation. Otherwise, a tracked key
+stays dirty until the next `EnsureFresh`. Resolving a fact does not activate keys.
 
 | Source fact | Candidates |
 | --- | --- |

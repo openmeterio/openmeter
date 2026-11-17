@@ -314,15 +314,14 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			for _, charge := range result {
 				owner, err := charge.GetCustomerID()
 				if err != nil {
-					return nil, err
+					s.logger.WarnContext(ctx, "skipping shadow charge input change", "error", err)
+					continue
 				}
 
 				owners = append(owners, owner)
 			}
 
-			if err := s.publishInputChanges(ctx, owners); err != nil {
-				return nil, err
-			}
+			s.publishInputChanges(ctx, owners)
 		}
 
 		return &chargesWithInvoiceNowActions{

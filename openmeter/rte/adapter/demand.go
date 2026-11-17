@@ -129,7 +129,7 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 
 	if input.PullTTL > 0 && input.MaxAge == 0 {
 		clean, err := entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (bool, error) {
-			// If another transaction holds the row, interest might expire before
+			// If another transaction holds the row, the tracking period might expire before
 			// it commits. Let registration recheck the lease after the lock is ours.
 			const query = `UPDATE rte_demands
 				SET pull_until = GREATEST(pull_until, $1), updated_at = $2

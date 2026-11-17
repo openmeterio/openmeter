@@ -16,6 +16,10 @@ postgres:
   options:
     sslVerify: disable
 
+rte:
+  enabled: true
+  shadowSamplePercent: 100
+
 credits:
   enabled: true
   enableCreditThenInvoice: true

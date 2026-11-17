@@ -11,12 +11,20 @@ type RTEConfiguration struct {
 	ConsumerConfiguration `mapstructure:",squash"`
 	PollInterval          time.Duration
 	CalculationTimeout    time.Duration
-	// Enable on billing and ledger writers when RTE tracks changes to credit balances.
-	PublishSourceEvents bool
+	Enabled               bool
+	ShadowSamplePercent   int
 }
 
 func (c RTEConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
 	var errs []error
+	if c.ShadowSamplePercent < 1 || c.ShadowSamplePercent > 100 {
+		errs = append(errs, errors.New("shadow sample percent must be between 1 and 100"))
+	}
+
 	if c.PollInterval <= 0 {
 		errs = append(errs, errors.New("poll interval must be positive"))
 	}
@@ -31,7 +39,8 @@ func (c RTEConfiguration) Validate() error {
 func ConfigureRTE(v *viper.Viper) {
 	v.SetDefault("rte.pollInterval", time.Second)
 	v.SetDefault("rte.calculationTimeout", 30*time.Second)
-	v.SetDefault("rte.publishSourceEvents", false)
+	v.SetDefault("rte.enabled", false)
+	v.SetDefault("rte.shadowSamplePercent", 10)
 	v.SetDefault("rte.dlq.topic", "om_sys.rte_dlq")
 	v.SetDefault("rte.consumerGroupName", "om_rte")
 

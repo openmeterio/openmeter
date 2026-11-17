@@ -84,7 +84,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Currency,
 		common.Subject,
 		common.Database,
-		common.Entitlement,
+		common.NewEntitlementRegistry,
 		common.Framework,
 		common.Kafka,
 		common.LLMCost,

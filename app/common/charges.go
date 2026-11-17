@@ -393,7 +393,7 @@ func NewChargesService(
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
 	fsNamespaceLockdown []string,
-	inputChangePublisher eventbus.Publisher,
+	inputChangePublisher eventbus.AfterCommitPublisher,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
 		InputChangePublisher:  inputChangePublisher,
@@ -464,7 +464,7 @@ func newChargesRegistry(
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
-	inputChangePublisher eventbus.Publisher,
+	inputChangePublisher eventbus.AfterCommitPublisher,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {

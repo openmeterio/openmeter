@@ -53,20 +53,14 @@ func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesIn
 			announced := false
 			for _, create := range input.Creates {
 				owner, err := create.GetCustomerID()
-				if err != nil {
-					return err
-				}
-
-				if owner == input.CustomerID.ID {
+				if err == nil && owner == input.CustomerID.ID {
 					announced = true
 					break
 				}
 			}
 
 			if !announced {
-				if err := s.publishInputChanges(ctx, []customer.CustomerID{input.CustomerID}); err != nil {
-					return err
-				}
+				s.publishInputChanges(ctx, []customer.CustomerID{input.CustomerID})
 			}
 		}
 

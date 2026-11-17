@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,7 +54,7 @@ func (c *calculator) Calculate(ctx context.Context, input rte.CalculateInput[met
 	}
 
 	// The existing calculator owns minute rounding and usage-period semantics.
-	balance, err := c.source.GetEntitlementBalance(ctx, input.Key.EntitlementID, input.At)
+	balance, err := c.source.GetEntitlementBalance(credit.WithoutBalanceSnapshotWrites(ctx), input.Key.EntitlementID, input.At)
 	if err != nil {
 		return meteredentitlement.Balance{}, err
 	}

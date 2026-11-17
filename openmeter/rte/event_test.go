@@ -34,7 +34,7 @@ func TestCalculationRequestPreservesCreditScope(t *testing.T) {
 			event, err := rte.NewCalculationRequestedEvent(key)
 			require.NoError(t, err)
 
-			// When the request crosses the actual CloudEvent wire boundary.
+			// When the request is encoded as a CloudEvent and decoded by the receiver.
 			codec := marshaler.New(nil)
 			message, err := codec.Marshal(event)
 			require.NoError(t, err)

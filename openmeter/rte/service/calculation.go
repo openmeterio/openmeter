@@ -99,14 +99,15 @@ func (c *calculation[K, Result]) Get(ctx context.Context, key K) (rte.State[Resu
 		return rte.State[Result]{}, err
 	}
 
+	start := time.Now()
 	state, err := c.store.Get(ctx, key)
 	switch {
 	case err == nil:
-		c.metrics.read(ctx, "hit")
+		c.metrics.read(ctx, start, "hit")
 	case models.IsGenericNotFoundError(err):
-		c.metrics.read(ctx, "missing")
+		c.metrics.read(ctx, start, "missing")
 	default:
-		c.metrics.read(ctx, "failed")
+		c.metrics.read(ctx, start, "failed")
 	}
 
 	return state, err

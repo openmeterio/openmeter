@@ -58,10 +58,10 @@ projection. The type-specific detailed status is the lifecycle state.
 `AdvanceCharges` coordinates concrete services; it is not a second
 implementation of their state machines.
 
-With an input-change publisher configured, root `Create` and `ApplyPatches`
-queue `ChargeInputsChangedEvent` per affected customer in the same transaction.
-This includes pending purchases before any ledger posting. Outer rollback
-removes the fact too; a failed enqueue aborts the input change. Direct writes
+With `rte.enabled`, root `Create` and `ApplyPatches` report
+`ChargeInputsChangedEvent` per affected customer after the outer transaction
+commits. This includes pending purchases before any ledger posting. The shadow
+publisher can drop the event if its queue is full or delivery fails. Direct writes
 through concrete charge services or adapters and later payment/invoice lifecycle
 transitions do not emit this fact. Ledger facts and scheduled refresh remain
 necessary for those paths and for future effective-time boundaries.
