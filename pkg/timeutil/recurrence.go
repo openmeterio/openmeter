@@ -112,9 +112,7 @@ func (r Recurrence) iterateFromNextAfterInclusive(t time.Time) (RecurrenceIterat
 				return RecurrenceIterator{}, fmt.Errorf("recurrence.NextAfter: too many iterations")
 			}
 
-			ic -= 1
-
-			v, err := r.addIntervalNTimes(r.Anchor, ic)
+			v, err := r.addIntervalNTimes(r.Anchor, ic-1)
 			if err != nil {
 				return RecurrenceIterator{}, err
 			}
@@ -123,6 +121,7 @@ func (r Recurrence) iterateFromNextAfterInclusive(t time.Time) (RecurrenceIterat
 				break
 			}
 
+			ic -= 1
 			res = v
 		}
 
@@ -244,9 +243,7 @@ func (r Recurrence) iterateFromPrevBeforeInclusive(t time.Time) (RecurrenceItera
 				return RecurrenceIterator{}, fmt.Errorf("recurrence.PrevBefore: too many iterations")
 			}
 
-			ic += 1
-
-			v, err := r.addIntervalNTimes(r.Anchor, ic)
+			v, err := r.addIntervalNTimes(r.Anchor, ic+1)
 			if err != nil {
 				return RecurrenceIterator{}, err
 			}
@@ -255,6 +252,7 @@ func (r Recurrence) iterateFromPrevBeforeInclusive(t time.Time) (RecurrenceItera
 				break
 			}
 
+			ic += 1
 			res = v
 		}
 
