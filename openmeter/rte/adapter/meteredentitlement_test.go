@@ -42,14 +42,19 @@ func TestMeteredEntitlementBalanceStore(t *testing.T) {
 
 	// Then the complete calculation result survives a round-trip through a fresh store.
 	expected := meteredentitlement.Balance{
-		EntitlementID: key.EntitlementID.ID,
-		Balance:       75, UsageInPeriod: 25, TotalAvailableGrantAmount: 100,
-		GrantBalances: map[string]float64{"grant": 75}, StartOfPeriod: startedAt.Add(-time.Hour),
+		EntitlementID:             key.EntitlementID.ID,
+		Balance:                   75,
+		UsageInPeriod:             25,
+		TotalAvailableGrantAmount: 100,
+		GrantBalances:             map[string]float64{"grant": 75},
+		StartOfPeriod:             startedAt.Add(-time.Hour),
 	}
 	calculated, err := repo.Store(t.Context(), rte.StoreInput[meteredentitlement.Key, meteredentitlement.Balance]{
-		Key: key, State: rte.State[meteredentitlement.Balance]{CalculatedAt: startedAt, Value: expected},
+		Key:   key,
+		State: rte.State[meteredentitlement.Balance]{CalculatedAt: startedAt, Value: expected},
 	})
 	require.NoError(t, err)
+
 	stored, err := newStore().Get(t.Context(), key)
 	require.NoError(t, err)
 	require.True(t, startedAt.Equal(stored.CalculatedAt))
@@ -65,6 +70,7 @@ func TestMeteredEntitlementBalanceStore(t *testing.T) {
 		// Given a newer success and a delayed result from another service replica.
 		second, err := adapter.NewMeteredEntitlementBalanceStore(adapter.Config{Client: database.EntDriver.Client(), Logger: logger})
 		require.NoError(t, err)
+
 		fresh := calculated
 		fresh.CalculatedAt = startedAt.Add(time.Second)
 		fresh.Value.Overage = 7

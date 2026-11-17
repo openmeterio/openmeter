@@ -43,6 +43,7 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
+
 	ns := s.GetUniqueNamespace("rte-pending-input")
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	app := s.SetupCustomInvoicing(ns)
@@ -52,47 +53,74 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	logger := testutils.NewDiscardLogger(s.T())
 	adapter, err := chargesadapter.New(chargesadapter.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
+
 	metaAdapter, err := metaadapter.New(metaadapter.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
+
 	var published int
 	publisher := eventbus.NewAfterCommitPublisher(func(event marshaler.Event) {
 		published++
 		s.Require().NoError(pipeline.publisher.Publish(ctx, event))
 	}, logger)
 	writer, err := chargesservice.New(chargesservice.Config{
-		Logger: logger, Adapter: adapter, MetaAdapter: metaAdapter,
-		FeatureMeterResolver: s.FeatureMeterResolver, FlatFeeService: s.FlatFeeSvc,
-		CreditPurchaseService: s.CreditPurchaseSvc, UsageBasedService: s.UsageBasedSvc,
-		RecognizerService: s.RevenueRecognizer, BillingService: s.BillingService,
-		TaxCodeService: s.TaxCodeEnv.Service, CurrencyResolver: s.CurrencyResolver,
-		CustomerService: s.CustomerService, SubscriptionService: &chargestestutils.FakeSubscriptionService{},
-		InputChangePublisher: publisher,
+		Logger:                logger,
+		Adapter:               adapter,
+		MetaAdapter:           metaAdapter,
+		FeatureMeterResolver:  s.FeatureMeterResolver,
+		FlatFeeService:        s.FlatFeeSvc,
+		CreditPurchaseService: s.CreditPurchaseSvc,
+		UsageBasedService:     s.UsageBasedSvc,
+		RecognizerService:     s.RevenueRecognizer,
+		BillingService:        s.BillingService,
+		TaxCodeService:        s.TaxCodeEnv.Service,
+		CurrencyResolver:      s.CurrencyResolver,
+		CustomerService:       s.CustomerService,
+		SubscriptionService:   &chargestestutils.FakeSubscriptionService{},
+		InputChangePublisher:  publisher,
 	})
 	s.Require().NoError(err)
+
 	key := creditbalance.Key{CustomerID: cust.GetID(), Currency: currencies.NewCurrencyReference("USD")}
 	target, err := rte.NewCalculationRequestedEvent(key)
 	s.Require().NoError(err)
+
 	demands, err := common.NewRTEDemandService(s.DBClient, pipeline.service, logger, metricnoop.NewMeterProvider().Meter("test"), config.RTEConfiguration{CalculationTimeout: 30 * time.Second})
 	s.Require().NoError(err)
 	s.Require().NoError(demands.Activate(ctx, target.CalculationTarget))
+
 	defer func() {
 		s.Require().NoError(demands.Deactivate(ctx, target.CalculationTarget))
 	}()
 	s.Require().NoError(demands.EnsureFresh(ctx, rte.EnsureFreshInput{Target: target.CalculationTarget, PullTTL: time.Minute}))
+
 	baseline, err := pipeline.service.CreditBalances().Get(ctx, key)
 	s.Require().NoError(err)
 	s.Zero(baseline.Value.Pending.InexactFloat64())
 	period := timeutil.ClosedPeriod{From: start.Add(24 * time.Hour), To: start.AddDate(0, 1, 0)}
-	input := charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(charges.NewChargeIntent(creditpurchase.Intent{
-		Intent: meta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: cust.ID, Currency: currenciestestutils.NewFiatCurrency(s.T(), "USD")},
-		IntentMutableFields: creditpurchase.IntentMutableFields{
-			IntentMutableFields: meta.IntentMutableFields{Name: "Scheduled purchase", ServicePeriod: period, BillingPeriod: period, FullServicePeriod: period},
-			CreditAmount:        alpacadecimal.NewFromInt(25), Settlement: creditpurchase.NewInvoiceSettlement(),
-		},
-		CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: alpacadecimal.NewFromInt(1)}),
-	}))}
+	input := charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.NewCreateChargeIntents(charges.NewChargeIntent(creditpurchase.Intent{
+			Intent: meta.Intent{
+				ManagedBy:  billing.ManuallyManagedLine,
+				CustomerID: cust.ID,
+				Currency:   currenciestestutils.NewFiatCurrency(s.T(), "USD"),
+			},
+			IntentMutableFields: creditpurchase.IntentMutableFields{
+				IntentMutableFields: meta.IntentMutableFields{
+					Name:              "Scheduled purchase",
+					ServicePeriod:     period,
+					BillingPeriod:     period,
+					FullServicePeriod: period,
+				},
+				CreditAmount: alpacadecimal.NewFromInt(25),
+				Settlement:   creditpurchase.NewInvoiceSettlement(),
+			},
+			CostBasis: creditpurchase.NewCostBasis(creditpurchase.FiatCostBasis{Rate: alpacadecimal.NewFromInt(1)}),
+		})),
+	}
 	clock.FreezeTime(start.Add(time.Second))
 	defer clock.UnFreeze()
+
 	rollback := errors.New("abort charge creation")
 
 	// when: creation is rolled back, both the input and its notification disappear.
@@ -134,8 +162,10 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 			case (rte.CalculationUpdatedEvent{}).EventName():
 				var updated rte.CalculationUpdatedEvent
 				s.Require().NoError(pipeline.publisher.Marshaler().Unmarshal(message, &updated))
+
 				var state rte.State[creditbalance.Balance]
 				s.Require().NoError(json.Unmarshal(updated.State, &state))
+
 				seenPending = seenPending || state.Value.Pending.InexactFloat64() == 25
 			}
 		case <-timer.C:
@@ -153,22 +183,34 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 
 	// Patching a future credit-only charge also waits for the outer commit,
 	// even though neither creation nor deletion needs a ledger posting yet.
-	created, err := writer.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(
-		s.CreateMockChargeIntent(creditstest.CreateMockChargeIntentInput{
-			Customer: cust.GetID(), Currency: creditstest.USD, ServicePeriod: period,
-			Price:          productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(2), PaymentTerm: productcatalog.InAdvancePaymentTerm}),
-			SettlementMode: productcatalog.CreditOnlySettlementMode, Name: "Scheduled fee", ManagedBy: billing.ManuallyManagedLine,
-		}),
-	)})
+	created, err := writer.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.NewCreateChargeIntents(
+			s.CreateMockChargeIntent(creditstest.CreateMockChargeIntentInput{
+				Customer:       cust.GetID(),
+				Currency:       creditstest.USD,
+				ServicePeriod:  period,
+				Price:          productcatalog.NewPriceFrom(productcatalog.FlatPrice{Amount: alpacadecimal.NewFromInt(2), PaymentTerm: productcatalog.InAdvancePaymentTerm}),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				Name:           "Scheduled fee",
+				ManagedBy:      billing.ManuallyManagedLine,
+			}),
+		),
+	})
 	s.Require().NoError(err)
 	s.Require().Len(created, 1)
 	chargeID, err := created[0].GetChargeID()
 	s.Require().NoError(err)
+
 	patch, err := meta.NewPatchDelete(meta.NewPatchDeleteInput{
 		ChangeSource: billing.ChangeSourceAPIRequest,
-		Policy:       meta.PatchDeletePolicy{CreditRefundPolicy: meta.CreditRefundPolicyIgnore, InvoiceRefundPolicy: meta.InvoiceRefundPolicyIgnore},
+		Policy: meta.PatchDeletePolicy{
+			CreditRefundPolicy:  meta.CreditRefundPolicyIgnore,
+			InvoiceRefundPolicy: meta.InvoiceRefundPolicyIgnore,
+		},
 	})
 	s.Require().NoError(err)
+
 	beforePatch := published
 	err = transaction.RunWithNoValue(ctx, enttx.NewCreator(s.DBClient), func(ctx context.Context) error {
 		if err := writer.ApplyPatches(ctx, charges.ApplyPatchesInput{CustomerID: cust.GetID(), PatchesByChargeID: map[string]charges.Patch{chargeID.ID: patch}}); err != nil {
@@ -183,6 +225,7 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	s.Equal(beforePatch, published)
 	retained, err := writer.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
 	s.Require().NoError(err)
+
 	fee, err := retained.AsFlatFeeCharge()
 	s.Require().NoError(err)
 	s.Nil(fee.DeletedAt)

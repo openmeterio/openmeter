@@ -44,24 +44,30 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 			cust := s.CreateTestCustomer(ns, "customer")
 			feature := s.SetupApiRequestsTotalFeature(ctx, ns)
 			defer feature.Cleanup()
+
 			ent, err := s.Entitlements.Entitlement.CreateCustomerEntitlement(ctx, entitlement.CreateCustomerEntitlementInput{
 				CustomerID: cust.GetID(),
 				Entitlement: entitlement.CreateEntitlementInputs{
-					FeatureID: &feature.Feature.ID, EntitlementType: entitlement.EntitlementTypeMetered,
+					FeatureID:       &feature.Feature.ID,
+					EntitlementType: entitlement.EntitlementTypeMetered,
 					IssueAfterReset: lo.ToPtr(float64(100)),
 					UsagePeriod:     lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{Anchor: start, Interval: timeutil.RecurrencePeriodMonth})),
 				},
 			})
 			require.NoError(t, err)
+
 			logger := testutils.NewDiscardLogger(t)
 			source, err := upstream.New(upstream.Config{Client: s.DBClient, Logger: logger})
 			require.NoError(t, err)
+
 			engine := s.newRTE()
 			demand, err := common.NewRTEDemandService(s.DBClient, engine, logger, noop.NewMeterProvider().Meter("test"), config.RTEConfiguration{CalculationTimeout: time.Minute})
 			require.NoError(t, err)
+
 			key := rtemetered.Key{EntitlementID: models.NamespacedID{Namespace: ns, ID: ent.ID}}
 			event, err := rte.NewCalculationRequestedEvent(key)
 			require.NoError(t, err)
+
 			pull := rte.EnsureFreshInput{Target: event.CalculationTarget, PullTTL: 2 * time.Hour}
 			if tc.push {
 				require.NoError(t, demand.Activate(ctx, pull.Target))
@@ -73,15 +79,18 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 			now := start.Add(time.Minute)
 			clock.FreezeTime(now)
 			defer clock.UnFreeze()
+
 			effective := now
 			if tc.scheduled {
 				effective = now.Add(time.Hour)
 			}
 
 			require.NoError(t, s.Entitlements.Entitlement.DeleteEntitlement(ctx, ns, ent.ID, effective))
+
 			fact := entitlement.NewEntitlementDeletedEventPayloadV2(*ent, cust)
 			selectors, err := source.Resolve(ctx, fact)
 			require.NoError(t, err)
+
 			invalid := rte.InvalidateInput{Source: fact.EventMetadata().Source, EventID: "deletion", Selectors: selectors}
 			require.NoError(t, demand.Invalidate(ctx, invalid))
 			if tc.scheduled {
@@ -107,9 +116,12 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 				// postpone retirement until the retry window expires.
 				clock.FreezeTime(effective.Add(-time.Second))
 				defer clock.UnFreeze()
+
 				require.NoError(t, demand.Invalidate(ctx, rte.InvalidateInput{Source: invalid.Source, EventID: "new-fact", Selectors: selectors}))
+
 				repo, err := rteadapter.NewDemandRepository(rteadapter.Config{Client: s.DBClient, Logger: logger})
 				require.NoError(t, err)
+
 				transient := errors.New("storage temporarily unavailable")
 				work, err := repo.Process(ctx, rte.ProcessDemandInput{CalculationTimeout: time.Minute, RetryMinDelay: time.Minute, RetryMaxDelay: time.Minute},
 					func(context.Context, rte.CalculationTarget) error { return transient })
@@ -124,10 +136,12 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 			// missing source and stored reads keep returning the last successful value.
 			clock.FreezeTime(effective)
 			defer clock.UnFreeze()
+
 			processed, err := demand.Process(ctx)
 			require.NoError(t, err)
 			require.Equal(t, tc.push, processed)
 			require.NoError(t, demand.Invalidate(ctx, invalid))
+
 			for range 2 {
 				var missing *entitlement.NotFoundError
 				require.ErrorAs(t, demand.EnsureFresh(ctx, pull), &missing)
@@ -136,6 +150,7 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 
 			clock.FreezeTime(effective.Add(24 * time.Hour))
 			defer clock.UnFreeze()
+
 			processed, err = demand.Process(ctx)
 			require.NoError(t, err)
 			require.False(t, processed)

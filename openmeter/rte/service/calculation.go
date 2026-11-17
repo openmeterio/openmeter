@@ -42,7 +42,13 @@ type calculation[K rte.Key, Result any] struct {
 }
 
 func newCalculation[K rte.Key, Result any](r Registration[K, Result], metrics calculationMetrics, publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) rte.Calculation[K, Result] {
-	return &calculation[K, Result]{metrics: metrics, calculator: r.Calculator, store: r.Store, publisher: publisher, updatedEvent: updatedEvent}
+	return &calculation[K, Result]{
+		metrics:      metrics,
+		calculator:   r.Calculator,
+		store:        r.Store,
+		publisher:    publisher,
+		updatedEvent: updatedEvent,
+	}
 }
 
 func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.State[Result], error) {
@@ -51,8 +57,10 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 	}
 
 	started := time.Now()
-	outcome := "failed"
-	defer func() { c.metrics.calculated(ctx, started, outcome) }()
+	outcome := calculationOutcomeFailed
+	defer func() {
+		c.metrics.calculated(ctx, started, outcome)
+	}()
 
 	calculatedAt := clock.Now()
 	value, err := c.calculator.Calculate(ctx, rte.CalculateInput[K]{Key: key, At: calculatedAt})
@@ -85,9 +93,9 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 		return result.State, nil
 	})
 	if err == nil {
-		outcome = "superseded"
+		outcome = calculationOutcomeSuperseded
 		if updated {
-			outcome = "updated"
+			outcome = calculationOutcomeUpdated
 		}
 	}
 
@@ -103,11 +111,11 @@ func (c *calculation[K, Result]) Get(ctx context.Context, key K) (rte.State[Resu
 	state, err := c.store.Get(ctx, key)
 	switch {
 	case err == nil:
-		c.metrics.read(ctx, start, "hit")
+		c.metrics.read(ctx, start, readOutcomeHit)
 	case models.IsGenericNotFoundError(err):
-		c.metrics.read(ctx, start, "missing")
+		c.metrics.read(ctx, start, readOutcomeMissing)
 	default:
-		c.metrics.read(ctx, start, "failed")
+		c.metrics.read(ctx, start, readOutcomeFailed)
 	}
 
 	return state, err

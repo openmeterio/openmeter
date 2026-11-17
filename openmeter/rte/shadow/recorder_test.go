@@ -27,7 +27,9 @@ func TestRecorderRetainsKeyCohortsAcrossReadsAndCalculations(t *testing.T) {
 		for i := range recorders {
 			var err error
 			recorders[i], err = NewRecorder(t.Context(), Config{
-				SamplePercent: 25, Meter: noop.NewMeterProvider().Meter("test"), Logger: testutils.NewDiscardLogger(t),
+				SamplePercent: 25,
+				Meter:         noop.NewMeterProvider().Meter("test"),
+				Logger:        testutils.NewDiscardLogger(t),
 				Publish: func(_ context.Context, event marshaler.Event) error {
 					e := event.(rte.BalanceComparisonEvent)
 					observed[i][string(e.Key)] = e.Operation
@@ -36,6 +38,7 @@ func TestRecorderRetainsKeyCohortsAcrossReadsAndCalculations(t *testing.T) {
 				},
 			})
 			require.NoError(t, err)
+
 			defer recorders[i].Close()
 		}
 
@@ -69,7 +72,9 @@ func TestRecorderBoundsBlockedPublicationAndReportsLoss(t *testing.T) {
 
 		// Given a stuck publisher and a request that has already completed.
 		recorder, err := NewRecorder(t.Context(), Config{
-			SamplePercent: 100, Meter: provider.Meter("test"), Logger: testutils.NewDiscardLogger(t),
+			SamplePercent: 100,
+			Meter:         provider.Meter("test"),
+			Logger:        testutils.NewDiscardLogger(t),
 			Publish: func(ctx context.Context, _ marshaler.Event) error {
 				entered <- ctx
 				<-ctx.Done()
@@ -78,6 +83,7 @@ func TestRecorderBoundsBlockedPublicationAndReportsLoss(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+
 		id := models.NamespacedID{Namespace: "ns", ID: "id"}
 		recorder.ObserveMeteredRead(ctx, id, time.Millisecond)
 		cancelRequest()
@@ -96,6 +102,7 @@ func TestRecorderBoundsBlockedPublicationAndReportsLoss(t *testing.T) {
 		// Then in-flight, overflowed and abandoned observations are all accounted for.
 		var metrics metricdata.ResourceMetrics
 		require.NoError(t, reader.Collect(t.Context(), &metrics))
+
 		counts := map[string]int64{}
 		for _, point := range metrics.ScopeMetrics[0].Metrics[0].Data.(metricdata.Sum[int64]).DataPoints {
 			outcome, ok := point.Attributes.Value(attribute.Key("outcome"))

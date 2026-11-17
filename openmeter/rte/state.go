@@ -37,12 +37,14 @@ func (i StoreInput[K, Result]) Validate() error {
 
 type StoreResult[Result any] struct {
 	State[Result]
+
 	// Updated reports whether this attempt inserted or replaced persisted state.
 	Updated bool
 }
 
 type Store[K Key, Result any] interface {
 	transaction.Creator
+
 	// Store atomically compares CalculatedAt across writers and replaces state
 	// only for a strictly later start. Equal or older attempts return the
 	// retained success; callers must use this returned state, not their input.

@@ -33,7 +33,8 @@ func (s *RTEIntegrationSuite) TestMeteredEntitlementCalculateStoreAndRead() {
 			EntitlementType: entitlement.EntitlementTypeMetered,
 			IssueAfterReset: lo.ToPtr(float64(100)),
 			UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
-				Anchor: start, Interval: timeutil.RecurrencePeriodMonth,
+				Anchor:   start,
+				Interval: timeutil.RecurrencePeriodMonth,
 			})),
 		},
 	})
@@ -53,9 +54,11 @@ func (s *RTEIntegrationSuite) TestMeteredEntitlementCalculateStoreAndRead() {
 
 	expected, err := s.Entitlements.MeteredEntitlement.GetEntitlementBalance(ctx, key.EntitlementID, now)
 	s.Require().NoError(err)
+
 	updated := pipeline.calculate(s.T(), key)
 	var calculated rte.State[rtemetered.Balance]
 	s.Require().NoError(json.Unmarshal(updated.State, &calculated))
+
 	storedAfterEvent, err := engine.MeteredEntitlements().Get(ctx, key)
 	s.Require().NoError(err)
 	s.True(calculated.CalculatedAt.Equal(storedAfterEvent.CalculatedAt))
@@ -78,6 +81,7 @@ func (s *RTEIntegrationSuite) TestMeteredEntitlementCalculateStoreAndRead() {
 
 	clock.FreezeTime(start.Add(4 * time.Minute))
 	defer clock.UnFreeze()
+
 	refreshed, err := reader.MeteredEntitlements().Calculate(ctx, key)
 	s.Require().NoError(err)
 	s.Equal(float64(0), refreshed.Value.Balance)

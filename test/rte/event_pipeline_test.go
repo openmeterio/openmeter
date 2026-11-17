@@ -46,10 +46,17 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 		SystemEvents:        config.EventSubsystemConfiguration{Topic: "rte-system-events"},
 		IngestEvents:        config.EventSubsystemConfiguration{Topic: "ingest"},
 		BalanceWorkerEvents: config.EventSubsystemConfiguration{Topic: "balance"},
-		Outbox:              config.OutboxConfiguration{DrainLimit: 100, DrainTimeout: time.Second, DrainConcurrency: 1, RetryInterval: time.Hour, MaxAttempts: 3},
+		Outbox: config.OutboxConfiguration{
+			DrainLimit:       100,
+			DrainTimeout:     time.Second,
+			DrainConcurrency: 1,
+			RetryInterval:    time.Hour,
+			MaxAttempts:      3,
+		},
 	}
 	bus, closeBus, err := common.NewEventBusPublisher(ctx, transport, s.DBClient, events, logger)
 	require.NoError(t, err)
+
 	var worker rte.Worker
 	done := make(chan error, 1)
 	t.Cleanup(func() {
@@ -72,13 +79,17 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 	})
 	service, err := common.NewRTEService(s.DBClient, s.CustomerBalanceSvc, s.Entitlements, logger, config.CreditsConfiguration{Enabled: true}, bus, metricnoop.NewMeterProvider().Meter("test"))
 	require.NoError(t, err)
+
 	observed, err := transport.Subscribe(ctx, events.SystemEvents.Topic)
 	require.NoError(t, err)
+
 	deadLetters, err := transport.Subscribe(ctx, "rte-dlq")
 	require.NoError(t, err)
+
 	workerConfig := config.RTEConfiguration{PollInterval: time.Second, CalculationTimeout: 30 * time.Second}
 	demands, err := common.NewRTEDemandService(s.DBClient, service, logger, metricnoop.NewMeterProvider().Meter("test"), workerConfig)
 	require.NoError(t, err)
+
 	worker, err = common.NewRTEWorker(service, demands, s.DBClient, workerConfig, events, router.Options{
 		Subscriber:  transport,
 		Publisher:   transport,
@@ -104,16 +115,24 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 		t.Fatal("worker did not subscribe")
 	}
 
-	return eventPipeline{service: service, publisher: bus, messages: observed, transport: transport, deadLetters: deadLetters}
+	return eventPipeline{
+		service:     service,
+		publisher:   bus,
+		messages:    observed,
+		transport:   transport,
+		deadLetters: deadLetters,
+	}
 }
 
 func (p eventPipeline) calculate(t *testing.T, key rte.Key) rte.CalculationUpdatedEvent {
 	t.Helper()
 	request, err := rte.NewCalculationRequestedEvent(key)
 	require.NoError(t, err)
+
 	identity, err := request.CalculationTarget.Identity()
 	require.NoError(t, err)
 	require.NoError(t, p.publisher.Publish(t.Context(), request))
+
 	timer := time.NewTimer(10 * time.Second)
 	defer timer.Stop()
 	for {
@@ -150,8 +169,10 @@ func (s *RTEIntegrationSuite) TestInvalidCalculationRequestReachesDLQ() {
 	ctx := s.T().Context()
 	creditsBefore, err := s.DBClient.RTECreditBalance.Query().Count(ctx)
 	s.Require().NoError(err)
+
 	meteredBefore, err := s.DBClient.RTEMeteredEntitlementBalance.Query().Count(ctx)
 	s.Require().NoError(err)
+
 	request := message.NewMessage("invalid-kind", []byte(`{"specversion":"1.0","id":"invalid-kind","source":"/test/rte","type":"io.openmeter.rte.v1.calculationRequested","datacontenttype":"application/json","data":{"kind":"unknown","key":{}}}`))
 	request.Metadata.Set("ce_type", rte.CalculationRequestedEvent{}.EventName())
 
@@ -185,16 +206,22 @@ func TestEventPipelineCalculateSelectsMatchingTarget(t *testing.T) {
 	key := meteredentitlement.Key{EntitlementID: models.NamespacedID{Namespace: "test", ID: "wanted"}}
 	var delivered []*message.Message
 	for _, target := range []rte.Key{
-		creditbalance.Key{CustomerID: customer.CustomerID{Namespace: "test", ID: "customer"}, Currency: currencies.NewCurrencyReference("USD")},
+		creditbalance.Key{
+			CustomerID: customer.CustomerID{Namespace: "test", ID: "customer"},
+			Currency:   currencies.NewCurrencyReference("USD"),
+		},
 		meteredentitlement.Key{EntitlementID: models.NamespacedID{Namespace: "test", ID: "other"}},
 		key,
 	} {
 		event, err := rte.NewCalculationUpdatedEvent(rte.StoreInput[rte.Key, map[string]int]{
-			Key: target, State: rte.State[map[string]int]{CalculatedAt: time.Now(), Value: map[string]int{"balance": 1}},
+			Key:   target,
+			State: rte.State[map[string]int]{CalculatedAt: time.Now(), Value: map[string]int{"balance": 1}},
 		})
 		require.NoError(t, err)
+
 		msg, err := publisher.Marshaler().Marshal(event)
 		require.NoError(t, err)
+
 		delivered = append(delivered, msg)
 		messages <- msg
 	}
@@ -204,8 +231,10 @@ func TestEventPipelineCalculateSelectsMatchingTarget(t *testing.T) {
 	result := pipeline.calculate(t, key)
 	identity, err := result.CalculationTarget.Identity()
 	require.NoError(t, err)
+
 	expected, err := rte.NewCalculationTarget(key)
 	require.NoError(t, err)
+
 	expectedIdentity, err := expected.Identity()
 	require.NoError(t, err)
 	require.Equal(t, expectedIdentity, identity)

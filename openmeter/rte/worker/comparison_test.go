@@ -61,11 +61,15 @@ func TestComparisonReplaysAndMeasuresMatchedOperations(t *testing.T) {
 		provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 		metrics, err := newComparisonMetrics(provider.Meter("test"))
 		require.NoError(t, err)
+
 		target, err := rte.NewCalculationTarget(meteredentitlement.Key{EntitlementID: models.NamespacedID{Namespace: "ns", ID: "id"}})
 		require.NoError(t, err)
+
 		e := &rte.BalanceComparisonEvent{
-			CalculationTarget: target, Operation: rte.ComparisonOperationRead,
-			DirectDuration: 1500 * time.Microsecond, ObservedAt: time.Now().Add(-5 * time.Second),
+			CalculationTarget: target,
+			Operation:         rte.ComparisonOperationRead,
+			DirectDuration:    1500 * time.Microsecond,
+			ObservedAt:        time.Now().Add(-5 * time.Second),
 		}
 		demand, engine := &comparisonDemand{}, &comparisonEngine{}
 		w := worker{service: engine, demand: demand, comparison: metrics, logger: testutils.NewDiscardLogger(t)}
@@ -89,6 +93,7 @@ func TestComparisonReplaysAndMeasuresMatchedOperations(t *testing.T) {
 
 		var data metricdata.ResourceMetrics
 		require.NoError(t, reader.Collect(t.Context(), &data))
+
 		durations := map[string]float64{}
 		outcomes := map[string]int64{}
 		for _, m := range data.ScopeMetrics[0].Metrics {

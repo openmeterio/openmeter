@@ -10,6 +10,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte"
 )
 
+type calculationOutcome string
+
+const (
+	calculationOutcomeUpdated    calculationOutcome = "updated"
+	calculationOutcomeSuperseded calculationOutcome = "superseded"
+	calculationOutcomeFailed     calculationOutcome = "failed"
+)
+
+type readOutcome string
+
+const (
+	readOutcomeHit     readOutcome = "hit"
+	readOutcomeMissing readOutcome = "missing"
+	readOutcomeFailed  readOutcome = "failed"
+)
+
 // The calculation kind and outcomes are bounded. A customer, entitlement or
 // cache key would create a separate time series for every tracked balance.
 type calculationMetrics struct {
@@ -43,14 +59,14 @@ func newCalculationMetrics(meter metric.Meter, kind rte.CalculationKind) (calcul
 	return m, err
 }
 
-func (m calculationMetrics) calculated(ctx context.Context, start time.Time, outcome string) {
-	labels := metric.WithAttributes(attribute.String("kind", string(m.kind)), attribute.String("outcome", outcome))
+func (m calculationMetrics) calculated(ctx context.Context, start time.Time, outcome calculationOutcome) {
+	labels := metric.WithAttributes(attribute.String("kind", string(m.kind)), attribute.String("outcome", string(outcome)))
 	m.attempts.Add(ctx, 1, labels)
 	m.duration.Record(ctx, time.Since(start).Seconds(), labels)
 }
 
-func (m calculationMetrics) read(ctx context.Context, start time.Time, outcome string) {
-	labels := metric.WithAttributes(attribute.String("kind", string(m.kind)), attribute.String("outcome", outcome))
+func (m calculationMetrics) read(ctx context.Context, start time.Time, outcome readOutcome) {
+	labels := metric.WithAttributes(attribute.String("kind", string(m.kind)), attribute.String("outcome", string(outcome)))
 	m.reads.Add(ctx, 1, labels)
 	m.readDuration.Record(ctx, time.Since(start).Seconds(), labels)
 }

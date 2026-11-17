@@ -35,6 +35,7 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
+
 	ns := s.GetUniqueNamespace("rte-ledger-source")
 	cust := s.CreateLedgerBackedCustomer(ns, "rte-ledger-customer")
 	logger := testutils.NewDiscardLogger(s.T())
@@ -45,11 +46,16 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 	writer := historical.NewLedger(historicaladapter.NewRepo(s.DBClient), s.LedgerAccountService, s.LedgerAccountService,
 		routingrules.DefaultValidator, historical.WithSourcePublisher(publisher))
 	inputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{
-		AccountService: s.LedgerResolver, AccountCatalog: s.LedgerAccountService, BalanceQuerier: s.BalanceQuerier,
+		AccountService: s.LedgerResolver,
+		AccountCatalog: s.LedgerAccountService,
+		BalanceQuerier: s.BalanceQuerier,
 	}, transactions.ResolutionScope{CustomerID: cust.GetID(), Namespace: ns}, transactions.IssueCustomerReceivableTemplate{
-		At: start, Amount: alpacadecimal.NewFromInt(10), Currency: currencies.NewCurrencyReference("USD"),
+		At:       start,
+		Amount:   alpacadecimal.NewFromInt(10),
+		Currency: currencies.NewCurrencyReference("USD"),
 	})
 	s.Require().NoError(err)
+
 	rollback := errors.New("abort posting")
 	var rolledBack models.NamespacedID
 
@@ -77,8 +83,10 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 	s.Require().Equal([]marshaler.Event{ledger.TransactionGroupCommittedEvent{Namespace: ns, GroupID: group.ID().ID}}, published)
 	repository, err := rteadapter.NewDemandRepository(rteadapter.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
+
 	resolver, err := upstream.New(upstream.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
+
 	base := creditbalance.Key{CustomerID: cust.GetID(), Currency: currencies.NewCurrencyReference("USD")}
 	unrestricted := base
 	unrestricted.FeatureFilter = customerbalance.NewUnrestrictedFeatureFilter()
@@ -88,6 +96,7 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 		event, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
 		s.Require().NoError(repository.Activate(ctx, event.CalculationTarget))
+
 		defer func() {
 			s.Require().NoError(repository.Deactivate(ctx, event.CalculationTarget))
 		}()
@@ -117,19 +126,26 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 		event, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
 		s.Require().NoError(repository.Activate(ctx, event.CalculationTarget))
+
 		defer func() {
 			s.Require().NoError(repository.Deactivate(ctx, event.CalculationTarget))
 		}()
 	}
 
 	customInputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{
-		AccountService: s.LedgerResolver, AccountCatalog: s.LedgerAccountService, BalanceQuerier: s.BalanceQuerier,
+		AccountService: s.LedgerResolver,
+		AccountCatalog: s.LedgerAccountService,
+		BalanceQuerier: s.BalanceQuerier,
 	}, transactions.ResolutionScope{CustomerID: cust.GetID(), Namespace: ns}, transactions.IssueCustomerReceivableTemplate{
-		At: start, Amount: alpacadecimal.NewFromInt(10), Currency: custom.Reference(),
+		At:       start,
+		Amount:   alpacadecimal.NewFromInt(10),
+		Currency: custom.Reference(),
 	})
 	s.Require().NoError(err)
+
 	customGroup, err := writer.CommitGroup(ctx, transactions.GroupInputs(ns, nil, customInputs...))
 	s.Require().NoError(err)
+
 	selectors, err = resolver.Resolve(ctx, ledger.TransactionGroupCommittedEvent{Namespace: ns, GroupID: customGroup.ID().ID})
 	s.Require().NoError(err)
 	s.Require().Len(selectors, 1)

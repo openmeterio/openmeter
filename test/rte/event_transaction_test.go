@@ -27,10 +27,12 @@ func (s *RTEIntegrationSuite) TestCalculationUpdateTransactions() {
 	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
+
 	ns := s.GetUniqueNamespace("rte-events")
 	customer := s.CreateLedgerBackedCustomer(ns, "rte-events")
 	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
 	defer feature.Cleanup()
+
 	ent, err := s.Entitlements.Entitlement.CreateCustomerEntitlement(ctx, entitlement.CreateCustomerEntitlementInput{
 		CustomerID: customer.GetID(),
 		Entitlement: entitlement.CreateEntitlementInputs{
@@ -41,6 +43,7 @@ func (s *RTEIntegrationSuite) TestCalculationUpdateTransactions() {
 		},
 	})
 	s.Require().NoError(err)
+
 	pipeline := s.newEventPipeline()
 	creditKey := creditbalance.Key{CustomerID: customer.GetID(), Currency: currencies.NewCurrencyReference("USD")}
 	meteredKey := meteredentitlement.Key{EntitlementID: models.NamespacedID{Namespace: ns, ID: ent.ID}}
@@ -82,8 +85,10 @@ func (s *RTEIntegrationSuite) TestCalculationUpdateTransactions() {
 			// When an outer operation rolls back after state and its event were written.
 			err := transaction.RunWithNoValue(ctx, creator, func(ctx context.Context) error {
 				s.Require().NoError(calculation.calculate(ctx))
+
 				tx, err := entutils.GetDriverFromContext(ctx)
 				s.Require().NoError(err)
+
 				client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
 				count, err := client.EventOutbox.Query().Where(eventoutbox.TransactionIDEQ(tx.ID())).Count(ctx)
 				s.Require().NoError(err)
@@ -103,16 +108,20 @@ func (s *RTEIntegrationSuite) TestCalculationUpdateTransactions() {
 				newer := start.Add(10 * time.Minute)
 				clock.FreezeTime(newer)
 				defer clock.UnFreeze()
+
 				s.Require().NoError(calculation.calculate(ctx))
 				s.Require().NoError(calculation.calculate(ctx))
 				clock.FreezeTime(start.Add(5 * time.Minute))
 				defer clock.UnFreeze()
+
 				s.Require().NoError(calculation.calculate(ctx))
+
 				storedAt, err := calculation.get(ctx)
 				s.Require().NoError(err)
 				s.True(storedAt.Equal(newer))
 				tx, err := entutils.GetDriverFromContext(ctx)
 				s.Require().NoError(err)
+
 				client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
 				count, err := client.EventOutbox.Query().Where(eventoutbox.TransactionIDEQ(tx.ID())).Count(ctx)
 				s.Require().NoError(err)
@@ -125,8 +134,10 @@ func (s *RTEIntegrationSuite) TestCalculationUpdateTransactions() {
 			// An outbox insertion failure must also roll back the candidate state.
 			clock.FreezeTime(start.Add(20 * time.Minute))
 			defer clock.UnFreeze()
+
 			_, err = s.DBClient.ExecContext(ctx, "ALTER TABLE event_outboxes ADD CONSTRAINT reject_rte_test_event CHECK (topic <> 'rte-system-events')")
 			s.Require().NoError(err)
+
 			defer func() {
 				_, err := s.DBClient.ExecContext(ctx, "ALTER TABLE event_outboxes DROP CONSTRAINT reject_rte_test_event")
 				s.Require().NoError(err)
