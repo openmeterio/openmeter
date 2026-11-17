@@ -30,26 +30,23 @@ identity that crosses API, Kafka, persistence, and Provider boundaries.
 ## Contracts belong to the producing domain
 
 The domain that produces an Event type owns its payload and, for Rule-produced
-types, its Rule configuration. Contracts are defined in TypeSpec and generated
-into that domain's `notificationevents` package; see
-[Notification Event contracts](../../../api/spec/README.md#notification-event-contracts-packagesaipsrcdomainnotification-events).
+types, its Rule configuration. Contracts are defined in TypeSpec next to the
+domain's other v3 API models; see
+[Notification Event contracts](../../../api/spec/README.md#notification-event-contracts).
 Notification validates payloads against the contract but never interprets
 them.
 
-For each contract, the generated package exposes the Event type as
-`<Stem>V<n>EventType`, the embedded draft 2020-12 schemas as
-`<Stem>V<n>PayloadJSONSchema` and, for Rule-produced types,
-`<Stem>V<n>RuleConfigJSONSchema`, the matching Go structs, and the complete
-`<Stem>V<n>Definition`. A schema's `$id` is `<event type>.payload` or
-`<event type>.rule_config`.
+The Go types of a contract are generated into `api/v3/models`, because the v3
+Event API references them. Producers build payloads from those types. The
+[`definitions`](definitions) package is generated too: for each contract it
+exposes the Event type as `<Stem>V<n>EventType`, the embedded draft 2020-12
+schemas as `<Stem>V<n>PayloadJSONSchema` and, for Rule-produced types,
+`<Stem>V<n>RuleConfigJSONSchema`, and the complete `<Stem>V<n>Definition`. A
+schema's `$id` is `<event type>.payload` or `<event type>.rule_config`.
 
-`definitions.All()` returns the definitions of every domain. It is generated
-too, so it cannot miss a generated contract; wiring must still pass it to the
-registry, which accepts any list. A new domain is generated only once it is
-imported and mapped in
-[`notification-events.tsp`](../../../api/spec/packages/aip/src/notification-events.tsp).
-`All` lives in the `definitions` subpackage because domain packages import
-`v4`.
+`definitions.All()` returns every definition. It is generated, so it cannot
+miss a contract; wiring must still pass it to the registry, which accepts any
+list.
 
 An `EventTypeDefinition` binds an Event type to its contracts:
 

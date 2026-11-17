@@ -3,15 +3,12 @@
 package definitions
 
 import (
-	billingevents "github.com/openmeterio/openmeter/openmeter/billing/notificationevents"
-	entitlementevents "github.com/openmeterio/openmeter/openmeter/entitlement/notificationevents"
+	_ "embed"
+
 	"github.com/openmeterio/openmeter/openmeter/notification/v4"
 )
 
 // All returns the definition of every Notification Event type.
 func All() []v4.EventTypeDefinition {
-	return []v4.EventTypeDefinition{
-		billingevents.BillingInvoiceCreatedV1Definition,
-		entitlementevents.EntitlementBalanceThresholdTriggeredV1Definition,
-	}
+	return []v4.EventTypeDefinition{}
 }
