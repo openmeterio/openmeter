@@ -154,13 +154,17 @@ func (s *Service) getNextReconciliationAt(input nextReconciliationAtInput) (time
 		return time.Time{}, err
 	}
 
+	// A sync with a historical AsOf can leave billing work due even after the
+	// period or subscription has ended. Keep that deadline in the past so a sync
+	// with a current AsOf can catch up and, if billing has ended, record completion.
 	if input.NextBillingPeriod == nil {
 		return *input.SubscriptionActiveTo, nil
 	}
 
 	percentage := nextReconciliationMinPercentage + (nextReconciliationMaxPercentage-nextReconciliationMinPercentage)*input.RandomFraction
 	next := input.NextBillingPeriod.From.Add(time.Duration(float64(input.NextBillingPeriod.Duration()) * percentage / 100))
-	// A late sync must not schedule itself in the past and be requeued on every poll.
+	// If the random deadline has passed, use the period end to avoid another sync
+	// before that boundary. An already-ended period stays due as described above.
 	if !next.After(input.ReconciledAt) {
 		return input.NextBillingPeriod.To, nil
 	}
