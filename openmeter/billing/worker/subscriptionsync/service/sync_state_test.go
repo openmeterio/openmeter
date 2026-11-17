@@ -38,7 +38,7 @@ func TestNextReconciliationAt(t *testing.T) {
 		name              string
 		nextBillingPeriod *timeutil.ClosedPeriod
 		reconciledAt      time.Time
-		activeTo          *time.Time
+		billingEndsAt     *time.Time
 		fraction          float64
 		want              time.Time
 	}{
@@ -59,20 +59,20 @@ func TestNextReconciliationAt(t *testing.T) {
 			name:              "cancellation after the next period still uses jitter",
 			nextBillingPeriod: &period,
 			reconciledAt:      start,
-			activeTo:          lo.ToPtr(end.Add(24 * time.Hour)),
+			billingEndsAt:     lo.ToPtr(end.Add(24 * time.Hour)),
 			want:              start.Add(8 * 24 * time.Hour),
 		},
 		{
-			name:         "no next period schedules the subscription end exactly",
-			reconciledAt: start,
-			activeTo:     &end,
-			want:         end,
+			name:          "no next period schedules the subscription end exactly",
+			reconciledAt:  start,
+			billingEndsAt: &end,
+			want:          end,
 		},
 		{
-			name:         "no next period preserves an end before the billing boundary",
-			reconciledAt: start,
-			activeTo:     lo.ToPtr(end.Add(-time.Hour)),
-			want:         end.Add(-time.Hour),
+			name:          "no next period preserves an end before the billing boundary",
+			reconciledAt:  start,
+			billingEndsAt: lo.ToPtr(end.Add(-time.Hour)),
+			want:          end.Add(-time.Hour),
 		},
 		{
 			name:              "selected deadline equal to completion moves to the period end",
@@ -93,19 +93,19 @@ func TestNextReconciliationAt(t *testing.T) {
 			want:              end,
 		},
 		{
-			name:         "historical subscription end remains due",
-			reconciledAt: end.Add(time.Hour),
-			activeTo:     &end,
-			want:         end,
+			name:          "historical subscription end remains due",
+			reconciledAt:  end.Add(time.Hour),
+			billingEndsAt: &end,
+			want:          end,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			service := &Service{}
 			got, err := service.getNextReconciliationAt(nextReconciliationAtInput{
-				NextBillingPeriod:    tc.nextBillingPeriod,
-				SubscriptionActiveTo: tc.activeTo,
-				ReconciledAt:         tc.reconciledAt,
-				RandomFraction:       tc.fraction,
+				NextBillingPeriod: tc.nextBillingPeriod,
+				BillingEndsAt:     tc.billingEndsAt,
+				ReconciledAt:      tc.reconciledAt,
+				RandomFraction:    tc.fraction,
 			})
 			require.NoError(t, err)
 			require.Equal(t, tc.want, got)
@@ -115,20 +115,20 @@ func TestNextReconciliationAt(t *testing.T) {
 
 func TestNextReconciliationAtRequiresPeriodOrEnd(t *testing.T) {
 	for _, tc := range []struct {
-		name     string
-		activeTo *time.Time
+		name          string
+		billingEndsAt *time.Time
 	}{
 		{name: "missing end"},
-		{name: "zero end", activeTo: lo.ToPtr(time.Time{})},
+		{name: "zero end", billingEndsAt: lo.ToPtr(time.Time{})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// An active result cannot lose its deadline when the plan has no next period.
 			service := &Service{}
 			_, err := service.getNextReconciliationAt(nextReconciliationAtInput{
-				SubscriptionActiveTo: tc.activeTo,
-				ReconciledAt:         time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
+				BillingEndsAt: tc.billingEndsAt,
+				ReconciledAt:  time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
 			})
-			require.ErrorContains(t, err, "active to is required when there is no next billing period")
+			require.ErrorContains(t, err, "billing ends at is required when there is no next billing period")
 		})
 	}
 }

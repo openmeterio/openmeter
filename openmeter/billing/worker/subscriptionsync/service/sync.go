@@ -122,10 +122,10 @@ func (i synchronizeSubscriptionInput) Validate() error {
 }
 
 type nextReconciliationAtInput struct {
-	NextBillingPeriod    *timeutil.ClosedPeriod
-	SubscriptionActiveTo *time.Time
-	ReconciledAt         time.Time
-	RandomFraction       float64
+	NextBillingPeriod *timeutil.ClosedPeriod
+	BillingEndsAt     *time.Time
+	ReconciledAt      time.Time
+	RandomFraction    float64
 }
 
 func (i nextReconciliationAtInput) Validate() error {
@@ -134,8 +134,8 @@ func (i nextReconciliationAtInput) Validate() error {
 		if err := i.NextBillingPeriod.ValidateAsRequired(); err != nil {
 			errs = append(errs, fmt.Errorf("next billing period: %w", err))
 		}
-	} else if i.SubscriptionActiveTo == nil || i.SubscriptionActiveTo.IsZero() {
-		errs = append(errs, errors.New("active to is required when there is no next billing period"))
+	} else if i.BillingEndsAt == nil || i.BillingEndsAt.IsZero() {
+		errs = append(errs, errors.New("billing ends at is required when there is no next billing period"))
 	}
 
 	if i.ReconciledAt.IsZero() {
@@ -158,7 +158,7 @@ func (s *Service) getNextReconciliationAt(input nextReconciliationAtInput) (time
 	// period or subscription has ended. Keep that deadline in the past so a sync
 	// with a current AsOf can catch up and, if billing has ended, record completion.
 	if input.NextBillingPeriod == nil {
-		return *input.SubscriptionActiveTo, nil
+		return *input.BillingEndsAt, nil
 	}
 
 	percentage := nextReconciliationMinPercentage + (nextReconciliationMaxPercentage-nextReconciliationMinPercentage)*input.RandomFraction
@@ -339,10 +339,10 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			var nextReconciliationAt *time.Time
 			if resultState == subscriptionsync.SyncStateV2StateActive {
 				next, err := s.getNextReconciliationAt(nextReconciliationAtInput{
-					NextBillingPeriod:    linesDiff.NextBillingPeriod,
-					SubscriptionActiveTo: linesDiff.BillingEndsAt,
-					ReconciledAt:         reconciledAt,
-					RandomFraction:       rand.Float64(),
+					NextBillingPeriod: linesDiff.NextBillingPeriod,
+					BillingEndsAt:     linesDiff.BillingEndsAt,
+					ReconciledAt:      reconciledAt,
+					RandomFraction:    rand.Float64(),
 				})
 				if err != nil {
 					return nil, fmt.Errorf("calculating next reconciliation at: %w", err)
