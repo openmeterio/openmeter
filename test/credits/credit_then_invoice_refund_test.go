@@ -278,7 +278,8 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeCancell
 				},
 			})
 			siblingCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-				Namespace: ns,
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    ns,
 				Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:          cust.GetID(),
 					Currency:          USD,
@@ -466,7 +467,8 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeInvoice
 				},
 			})
 			siblingCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-				Namespace: ns,
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    ns,
 				Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:          cust.GetID(),
 					Currency:          USD,
@@ -653,7 +655,8 @@ func (s *CustomCurrencyCreditsSuite) TestCreditThenInvoiceRefundOnFlatFeeInvoice
 				},
 			})
 			siblingCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-				Namespace: ns,
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    ns,
 				Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:          cust.GetID(),
 					Currency:          USD,

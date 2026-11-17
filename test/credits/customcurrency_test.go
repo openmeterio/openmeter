@@ -1162,7 +1162,8 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyUsageCharge(ctx context
 	s.Require().NoError(input.Validate())
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: input.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    input.Namespace,
 		Intents: charges.NewCreateChargeIntents(usagebased.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -1270,7 +1271,8 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyFlatFeeCharge(ctx conte
 	s.Require().NoError(input.Validate())
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: input.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    input.Namespace,
 		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -1371,7 +1373,8 @@ func (s *CustomCurrencyCreditsSuite) createCustomCurrencyCreditPurchase(ctx cont
 
 	servicePeriod := timeutil.ClosedPeriod{From: input.At, To: input.At}
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: input.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    input.Namespace,
 		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: meta.Intent{
 				ManagedBy:  billing.ManuallyManagedLine,
@@ -1454,7 +1457,8 @@ func (s *CustomCurrencyCreditsSuite) createSettledFiatCreditPurchase(ctx context
 	s.Require().NoError(input.Validate())
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: input.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    input.Namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer:      input.Customer,

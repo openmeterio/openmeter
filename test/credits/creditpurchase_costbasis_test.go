@@ -138,9 +138,10 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 		s.Require().Equal(float64(0), gatheringPrice.Amount.InexactFloat64())
 
 		_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: fixture.customerID,
-			Currency: currencyx.FiatCode(fixture.settlementCurrency),
-			Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{*created.GatheringLineToCreate}),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     fixture.customerID,
+			Currency:     currencyx.FiatCode(fixture.settlementCurrency),
+			Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{*created.GatheringLineToCreate}),
 		})
 		s.Require().NoError(err)
 
@@ -316,9 +317,10 @@ func (s *CreditPurchaseCostBasisSuite) TestInvoiceRollsBackWhenReplacementRateEx
 	s.Require().NotNil(created.GatheringLineToCreate)
 
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: fixture.customerID,
-		Currency: currencyx.FiatCode(fixture.settlementCurrency),
-		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{*created.GatheringLineToCreate}),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     fixture.customerID,
+		Currency:     currencyx.FiatCode(fixture.settlementCurrency),
+		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{*created.GatheringLineToCreate}),
 	})
 	s.Require().NoError(err)
 

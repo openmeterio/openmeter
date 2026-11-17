@@ -70,7 +70,7 @@ func (s *CreditThenInvoiceTestSuite) TestFlatFeePaymentAuthorizationRetryPreserv
 			}))
 		}
 
-		created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+		created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...), ChangeSource: billing.ChangeSourceSystem})
 		require.NoError(t, err)
 		require.Len(t, created, 2)
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -212,7 +212,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedPaymentAuthorizationRetryPres
 			}))
 		}
 
-		created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+		created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...), ChangeSource: billing.ChangeSourceSystem})
 		require.NoError(t, err)
 		require.Len(t, created, 2)
 		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -355,9 +355,10 @@ func (s *CreditThenInvoiceTestSuite) TestCreditPurchasePaymentAuthorizationRetry
 			require.NoError(t, err)
 			require.NotNil(t, created.GatheringLineToCreate)
 			_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: cust.GetID(),
-				Currency: created.GatheringLineToCreate.Currency,
-				Lines:    billing.CreatePendingInvoiceLines{{GatheringLine: *created.GatheringLineToCreate}},
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     cust.GetID(),
+				Currency:     created.GatheringLineToCreate.Currency,
+				Lines:        billing.CreatePendingInvoiceLines{{GatheringLine: *created.GatheringLineToCreate}},
 			})
 			require.NoError(t, err)
 		}
@@ -624,7 +625,7 @@ func (s *CreditThenInvoiceTestSuite) setupTwoFlatFeePaymentInvoice(namespace str
 		}))
 	}
 
-	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: namespace, Intents: charges.NewCreateChargeIntents(intents...)})
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: namespace, Intents: charges.NewCreateChargeIntents(intents...), ChangeSource: billing.ChangeSourceSystem})
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -655,7 +656,8 @@ func (s *CreditThenInvoiceTestSuite) setupMixedPaymentInvoice(namespace string) 
 	period := timeutil.ClosedPeriod{From: clock.Now().AddDate(0, -1, 0), To: clock.Now()}
 	s.MockStreamingConnector.AddSimpleEvent(feature.Feature.Key, 5, period.From.Add(15*24*time.Hour))
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -1142,7 +1144,7 @@ func (s *CreditThenInvoiceTestSuite) setupFlatFeeIssuingRetryInvoice() issuingRe
 		}))
 	}
 
-	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...), ChangeSource: billing.ChangeSourceSystem})
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -1216,7 +1218,7 @@ func (s *CreditThenInvoiceTestSuite) setupUsageBasedIssuingRetryInvoice() issuin
 		}))
 	}
 
-	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...), ChangeSource: billing.ChangeSourceSystem})
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
@@ -1407,7 +1409,8 @@ func (s *CreditThenInvoiceTestSuite) setupPaymentRetryInvoice(chargeType meta.Ch
 			require.NoError(t, err)
 			require.NotNil(t, created.GatheringLineToCreate)
 			_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: cust.GetID(), Currency: created.GatheringLineToCreate.Currency,
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     cust.GetID(), Currency: created.GatheringLineToCreate.Currency,
 				Lines: billing.CreatePendingInvoiceLines{{GatheringLine: *created.GatheringLineToCreate}},
 			})
 			require.NoError(t, err)

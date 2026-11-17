@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -281,8 +282,8 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 		s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
 	})
 
-	// A system edit recalculates without the API edit diff, which still rejects lines holding a
-	// deleted Tax Code (ticket 08 owns that rule).
+	// A system edit recalculates without the API edit diff, which allows an edit that
+	// leaves the lines' Tax Code references untouched.
 	s.Run("when: the invoice is recalculated without touching the default", func() {
 		edited, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice:      invoice.GetInvoiceID(),
@@ -301,6 +302,26 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 		s.Equal(taxCodesBefore, s.countTaxCodes(ctx, namespace), "recalculation must not create a tax code")
 	})
 
+	s.Run("when: an API edit touches another field of a line holding the deleted tax code", func() {
+		edited, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				line := invoice.Lines.OrEmpty()[0]
+				line.Name = "edited name"
+				if !invoice.Lines.ReplaceByID(line.ID, line) {
+					return fmt.Errorf("line %s not found", line.ID)
+				}
+
+				return nil
+			},
+		})
+
+		// then: the unchanged inherited deleted reference passes
+		s.Require().NoError(err)
+		s.requireLinesReferenceTaxCode(edited, deleted.ID)
+	})
+
 	s.Run("when: an edit sets the default to another deleted tax code", func() {
 		otherDeleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
 		s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: otherDeleted.NamespacedID}))
@@ -317,6 +338,102 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 
 		// then: the authored deleted reference is rejected
 		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+	})
+}
+
+// API edits on gathering invoices apply the same authored/inherited split as on standard
+// invoices: touching another field of a line holding a deleted Tax Code passes, while pointing
+// a line at a deleted code is rejected.
+func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherited() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-gathering-edit-deleted")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	deleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}, billing.ChangeSourceSystem))
+	s.Require().NoError(err)
+	s.Require().Len(res.Lines, 1)
+
+	s.Run("when: an API edit touches another field of a line holding the deleted tax code", func() {
+		edited, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      res.Invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				line, ok := invoice.Lines.GetByID(res.Lines[0].ID)
+				if !ok {
+					return fmt.Errorf("line[%s] not found", res.Lines[0].ID)
+				}
+
+				line.Name = "edited gathering line"
+
+				return invoice.Lines.ReplaceByID(line)
+			},
+		})
+
+		// then: the unchanged inherited deleted reference passes
+		s.Require().NoError(err)
+		editedLine, ok := edited.Lines.GetByID(res.Lines[0].ID)
+		s.Require().True(ok)
+		s.Require().NotNil(editedLine.TaxConfig)
+		s.Equal(lo.ToPtr(deleted.ID), editedLine.TaxConfig.TaxCodeID)
+	})
+
+	s.Run("when: an API edit repoints the line at another deleted tax code", func() {
+		// The line already holds this test's deleted code, so a same-ID edit is an unchanged
+		// inherited reference; repointing at a different deleted code is authored.
+		otherDeleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
+		s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: otherDeleted.NamespacedID}))
+
+		_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      res.Invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				line, ok := invoice.Lines.GetByID(res.Lines[0].ID)
+				if !ok {
+					return fmt.Errorf("line[%s] not found", res.Lines[0].ID)
+				}
+
+				line.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(otherDeleted.ID)}
+
+				return invoice.Lines.ReplaceByID(line)
+			},
+		})
+
+		// then: the authored deleted reference is rejected
+		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+	})
+
+	s.Run("when: an API edit repoints the line at a live tax code the change persists", func() {
+		live := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_30000000")
+
+		edited, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      res.Invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				line, ok := invoice.Lines.GetByID(res.Lines[0].ID)
+				if !ok {
+					return fmt.Errorf("line[%s] not found", res.Lines[0].ID)
+				}
+
+				line.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(live.ID)}
+
+				return invoice.Lines.ReplaceByID(line)
+			},
+		})
+
+		// then: the authored live reference is accepted and persisted
+		s.Require().NoError(err)
+		editedLine, ok := edited.Lines.GetByID(res.Lines[0].ID)
+		s.Require().True(ok)
+		s.Require().NotNil(editedLine.TaxConfig)
+		s.Equal(lo.ToPtr(live.ID), editedLine.TaxConfig.TaxCodeID)
 	})
 }
 
@@ -346,6 +463,131 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsNotSwappedForLiveMapp
 	s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
 }
 
+// API callers author the Tax Code IDs they send on pending lines: a deleted one is rejected
+// with the deleted-specific error, a missing one with not-found. A system-source create
+// carrying the same reference is inherited and passes.
+func (s *InvoicingTaxTestSuite) TestPendingLinesTaxCodeAuthoredVsInherited() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-pending-lines-deleted")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	deleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	s.Run("when: an API create references the deleted tax code", func() {
+		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}, billing.ChangeSourceAPIRequest)
+
+		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, input)
+
+		// then: it is rejected as deleted
+		s.Require().Error(err)
+		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+		s.True(billing.IsValidationIssueOnly(err), "expected a validation error, got: %v", err)
+	})
+
+	s.Run("when: an API create references a missing tax code", func() {
+		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(ulid.Make().String())}, billing.ChangeSourceAPIRequest)
+
+		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, input)
+
+		// then: it is rejected as not found
+		s.Require().Error(err)
+		s.ErrorIs(err, billing.ErrTaxCodeNotFound)
+	})
+
+	s.Run("when: a system create references the deleted tax code", func() {
+		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}, billing.ChangeSourceSystem)
+
+		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, input)
+
+		// then: the inherited reference passes and the line keeps the deleted tax code
+		s.Require().NoError(err)
+		s.Require().Len(res.Lines, 1)
+		s.Require().NotNil(res.Lines[0].TaxConfig)
+		s.Equal(lo.ToPtr(deleted.ID), res.Lines[0].TaxConfig.TaxCodeID)
+	})
+}
+
+// newTaxedPendingLinesInput builds a one-line pending-lines create request whose line carries
+// the given tax config.
+func (s *InvoicingTaxTestSuite) newTaxedPendingLinesInput(namespace string, customerID customer.CustomerID, now time.Time, taxConfig *productcatalog.TaxConfig, changeSource billing.ChangeSource) billing.CreatePendingInvoiceLinesInput {
+	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Namespace:     namespace,
+		Period:        timeutil.ClosedPeriod{From: now, To: now.Add(24 * time.Hour)},
+		InvoiceAt:     now,
+		ManagedBy:     billing.ManuallyManagedLine,
+		Name:          "deleted tax line",
+		PerUnitAmount: alpacadecimal.NewFromFloat(100),
+		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+	})
+	line.TaxConfig = taxConfig
+
+	return billing.CreatePendingInvoiceLinesInput{
+		Customer:     customerID,
+		Currency:     currencyx.FiatCode(currency.USD),
+		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
+		ChangeSource: changeSource,
+	}
+}
+
+// Calculation loads a line's Tax Code by its ID, deleted included, and never creates a Tax
+// Code for a line referencing a deleted one.
+func (s *InvoicingTaxTestSuite) TestCalculationResolvesDeletedTaxCodeByID() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-calc-deleted")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+
+	deleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	taxCodesBefore := s.countTaxCodes(ctx, namespace)
+
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+	deletedLine := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Namespace:     namespace,
+		Period:        timeutil.ClosedPeriod{From: now, To: now.Add(24 * time.Hour)},
+		InvoiceAt:     now,
+		ManagedBy:     billing.ManuallyManagedLine,
+		Name:          "deleted tax line",
+		PerUnitAmount: alpacadecimal.NewFromFloat(100),
+		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+	})
+	deletedLine.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
+		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{deletedLine}),
+		ChangeSource: billing.ChangeSourceSystem,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(res.Lines, 1)
+
+	// when: the pending line is collected into a standard invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	// then: the line keeps the deleted ID with the deleted Tax Code attached, and no Tax
+	// Code was created for the line's stale Stripe mapping
+	invoice := invoices[0]
+	s.requireLinesReferenceTaxCode(invoice, deleted.ID)
+	s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
+	s.Equal(taxCodesBefore, s.countTaxCodes(ctx, namespace), "calculation must not create a tax code")
+}
+
 // requireLinesReferenceTaxCode requires every line to point at the Tax Code by ID and carry that
 // same Tax Code, the rule the adapter applies on read.
 func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.StandardInvoice, taxCodeID string) {
@@ -363,8 +605,11 @@ func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.Sta
 }
 
 // requirePersistedLinesReferenceTaxCode checks the stored rows directly: the service returns lines
-// re-read through the adapter, which drops a mismatching Tax Code, so only the row shows what
-// calculation wrote.
+// re-read through the adapter, which backfills the Tax Code entity from the tax_code_id edge, so
+// only the row shows what was persisted. The tax_config JSONB snapshot carries the resolved entity
+// only when a write happened after calculation stamped it; a line that references its own Tax Code
+// ID is first persisted before that stamping and later recalculations leave the JSON untouched, so
+// the entity is asserted only when present.
 func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx context.Context, invoice billing.StandardInvoice, taxCodeID string) {
 	s.T().Helper()
 
@@ -377,8 +622,10 @@ func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx contex
 		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxCodeID)
 		s.Require().NotNil(dbLine.TaxConfig)
 		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxConfig.TaxCodeID)
-		s.Require().NotNil(dbLine.TaxConfig.TaxCode)
-		s.Equal(taxCodeID, dbLine.TaxConfig.TaxCode.ID)
+
+		if dbLine.TaxConfig.TaxCode != nil {
+			s.Equal(taxCodeID, dbLine.TaxConfig.TaxCode.ID)
+		}
 	}
 }
 
@@ -455,8 +702,9 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customer.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customer.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -556,8 +804,9 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, custom
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customer.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customer.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},

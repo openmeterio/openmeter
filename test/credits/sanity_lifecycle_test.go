@@ -162,7 +162,8 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
 	)
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
@@ -207,7 +208,8 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 		},
 	})
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
@@ -249,7 +251,8 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	// Given the first later credit purchase arrives while both charges still contribute uncovered advance.
 	// When the customer buys 25 credits at cost basis 0.5, it backfills the older uncovered usage first.
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
@@ -315,7 +318,8 @@ func (s *SanityLifecycleSuite) TestUsageBasedCreditOnlyLifecycleTwoChargesTwoPur
 	// When the customer buys another 10 credits at a different cost basis, it should backfill only Charge B.
 	clock.FreezeTime(chargeBFinalizeAt.Add(time.Minute))
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
@@ -468,7 +472,8 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 	// Given current wall clock is 2025-12-01T00:00:00Z, well before the service period.
 	// When creating a credit-only usage-based charge with a tiered price.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:          cust.GetID(),
@@ -521,7 +526,8 @@ func (s *SanityLifecycleSuite) setupUsageBasedCreditOnlyLifecyclePartialBackfill
 
 	// Given a later external credit purchase partially backfills that earlier advance-backed usage.
 	res, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),

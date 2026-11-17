@@ -649,6 +649,60 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCr
 	s.Equal(defaults.CreditGrantTaxCodeID, *lines[0].TaxConfig.TaxCodeID, "standard invoice line must reference the namespace default credit-grant tax code")
 }
 
+// TestCreateGrantWithDeletedTaxCodeIsRejected verifies the credit grant create path rejects a
+// caller-authored Tax Code ID referencing a soft-deleted Tax Code with the shared billing
+// deleted-specific validation error, before any defaults are applied.
+func (s *CreditGrantTestSuite) TestCreateGrantWithDeletedTaxCodeIsRejected() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("creditgrant-deleted-tax-code")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(),
+		billingtest.WithProgressiveBilling(),
+		billingtest.WithCollectionInterval(datetime.MustParseDuration(s.T(), "PT1H")),
+		billingtest.WithManualApproval(),
+	)
+
+	// Freeze time so IsDeleted compares the Tax Code's DeletedAt against this fixed clock.Now().
+	now := datetime.MustParseTimeInLocation(s.T(), "2026-04-17T11:23:53Z", time.UTC).AsTime()
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key:  "creditgrant-deleted-tax-code",
+		Name: "Deleted grant tax code",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_40000002"},
+		},
+	})
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: tc.NamespacedID}))
+
+	_, err := s.CreditGrantService.Create(ctx, creditgrant.CreateInput{
+		Namespace:     ns,
+		CustomerID:    cust.ID,
+		Name:          "$10.00 grant with deleted tax code",
+		Currency:      USD,
+		Amount:        alpacadecimal.NewFromInt(10),
+		Priority:      lo.ToPtr(int16(10)),
+		FundingMethod: creditgrant.FundingMethodInvoice,
+		Purchase: &creditgrant.PurchaseTerms{
+			Currency:         USD,
+			PerUnitCostBasis: lo.ToPtr(alpacadecimal.NewFromInt(1)),
+		},
+		TaxConfig: &productcatalog.TaxConfig{
+			TaxCodeID: lo.ToPtr(tc.ID),
+		},
+	})
+
+	// then: the authored deleted reference is rejected with the shared error
+	s.Require().Error(err)
+	s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+	s.True(billing.IsValidationIssueOnly(err), "expected a validation error, got: %v", err)
+}
+
 // TestCreateExternalGrantPropagatesTaxConfigToCharge verifies that TaxConfig set on
 // creditgrant.CreateInput is carried through Service.Create → toIntent → charge persistence for
 // external-funded grants. External grants produce no invoice line, so only the charge-level

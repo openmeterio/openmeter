@@ -177,8 +177,9 @@ func (s *negativeUsageSuite) setupLegacyUsageLine(profileOptions ...BillingProfi
 	}
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{{
 			GatheringLineBase: billing.GatheringLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

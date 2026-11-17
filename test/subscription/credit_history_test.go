@@ -51,7 +51,8 @@ func TestSubscriptionEditProratedCreditHistory(t *testing.T) {
 	// given: 100 credits and a custom subscription with one 18-credit monthly fee.
 	period := timeutil.ClosedPeriod{From: fundedAt, To: fundedAt}
 	funding, err := deps.chargesService.Create(ctx, charges.CreateInput{
-		Namespace: namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    namespace,
 		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: customer.ID, Currency: currency},
 			IntentMutableFields: creditpurchase.IntentMutableFields{
