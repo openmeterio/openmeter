@@ -117,7 +117,7 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 			var updated cancellationRegressionChargeSnapshot
 
 			s.Run("given", func() {
-				// Given an annual subscription whose single charge has been synchronized.
+				// Given an annual subscription whose single item has been synchronized.
 				rateCard := cancellationRegressionRateCard(
 					s.T(),
 					tc.chargeType,
@@ -168,9 +168,26 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 					SubscriptionIDs: []string{subsView.Subscription.ID},
 				})
 				s.Require().NoError(err)
-				s.Require().Len(chargePage.Items, 1)
 
-				initial = cancellationRegressionSnapshot(s.T(), chargePage.Items[0], tc.chargeType)
+				// Recurring items also get the next annual billing period's charge; the one-time
+				// in-advance fee only exists once. The scenario follows the first period's charge.
+				expectedBillingPeriods := []timeutil.ClosedPeriod{{From: start, To: billingPeriodEnd}}
+				if tc.chargeType == chargesmeta.ChargeTypeUsageBased || tc.flatFeePaymentTerm == productcatalog.InArrearsPaymentTerm {
+					expectedBillingPeriods = append(expectedBillingPeriods, timeutil.ClosedPeriod{From: billingPeriodEnd, To: billingPeriodEnd.AddDate(1, 0, 0)})
+				}
+
+				snapshots := lo.Map(chargePage.Items, func(charge charges.Charge, _ int) cancellationRegressionChargeSnapshot {
+					return cancellationRegressionSnapshot(s.T(), charge, tc.chargeType)
+				})
+				s.Require().ElementsMatch(expectedBillingPeriods, lo.Map(snapshots, func(snapshot cancellationRegressionChargeSnapshot, _ int) timeutil.ClosedPeriod {
+					return snapshot.BillingPeriod
+				}))
+
+				var found bool
+				initial, found = lo.Find(snapshots, func(snapshot cancellationRegressionChargeSnapshot) bool {
+					return snapshot.BillingPeriod.From.Equal(start)
+				})
+				s.Require().True(found, "first billing period charge")
 				s.Equal(tc.settlementMode, initial.SettlementMode)
 				s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, initial.BillingPeriod)
 
@@ -229,6 +246,14 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 					s.Equal(timeutil.ClosedPeriod{From: start, To: billingPeriodEnd}, updated.FullServicePeriod)
 					s.Equal(cancelAt, updated.InvoiceAt)
 				}
+
+				// And no charge is left for the next billing period, which starts after the cancellation.
+				remainingCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+					Namespace:       subsView.Subscription.Namespace,
+					SubscriptionIDs: []string{subsView.Subscription.ID},
+				})
+				s.Require().NoError(err)
+				s.Len(remainingCharges.Items, 1)
 
 				// And retrying the same synchronization is an idempotent no-op.
 				s.Require().NoError(s.Service.SyncByID(ctx, canceledView.Subscription.NamespacedID, cancelAt.Add(time.Minute)))

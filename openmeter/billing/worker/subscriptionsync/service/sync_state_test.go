@@ -285,7 +285,8 @@ func (s *SyncStateTestSuite) TestMonthlyProgression() {
 		s.useNewCustomer()
 		view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 
-		// When each persisted deadline arrives, sync provisions the next month's fee.
+		// When the subscription starts and at each persisted deadline, sync keeps the
+		// following month's fee provisioned.
 		// February's shorter period also verifies that scheduling follows the calendar.
 		periods := []timeutil.ClosedPeriod{
 			{From: start, To: s.mustParseTime("2026-12-01T00:00:00Z")},
@@ -295,19 +296,98 @@ func (s *SyncStateTestSuite) TestMonthlyProgression() {
 			{From: s.mustParseTime("2027-03-01T00:00:00Z"), To: s.mustParseTime("2027-04-01T00:00:00Z")},
 		}
 		syncAt := start
-		for index, period := range periods {
-			s.Run(period.From.Format("January"), func() {
+		for index := range len(periods) - 1 {
+			lastProvisioned := periods[index+1]
+			s.Run("through "+lastProvisioned.From.Format("January"), func() {
 				clock.FreezeTime(syncAt)
 				defer clock.UnFreeze()
 				s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
 
-				// Then all prior fees remain, the upcoming fee is provisioned exactly once,
-				// and the next invocation belongs to that upcoming billing period.
-				s.requireMonthlyItems(view, periods[:index+1])
-				syncAt = s.requireActiveDeadline(view.Subscription.NamespacedID, period)
+				// Then all prior fees remain, the following month's fee is provisioned exactly
+				// once, and the next invocation belongs to that last provisioned billing period.
+				s.requireMonthlyItems(view, periods[:index+2])
+				syncAt = s.requireActiveDeadline(view.Subscription.NamespacedID, lastProvisioned)
 			})
 		}
 	})
+}
+
+func (s *SyncStateTestSuite) TestUsageIsProvisionedBeforeItsPeriodStarts() {
+	s.forEachBackend(func() {
+		// Given monthly usage billed in arrears, beginning November 1.
+		ctx := s.T().Context()
+		start := s.mustParseTime("2026-11-01T00:00:00Z")
+		clock.FreezeTime(start)
+		defer clock.UnFreeze()
+		s.useNewCustomer()
+		view := s.createSyncStateSubscription(start, productcatalog.Phase{
+			PhaseMeta: s.phaseMeta("usage", ""),
+			RateCards: productcatalog.RateCards{&productcatalog.UsageBasedRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:     s.APIRequestsTotalFeature.Key,
+					Name:    "API requests",
+					Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+					Price:   productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+				},
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			}},
+		})
+		november := timeutil.ClosedPeriod{From: start, To: s.mustParseTime("2026-12-01T00:00:00Z")}
+		december := timeutil.ClosedPeriod{From: november.To, To: s.mustParseTime("2027-01-01T00:00:00Z")}
+		january := timeutil.ClosedPeriod{From: december.To, To: s.mustParseTime("2027-02-01T00:00:00Z")}
+
+		// When first synced mid-November, December's usage is provisioned along with November's.
+		clock.FreezeTime(s.mustParseTime("2026-11-10T00:00:00Z"))
+		defer clock.UnFreeze()
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+		s.requireMonthlyUsage(view, []timeutil.ClosedPeriod{november, december})
+		s.requireActiveDeadline(view.Subscription.NamespacedID, december)
+
+		// When synced again on December 31, after any possible December deadline.
+		clock.FreezeTime(s.mustParseTime("2026-12-31T00:00:00Z"))
+		defer clock.UnFreeze()
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+		// Then January's usage exists before January starts.
+		s.requireMonthlyUsage(view, []timeutil.ClosedPeriod{november, december, january})
+		s.requireActiveDeadline(view.Subscription.NamespacedID, january)
+	})
+}
+
+// requireMonthlyUsage checks that exactly these usage periods are provisioned, so
+// a missing upcoming period and one provisioned too far ahead both fail.
+func (s *SyncStateTestSuite) requireMonthlyUsage(view subscription.SubscriptionView, periods []timeutil.ClosedPeriod) {
+	s.T().Helper()
+	ctx := s.T().Context()
+	usageIDs := (recurringLineMatcher{PhaseKey: "usage", ItemKey: s.APIRequestsTotalFeature.Key, PeriodMax: len(periods) - 1}).ChildIDs(view.Subscription.ID)
+	expected := make(map[string]timeutil.ClosedPeriod, len(periods))
+	for index, period := range periods {
+		expected[usageIDs[index]] = period
+	}
+
+	actual := make(map[string]timeutil.ClosedPeriod)
+	if s.Service == s.ChargeSyncService {
+		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{view.Subscription.ID},
+		})
+		s.Require().NoError(err)
+		for _, item := range result.Items {
+			charge, err := item.AsUsageBasedCharge()
+			s.Require().NoError(err)
+			reference, err := item.GetUniqueReferenceID()
+			s.Require().NoError(err)
+			s.Require().NotNil(reference)
+			actual[*reference] = charge.Intent.GetBaseIntent().ServicePeriod
+		}
+	} else {
+		for _, line := range s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty() {
+			s.Require().NotNil(line.ChildUniqueReferenceID)
+			actual[*line.ChildUniqueReferenceID] = line.GetServicePeriod()
+		}
+	}
+
+	s.Equal(expected, actual)
 }
 
 func (s *SyncStateTestSuite) TestFutureStartProgression() {
@@ -365,9 +445,11 @@ func (s *SyncStateTestSuite) TestPaidToPaidPhaseTransitionProvisionsAdvanceFeeOn
 		for _, tc := range []struct {
 			name string
 			asOf time.Time
+			// provisionedCount is how many of the second phase's periods the first sync provisions.
+			provisionedCount int
 		}{
-			{name: "before the phase boundary", asOf: s.mustParseTime("2026-11-25T00:00:00Z")},
-			{name: "at the phase boundary", asOf: s.mustParseTime("2026-12-01T00:00:00Z")},
+			{name: "before the phase boundary", asOf: s.mustParseTime("2026-11-25T00:00:00Z"), provisionedCount: 1},
+			{name: "at the phase boundary", asOf: s.mustParseTime("2026-12-01T00:00:00Z"), provisionedCount: 2},
 		} {
 			s.Run(tc.name, func() {
 				// Given two paid phases, the second phase's advance fee is due on December 1.
@@ -376,6 +458,7 @@ func (s *SyncStateTestSuite) TestPaidToPaidPhaseTransitionProvisionsAdvanceFeeOn
 				december := s.mustParseTime("2026-12-01T00:00:00Z")
 				january := s.mustParseTime("2027-01-01T00:00:00Z")
 				february := s.mustParseTime("2027-02-01T00:00:00Z")
+				march := s.mustParseTime("2027-03-01T00:00:00Z")
 				clock.FreezeTime(start)
 				defer clock.UnFreeze()
 				s.useNewCustomer()
@@ -384,26 +467,33 @@ func (s *SyncStateTestSuite) TestPaidToPaidPhaseTransitionProvisionsAdvanceFeeOn
 				firstPhase.PhaseMeta = s.phaseMeta("first-paid", "P1M")
 				view := s.createSyncStateSubscription(start, firstPhase, s.paidMonthlyPhase())
 				firstFeeID := (recurringLineMatcher{PhaseKey: "first-paid", ItemKey: "monthly-fee"}).ChildIDs(view.Subscription.ID)[0]
-				secondPhaseFeeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: 1}).ChildIDs(view.Subscription.ID)
-				expectedFees := map[string]timeutil.ClosedPeriod{
-					firstFeeID:           {From: start, To: december},
-					secondPhaseFeeIDs[0]: {From: december, To: january},
+				secondPhasePeriods := []timeutil.ClosedPeriod{
+					{From: december, To: january},
+					{From: january, To: february},
+					{From: february, To: march},
+				}
+				secondPhaseFeeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: len(secondPhasePeriods) - 1}).ChildIDs(view.Subscription.ID)
+				expectedFees := map[string]timeutil.ClosedPeriod{firstFeeID: {From: start, To: december}}
+				for index := range tc.provisionedCount {
+					expectedFees[secondPhaseFeeIDs[index]] = secondPhasePeriods[index]
 				}
 
-				// When sync generates through December 1, it must include the second phase's fee.
+				// When sync provisions one billing period ahead, it must include the second phase's fees.
 				clock.FreezeTime(tc.asOf)
 				defer clock.UnFreeze()
 				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
 				s.requireFees(view, expectedFees)
-				next := s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: december, To: january})
+				lastProvisioned := secondPhasePeriods[tc.provisionedCount-1]
+				upcoming := secondPhasePeriods[tc.provisionedCount]
+				next := s.requireActiveDeadline(view.Subscription.NamespacedID, lastProvisioned)
 
-				// Then following the December deadline adds January's fee without duplicating earlier fees.
+				// Then following that deadline adds the next month's fee without duplicating earlier fees.
 				clock.FreezeTime(next)
 				defer clock.UnFreeze()
 				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
-				expectedFees[secondPhaseFeeIDs[1]] = timeutil.ClosedPeriod{From: january, To: february}
+				expectedFees[secondPhaseFeeIDs[tc.provisionedCount]] = upcoming
 				s.requireFees(view, expectedFees)
-				s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: january, To: february})
+				s.requireActiveDeadline(view.Subscription.NamespacedID, upcoming)
 			})
 		}
 	})
@@ -434,18 +524,19 @@ func (s *SyncStateTestSuite) TestRemovingAndRestoringBillablesUpdatesReconciliat
 	ctx := s.T().Context()
 	now := s.mustParseTime("2026-11-01T00:00:00Z")
 	start := now
-	end := s.mustParseTime("2026-12-01T00:00:00Z")
+	december := s.mustParseTime("2026-12-01T00:00:00Z")
+	january := s.mustParseTime("2027-01-01T00:00:00Z")
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
-	// Given a paid subscription at its start, with its first fee and active deadline.
+	// Given a paid subscription at its start, with its first two fees and active deadline.
 	view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
-	period := timeutil.ClosedPeriod{From: start, To: end}
-	s.requireActiveDeadline(view.Subscription.NamespacedID, period)
-	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{period})
+	periods := []timeutil.ClosedPeriod{{From: start, To: december}, {From: december, To: january}}
+	s.requireActiveDeadline(view.Subscription.NamespacedID, periods[1])
+	s.requireMonthlyItems(view, periods)
 
-	// When the last price is removed, sync must still delete the provisioned fee
+	// When the last price is removed, sync must still delete the provisioned fees
 	// before recording no_billables and clearing the previously saved deadline.
 	currentView, err := s.SubscriptionService.GetView(ctx, view.Subscription.NamespacedID)
 	s.Require().NoError(err)
@@ -461,7 +552,7 @@ func (s *SyncStateTestSuite) TestRemovingAndRestoringBillablesUpdatesReconciliat
 	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 
-	// Then a later edit restoring the price can provision the fee and resume scheduling.
+	// Then a later edit restoring the price can provision the fees and resume scheduling.
 	updatedView, err := s.SubscriptionService.GetView(ctx, view.Subscription.NamespacedID)
 	s.Require().NoError(err)
 	paidSpec := updatedView.AsSpec()
@@ -475,8 +566,8 @@ func (s *SyncStateTestSuite) TestRemovingAndRestoringBillablesUpdatesReconciliat
 	_, err = s.SubscriptionService.Update(ctx, view.Subscription.NamespacedID, paidSpec)
 	s.Require().NoError(err)
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
-	s.requireActiveDeadline(view.Subscription.NamespacedID, period)
-	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{period})
+	s.requireActiveDeadline(view.Subscription.NamespacedID, periods[1])
+	s.requireMonthlyItems(view, periods)
 }
 
 func (s *SyncStateTestSuite) TestOneTimeFeeWaitsForCancellation() {
@@ -484,7 +575,8 @@ func (s *SyncStateTestSuite) TestOneTimeFeeWaitsForCancellation() {
 	start := s.mustParseTime("2027-01-01T00:00:00Z")
 	february := s.mustParseTime("2027-02-01T00:00:00Z")
 	march := s.mustParseTime("2027-03-01T00:00:00Z")
-	end := s.mustParseTime("2027-02-15T00:00:00Z")
+	april := s.mustParseTime("2027-04-01T00:00:00Z")
+	end := s.mustParseTime("2027-03-15T00:00:00Z")
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
 
@@ -505,20 +597,20 @@ func (s *SyncStateTestSuite) TestOneTimeFeeWaitsForCancellation() {
 		}},
 	})
 
-	// When the subscription starts, sync remains active with a January deadline.
+	// When the subscription starts, sync remains active with a February deadline.
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	next := s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: start, To: february})
+	next := s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: february, To: march})
 
-	// The saved January deadline still produces no line, but schedules February's sync.
+	// The saved February deadline still produces no line, but schedules March's sync.
 	clock.FreezeTime(next)
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	next = s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: february, To: march})
+	next = s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: march, To: april})
 	s.True(next.After(end), "cancellation happens before the next periodic sync")
 
-	// When canceled immediately on February 15, the cancellation event triggers sync
+	// When canceled immediately on March 15, the cancellation event triggers sync
 	// before the next periodic deadline. The fee now has a known service end.
 	clock.FreezeTime(end)
 	defer clock.UnFreeze()
@@ -555,19 +647,14 @@ func (s *SyncStateTestSuite) TestCancellationProgression() {
 	_, err := s.SubscriptionService.Cancel(s.T().Context(), view.Subscription.NamespacedID, subscription.Timing{Custom: &end})
 	s.Require().NoError(err)
 
-	// When successive saved deadlines arrive, November and December use periodic scheduling.
+	// When synced at its start, November and December are provisioned and the
+	// December deadline uses periodic scheduling.
 	periods := []timeutil.ClosedPeriod{{From: start, To: december}, {From: december, To: january}, {From: january, To: end}}
-	syncAt := start
-	for index, period := range periods[:2] {
-		s.Run(period.From.Format("January"), func() {
-			clock.FreezeTime(syncAt)
-			defer clock.UnFreeze()
-			s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
-			s.requireMonthlyItems(view, periods[:index+1])
-			syncAt = s.requireActiveDeadline(view.Subscription.NamespacedID, period)
-		})
-	}
+	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
+	s.requireMonthlyItems(view, periods[:2])
+	syncAt := s.requireActiveDeadline(view.Subscription.NamespacedID, periods[1])
 
+	// At that deadline the final month is provisioned, so only the exact end remains.
 	clock.FreezeTime(syncAt)
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
@@ -585,9 +672,11 @@ func (s *SyncStateTestSuite) TestCancellationProgression() {
 }
 
 func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
-	// Given a successfully synced subscription with its first fee provisioned.
+	// Given a successfully synced subscription with its first two fees provisioned.
 	start := s.mustParseTime("2026-11-01T00:00:00Z")
-	end := s.mustParseTime("2026-12-01T00:00:00Z")
+	december := s.mustParseTime("2026-12-01T00:00:00Z")
+	january := s.mustParseTime("2027-01-01T00:00:00Z")
+	periods := []timeutil.ClosedPeriod{{From: start, To: december}, {From: december, To: january}}
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
 	view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
@@ -598,8 +687,8 @@ func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	clock.FreezeTime(start.Add(time.Minute))
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, start))
-	next := s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: start, To: end})
-	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: end}})
+	next := s.requireActiveDeadline(view.Subscription.NamespacedID, periods[1])
+	s.requireMonthlyItems(view, periods)
 	before := s.getSyncStateV2(view.Subscription.NamespacedID)
 	s.NotEqual(initial.LastSuccessAt, before.LastSuccessAt)
 
@@ -608,7 +697,7 @@ func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now(), subscriptionsync.EnableDryRun()))
 	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
-	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: end}})
+	s.requireMonthlyItems(view, periods)
 }
 
 // TestCustomerDeletionReconciliation covers what is specific to customer deletion:
@@ -729,12 +818,13 @@ func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 
 func (s *SyncStateTestSuite) TestMidPeriodCustomerDeletionTruncatesServicePeriod() {
 	s.forEachBackend(func() {
-		// Given an open-ended subscription with its November monthly fee already provisioned.
+		// Given an open-ended subscription with its November and December monthly fees already provisioned.
 		ctx := s.T().Context()
 		start := s.mustParseTime("2026-11-01T00:00:00Z")
 		deletedAt := s.mustParseTime("2026-11-15T00:00:00Z")
 		syncAt := s.mustParseTime("2026-11-20T00:00:00Z")
 		periodEnd := s.mustParseTime("2026-12-01T00:00:00Z")
+		nextPeriodEnd := s.mustParseTime("2027-01-01T00:00:00Z")
 		clock.FreezeTime(start)
 		defer clock.UnFreeze()
 		s.useNewCustomer()
@@ -742,7 +832,7 @@ func (s *SyncStateTestSuite) TestMidPeriodCustomerDeletionTruncatesServicePeriod
 		view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 		s.Require().Nil(view.Spec.ActiveTo)
 		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, start))
-		s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: periodEnd}})
+		s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: periodEnd}, {From: periodEnd, To: nextPeriodEnd}})
 
 		// Simulate an existing customer deletion that did not cancel the subscription.
 		// Retain the customer key because deleted customers no longer resolve subject keys.
@@ -750,7 +840,8 @@ func (s *SyncStateTestSuite) TestMidPeriodCustomerDeletionTruncatesServicePeriod
 			SetKey(s.Customer.ID).
 			SetDeletedAt(deletedAt).Exec(ctx))
 
-		// When sync reconciles after the mid-period deletion, it must shorten the existing fee.
+		// When sync reconciles after the mid-period deletion, it must shorten November's
+		// fee and remove December's.
 		clock.FreezeTime(syncAt)
 		defer clock.UnFreeze()
 		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt))
@@ -795,8 +886,11 @@ func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 	defer clock.UnFreeze()
 	s.Require().ErrorContains(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()), constraintName)
 
-	// Then the first fee and both previously successful sync states are preserved.
-	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: now, To: now.AddDate(0, 1, 0)}})
+	// Then the first two fees and both previously successful sync states are preserved.
+	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{
+		{From: now, To: now.AddDate(0, 1, 0)},
+		{From: now.AddDate(0, 1, 0), To: now.AddDate(0, 2, 0)},
+	})
 	states, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
 	s.Require().NoError(err)
 	s.Equal(legacyBefore, states)

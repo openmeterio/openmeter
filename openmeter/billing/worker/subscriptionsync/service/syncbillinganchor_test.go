@@ -42,7 +42,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 	//  - an entitlement with a grant of 1000
 	//  - started at 2025-07-10T15:00:00Z
 	//  - billing anchor is at 2025-01-31T15:00:00Z
-	// When synchronizing the subscription up to 2025-09-29T15:00:00Z
+	// When synchronizing the subscription as of 2025-08-15T00:00:00Z (its billing period and the next one get generated)
 	// Then:
 	//  - the entitlement should be set up to be active from 2025-07-10T15:00:00Z,
 	//  - the first period should be 2025-07-10T15:00:00Z - 2025-07-31T15:00:00Z,
@@ -126,8 +126,8 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorSinglePhase() {
 	// Subscription retains the billing anchor
 	s.Equal(billingAnchor, subsView.Subscription.BillingAnchor)
 
-	// When synchronizing the subscription up to 2025-09-30T15:00:00Z
-	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, testutils.GetRFC3339Time(s.T(), "2025-09-29T15:00:00Z")))
+	// When synchronizing the subscription as of 2025-08-15T00:00:00Z
+	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, testutils.GetRFC3339Time(s.T(), "2025-08-15T00:00:00Z")))
 
 	// Then:
 	//  - the entitlement should be set up to be active from 2025-07-10T15:00:00Z,
@@ -213,7 +213,7 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 	//		- an entitlement with a grant of 1000
 	//  - started at 2025-07-10T15:00:00Z
 	//  - billing anchor is at 2025-01-31T15:00:00Z
-	// When synchronizing the subscription up to 2025-09-29T15:00:00Z
+	// When synchronizing the subscription as of 2025-08-15T00:00:00Z (its billing period and the next one get generated)
 	// Then:
 	//  - there are two entitlements for each phase
 	//  	- free phase entitlement:
@@ -322,8 +322,8 @@ func (s *BillingAnchorTestSuite) TestBillingAnchorMultiPhase() {
 	// Subscription retains the billing anchor
 	s.Equal(billingAnchor, subsView.Subscription.BillingAnchor)
 
-	// When synchronizing the subscription up to 2025-09-30T15:00:00Z
-	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, testutils.GetRFC3339Time(s.T(), "2025-09-29T15:00:00Z")))
+	// When synchronizing the subscription as of 2025-08-15T00:00:00Z
+	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, testutils.GetRFC3339Time(s.T(), "2025-08-15T00:00:00Z")))
 
 	// Then:
 	//  - the entitlement should be set up to be active from 2025-07-10T15:00:00Z,

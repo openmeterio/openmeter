@@ -634,22 +634,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[1]",
 				},
-				{
-					// Given end is >= invoice_at only at this point
-					ServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-03T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
-					},
-					FullServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-03T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
-					},
-					BillingPeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-03T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[0]/period[2]",
-				},
+				// The period starting at end is invoiceable at end, but its service belongs to the next iteration.
 			},
 		},
 		{
@@ -754,22 +739,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					},
 					Key: "subID/phase-test/item-key/v[1]/period[0]",
 				},
-				// As we want to generate all in advance items invoicable by end time, we get an extra in advance item
-				{
-					ServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-03T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
-					},
-					FullServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-03T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
-					},
-					BillingPeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-03T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-04T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[1]/period[1]",
-				},
+				// The in advance item starting at end is invoiceable at end, but its service belongs to the next iteration.
 				// In Arrears
 				{
 					ServicePeriod: timeutil.ClosedPeriod{
@@ -927,52 +897,7 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 					},
 					Key: "subID/phase-test/item-key/v[0]/period[2]",
 				},
-				// We will also generate for the next billing period the in advance items (as their invoice at will be next start = current end = iteration end)
-				{
-					ServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-04T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-05T00:00:00Z"),
-					},
-					FullServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-04T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-05T00:00:00Z"),
-					},
-					BillingPeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-04T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[0]/period[3]",
-				},
-				{
-					ServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-05T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-06T00:00:00Z"),
-					},
-					FullServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-05T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-06T00:00:00Z"),
-					},
-					BillingPeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-04T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[0]/period[4]",
-				},
-				{
-					ServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-06T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
-					},
-					FullServicePeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-06T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
-					},
-					BillingPeriod: timeutil.ClosedPeriod{
-						From: s.mustParseTime("2021-01-04T00:00:00Z"),
-						To:   s.mustParseTime("2021-01-07T00:00:00Z"),
-					},
-					Key: "subID/phase-test/item-key/v[0]/period[5]",
-				},
+				// The next billing period's in advance items are invoiceable at end, but their service belongs to the next iteration.
 				// In Arrears
 				{
 					ServicePeriod: timeutil.ClosedPeriod{

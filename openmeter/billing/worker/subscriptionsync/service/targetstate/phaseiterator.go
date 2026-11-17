@@ -189,17 +189,14 @@ func (it *PhaseIterator) GetMinimumBillableTime() time.Time {
 }
 
 // Generate generates the lines for the phase so that all active subscription item's are generated up to the point
-// where either the item gets deactivated or the last item's invoice_at >= iterationEnd and it's period's end is equal to
-// or after iterationEnd.
+// where either the item gets deactivated, its service period starts at or after iterationEnd, or its invoice_at is
+// after iterationEnd.
 //
 // This ensures that we always have the upcoming lines stored on the gathering invoice.
 func (it *PhaseIterator) Generate(ctx context.Context, iterationEnd time.Time) ([]SubscriptionItemWithPeriods, error) {
 	span := tracex.Start[[]SubscriptionItemWithPeriods](ctx, it.tracer, "billing.worker.subscription.phaseiterator.Generate", trace.WithAttributes(
 		attribute.String("phase_key", it.phase.Spec.PhaseKey),
 	))
-
-	// Given we are truncating to 1s resolution, we need to make sure that iterationEnd contains the last second as a whole.
-	iterationEnd = iterationEnd.Truncate(streaming.MinimumWindowSizeDuration).Add(streaming.MinimumWindowSizeDuration - time.Nanosecond)
 
 	return span.Wrap(func(ctx context.Context) ([]SubscriptionItemWithPeriods, error) {
 		return it.generateAligned(ctx, iterationEnd)
@@ -268,6 +265,9 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 			return false, nil
 		}
 
+		// Given we are truncating to 1s resolution, we need to make sure that the invoiceAt limit contains the last second as a whole.
+		invoiceAtLimit := iterationEnd.Truncate(streaming.MinimumWindowSizeDuration).Add(streaming.MinimumWindowSizeDuration - time.Nanosecond)
+
 		periodIdx := 0
 		at := item.SubscriptionItem.ActiveFrom
 
@@ -293,8 +293,15 @@ func (it *PhaseIterator) generateForAlignedItemVersion(ctx context.Context, item
 			periodIdx = periodIdx + 1
 			at = newItem.ServicePeriod.To
 
+			// Leave service starting at or after the iteration end to the next sync,
+			// even if its advance fee is already invoiceable at that boundary.
+			if !newItem.ServicePeriod.From.Before(iterationEnd) {
+				logger.DebugContext(ctx, "exiting loop due to service starting at iteration end", slog.Time("at", at), slog.Time("iterationEnd", iterationEnd), slog.Time("serviceFrom", newItem.ServicePeriod.From))
+				break
+			}
+
 			// Check if we have reached the iteration end based on invoiceAt
-			if newItem.GetInvoiceAt().After(iterationEnd) {
+			if newItem.GetInvoiceAt().After(invoiceAtLimit) {
 				logger.DebugContext(ctx, "exiting loop due to iteration end", slog.Time("at", at), slog.Time("iterationEnd", iterationEnd), slog.Time("invoiceAt", newItem.GetInvoiceAt()))
 				break
 			}

@@ -34,8 +34,9 @@ import (
 
 func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLines(t *testing.T) {
 	// given:
-	// - a not-yet-advanced usage-based charge with a dynamic custom-currency cost basis
-	// - usage inside the charge's service period
+	// - not-yet-advanced usage-based charges with a dynamic custom-currency cost basis:
+	//   the first period plus the two periods the sync provisions after it
+	// - usage inside the first charge's service period
 	// when:
 	// - billing lists its gathering invoice with live calculation enabled
 	// then:
@@ -105,10 +106,12 @@ func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLin
 	}
 	chargePage, err := deps.chargesService.ListCharges(t.Context(), chargeListInput)
 	require.NoError(t, err)
-	require.Len(t, chargePage.Items, 1)
-	charge, err := chargePage.Items[0].AsUsageBasedCharge()
-	require.NoError(t, err)
-	require.Nil(t, charge.State.ResolvedCostBasis)
+	require.Len(t, chargePage.Items, 3)
+	for _, item := range chargePage.Items {
+		charge, err := item.AsUsageBasedCharge()
+		require.NoError(t, err)
+		require.Nil(t, charge.State.ResolvedCostBasis)
+	}
 
 	deps.MockStreamingConnector.AddSimpleEvent(
 		subscriptiontestutils.ExampleFeatureMeterSlug,
@@ -135,10 +138,12 @@ func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLin
 
 	chargePage, err = deps.chargesService.ListCharges(t.Context(), chargeListInput)
 	require.NoError(t, err)
-	require.Len(t, chargePage.Items, 1)
-	charge, err = chargePage.Items[0].AsUsageBasedCharge()
-	require.NoError(t, err)
-	require.Nil(t, charge.State.ResolvedCostBasis)
+	require.Len(t, chargePage.Items, 3)
+	for _, item := range chargePage.Items {
+		charge, err := item.AsUsageBasedCharge()
+		require.NoError(t, err)
+		require.Nil(t, charge.State.ResolvedCostBasis)
+	}
 }
 
 func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {

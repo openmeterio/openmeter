@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -199,7 +200,7 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 				}
 			}
 
-			if !currBillingPeriod.From.IsZero() && !generationLimit.Equal(currBillingPeriod.From) {
+			if !currBillingPeriod.From.IsZero() {
 				generationLimit = currBillingPeriod.To
 			}
 
@@ -210,7 +211,17 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 				}
 			}
 
-			items, err := iterator.Generate(ctx, generationLimit)
+			// Provision one billing period past the generation limit, so the following
+			// period's lines (usage included) exist before it begins. The limit itself
+			// stays the boundary for legacy scheduling and the next reconciliation period.
+			// A future phase's first billable time is truncated to the second and can fall
+			// just before the phase start, so look up no earlier than that.
+			nextBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(lo.Latest(generationLimit, iterator.PhaseStart()))
+			if err != nil {
+				return collectResult{}, fmt.Errorf("getting next billing period: %w", err)
+			}
+
+			items, err := iterator.Generate(ctx, nextBillingPeriod.To)
 			if err != nil {
 				return collectResult{}, fmt.Errorf("generating items: %w", err)
 			}
@@ -222,7 +233,7 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 			inScopeLines = append(inScopeLines, items...)
 
 			// Include the next phase when it starts at the generation limit: its
-			// advance fees are due at that boundary and must already be provisioned.
+			// first billing period is the one provisioned ahead.
 			if phaseEnd := iterator.PhaseEnd(); phaseEnd != nil && phaseEnd.After(generationLimit) {
 				break
 			}
