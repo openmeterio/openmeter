@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package main
+package rte
 
 import (
 	"context"
@@ -24,9 +24,9 @@ type Application struct {
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
 }
 
-func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
+// Initialize builds the worker after the host has enabled RTE and validated its configuration.
+func Initialize(ctx context.Context, conf config.Configuration, metadata common.Metadata) (Application, func(), error) {
 	wire.Build(
-		metadata,
 		wire.FieldsOf(new(config.RTEConfiguration), "ConsumerConfiguration"),
 		common.RTE,
 		common.NewCustomerBalanceService,
@@ -39,7 +39,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Currency,
 		common.Customer,
 		common.Database,
-		common.Entitlement,
+		common.NewEntitlementRegistry,
 		common.Framework,
 		common.FFX,
 		common.Meter,
@@ -54,7 +54,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.Lockr,
 		common.Telemetry,
 		common.TelemetryLoggerNoAdditionalMiddlewares,
-		common.Watermill,
+		common.WatermillRTE,
 		common.NewKafkaTopicProvisioner,
 		common.WatermillRouter,
 		common.FeatureGateChecker,
@@ -62,8 +62,4 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	)
 
 	return Application{}, nil, nil
-}
-
-func metadata(conf config.Configuration) common.Metadata {
-	return common.NewMetadata(conf, version, "rte")
 }

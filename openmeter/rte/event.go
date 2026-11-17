@@ -30,7 +30,7 @@ type CalculationRequestedEvent struct {
 }
 
 // FreshnessPolicy permits reuse of a clean result. TrackForSeconds controls
-// how long source changes continue to mark the key dirty between pulls.
+// how long source changes continue to mark the key dirty between freshness requests.
 type FreshnessPolicy struct {
 	TrackForSeconds int32 `json:"track_for_seconds"`
 	MaxAgeSeconds   int32 `json:"max_age_seconds"`

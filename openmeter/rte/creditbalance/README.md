@@ -4,8 +4,8 @@ A credit balance belongs to a customer in a namespace, in one currency, with one
 filter. Fiat uses the currency code. For custom currencies supply the currency reference with its
 ID. Two custom currencies that reuse a display code have separate balances.
 
-The feature filter has three meanings on the wire. Consider a customer with 20 unrestricted
-credits and 10 restricted to `search`, before any usage.
+The table shows how the JSON field `featureFilter` selects a balance for a customer with
+20 unrestricted credits, 10 credits restricted to `search`, and no usage.
 
 | `featureFilter` | Eligible credit | Amount in the example |
 | --- | --- | --- |

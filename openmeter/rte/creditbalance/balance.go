@@ -29,14 +29,14 @@ func (k Key) MarshalJSON() ([]byte, error) {
 		k.FeatureFilter = mo.Some(creditpurchase.FeatureFilters{})
 	}
 
-	type wireKey Key
+	type jsonKey Key
 
-	return json.Marshal(wireKey(k))
+	return json.Marshal(jsonKey(k))
 }
 
 func (k *Key) UnmarshalJSON(data []byte) error {
-	type wireKey Key
-	var decoded wireKey
+	type jsonKey Key
+	var decoded jsonKey
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return err
 	}

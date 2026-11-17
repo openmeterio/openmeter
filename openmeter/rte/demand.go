@@ -9,8 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// DemandService maintains interest in stored calculations. Get remains a stored
-// read; callers explicitly use EnsureFresh when they need the demanded version.
+// DemandService tracks changed inputs and refreshes balances in the background
+// (Activate) or on request (EnsureFresh). Get reads the last stored result.
 type DemandService interface {
 	Activate(context.Context, ActivateDemandInput) error
 	EnsureFresh(context.Context, EnsureFreshInput) error
@@ -31,7 +31,8 @@ func (i ActivateDemandInput) Validate() error {
 }
 
 type EnsureFreshInput struct {
-	Target  CalculationTarget
+	Target CalculationTarget
+	// PullTTL controls how long RTE tracks changes between calls to EnsureFresh.
 	PullTTL time.Duration
 	// Zero accepts the current completed version without an age bound.
 	MaxAge time.Duration

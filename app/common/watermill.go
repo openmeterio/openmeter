@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/config"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/rte"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/outbox"
@@ -24,13 +25,22 @@ var Watermill = wire.NewSet(
 	NewPublisher,
 )
 
+var WatermillRTE = wire.NewSet(
+	watermillBroker,
+	NewPublisher,
+	NewRTEEventBusPublisher,
+)
+
 // TODO: move this back to [Watermill]
 // NOTE: this is also used by the sink-worker that requires control over how the publisher is closed
-var WatermillNoPublisher = wire.NewSet(
+var WatermillNoPublisher = wire.NewSet(watermillBroker, NewEventBusPublisher)
+
+var watermillBroker = wire.NewSet(
 	NewBrokerConfiguration,
 	wire.Struct(new(watermillkafka.PublisherOptions), "*"),
 
-	NewEventBusPublisher,
+	NewRTEShadowRecorder,
+	NewRTESourcePublisher,
 )
 
 var WatermillRouter = wire.NewSet(
@@ -84,10 +94,34 @@ func NewEventBusPublisher(
 	conf config.EventsConfiguration,
 	logger *slog.Logger,
 ) (eventbus.Publisher, func(), error) {
+	return newEventBusPublisher(ctx, publisher, db, conf, logger, "")
+}
+
+// The trial worker owns balance updates. It must never consume delivery attempts
+// for billing or other product events that happen to share the outbox.
+func NewRTEEventBusPublisher(
+	ctx context.Context,
+	publisher message.Publisher,
+	db *entdb.Client,
+	conf config.EventsConfiguration,
+	logger *slog.Logger,
+) (eventbus.Publisher, func(), error) {
+	return newEventBusPublisher(ctx, publisher, db, conf, logger, (rte.CalculationUpdatedEvent{}).EventName())
+}
+
+func newEventBusPublisher(
+	ctx context.Context,
+	publisher message.Publisher,
+	db *entdb.Client,
+	conf config.EventsConfiguration,
+	logger *slog.Logger,
+	drainEventType string,
+) (eventbus.Publisher, func(), error) {
 	outboxPublisher, err := outbox.NewPublisher(ctx, outbox.Config{
 		DB:               db,
 		Publisher:        publisher,
 		OutboxTopics:     []string{conf.SystemEvents.Topic},
+		DrainEventType:   drainEventType,
 		Logger:           logger,
 		DrainLimit:       conf.Outbox.DrainLimit,
 		DrainTimeout:     conf.Outbox.DrainTimeout,

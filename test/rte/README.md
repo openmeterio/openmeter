@@ -2,8 +2,8 @@
 
 The ordinary suite uses PostgreSQL with service-backed billing/ledger fixtures.
 The optional live test starts the production RTE executable as a separate process,
-with real Kafka and ClickHouse. It checks credit/metered push calculations, cached
-pulls, targeted ledger updates, late usage, rating reuse and source redelivery.
+with real Kafka and ClickHouse. It checks background refresh for both balances, reuse of stored
+results, targeted ledger updates, late usage, rating reuse and source redelivery.
 It only accepts loopback services and creates isolated PostgreSQL/ClickHouse
 databases, Kafka topics, consumer group and telemetry port.
 
@@ -38,8 +38,9 @@ The test begins at the stored-usage notification boundary.
 
 | Step | Observable result |
 | --- | --- |
+| Read the same credit balance twice through the product facade | The worker records two matching timing pairs, one recalculation, one cache hit, and two stored-state reads. |
 | Activate a credit key and a metered entitlement key | The worker persists each initial balance. |
-| Request a fresh credit balance | The cached-pull metric increments and the stored timestamp stays the same. |
+| Request a fresh credit balance | The count for `operation="pull"`, `outcome="cache_hit"` increases and the stored timestamp stays the same. |
 | Fund the customer with another 25 credits | Credit live balance reaches 125, rating records a reuse hit, and the metered timestamp stays the same. |
 | Store 25 units of late usage and deliver the ingest notification | Credit stays booked at 125 and live falls to 100. Metered usage reaches 25 and the remaining entitlement balance falls to 75. |
 | Redeliver the same CloudEvent | The duplicate metric increments. The calculation count and both stored states stay the same. |

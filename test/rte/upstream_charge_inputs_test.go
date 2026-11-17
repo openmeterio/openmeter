@@ -21,17 +21,16 @@ import (
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargecreditpurchase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	creditstest "github.com/openmeterio/openmeter/test/credits"
@@ -39,7 +38,7 @@ import (
 
 func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBeforePosting() {
 	// given: an active credit calculation and the root charge service publishing
-	// persisted input facts through the real transactional outbox.
+	// facts after the transaction commits.
 	ctx := s.T().Context()
 	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
@@ -55,6 +54,11 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	s.Require().NoError(err)
 	metaAdapter, err := metaadapter.New(metaadapter.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
+	var published int
+	publisher := eventbus.NewAfterCommitPublisher(func(event marshaler.Event) {
+		published++
+		s.Require().NoError(pipeline.publisher.Publish(ctx, event))
+	}, logger)
 	writer, err := chargesservice.New(chargesservice.Config{
 		Logger: logger, Adapter: adapter, MetaAdapter: metaAdapter,
 		FeatureMeterResolver: s.FeatureMeterResolver, FlatFeeService: s.FlatFeeSvc,
@@ -62,7 +66,7 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 		RecognizerService: s.RevenueRecognizer, BillingService: s.BillingService,
 		TaxCodeService: s.TaxCodeEnv.Service, CurrencyResolver: s.CurrencyResolver,
 		CustomerService: s.CustomerService, SubscriptionService: &chargestestutils.FakeSubscriptionService{},
-		InputChangePublisher: pipeline.publisher,
+		InputChangePublisher: publisher,
 	})
 	s.Require().NoError(err)
 	key := creditbalance.Key{CustomerID: cust.GetID(), Currency: currencies.NewCurrencyReference("USD")}
@@ -98,15 +102,7 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 			return err
 		}
 
-		tx, err := entutils.GetDriverFromContext(ctx)
-		if err != nil {
-			return err
-		}
-
-		client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
-		count, err := client.EventOutbox.Query().Where(eventoutbox.TransactionIDEQ(tx.ID())).Count(ctx)
-		s.Require().NoError(err)
-		s.Equal(1, count)
+		s.Zero(published)
 
 		return rollback
 	})
@@ -114,8 +110,11 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	count, err := s.DBClient.ChargeCreditPurchase.Query().Where(chargecreditpurchase.NamespaceEQ(ns)).Count(ctx)
 	s.Require().NoError(err)
 	s.Zero(count)
+	s.Zero(published)
 	_, err = writer.Create(ctx, input)
 	s.Require().NoError(err)
+
+	s.Equal(1, published)
 
 	// then: the committed input fact refreshes pending credit while no ledger
 	// transaction group exists for this customer yet.
@@ -152,7 +151,7 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	s.Equal(float64(25), stored.Value.Pending.InexactFloat64())
 	s.Zero(stored.Value.Booked.InexactFloat64())
 
-	// Patching a future credit-only charge uses the same atomic input boundary,
+	// Patching a future credit-only charge also waits for the outer commit,
 	// even though neither creation nor deletion needs a ledger posting yet.
 	created, err := writer.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(
 		s.CreateMockChargeIntent(creditstest.CreateMockChargeIntentInput{
@@ -170,24 +169,18 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 		Policy:       meta.PatchDeletePolicy{CreditRefundPolicy: meta.CreditRefundPolicyIgnore, InvoiceRefundPolicy: meta.InvoiceRefundPolicyIgnore},
 	})
 	s.Require().NoError(err)
+	beforePatch := published
 	err = transaction.RunWithNoValue(ctx, enttx.NewCreator(s.DBClient), func(ctx context.Context) error {
 		if err := writer.ApplyPatches(ctx, charges.ApplyPatchesInput{CustomerID: cust.GetID(), PatchesByChargeID: map[string]charges.Patch{chargeID.ID: patch}}); err != nil {
 			return err
 		}
 
-		tx, err := entutils.GetDriverFromContext(ctx)
-		if err != nil {
-			return err
-		}
-
-		client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
-		count, err := client.EventOutbox.Query().Where(eventoutbox.TransactionIDEQ(tx.ID())).Count(ctx)
-		s.Require().NoError(err)
-		s.Equal(1, count)
+		s.Equal(beforePatch, published)
 
 		return rollback
 	})
 	s.Require().ErrorIs(err, rollback)
+	s.Equal(beforePatch, published)
 	retained, err := writer.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
 	s.Require().NoError(err)
 	fee, err := retained.AsFlatFeeCharge()

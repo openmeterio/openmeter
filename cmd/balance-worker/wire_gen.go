@@ -215,8 +215,22 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService)
+	rteConfiguration := conf.RTE
+	recorder, cleanup9, err := common.NewRTEShadowRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
 	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	entitlement, err := common.NewEntitlementRegistryWithShadow(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService, recorder)
+	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -230,6 +244,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	balanceWorkerEntitlementRepo := common.NewBalanceWorkerEntitlementRepo(client)
 	repository, err := common.NewNotificationAdapter(logger, client)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -245,6 +260,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	v4 := conf.Svix
 	svix, err := common.NewSvixAPIClient(v4, meterProvider, tracerProvider)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -257,6 +273,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	handler, err := common.NewNotificationWebhookHandler(logger, tracer, webhookConfiguration, svix)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -270,6 +287,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
 	notificationService, err := common.NewNotificationService(logger, repository, handler, featureConnector)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -282,6 +300,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectAdapter, err := common.NewSubjectAdapter(client)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -294,6 +313,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	subjectService, err := common.NewSubjectService(subjectAdapter)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -307,6 +327,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	workerOptions := common.NewBalanceWorkerOptions(eventsConfiguration, options, eventbusPublisher, entitlement, balanceWorkerEntitlementRepo, notificationService, subjectService, customerService, logger, balanceWorkerConfiguration)
 	worker, err := common.NewBalanceWorker(workerOptions)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -319,7 +340,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	health := common.NewHealthChecker(logger)
 	telemetryHandler := common.NewTelemetryHandler(metricsTelemetryConfig, health, logger)
-	telemetryServer, cleanup9 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
+	telemetryServer, cleanup10 := common.NewTelemetryServer(telemetryConfig, telemetryHandler)
 	group := common.BalanceWorkerGroup(ctx, worker, telemetryServer, subscriptionStatus)
 	runner := common.Runner{
 		Group:  group,
@@ -327,6 +348,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -346,6 +368,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 	}
 	return application, func() {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()

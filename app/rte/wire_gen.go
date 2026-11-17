@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package main
+package rte
 
 import (
 	"context"
@@ -23,17 +23,17 @@ import (
 
 // Injectors from wire.go:
 
-func initializeApplication(ctx context.Context, conf config.Configuration) (Application, func(), error) {
+// Initialize builds the worker after the host has enabled RTE and validated its configuration.
+func Initialize(ctx context.Context, conf config.Configuration, metadata common.Metadata) (Application, func(), error) {
 	telemetryConfig := conf.Telemetry
 	logTelemetryConfig := telemetryConfig.Log
-	commonMetadata := metadata(conf)
-	resource := common.NewTelemetryResource(commonMetadata)
+	resource := common.NewTelemetryResource(metadata)
 	loggerProvider, cleanup, err := common.NewLoggerProvider(ctx, logTelemetryConfig, resource)
 	if err != nil {
 		return Application{}, nil, err
 	}
 	v := common.TelemetryLoggerNoAdditionalMiddlewares()
-	logger := common.NewLogger(logTelemetryConfig, resource, loggerProvider, commonMetadata, v)
+	logger := common.NewLogger(logTelemetryConfig, resource, loggerProvider, metadata, v)
 	metricsTelemetryConfig := telemetryConfig.Metrics
 	meterProvider, cleanup2, err := common.NewMeterProvider(ctx, metricsTelemetryConfig, resource, logger)
 	if err != nil {
@@ -55,7 +55,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		TextMapPropagator: textMapPropagator,
 	}
 	postgresConfig := conf.Postgres
-	meter := common.NewMeter(meterProvider, commonMetadata)
+	meter := common.NewMeter(meterProvider, metadata)
 	driver, cleanup4, err := common.NewPostgresDriver(ctx, postgresConfig, meterProvider, meter, tracerProvider, logger)
 	if err != nil {
 		cleanup3()
@@ -92,11 +92,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	accountLocker := common.NewLedgerAccountLocker(service)
 	routingValidator := common.NewLedgerRoutingValidator()
 	rteConfiguration := conf.RTE
+	eventsConfiguration := conf.Events
 	ingestConfiguration := conf.Ingest
 	kafkaIngestConfiguration := ingestConfiguration.Kafka
 	kafkaConfiguration := kafkaIngestConfiguration.KafkaConfiguration
-	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, commonMetadata, logger, meter)
-	eventsConfiguration := conf.Events
+	brokerOptions := common.NewBrokerConfiguration(kafkaConfiguration, metadata, logger, meter)
 	v2 := common.RTEProvisionTopics(rteConfiguration, eventsConfiguration)
 	topicProvisionerConfig := kafkaIngestConfiguration.TopicProvisioner
 	topicProvisioner, err := common.NewKafkaTopicProvisioner(kafkaConfiguration, topicProvisionerConfig, logger, meter)
@@ -124,7 +124,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	eventbusPublisher, cleanup8, err := common.NewEventBusPublisher(ctx, publisher, client, eventsConfiguration, logger)
+	recorder, cleanup8, err := common.NewRTEShadowRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
 	if err != nil {
 		cleanup7()
 		cleanup6()
@@ -135,14 +135,28 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	ledgerReadWriter := common.NewLedgerHistoricalLedgerWithSourceEvents(commonMetadata, creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator, rteConfiguration, eventbusPublisher)
+	afterCommitPublisher := common.NewRTESourcePublisher(recorder, logger)
+	ledgerReadWriter := common.NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator, afterCommitPublisher)
 	ledger := common.NewLedgerService(ledgerReadWriter)
 	balanceQuerier := common.NewLedgerBalanceQuerier(ledgerReadWriter)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
 	customerLedgerProvisioner := common.NewLedgerResolversService(creditsConfiguration, service, customerAccountRepo, locker)
 	accountResolver := common.NewLedgerAccountResolver(customerLedgerProvisioner)
+	eventbusPublisher, cleanup9, err := common.NewRTEEventBusPublisher(ctx, publisher, client, eventsConfiguration, logger)
+	if err != nil {
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	appService, err := common.NewAppService(logger, client, eventbusPublisher)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -155,6 +169,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	adapter, err := common.BillingAdapter(logger, client)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -169,6 +184,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	ratingService := common.NewBillingRatingService(unitConfigConfiguration)
 	customerService, err := common.NewCustomerService(logger, client, eventbusPublisher)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -181,6 +197,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	adapterAdapter, err := common.NewMeterAdapter(logger, client)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -195,9 +212,10 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	featureConnector := common.NewFeatureConnector(logger, client, meterService, eventbusPublisher)
 	aggregationConfiguration := conf.Aggregation
 	clickHouseAggregationConfiguration := aggregationConfiguration.ClickHouse
-	tracer := common.NewTracer(tracerProvider, commonMetadata)
-	v3, cleanup9, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
+	tracer := common.NewTracer(tracerProvider, metadata)
+	v3, cleanup10, err := common.NewClickHouse(ctx, clickHouseAggregationConfiguration, tracer, meter, logger)
 	if err != nil {
+		cleanup9()
 		cleanup8()
 		cleanup7()
 		cleanup6()
@@ -211,6 +229,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	progressManagerConfiguration := conf.ProgressManager
 	progressmanagerService, err := common.NewProgressManager(logger, progressManagerConfiguration)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -225,6 +244,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	namespaceConfiguration := conf.Namespace
 	manager, err := common.NewNamespaceManager(namespaceConfiguration)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -238,6 +258,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	connector, err := common.NewStreamingConnector(ctx, aggregationConfiguration, v3, logger, progressmanagerService, manager)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -253,6 +274,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	entitlementsConfiguration := conf.Entitlements
 	entitlement, err := common.NewEntitlementRegistry(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -266,6 +288,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	repository, err := common.NewCurrencyAdapter(client)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -279,6 +302,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	currenciesService, err := common.NewCurrencyService(repository)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -292,6 +316,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	currencyResolver, err := currencyresolver.New(currenciesService)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -305,6 +330,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	featureResolver, err := featureresolver.New(featureConnector)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -318,6 +344,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	taxcodeRepository, err := common.NewTaxCodeAdapter(logger, client)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -331,6 +358,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	taxcodeService, err := common.NewTaxCodeService(logger, taxcodeRepository)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -344,6 +372,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	taxCodeResolver, err := taxcoderesolver.New(taxcodeService)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -357,6 +386,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	planService, err := common.NewPlanService(logger, client, featureResolver, currencyResolver, taxCodeResolver, eventbusPublisher)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -370,6 +400,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	addonService, err := common.NewAddonService(logger, client, featureResolver, currencyResolver, taxCodeResolver, eventbusPublisher)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -383,6 +414,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	planaddonService, err := common.NewPlanAddonService(logger, client, planService, addonService, eventbusPublisher)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -397,6 +429,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	ffxService := ffx.NewContextService()
 	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, currenciesService, currencyResolver, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxCodeResolver)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -412,6 +445,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
 	breakageService, err := common.NewLedgerBreakageService(creditsConfiguration, client, balanceQuerier, accountResolver, service)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -426,8 +460,9 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	gate := featuregate.NewNoop()
 	featureGateConfiguration := conf.FeatureGate
 	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, validator, client, billingFeatureSwitchesConfiguration, creditsConfiguration, rteConfiguration, tracer, taxcodeService, taxCodeResolver, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, service, breakageService, featureGateChecker)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, validator, client, billingFeatureSwitchesConfiguration, creditsConfiguration, afterCommitPublisher, tracer, taxcodeService, taxCodeResolver, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, service, breakageService, featureGateChecker)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -441,6 +476,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	creditvoidService, err := common.NewCreditVoidService(creditsConfiguration, client, ledger, balanceQuerier, accountResolver, service, breakageService)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -454,6 +490,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	customerbalanceService, err := common.NewCustomerBalanceService(creditsConfiguration, logger, meter, ledger, balanceQuerier, accountResolver, service, billingRegistry, currenciesService, breakageService, creditvoidService)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -467,6 +504,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	rteService, err := common.NewRTEService(client, customerbalanceService, entitlement, logger, creditsConfiguration, eventbusPublisher, meter)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -480,6 +518,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	demandService, err := common.NewRTEDemandService(client, rteService, logger, meter, rteConfiguration)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -494,6 +533,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	subscriptionStatus := common.NewRTESubscriptionStatus(eventsConfiguration)
 	subscriber, err := common.RTESubscriber(rteConfiguration, brokerOptions, subscriptionStatus)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -516,6 +556,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	worker, err := common.NewRTEWorker(rteService, demandService, client, rteConfiguration, eventsConfiguration, options, eventbusPublisher)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -535,6 +576,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	appsConfiguration := conf.Apps
 	factory, err := common.NewAppSandboxFactory(appsConfiguration, appService, billingRegistry)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -548,6 +590,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	appSandboxProvisioner, err := common.NewAppSandboxProvisioner(ctx, logger, appsConfiguration, appService, manager, billingRegistry, factory)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -561,6 +604,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	secretserviceService, err := common.NewUnsafeSecretService(logger, client)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -574,6 +618,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -587,6 +632,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	appcustominvoicingService, err := common.NewAppCustomInvoicingService(logger, client, appsConfiguration, appService, customerService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -601,6 +647,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	appRegistry := common.NewAppRegistry(appService, appSandboxProvisioner, appstripeService, appcustominvoicingService)
 	runtimeMetricsCollector, err := common.NewRuntimeMetricsCollector(meterProvider, logger)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -622,6 +669,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		RuntimeMetricsCollector: runtimeMetricsCollector,
 	}
 	return application, func() {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()
@@ -645,8 +693,4 @@ type Application struct {
 	RTE                     rte.Service
 	Logger                  *slog.Logger
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
-}
-
-func metadata(conf config.Configuration) common.Metadata {
-	return common.NewMetadata(conf, version, "rte")
 }

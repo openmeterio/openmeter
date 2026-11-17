@@ -76,9 +76,10 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
-	capture := func(received *entitlement.GetCustomerEntitlementAccessInput) fakeEntitlementService {
+	capture := func(received *entitlement.GetCustomerEntitlementAccessInput, current bool) fakeEntitlementService {
 		return fakeEntitlementService{
-			get: func(_ context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+			get: func(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
+				require.Equal(t, current, entitlement.CurrentValueOperationFromContext(ctx) == entitlement.CurrentValueOperationRead)
 				*received = input
 				return entitlement.CustomerEntitlementAccess{FeatureKey: testFeatureKey, Type: entitlement.EntitlementTypeBoolean, Value: &booleanentitlement.BooleanEntitlementValue{}}, nil
 			},
@@ -91,7 +92,7 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		// then the service receives the namespaced customer and current time
 		var received entitlement.GetCustomerEntitlementAccessInput
 
-		response := serveGetCustomerEntitlementAccess(t, capture(&received), GetCustomerEntitlementAccessParams{
+		response := serveGetCustomerEntitlementAccess(t, capture(&received, true), GetCustomerEntitlementAccessParams{
 			CustomerID: testCustomerID,
 			FeatureKey: testFeatureKey,
 		})
@@ -132,7 +133,7 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 		var received entitlement.GetCustomerEntitlementAccessInput
 		at := now.Add(-48 * time.Hour)
 
-		response := serveGetCustomerEntitlementValue(t, capture(&received), GetCustomerEntitlementValueParams{
+		response := serveGetCustomerEntitlementValue(t, capture(&received, false), GetCustomerEntitlementValueParams{
 			CustomerID:    testCustomerID,
 			EntitlementID: testEntitlementID,
 			At:            &at,

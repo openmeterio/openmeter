@@ -187,6 +187,7 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		return snap, nil
 	}
 
+	ctx = entitlement.CurrentValueOperationCalculate.WithContext(ctx)
 	snap, err := w.createSnapshotEvent(ctx, entitlementEntity, calculatedAt, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)

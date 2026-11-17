@@ -355,6 +355,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 	calculatedAt := time.Now()
 
+	ctx = entitlement.CurrentValueOperationCalculate.WithContext(ctx)
 	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.CustomerID, ent.ID, calculatedAt)
 	if err != nil {
 		return empty, fmt.Errorf("failed to get entitlement value: %w", err)

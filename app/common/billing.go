@@ -193,7 +193,7 @@ func NewBillingRegistry(
 	db *entdb.Client,
 	fsConfig config.BillingFeatureSwitchesConfiguration,
 	creditsConfig config.CreditsConfiguration,
-	rteConf config.RTEConfiguration,
+	inputChangePublisher eventbus.AfterCommitPublisher,
 	tracer trace.Tracer,
 	taxCodeService taxcode.Service,
 	taxCodeResolver productcatalog.TaxCodeResolver,
@@ -256,11 +256,6 @@ func NewBillingRegistry(
 	var chargesRegistry *ChargesRegistry
 
 	if creditsConfig.Enabled {
-		var inputChangePublisher eventbus.Publisher
-		if rteConf.PublishSourceEvents {
-			inputChangePublisher = eventPublisher
-		}
-
 		chargesRegistry, err = newChargesRegistry(
 			metricMeter,
 			db,

@@ -362,8 +362,17 @@ func TestGetEntitlementBalance(t *testing.T) {
 					At:      g1.EffectiveAt,
 				}, snap1)
 
+				// A shadow read sees the same usage without advancing the production checkpoint.
+				shadowBalance, err := connector.GetEntitlementBalance(credit.WithoutBalanceSnapshotWrites(ctx), owner, queryTime)
+				require.NoError(t, err)
+				afterShadow, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
+				require.NoError(t, err)
+				require.Equal(t, snap1, afterShadow)
+
 				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
 				require.NoError(t, err)
+
+				require.Equal(t, entBalance, shadowBalance)
 
 				// validate balance calc for good measure
 				assert.Equal(t, 0.0, entBalance.UsageInPeriod)

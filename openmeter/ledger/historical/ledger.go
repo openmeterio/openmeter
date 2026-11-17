@@ -47,14 +47,13 @@ type Ledger struct {
 
 	routingValidator ledger.RoutingValidator
 	writerBuild      WriterBuild
-	publisher        eventbus.Publisher
+	publisher        eventbus.AfterCommitPublisher
 }
 
 type Option func(*Ledger)
 
-// WithEventPublisher queues committed-posting notifications in the caller's
-// transaction when backed by the system-event outbox.
-func WithEventPublisher(publisher eventbus.Publisher) Option {
+// WithSourcePublisher reports posting groups after their transaction commits.
+func WithSourcePublisher(publisher eventbus.AfterCommitPublisher) Option {
 	return func(l *Ledger) { l.publisher = publisher }
 }
 
@@ -153,9 +152,7 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 		}
 
 		if l.publisher != nil {
-			if err := l.publisher.Publish(ctx, ledger.TransactionGroupCommittedEvent{Namespace: group.Namespace(), GroupID: txG.ID}); err != nil {
-				return nil, fmt.Errorf("publish committed transaction group: %w", err)
-			}
+			l.publisher(ctx, ledger.TransactionGroupCommittedEvent{Namespace: group.Namespace(), GroupID: txG.ID})
 		}
 
 		return txGroup, nil

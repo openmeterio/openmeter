@@ -54,7 +54,7 @@ func newDemandFixture(t *testing.T) demandFixture {
 	return demandFixture{repository: repository, client: config.Client, pool: database.PGDriver.DB(), store: store, key: key, target: event.CalculationTarget, input: rte.ProcessDemandInput{CalculationTimeout: time.Second, RetryMinDelay: time.Minute, RetryMaxDelay: time.Hour}}
 }
 
-func TestDemandRegistrationCanonicalizesAndRepairsWireKey(t *testing.T) {
+func TestDemandRegistrationCanonicalizesAndRepairsStoredKey(t *testing.T) {
 	f := newDemandFixture(t)
 	now := clock.Now().UTC().Truncate(time.Second)
 	clock.FreezeTime(now)
@@ -361,7 +361,7 @@ func TestDemandPullExpiryAgeAndPeriodicRefresh(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.Processed)
 
-	// Even an unbounded-age pull needs a calculation after its interest expires.
+	// Even a request with no age limit must recalculate after change tracking expires.
 	pull.MaxAge = 0
 	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
 	require.NoError(t, err)
@@ -394,7 +394,7 @@ func TestDemandPullExpiryAgeAndPeriodicRefresh(t *testing.T) {
 }
 
 func TestDemandPullOnlyCoalescesWithoutBackgroundCalculations(t *testing.T) {
-	// Given a pull-only key with a completed version and continued interest.
+	// Given a completed calculation with active change tracking and background refresh disabled.
 	f := newDemandFixture(t)
 	confirmedClean, err := f.repository.EnsurePull(t.Context(), rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour})
 	require.NoError(t, err)
@@ -428,7 +428,7 @@ func TestDemandPullOnlyCoalescesWithoutBackgroundCalculations(t *testing.T) {
 }
 
 func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
-	// Given a completed pull-only key with an hour of interest.
+	// Given a completed calculation tracked for an hour between requests.
 	f := newDemandFixture(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -451,7 +451,7 @@ func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
 	require.True(t, clean)
 	renewed, err := f.client.RTEDemand.Query().Only(ctx)
 	require.NoError(t, err)
-	require.Equal(t, row.PullUntil, renewed.PullUntil, "a shorter pull must preserve the longer interest")
+	require.Equal(t, row.PullUntil, renewed.PullUntil, "a shorter TTL must preserve the later tracking deadline")
 
 	// When an invalidation holds the row lock, a pull must wait for its dirty version.
 	pull.PullTTL = 2 * time.Hour
@@ -529,7 +529,7 @@ func TestPullRenewalRechecksTimeAfterWaiting(t *testing.T) {
 				clock.FreezeTime(releasedAt)
 				if releasedAt.After(start.Add(test.initialTTL)) {
 					marked, err := f.repository.Invalidate(ctx, rte.InvalidateInput{
-						Source: "ledger", EventID: "while-interest-expired",
+						Source: "ledger", EventID: "while-tracking-expired",
 						Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind, Targets: []rte.CalculationTarget{f.target}}},
 					})
 					require.NoError(t, err)

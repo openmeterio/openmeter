@@ -9,8 +9,6 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransactiongroup"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
@@ -24,23 +22,28 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/upstream"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (s *RTEIntegrationSuite) TestLedgerSourceFactSharesPostingTransaction() {
-	// given: the real ledger uses the same transactional outbox as RTE.
+func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
+	// given: the ledger records source events for committed posting groups.
 	ctx := s.T().Context()
 	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
 	ns := s.GetUniqueNamespace("rte-ledger-source")
 	cust := s.CreateLedgerBackedCustomer(ns, "rte-ledger-customer")
-	pipeline := s.newEventPipeline()
+	logger := testutils.NewDiscardLogger(s.T())
+	var published []marshaler.Event
+	publisher := eventbus.NewAfterCommitPublisher(func(event marshaler.Event) {
+		published = append(published, event)
+	}, logger)
 	writer := historical.NewLedger(historicaladapter.NewRepo(s.DBClient), s.LedgerAccountService, s.LedgerAccountService,
-		routingrules.DefaultValidator, historical.WithEventPublisher(pipeline.publisher))
+		routingrules.DefaultValidator, historical.WithSourcePublisher(publisher))
 	inputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{
 		AccountService: s.LedgerResolver, AccountCatalog: s.LedgerAccountService, BalanceQuerier: s.BalanceQuerier,
 	}, transactions.ResolutionScope{CustomerID: cust.GetID(), Namespace: ns}, transactions.IssueCustomerReceivableTemplate{
@@ -50,7 +53,7 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactSharesPostingTransaction() {
 	rollback := errors.New("abort posting")
 	var rolledBack models.NamespacedID
 
-	// when: the enclosing operation fails after the ledger publishes its fact.
+	// when: the enclosing operation fails after posting.
 	err = transaction.RunWithNoValue(ctx, enttx.NewCreator(s.DBClient), func(ctx context.Context) error {
 		group, err := writer.CommitGroup(ctx, transactions.GroupInputs(ns, nil, inputs...))
 		if err != nil {
@@ -58,15 +61,7 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactSharesPostingTransaction() {
 		}
 
 		rolledBack = group.ID()
-		tx, err := entutils.GetDriverFromContext(ctx)
-		if err != nil {
-			return err
-		}
-
-		client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
-		count, err := client.EventOutbox.Query().Where(eventoutbox.TransactionIDEQ(tx.ID())).Count(ctx)
-		s.Require().NoError(err)
-		s.Equal(1, count)
+		s.Empty(published)
 
 		return rollback
 	})
@@ -76,9 +71,10 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactSharesPostingTransaction() {
 	exists, err := s.DBClient.LedgerTransactionGroup.Query().Where(ledgertransactiongroup.IDEQ(rolledBack.ID)).Exist(ctx)
 	s.Require().NoError(err)
 	s.False(exists)
+	s.Empty(published)
 	group, err := writer.CommitGroup(ctx, transactions.GroupInputs(ns, nil, inputs...))
 	s.Require().NoError(err)
-	logger := testutils.NewDiscardLogger(s.T())
+	s.Require().Equal([]marshaler.Event{ledger.TransactionGroupCommittedEvent{Namespace: ns, GroupID: group.ID().ID}}, published)
 	repository, err := rteadapter.NewDemandRepository(rteadapter.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
 	resolver, err := upstream.New(upstream.Config{Client: s.DBClient, Logger: logger})
@@ -97,7 +93,7 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactSharesPostingTransaction() {
 		}()
 	}
 
-	selectors, err := resolver.Resolve(ctx, ledger.TransactionGroupCommittedEvent{Namespace: ns, GroupID: group.ID().ID})
+	selectors, err := resolver.Resolve(ctx, published[0])
 	s.Require().NoError(err)
 	s.Require().Len(selectors, 1)
 	s.Require().Len(selectors[0].Targets, 2)

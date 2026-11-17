@@ -103,7 +103,7 @@ func NewLedgerHistoricalLedgerWithMetadata(
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
 ) ledgerReadWriter {
-	return NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfig, repo, accountCatalog, accountLocker, routingValidator, config.RTEConfiguration{}, nil)
+	return NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfig, repo, accountCatalog, accountLocker, routingValidator, nil)
 }
 
 func NewLedgerHistoricalLedgerWithSourceEvents(
@@ -113,16 +113,15 @@ func NewLedgerHistoricalLedgerWithSourceEvents(
 	accountCatalog ledger.AccountCatalog,
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
-	rteConf config.RTEConfiguration,
-	publisher eventbus.Publisher,
+	publisher eventbus.AfterCommitPublisher,
 ) ledgerReadWriter {
 	if !creditsConfig.Enabled {
 		return ledgernoop.Ledger{}
 	}
 
 	var options []historical.Option
-	if rteConf.PublishSourceEvents {
-		options = append(options, historical.WithEventPublisher(publisher))
+	if publisher != nil {
+		options = append(options, historical.WithSourcePublisher(publisher))
 	}
 
 	return historical.NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, historical.WriterBuild{

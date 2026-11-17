@@ -7,7 +7,7 @@ import (
 )
 
 // UpstreamResolver maps source facts to tracked calculations. Resolution never
-// calculates balances or creates demand for customers that have no interest.
+// calculates balances or starts tracking new keys.
 type UpstreamResolver interface {
 	Resolve(context.Context, marshaler.Event) ([]DemandSelector, error)
 }

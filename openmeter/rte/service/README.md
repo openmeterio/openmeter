@@ -17,7 +17,7 @@ be accepted. An update means RTE stored a calculation, even if its numeric value
 
 `Get` only reads the store. A missing result is a typed not-found error, and a recorded zero is a
 successful read. Call [the demand service](../demand/README.md) to require freshness or coalesce
-work. An explicit calculation does not register interest or complete pending demand by itself.
+work. An explicit calculation does not start tracking the key or complete pending work for it.
 
 The execution counter and duration histogram distinguish `updated`, `superseded` and `failed`.
 Duration includes domain work and storing/enqueuing the result. The separate read counter
