@@ -858,6 +858,64 @@ func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 	}
 }
 
+func (s *SyncStateTestSuite) TestMidPeriodCustomerDeletionTruncatesServicePeriod() {
+	for _, tc := range []struct {
+		name    string
+		service *Service
+	}{
+		{name: "legacy billing", service: s.LegacySyncService},
+		{name: "charges", service: s.ChargeSyncService},
+	} {
+		s.Run(tc.name, func() {
+			// Given an open-ended subscription with its November monthly fee already provisioned.
+			ctx := s.T().Context()
+			start := s.mustParseTime("2026-11-01T00:00:00Z")
+			deletedAt := s.mustParseTime("2026-11-15T00:00:00Z")
+			syncAt := s.mustParseTime("2026-11-20T00:00:00Z")
+			periodEnd := s.mustParseTime("2026-12-01T00:00:00Z")
+			clock.FreezeTime(start)
+			defer clock.UnFreeze()
+			s.Service = tc.service
+			s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
+			_, err := s.LedgerResolver.CreateCustomerAccounts(ctx, s.Customer.GetID())
+			require.NoError(s.T(), err)
+
+			view := s.createSyncStateSubscription(syncStateSubscriptionInput{
+				Start:  start,
+				Phases: []productcatalog.Phase{s.paidMonthlyPhase()},
+			})
+			require.Nil(s.T(), view.Spec.ActiveTo)
+			require.NoError(s.T(), s.Service.SyncByID(ctx, view.Subscription.NamespacedID, start))
+			s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: periodEnd}})
+
+			// Simulate an existing customer deletion that did not cancel the subscription.
+			// Retain the customer key because deleted customers no longer resolve subject keys.
+			require.NoError(s.T(), s.DBClient.Customer.UpdateOneID(s.Customer.ID).
+				SetKey(s.Customer.ID).
+				SetDeletedAt(deletedAt).Exec(ctx))
+
+			// When sync reconciles after the mid-period deletion, it must shorten the existing fee.
+			clock.FreezeTime(syncAt)
+			defer clock.UnFreeze()
+			err = s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt)
+			require.NoError(s.T(), err)
+
+			// Then no service after November 15 remains billable, and final reconciliation is complete.
+			s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
+			state := s.getSyncStateV2(view.Subscription.NamespacedID)
+			s.Equal(subscriptionsync.SyncStateV2StateEnded, state.LastSuccessState)
+			s.Nil(state.NextReconciliationAt)
+
+			// Repeating cleanup must preserve the same subscription-sync identities and periods.
+			require.NoError(s.T(), s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt))
+			s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
+			retried := s.getSyncStateV2(view.Subscription.NamespacedID)
+			s.Equal(subscriptionsync.SyncStateV2StateEnded, retried.LastSuccessState)
+			s.Nil(retried.NextReconciliationAt)
+		})
+	}
+}
+
 func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 	ctx := s.T().Context()
 	now := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
@@ -938,8 +996,6 @@ func (s *SyncStateTestSuite) TestNilPlanPreservesPreviousSyncResult() {
 }
 
 func (s *SyncStateTestSuite) TestNextBillingPeriodForMidPeriodCustomerDeletion() {
-	// These stay at the target-builder boundary: legacy billing currently rejects
-	// lines whose original period extends past a mid-period customer deletion.
 	now := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
 	end := now.AddDate(0, 1, 0)
 	clock.FreezeTime(now)
