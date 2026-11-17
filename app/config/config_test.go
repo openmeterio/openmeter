@@ -356,9 +356,10 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		RTE: RTEConfiguration{
-			ShadowSamplePercent: 10,
-			CalculationTimeout:  30 * time.Second,
-			PollInterval:        time.Second,
+			ShadowSamplePercent:    10,
+			CalculationConcurrency: 4,
+			CalculationTimeout:     30 * time.Second,
+			PollInterval:           time.Second,
 			ConsumerConfiguration: ConsumerConfiguration{
 				ProcessingTimeout: 30 * time.Second,
 				Retry: RetryConfiguration{

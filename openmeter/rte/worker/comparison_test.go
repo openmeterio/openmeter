@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -59,7 +60,7 @@ func TestComparisonReplaysAndMeasuresMatchedOperations(t *testing.T) {
 		// Given a read observed 5s ago, queue lag is separate from both durations.
 		reader := sdkmetric.NewManualReader()
 		provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
-		metrics, err := newComparisonMetrics(provider.Meter("test"))
+		metrics, err := rtemetrics.NewComparison(provider.Meter("test"))
 		require.NoError(t, err)
 
 		target, err := rte.NewCalculationTarget(meteredentitlement.Key{EntitlementID: models.NamespacedID{Namespace: "ns", ID: "id"}})

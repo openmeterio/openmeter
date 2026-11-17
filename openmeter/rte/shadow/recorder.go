@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -51,7 +51,7 @@ type publication struct {
 
 type Recorder struct {
 	config       Config
-	publications metric.Int64Counter
+	publications *rtemetrics.Publications
 	ctx          context.Context
 	cancel       context.CancelFunc
 	queue        chan publication
@@ -64,7 +64,7 @@ func NewRecorder(ctx context.Context, config Config) (*Recorder, error) {
 		return nil, err
 	}
 
-	publications, err := config.Meter.Int64Counter("rte.comparison.publications", metric.WithDescription("Observation and source event delivery attempts by outcome"))
+	publications, err := rtemetrics.NewPublications(config.Meter)
 	if err != nil {
 		return nil, err
 	}
@@ -113,14 +113,14 @@ func (r *Recorder) observe(ctx context.Context, key rte.Key, kind rte.Calculatio
 	item := publication{kind: kind, operation: op}
 	target, err := rte.NewCalculationTarget(key)
 	if err != nil {
-		r.count(ctx, item, "invalid")
+		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeInvalid)
 		return
 	}
 
 	// NewCalculationTarget encodes the typed key, so every producer sees the
 	// same bytes for the same balance, across replicas and operation types.
 	if int(crc32.ChecksumIEEE(target.Key)%100) >= r.config.SamplePercent {
-		r.count(ctx, item, "sampled_out")
+		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeSampledOut)
 		return
 	}
 
@@ -141,14 +141,14 @@ func (r *Recorder) enqueue(ctx context.Context, item publication) {
 	defer r.admission.RUnlock()
 
 	if r.ctx.Err() != nil {
-		r.count(ctx, item, "stopped")
+		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeStopped)
 		return
 	}
 
 	select {
 	case r.queue <- item:
 	default:
-		r.count(ctx, item, "queue_full")
+		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeQueueFull)
 	}
 }
 
@@ -161,7 +161,7 @@ func (r *Recorder) run() {
 		r.admission.Unlock()
 
 		for item := range r.queue {
-			r.count(r.ctx, item, "stopped")
+			r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeStopped)
 		}
 
 		close(r.done)
@@ -173,12 +173,12 @@ func (r *Recorder) run() {
 			return
 		case item := <-r.queue:
 			if r.ctx.Err() != nil {
-				r.count(r.ctx, item, "stopped")
+				r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeStopped)
 				return
 			}
 
 			if event, ok := item.event.(rte.BalanceComparisonEvent); ok && time.Since(event.ObservedAt) >= rte.ComparisonObservationTTL {
-				r.count(r.ctx, item, "expired")
+				r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeExpired)
 				continue
 			}
 
@@ -188,24 +188,13 @@ func (r *Recorder) run() {
 			err := r.config.Publish(ctx, item.event)
 			cancel()
 			if err != nil {
-				r.count(r.ctx, item, "failed")
+				r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeFailed)
 				r.config.Logger.DebugContext(r.ctx, "publish RTE comparison event", "error", err)
 
 				continue
 			}
 
-			r.count(r.ctx, item, "published")
+			r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomePublished)
 		}
 	}
-}
-
-func (r *Recorder) count(ctx context.Context, item publication, outcome string) {
-	event := "observation"
-	if item.operation == "" {
-		event = "source"
-	}
-
-	r.publications.Add(ctx, 1, metric.WithAttributes(attribute.String("event", event),
-		attribute.String("kind", string(item.kind)), attribute.String("operation", string(item.operation)),
-		attribute.String("outcome", outcome)))
 }

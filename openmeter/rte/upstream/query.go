@@ -3,10 +3,42 @@ package upstream
 import (
 	"time"
 
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/lib/pq"
+
+	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	chargedb "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	overridedb "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	subjectdb "github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
+	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
+	featuredb "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	accountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgercustomeraccount"
+	entrydb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerentry"
+	subaccountdb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccount"
+	routedb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgersubaccountroute"
+	transactiondb "github.com/openmeterio/openmeter/openmeter/ent/db/ledgertransaction"
+	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
+	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/rte"
 )
 
-const activeDemand = `d.deleted_at IS NULL AND (d.push_enabled OR d.pull_until > $2)`
+// Only already-tracked keys are candidates. Routing a fact must not activate keys.
+func activeDemandSelector(namespace string, now time.Time) *sql.Selector {
+	pg := sql.Dialect(dialect.Postgres)
+	d := pg.Table(demanddb.Table).As("d")
+
+	return pg.Select(d.C(demanddb.FieldNamespace), d.C(demanddb.FieldKind), d.C(demanddb.FieldKey)).From(d).
+		Where(sql.And(
+			sql.EQ(d.C(demanddb.FieldNamespace), namespace),
+			sql.IsNull(d.C(demanddb.FieldDeletedAt)),
+			sql.Or(sql.IsTrue(d.C(demanddb.FieldPushEnabled)), sql.GT(d.C(demanddb.FieldPullUntil), now)),
+		))
+}
 
 type ledgerQuery struct {
 	namespace, groupID string
@@ -14,18 +46,57 @@ type ledgerQuery struct {
 }
 
 func (q ledgerQuery) SQL() (string, []any) {
-	return `SELECT d.namespace, d.kind, d.key FROM rte_demands d
-WHERE d.namespace = $1 AND ` + activeDemand + ` AND d.kind = 'credit_balance' AND EXISTS (
- SELECT 1 FROM ledger_transactions t
- JOIN ledger_entries e ON e.namespace = t.namespace AND e.transaction_id = t.id
- JOIN ledger_sub_accounts s ON s.namespace = e.namespace AND s.id = e.sub_account_id
- JOIN ledger_customer_accounts a ON a.namespace = s.namespace AND a.account_id = s.account_id
- JOIN ledger_sub_account_routes r ON r.namespace = s.namespace AND r.id = s.route_id
- WHERE t.namespace = d.namespace AND t.group_id = $3 AND a.customer_id = d.owner_id
- AND ((d.key->'currency'->>'custom_currency_id' IS NULL AND r.currency = d.key->'currency'->>'code')
- OR (d.key->'currency'->>'custom_currency_id' IS NOT NULL
-     AND split_part(r.currency, '|', 4) = d.key->'currency'->>'custom_currency_id'))
-)`, []any{q.namespace, q.now, q.groupID}
+	pg := sql.Dialect(dialect.Postgres)
+	d := activeDemandSelector(q.namespace, q.now)
+	t := pg.Table(transactiondb.Table).As("t")
+	e := pg.Table(entrydb.Table).As("e")
+	s := pg.Table(subaccountdb.Table).As("s")
+	a := pg.Table(accountdb.Table).As("a")
+	r := pg.Table(routedb.Table).As("r")
+
+	entries := pg.Select(t.C(transactiondb.FieldID)).From(t).
+		Join(e).OnP(sql.And(
+		sql.ColumnsEQ(e.C(entrydb.FieldNamespace), t.C(transactiondb.FieldNamespace)),
+		sql.ColumnsEQ(e.C(entrydb.FieldTransactionID), t.C(transactiondb.FieldID)),
+	)).
+		Join(s).OnP(sql.And(
+		sql.ColumnsEQ(s.C(subaccountdb.FieldNamespace), e.C(entrydb.FieldNamespace)),
+		sql.ColumnsEQ(s.C(subaccountdb.FieldID), e.C(entrydb.FieldSubAccountID)),
+	)).
+		Join(a).OnP(sql.And(
+		sql.ColumnsEQ(a.C(accountdb.FieldNamespace), s.C(subaccountdb.FieldNamespace)),
+		sql.ColumnsEQ(a.C(accountdb.FieldAccountID), s.C(subaccountdb.FieldAccountID)),
+	)).
+		Join(r).OnP(sql.And(
+		sql.ColumnsEQ(r.C(routedb.FieldNamespace), s.C(subaccountdb.FieldNamespace)),
+		sql.ColumnsEQ(r.C(routedb.FieldID), s.C(subaccountdb.FieldRouteID)),
+	)).
+		Where(sql.And(
+			sql.ColumnsEQ(t.C(transactiondb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+			sql.EQ(t.C(transactiondb.FieldGroupID), q.groupID),
+			sql.ColumnsEQ(a.C(accountdb.FieldCustomerID), d.C(demanddb.FieldOwnerID)),
+			ledgerCurrencyScope(d.C(demanddb.FieldKey), r.C(routedb.FieldCurrency)),
+		))
+
+	return d.Where(sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindCreditBalance), sql.Exists(entries))).Query()
+}
+
+// Custom ledger routes include the stable currency ID in their fourth component.
+// Fiat routes match by code; feature scopes share the same ledger funding changes.
+func ledgerCurrencyScope(key, currency string) *sql.Predicate {
+	custom := sqljson.Path("currency", "custom_currency_id")
+	return sql.Or(
+		sql.And(
+			sql.Not(sqljson.HasKey(key, custom, sqljson.Unquote(true))),
+			sqljson.ValueEQ(key, sql.ExprFunc(func(b *sql.Builder) { b.Ident(currency) }), sqljson.Path("currency", "code")),
+		),
+		sql.And(
+			sqljson.HasKey(key, custom, sqljson.Unquote(true)),
+			sqljson.ValueEQ(key, sql.ExprFunc(func(b *sql.Builder) {
+				b.WriteString("split_part").Wrap(func(b *sql.Builder) { b.Ident(currency).Comma().Arg("|").Comma().Arg(4) })
+			}), custom),
+		),
+	)
 }
 
 type customerQuery struct {
@@ -34,12 +105,20 @@ type customerQuery struct {
 }
 
 func (q customerQuery) SQL() (string, []any) {
-	return `SELECT d.namespace, d.kind, d.key FROM rte_demands d
-WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
- (d.kind = 'credit_balance' AND d.owner_id = $3) OR
- (d.kind = 'metered_entitlement' AND EXISTS (
-   SELECT 1 FROM entitlements e WHERE e.namespace = d.namespace
-   AND e.id = d.owner_id AND e.customer_id = $3)))`, []any{q.namespace, q.now, q.customerID}
+	pg := sql.Dialect(dialect.Postgres)
+	d := activeDemandSelector(q.namespace, q.now)
+	e := pg.Table(entitlementdb.Table).As("e")
+
+	entitlements := pg.Select(e.C(entitlementdb.FieldID)).From(e).Where(sql.And(
+		sql.ColumnsEQ(e.C(entitlementdb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+		sql.ColumnsEQ(e.C(entitlementdb.FieldID), d.C(demanddb.FieldOwnerID)),
+		sql.EQ(e.C(entitlementdb.FieldCustomerID), q.customerID),
+	))
+
+	return d.Where(sql.Or(
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindCreditBalance), sql.EQ(d.C(demanddb.FieldOwnerID), q.customerID)),
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindMeteredEntitlement), sql.Exists(entitlements)),
+	)).Query()
 }
 
 type featureQuery struct {
@@ -52,45 +131,103 @@ type meterQuery struct {
 	now                time.Time
 }
 
+// A meter change fans out through all its features, including ID-less charges
+// that still refer to a feature by key.
 func (q meterQuery) SQL() (string, []any) {
-	return `WITH affected_features AS (
- SELECT f.id, f.key FROM features f WHERE f.namespace = $1 AND f.meter_id = $3
-)
-SELECT d.namespace, d.kind, d.key FROM rte_demands d
-WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
- (d.kind = 'metered_entitlement' AND EXISTS (
-   SELECT 1 FROM entitlements e JOIN affected_features f ON f.id = e.feature_id
-   WHERE e.namespace = d.namespace AND e.id = d.owner_id)) OR
- (d.kind = 'credit_balance' AND EXISTS (
-   SELECT 1 FROM charge_usage_based c JOIN affected_features f
-   ON f.id = c.feature_id OR (c.feature_id IS NULL AND f.key = c.feature_key)
-   WHERE c.namespace = d.namespace AND c.customer_id = d.owner_id
-   AND ` + creditChargeScope + `)))`, []any{q.namespace, q.now, q.meterID}
+	pg := sql.Dialect(dialect.Postgres)
+	source := pg.Table(featuredb.Table)
+	features := pg.Select(source.C(featuredb.FieldID), source.C(featuredb.FieldKey)).From(source).
+		Where(sql.And(sql.EQ(source.C(featuredb.FieldNamespace), q.namespace), sql.EQ(source.C(featuredb.FieldMeterID), q.meterID)))
+
+	d := activeDemandSelector(q.namespace, q.now)
+	f := pg.Table("affected_features").As("f")
+	e := pg.Table(entitlementdb.Table).As("e")
+	c := pg.Table(chargedb.Table).As("c")
+
+	entitlements := pg.Select(e.C(entitlementdb.FieldID)).From(e).
+		Join(f).On(f.C(featuredb.FieldID), e.C(entitlementdb.FieldFeatureID)).
+		Where(sql.And(
+			sql.ColumnsEQ(e.C(entitlementdb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+			sql.ColumnsEQ(e.C(entitlementdb.FieldID), d.C(demanddb.FieldOwnerID)),
+		))
+
+	charges := pg.Select(c.C(chargedb.FieldID)).From(c).Join(f).OnP(chargeFeatureMatch(c, f)).
+		Where(sql.And(
+			sql.ColumnsEQ(c.C(chargedb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+			sql.ColumnsEQ(c.C(chargedb.FieldCustomerID), d.C(demanddb.FieldOwnerID)),
+			creditChargeScope(d.C(demanddb.FieldKey), c),
+		))
+
+	return d.Prefix(pg.With("affected_features").As(features)).Where(sql.Or(
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindMeteredEntitlement), sql.Exists(entitlements)),
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindCreditBalance), sql.Exists(charges)),
+	)).Query()
 }
 
 func (q featureQuery) SQL() (string, []any) {
-	return `SELECT d.namespace, d.kind, d.key FROM rte_demands d
-WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
- (d.kind = 'metered_entitlement' AND EXISTS (
-   SELECT 1 FROM entitlements e WHERE e.namespace = d.namespace
-   AND e.id = d.owner_id AND e.feature_id = $3)) OR
- (d.kind = 'credit_balance' AND EXISTS (
-   SELECT 1 FROM charge_usage_based c JOIN features f
-   ON f.namespace = c.namespace AND (f.id = c.feature_id OR (c.feature_id IS NULL AND f.key = c.feature_key))
-   WHERE c.namespace = d.namespace AND c.customer_id = d.owner_id
-   AND f.id = $3 AND ` + creditChargeScope + `)))`, []any{q.namespace, q.now, q.featureID}
+	pg := sql.Dialect(dialect.Postgres)
+	d := activeDemandSelector(q.namespace, q.now)
+	e := pg.Table(entitlementdb.Table).As("e")
+	c := pg.Table(chargedb.Table).As("c")
+	f := pg.Table(featuredb.Table).As("f")
+
+	entitlements := pg.Select(e.C(entitlementdb.FieldID)).From(e).Where(sql.And(
+		sql.ColumnsEQ(e.C(entitlementdb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+		sql.ColumnsEQ(e.C(entitlementdb.FieldID), d.C(demanddb.FieldOwnerID)),
+		sql.EQ(e.C(entitlementdb.FieldFeatureID), q.featureID),
+	))
+
+	charges := pg.Select(c.C(chargedb.FieldID)).From(c).Join(f).OnP(sql.And(
+		sql.ColumnsEQ(f.C(featuredb.FieldNamespace), c.C(chargedb.FieldNamespace)),
+		chargeFeatureMatch(c, f),
+	)).Where(sql.And(
+		sql.ColumnsEQ(c.C(chargedb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+		sql.ColumnsEQ(c.C(chargedb.FieldCustomerID), d.C(demanddb.FieldOwnerID)),
+		sql.EQ(f.C(featuredb.FieldID), q.featureID),
+		creditChargeScope(d.C(demanddb.FieldKey), c),
+	))
+
+	return d.Where(sql.Or(
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindMeteredEntitlement), sql.Exists(entitlements)),
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindCreditBalance), sql.Exists(charges)),
+	)).Query()
+}
+
+func chargeFeatureMatch(c, f *sql.SelectTable) *sql.Predicate {
+	return sql.Or(
+		sql.ColumnsEQ(f.C(featuredb.FieldID), c.C(chargedb.FieldFeatureID)),
+		sql.And(sql.IsNull(c.C(chargedb.FieldFeatureID)), sql.ColumnsEQ(f.C(featuredb.FieldKey), c.C(chargedb.FieldFeatureKey))),
+	)
 }
 
 // Match current customerbalance live calculation identity. A feature-bound
 // charge contributes to the portfolio and that feature, not unrestricted views.
-const creditChargeScope = `(
- (c.currency IS NOT NULL AND d.key->'currency'->>'code' = c.currency
-  AND d.key->'currency'->>'custom_currency_id' IS NULL) OR
- (c.custom_currency_id IS NOT NULL AND d.key->'currency'->>'custom_currency_id' = c.custom_currency_id)
-) AND (
- d.key->'featureFilter' IS NULL OR d.key->'featureFilter' = 'null'::jsonb
- OR d.key->'featureFilter' @> jsonb_build_array(c.feature_key)
-)`
+func creditChargeScope(key string, c *sql.SelectTable) *sql.Predicate {
+	custom := sqljson.Path("currency", "custom_currency_id")
+	feature := sqljson.Path("featureFilter")
+	return sql.And(
+		sql.Or(
+			sql.And(
+				sql.NotNull(c.C(chargedb.FieldFiatCurrencyCode)),
+				sqljson.ValueEQ(key, sql.ExprFunc(func(b *sql.Builder) { b.Ident(c.C(chargedb.FieldFiatCurrencyCode)) }), sqljson.Path("currency", "code")),
+				sql.Not(sqljson.HasKey(key, custom, sqljson.Unquote(true))),
+			),
+			sql.And(
+				sql.NotNull(c.C(chargedb.FieldCustomCurrencyID)),
+				sqljson.ValueEQ(key, sql.ExprFunc(func(b *sql.Builder) { b.Ident(c.C(chargedb.FieldCustomCurrencyID)) }), custom),
+			),
+		),
+		sql.Or(
+			sql.Not(sqljson.HasKey(key, feature)),
+			sqljson.ValueIsNull(key, feature),
+			sql.P(func(b *sql.Builder) {
+				b.Join(sqljson.ValuePath(key, feature)).WriteString(" @> jsonb_build_array").Wrap(func(b *sql.Builder) {
+					b.Ident(c.C(chargedb.FieldFeatureKey))
+				})
+			}),
+		),
+	)
+}
 
 type ingestQuery struct {
 	namespace, subject     string
@@ -100,45 +237,126 @@ type ingestQuery struct {
 }
 
 func (q ingestQuery) SQL() (string, []any) {
+	pg := sql.Dialect(dialect.Postgres)
+	d := activeDemandSelector(q.namespace, q.now)
+	ctes := pg.With("customers_by_subject").As(q.customersBySubject()).
+		With("features_by_meter").As(q.featuresByMeter())
+
+	return d.Prefix(ctes).Where(sql.Or(
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindMeteredEntitlement), sql.Exists(q.meteredEntitlements(d))),
+		sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindCreditBalance), sql.Exists(q.creditCharges(d))),
+	)).Query()
+}
+
+func (q ingestQuery) customersBySubject() *sql.Selector {
+	pg := sql.Dialect(dialect.Postgres)
+	c := pg.Table(customerdb.Table).As("c")
+	cs := pg.Table(subjectdb.Table).As("cs")
+	mapping := pg.Select(cs.C(subjectdb.FieldID)).From(cs).Where(sql.And(
+		sql.ColumnsEQ(cs.C(subjectdb.FieldNamespace), c.C(customerdb.FieldNamespace)),
+		sql.ColumnsEQ(cs.C(subjectdb.FieldCustomerID), c.C(customerdb.FieldID)),
+		sql.EQ(cs.C(subjectdb.FieldSubjectKey), q.subject),
+		sql.IsNull(cs.C(subjectdb.FieldDeletedAt)),
+	))
+
+	return pg.Select(c.C(customerdb.FieldID)).From(c).Where(sql.And(
+		sql.EQ(c.C(customerdb.FieldNamespace), q.namespace),
+		sql.Or(sql.IsNull(c.C(customerdb.FieldDeletedAt)), sql.GT(c.C(customerdb.FieldDeletedAt), q.now)),
+		sql.Or(sql.EQ(c.C(customerdb.FieldKey), q.subject), sql.Exists(mapping)),
+	))
+}
+
+func (q ingestQuery) featuresByMeter() *sql.Selector {
+	pg := sql.Dialect(dialect.Postgres)
+	f := pg.Table(featuredb.Table).As("f")
+	m := pg.Table(meterdb.Table).As("m")
+
+	return pg.Select(f.C(featuredb.FieldID), f.C(featuredb.FieldKey)).From(f).Join(m).OnP(sql.And(
+		sql.ColumnsEQ(m.C(meterdb.FieldNamespace), f.C(featuredb.FieldNamespace)),
+		sql.ColumnsEQ(m.C(meterdb.FieldID), f.C(featuredb.FieldMeterID)),
+	)).Where(sql.And(
+		sql.EQ(f.C(featuredb.FieldNamespace), q.namespace),
+		sql.Or(
+			sql.P(func(b *sql.Builder) {
+				b.Ident(m.C(meterdb.FieldKey)).WriteString(" = ANY(").Arg(pq.Array(q.meterSlugs)).WriteString("::text[])")
+			}),
+			sql.P(func(b *sql.Builder) {
+				b.Ident(m.C(meterdb.FieldEventType)).WriteString(" = ANY(").Arg(pq.Array(q.eventTypes)).WriteString("::text[])")
+			}),
+		),
+	))
+}
+
+// Do not compare StoredAt to previous source timestamps. Late events can change
+// an earlier balance. The by-ID calculator also includes usage after active_to.
+func (q ingestQuery) meteredEntitlements(d *sql.Selector) *sql.Selector {
+	pg := sql.Dialect(dialect.Postgres)
+	e := pg.Table(entitlementdb.Table).As("e")
+	cs := pg.Table("customers_by_subject").As("cs")
+	f := pg.Table("features_by_meter").As("f")
+	times := q.usageTimes().Where(sql.And(
+		sql.P(func(b *sql.Builder) {
+			b.Ident(pg.Table("t").C("at")).WriteOp(sql.OpGTE).Join(coalesce(e.C(entitlementdb.FieldMeasureUsageFrom), e.C(entitlementdb.FieldActiveFrom), e.C(entitlementdb.FieldCreatedAt)))
+		}),
+		sql.Or(sql.IsNull(e.C(entitlementdb.FieldDeletedAt)), sql.ColumnsLT(pg.Table("t").C("at"), e.C(entitlementdb.FieldDeletedAt))),
+	))
+
+	return pg.Select(e.C(entitlementdb.FieldID)).From(e).
+		Join(cs).On(cs.C(customerdb.FieldID), e.C(entitlementdb.FieldCustomerID)).
+		Join(f).On(f.C(featuredb.FieldID), e.C(entitlementdb.FieldFeatureID)).
+		Where(sql.And(
+			sql.ColumnsEQ(e.C(entitlementdb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+			sql.ColumnsEQ(e.C(entitlementdb.FieldID), d.C(demanddb.FieldOwnerID)),
+			sql.EQ(e.C(entitlementdb.FieldEntitlementType), entitlement.EntitlementTypeMetered),
+			sql.Exists(times),
+		))
+}
+
+func (q ingestQuery) creditCharges(d *sql.Selector) *sql.Selector {
+	pg := sql.Dialect(dialect.Postgres)
+	c := pg.Table(chargedb.Table).As("c")
+	o := pg.Table(overridedb.Table).As("o")
+	cs := pg.Table("customers_by_subject").As("cs")
+	f := pg.Table("features_by_meter").As("f")
+	from := coalesce(o.C(overridedb.FieldServicePeriodFrom), c.C(chargedb.FieldServicePeriodFrom))
+	to := coalesce(o.C(overridedb.FieldServicePeriodTo), c.C(chargedb.FieldServicePeriodTo))
+	times := q.usageTimes().Where(sql.And(
+		sql.P(func(b *sql.Builder) { b.Ident(pg.Table("t").C("at")).WriteOp(sql.OpGTE).Join(from) }),
+		sql.P(func(b *sql.Builder) { b.Ident(pg.Table("t").C("at")).WriteOp(sql.OpLT).Join(to) }),
+	))
+
+	return pg.Select(c.C(chargedb.FieldID)).From(c).
+		Join(cs).On(cs.C(customerdb.FieldID), c.C(chargedb.FieldCustomerID)).
+		Join(f).OnP(chargeFeatureMatch(c, f)).
+		LeftJoin(o).OnP(sql.And(
+		sql.ColumnsEQ(o.C(overridedb.FieldNamespace), c.C(chargedb.FieldNamespace)),
+		sql.ColumnsEQ(o.C(overridedb.FieldChargeID), c.C(chargedb.FieldID)),
+	)).Where(sql.And(
+		sql.ColumnsEQ(c.C(chargedb.FieldNamespace), d.C(demanddb.FieldNamespace)),
+		sql.ColumnsEQ(c.C(chargedb.FieldCustomerID), d.C(demanddb.FieldOwnerID)),
+		sql.IsNull(c.C(chargedb.FieldDeletedAt)),
+		sql.NotIn(c.C(chargedb.FieldStatus), usagebased.StatusFinal, usagebased.StatusDeleted),
+		sql.In(c.C(chargedb.FieldSettlementMode), productcatalog.CreditOnlySettlementMode, productcatalog.CreditThenInvoiceSettlementMode),
+		sql.P(func(b *sql.Builder) { b.Join(from).WriteOp(sql.OpLTE).Arg(q.now) }),
+		sql.Exists(times),
+		creditChargeScope(d.C(demanddb.FieldKey), c),
+	))
+}
+
+func (q ingestQuery) usageTimes() *sql.Selector {
 	timestamps := make([]string, 0, len(q.timestamps))
 	for _, timestamp := range q.timestamps {
 		timestamps = append(timestamps, timestamp.UTC().Format(time.RFC3339Nano))
 	}
+	pg := sql.Dialect(dialect.Postgres)
 
-	// Do not compare StoredAt to previous source timestamps. A late event can
-	// change an earlier charge or the entitlement's resumable balance history.
-	// The by-ID entitlement calculator includes usage after active_to.
-	return `WITH customers_by_subject AS (
- SELECT c.id FROM customers c WHERE c.namespace = $1
- AND (c.deleted_at IS NULL OR c.deleted_at > $2)
- AND (c.key = $3 OR EXISTS (
-   SELECT 1 FROM customer_subjects cs WHERE cs.namespace = c.namespace
-   AND cs.customer_id = c.id AND cs.subject_key = $3 AND cs.deleted_at IS NULL))
-), features_by_meter AS (
- SELECT f.id, f.key FROM features f JOIN meters m
- ON m.namespace = f.namespace AND m.id = f.meter_id
- WHERE f.namespace = $1 AND (m.key = ANY($4::text[]) OR m.event_type = ANY($5::text[]))
-)
-SELECT d.namespace, d.kind, d.key FROM rte_demands d
-WHERE d.namespace = $1 AND ` + activeDemand + ` AND (
- (d.kind = 'metered_entitlement' AND EXISTS (
-   SELECT 1 FROM entitlements e JOIN customers_by_subject cs ON cs.id = e.customer_id
-   JOIN features_by_meter f ON f.id = e.feature_id
-   WHERE e.namespace = d.namespace AND e.id = d.owner_id AND e.entitlement_type = 'metered'
-   AND EXISTS (SELECT 1 FROM unnest($6::timestamptz[]) AS t(at)
-     WHERE t.at >= COALESCE(e.measure_usage_from, e.active_from, e.created_at)
-     AND (e.deleted_at IS NULL OR t.at < e.deleted_at)))) OR
- (d.kind = 'credit_balance' AND EXISTS (
-   SELECT 1 FROM charge_usage_based c
-   JOIN customers_by_subject cs ON cs.id = c.customer_id
-   JOIN features_by_meter f ON f.id = c.feature_id OR (c.feature_id IS NULL AND f.key = c.feature_key)
-   LEFT JOIN charge_usage_based_overrides o ON o.namespace = c.namespace AND o.charge_id = c.id
-   WHERE c.namespace = d.namespace AND c.customer_id = d.owner_id
-   AND c.deleted_at IS NULL AND c.status NOT IN ('final', 'deleted')
-   AND c.settlement_mode IN ('credit_only', 'credit_then_invoice')
-   AND COALESCE(o.service_period_from, c.service_period_from) <= $2
-   AND EXISTS (SELECT 1 FROM unnest($6::timestamptz[]) AS t(at)
-     WHERE t.at >= COALESCE(o.service_period_from, c.service_period_from)
-     AND t.at < COALESCE(o.service_period_to, c.service_period_to))
-   AND ` + creditChargeScope + `)))`, []any{q.namespace, q.now, q.subject, pq.Array(q.meterSlugs), pq.Array(q.eventTypes), pq.Array(timestamps)}
+	return pg.Select(pg.Table("t").C("at")).FromExpr(sql.ExprFunc(func(b *sql.Builder) {
+		b.WriteString("unnest(").Arg(pq.Array(timestamps)).WriteString("::timestamptz[]) AS ").Ident("t").WriteString("(").Ident("at").WriteString(")")
+	}))
+}
+
+func coalesce(columns ...string) sql.Querier {
+	return sql.ExprFunc(func(b *sql.Builder) {
+		b.WriteString("COALESCE").Wrap(func(b *sql.Builder) { b.IdentComma(columns...) })
+	})
 }

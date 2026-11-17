@@ -143,15 +143,13 @@ to the credit calculator process. A restart loses cache entries and preserves st
 `make build-rte` builds `build/rte`. Run `build/rte --config config.yaml` with `rte.enabled`, `credits.enabled`
 and the usual event, storage and telemetry settings. See the [worker command](../../cmd/rte/README.md). `rte.consumerGroupName`, `rte.retry` and
 `rte.dlq` configure message consumption. `rte.pollInterval` controls idle polling for demand
-(default 1s) and `rte.calculationTimeout` bounds a demand attempt (default 30s). Subscription
+(default 1s per idle slot). `rte.calculationConcurrency` bounds background calculations per process
+(default 4); message-handler calculations run separately. `rte.calculationTimeout` bounds a demand
+attempt (default 30s). Subscription
 health is available at `/healthz/subscriptions` on the telemetry server.
 
-| Operational question | OpenTelemetry instruments |
-| --- | --- |
-| How often did each engine run, and how long did it take to calculate and store? | `rte.calculations` and `rte.calculation.duration` by `kind` and `outcome` (`updated`, `superseded`, `failed`). |
-| Did `EnsureFresh` reuse the stored result? How many tracked keys did incoming changes dirty? | `rte.demand.operations` by operation and outcome, and `rte.demand.invalidated` for the matched key count. |
-| Are input facts arriving late or missing relevant targets? | `rte.upstream.lag` measures time from publication to handling. `rte.upstream.events` distinguishes `routed`, `no_target` and `error`. |
-| Are direct reads finding state, and is rating work being reused? | `rte.state.reads` reports hits, misses (`missing`) and failures. `rte.rating.lookups` counts per-charge hits and misses. |
+See the [metric reference](metrics/README.md#instruments) for instruments, units,
+labels and what each measurement includes.
 
 ### Comparing performance on live traffic
 
@@ -172,34 +170,7 @@ A shadow read tracks changes for one minute and accepts a clean result up to 30 
 The metered calculator can read existing entitlement snapshots. Only the production reader
 maintains them. Shadow calculations write RTE state and the usual RTE update events.
 
-**Reading the measurements**
-
-- Compare `rte.comparison.duration` (ms) by `kind`, `operation` and `variant` (`direct` or `rte`).
-  Each successful replay contributes one measurement per variant. Divide each duration sum by
-  its count for the mean, or compare p95s across the same window. To weight by real traffic,
-  sum the durations across operations before dividing by the total count.
-- Check `rte.comparison.publications` on producers for drops or failed deliveries,
-  `rte.comparison.executions` on the worker for failures and expired samples, and
-  `rte.comparison.lag` for time between the original call and replay. An observation expires
-  after one minute. Kafka redelivery can repeat an observation. Lost source facts or a backlog can inflate the apparent cache hit rate.
-- Use `rte.demand.ensure_fresh.duration` (s) by `kind` and `outcome` to separate cache hits
-  from recalculations. `rte.state.read.duration` and `rte.calculation.duration` (s) show the
-  state read and calculation costs. These timings overlap the paired RTE measurement.
-- The comparison measures balance work once the key is known. HTTP handling, currency or
-  entitlement lookup, Kafka lag, and asynchronous outbox delivery fall outside that timing.
-  `rte.upstream.routing.duration` (s) measures the additional work to resolve source events
-  and mark balances dirty, including events that match no target.
-  Check API latency, database and ClickHouse load alongside it. Shadow traffic adds real work
-  and shares source data and database caches with the existing path.
-
-For the percentage of balance-operation time saved in the observed read/calculation mix,
-use the paired histogram sums. A negative value means RTE took longer.
-
-```promql
-100 * (1 -
-  sum by (kind) (rate(rte_comparison_duration_milliseconds_sum{variant="rte"}[1h]))
-  / sum by (kind) (rate(rte_comparison_duration_milliseconds_sum{variant="direct"}[1h]))
-)
-```
+See [reading the performance comparison](metrics/README.md#reading-the-performance-comparison)
+for paired timings, sample coverage, measurement boundaries and the time-saved query.
 
 Disable `rte.enabled` and restart or redeploy the participating processes to end the trial.

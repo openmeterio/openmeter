@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -56,7 +57,7 @@ func TestServiceLifecycle(t *testing.T) {
 	calls, writes, updates := 0, 0, 0
 	sourceErr := errors.New("source unavailable")
 	var stored *rte.State[int]
-	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
+	metrics, err := rtemetrics.NewCalculation(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
 	require.NoError(t, err)
 
 	engine := newCalculation(Registration[testKey, int]{
@@ -129,7 +130,7 @@ func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
 	ctx := t.Context()
 	key := testKey("calculation")
 	winner := rte.State[int]{CalculatedAt: startedAt.Add(time.Minute), Value: 100}
-	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
+	metrics, err := rtemetrics.NewCalculation(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
 	require.NoError(t, err)
 
 	engine := newCalculation(Registration[testKey, int]{
@@ -161,7 +162,7 @@ func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
 func TestServiceRejectsInvalidKeys(t *testing.T) {
 	// Given collaborators that record any accidental invocation.
 	calls := 0
-	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
+	metrics, err := rtemetrics.NewCalculation(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
 	require.NoError(t, err)
 
 	engine := newCalculation(Registration[testKey, int]{

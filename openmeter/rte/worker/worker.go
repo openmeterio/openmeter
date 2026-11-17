@@ -8,12 +8,11 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/openmeter/rte/upstream"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/grouphandler"
@@ -23,14 +22,15 @@ import (
 )
 
 type Config struct {
-	Service           rte.Service
-	SystemEventsTopic string
-	IngestEventsTopic string
-	Demand            rte.DemandService
-	Sources           rte.UpstreamResolver
-	PollInterval      time.Duration
-	Marshaler         marshaler.Marshaler
-	Router            router.Options
+	Service                rte.Service
+	SystemEventsTopic      string
+	IngestEventsTopic      string
+	Demand                 rte.DemandService
+	Sources                rte.UpstreamResolver
+	PollInterval           time.Duration
+	CalculationConcurrency int
+	Marshaler              marshaler.Marshaler
+	Router                 router.Options
 }
 
 func (c Config) Validate() error {
@@ -45,6 +45,10 @@ func (c Config) Validate() error {
 
 	if c.IngestEventsTopic == "" || c.IngestEventsTopic == c.SystemEventsTopic {
 		errs = append(errs, errors.New("ingest events require a separate topic"))
+	}
+
+	if c.CalculationConcurrency <= 0 {
+		errs = append(errs, errors.New("calculation concurrency must be positive"))
 	}
 
 	if c.PollInterval <= 0 {
@@ -67,16 +71,15 @@ func (c Config) Validate() error {
 }
 
 type worker struct {
-	service         rte.Service
-	router          *message.Router
-	demand          rte.DemandService
-	sources         rte.UpstreamResolver
-	pollInterval    time.Duration
-	logger          *slog.Logger
-	sourceEvents    metric.Int64Counter
-	sourceLag       metric.Float64Histogram
-	routingDuration metric.Float64Histogram
-	comparison      *comparisonMetrics
+	service                rte.Service
+	router                 *message.Router
+	demand                 rte.DemandService
+	sources                rte.UpstreamResolver
+	pollInterval           time.Duration
+	calculationConcurrency int
+	logger                 *slog.Logger
+	upstream               *rtemetrics.Upstream
+	comparison             *rtemetrics.Comparison
 }
 
 func New(config Config) (rte.Worker, error) {
@@ -89,31 +92,26 @@ func New(config Config) (rte.Worker, error) {
 		return nil, err
 	}
 
-	sourceEvents, err := config.Router.MetricMeter.Int64Counter("rte.upstream.events", metric.WithDescription("Supported source events by routing outcome"))
+	upstreamMetrics, err := rtemetrics.NewUpstream(config.Router.MetricMeter)
 	if err != nil {
 		return nil, err
 	}
 
-	sourceLag, err := config.Router.MetricMeter.Float64Histogram("rte.upstream.lag", metric.WithUnit("s"), metric.WithDescription("Source publication to RTE processing delay"))
-	if err != nil {
-		return nil, err
-	}
-
-	routingDuration, err := config.Router.MetricMeter.Float64Histogram("rte.upstream.routing.duration", metric.WithUnit("s"), rte.DurationBuckets(),
-		metric.WithDescription("Time to resolve a source event and mark matching balances dirty"))
-	if err != nil {
-		return nil, err
-	}
-
-	comparison, err := newComparisonMetrics(config.Router.MetricMeter)
+	comparison, err := rtemetrics.NewComparison(config.Router.MetricMeter)
 	if err != nil {
 		return nil, err
 	}
 
 	w := &worker{
-		service: config.Service, router: r, demand: config.Demand, sources: config.Sources,
-		pollInterval: config.PollInterval, logger: config.Router.Logger,
-		sourceEvents: sourceEvents, sourceLag: sourceLag, routingDuration: routingDuration, comparison: comparison,
+		service:                config.Service,
+		router:                 r,
+		demand:                 config.Demand,
+		sources:                config.Sources,
+		pollInterval:           config.PollInterval,
+		calculationConcurrency: config.CalculationConcurrency,
+		logger:                 config.Router.Logger,
+		upstream:               upstreamMetrics,
+		comparison:             comparison,
 	}
 
 	handler, err := grouphandler.NewNoPublishingHandler(config.Marshaler, config.Router.MetricMeter,
@@ -140,10 +138,10 @@ func New(config Config) (rte.Worker, error) {
 
 func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error {
 	ctx := msg.Context()
-	name := attribute.String("event", event.EventName())
-	outcome := "error"
+	name := event.EventName()
+	outcome := rtemetrics.UpstreamOutcomeError
 	defer func() {
-		w.sourceEvents.Add(ctx, 1, metric.WithAttributes(name, attribute.String("outcome", outcome)))
+		w.upstream.Event(ctx, name, outcome)
 	}()
 
 	envelope, err := marshaler.DecodeCloudEvent(msg, event)
@@ -156,7 +154,7 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 	}
 
 	if !envelope.Time().IsZero() {
-		w.sourceLag.Record(ctx, max(0, time.Since(envelope.Time()).Seconds()), metric.WithAttributes(name))
+		w.upstream.Lag(ctx, name, envelope.Time())
 	}
 
 	if batch, ok := event.(*ingestevents.EventBatchedIngest); ok {
@@ -170,7 +168,7 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 	// Measure routing separately from waiting for the stored usage to become visible.
 	start := time.Now()
 	defer func() {
-		w.routingDuration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(name, attribute.String("outcome", outcome)))
+		w.upstream.Routing(ctx, name, start, outcome)
 	}()
 
 	selectors, err := w.sources.Resolve(ctx, event)
@@ -179,7 +177,7 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 	}
 
 	if len(selectors) == 0 {
-		outcome = "no_target"
+		outcome = rtemetrics.UpstreamOutcomeNoTarget
 		return nil
 	}
 
@@ -189,7 +187,7 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 		return err
 	}
 
-	outcome = "routed"
+	outcome = rtemetrics.UpstreamOutcomeRouted
 
 	return nil
 }
@@ -216,10 +214,12 @@ func (w *worker) handleRequested(ctx context.Context, event *rte.CalculationRequ
 
 func (w *worker) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		w.processDemand(ctx)
+		w.pollDemands(ctx)
 	}()
 
 	err := w.router.Run(ctx)
@@ -227,29 +227,6 @@ func (w *worker) Run(ctx context.Context) error {
 	<-done
 
 	return err
-}
-
-// Input handlers commit dirty versions to PostgreSQL. Poll the durable queue so
-// bursts can share a calculation and a worker can pick up work after a restart.
-func (w *worker) processDemand(ctx context.Context) {
-	ticker := time.NewTicker(w.pollInterval)
-	defer ticker.Stop()
-	for ctx.Err() == nil {
-		processed, err := w.demand.Process(ctx)
-		if err != nil && ctx.Err() == nil {
-			w.logger.ErrorContext(ctx, "process demanded calculation", "error", err)
-		}
-
-		if processed {
-			continue
-		}
-
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-		}
-	}
 }
 
 func (w *worker) Close() error {

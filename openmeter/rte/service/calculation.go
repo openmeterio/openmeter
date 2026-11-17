@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -34,14 +35,14 @@ func (r Registration[K, Result]) Validate() error {
 }
 
 type calculation[K rte.Key, Result any] struct {
-	metrics      calculationMetrics
+	metrics      rtemetrics.Calculation
 	calculator   rte.Calculator[K, Result]
 	store        rte.Store[K, Result]
 	publisher    eventbus.Publisher
 	updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)
 }
 
-func newCalculation[K rte.Key, Result any](r Registration[K, Result], metrics calculationMetrics, publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) rte.Calculation[K, Result] {
+func newCalculation[K rte.Key, Result any](r Registration[K, Result], metrics rtemetrics.Calculation, publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) rte.Calculation[K, Result] {
 	return &calculation[K, Result]{
 		metrics:      metrics,
 		calculator:   r.Calculator,
@@ -57,9 +58,9 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 	}
 
 	started := time.Now()
-	outcome := calculationOutcomeFailed
+	outcome := rtemetrics.CalculationOutcomeFailed
 	defer func() {
-		c.metrics.calculated(ctx, started, outcome)
+		c.metrics.Calculated(ctx, started, outcome)
 	}()
 
 	calculatedAt := clock.Now()
@@ -93,9 +94,9 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 		return result.State, nil
 	})
 	if err == nil {
-		outcome = calculationOutcomeSuperseded
+		outcome = rtemetrics.CalculationOutcomeSuperseded
 		if updated {
-			outcome = calculationOutcomeUpdated
+			outcome = rtemetrics.CalculationOutcomeUpdated
 		}
 	}
 
@@ -111,11 +112,11 @@ func (c *calculation[K, Result]) Get(ctx context.Context, key K) (rte.State[Resu
 	state, err := c.store.Get(ctx, key)
 	switch {
 	case err == nil:
-		c.metrics.read(ctx, start, readOutcomeHit)
+		c.metrics.Read(ctx, start, rtemetrics.ReadOutcomeHit)
 	case models.IsGenericNotFoundError(err):
-		c.metrics.read(ctx, start, readOutcomeMissing)
+		c.metrics.Read(ctx, start, rtemetrics.ReadOutcomeMissing)
 	default:
-		c.metrics.read(ctx, start, readOutcomeFailed)
+		c.metrics.Read(ctx, start, rtemetrics.ReadOutcomeFailed)
 	}
 
 	return state, err
