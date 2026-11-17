@@ -130,44 +130,23 @@ func (_u *RTEDemandUpdate) AddCompletedVersion(v int64) *RTEDemandUpdate {
 	return _u
 }
 
-// SetRefreshInterval sets the "refresh_interval" field.
-func (_u *RTEDemandUpdate) SetRefreshInterval(v int64) *RTEDemandUpdate {
-	_u.mutation.ResetRefreshInterval()
-	_u.mutation.SetRefreshInterval(v)
+// SetSourceDeleteAt sets the "source_delete_at" field.
+func (_u *RTEDemandUpdate) SetSourceDeleteAt(v time.Time) *RTEDemandUpdate {
+	_u.mutation.SetSourceDeleteAt(v)
 	return _u
 }
 
-// SetNillableRefreshInterval sets the "refresh_interval" field if the given value is not nil.
-func (_u *RTEDemandUpdate) SetNillableRefreshInterval(v *int64) *RTEDemandUpdate {
+// SetNillableSourceDeleteAt sets the "source_delete_at" field if the given value is not nil.
+func (_u *RTEDemandUpdate) SetNillableSourceDeleteAt(v *time.Time) *RTEDemandUpdate {
 	if v != nil {
-		_u.SetRefreshInterval(*v)
+		_u.SetSourceDeleteAt(*v)
 	}
 	return _u
 }
 
-// AddRefreshInterval adds value to the "refresh_interval" field.
-func (_u *RTEDemandUpdate) AddRefreshInterval(v int64) *RTEDemandUpdate {
-	_u.mutation.AddRefreshInterval(v)
-	return _u
-}
-
-// SetNextRefreshAt sets the "next_refresh_at" field.
-func (_u *RTEDemandUpdate) SetNextRefreshAt(v time.Time) *RTEDemandUpdate {
-	_u.mutation.SetNextRefreshAt(v)
-	return _u
-}
-
-// SetNillableNextRefreshAt sets the "next_refresh_at" field if the given value is not nil.
-func (_u *RTEDemandUpdate) SetNillableNextRefreshAt(v *time.Time) *RTEDemandUpdate {
-	if v != nil {
-		_u.SetNextRefreshAt(*v)
-	}
-	return _u
-}
-
-// ClearNextRefreshAt clears the value of the "next_refresh_at" field.
-func (_u *RTEDemandUpdate) ClearNextRefreshAt() *RTEDemandUpdate {
-	_u.mutation.ClearNextRefreshAt()
+// ClearSourceDeleteAt clears the value of the "source_delete_at" field.
+func (_u *RTEDemandUpdate) ClearSourceDeleteAt() *RTEDemandUpdate {
+	_u.mutation.ClearSourceDeleteAt()
 	return _u
 }
 
@@ -319,17 +298,11 @@ func (_u *RTEDemandUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.AddedCompletedVersion(); ok {
 		_spec.AddField(rtedemand.FieldCompletedVersion, field.TypeInt64, value)
 	}
-	if value, ok := _u.mutation.RefreshInterval(); ok {
-		_spec.SetField(rtedemand.FieldRefreshInterval, field.TypeInt64, value)
+	if value, ok := _u.mutation.SourceDeleteAt(); ok {
+		_spec.SetField(rtedemand.FieldSourceDeleteAt, field.TypeTime, value)
 	}
-	if value, ok := _u.mutation.AddedRefreshInterval(); ok {
-		_spec.AddField(rtedemand.FieldRefreshInterval, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.NextRefreshAt(); ok {
-		_spec.SetField(rtedemand.FieldNextRefreshAt, field.TypeTime, value)
-	}
-	if _u.mutation.NextRefreshAtCleared() {
-		_spec.ClearField(rtedemand.FieldNextRefreshAt, field.TypeTime)
+	if _u.mutation.SourceDeleteAtCleared() {
+		_spec.ClearField(rtedemand.FieldSourceDeleteAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastCalculatedAt(); ok {
 		_spec.SetField(rtedemand.FieldLastCalculatedAt, field.TypeTime, value)
@@ -468,44 +441,23 @@ func (_u *RTEDemandUpdateOne) AddCompletedVersion(v int64) *RTEDemandUpdateOne {
 	return _u
 }
 
-// SetRefreshInterval sets the "refresh_interval" field.
-func (_u *RTEDemandUpdateOne) SetRefreshInterval(v int64) *RTEDemandUpdateOne {
-	_u.mutation.ResetRefreshInterval()
-	_u.mutation.SetRefreshInterval(v)
+// SetSourceDeleteAt sets the "source_delete_at" field.
+func (_u *RTEDemandUpdateOne) SetSourceDeleteAt(v time.Time) *RTEDemandUpdateOne {
+	_u.mutation.SetSourceDeleteAt(v)
 	return _u
 }
 
-// SetNillableRefreshInterval sets the "refresh_interval" field if the given value is not nil.
-func (_u *RTEDemandUpdateOne) SetNillableRefreshInterval(v *int64) *RTEDemandUpdateOne {
+// SetNillableSourceDeleteAt sets the "source_delete_at" field if the given value is not nil.
+func (_u *RTEDemandUpdateOne) SetNillableSourceDeleteAt(v *time.Time) *RTEDemandUpdateOne {
 	if v != nil {
-		_u.SetRefreshInterval(*v)
+		_u.SetSourceDeleteAt(*v)
 	}
 	return _u
 }
 
-// AddRefreshInterval adds value to the "refresh_interval" field.
-func (_u *RTEDemandUpdateOne) AddRefreshInterval(v int64) *RTEDemandUpdateOne {
-	_u.mutation.AddRefreshInterval(v)
-	return _u
-}
-
-// SetNextRefreshAt sets the "next_refresh_at" field.
-func (_u *RTEDemandUpdateOne) SetNextRefreshAt(v time.Time) *RTEDemandUpdateOne {
-	_u.mutation.SetNextRefreshAt(v)
-	return _u
-}
-
-// SetNillableNextRefreshAt sets the "next_refresh_at" field if the given value is not nil.
-func (_u *RTEDemandUpdateOne) SetNillableNextRefreshAt(v *time.Time) *RTEDemandUpdateOne {
-	if v != nil {
-		_u.SetNextRefreshAt(*v)
-	}
-	return _u
-}
-
-// ClearNextRefreshAt clears the value of the "next_refresh_at" field.
-func (_u *RTEDemandUpdateOne) ClearNextRefreshAt() *RTEDemandUpdateOne {
-	_u.mutation.ClearNextRefreshAt()
+// ClearSourceDeleteAt clears the value of the "source_delete_at" field.
+func (_u *RTEDemandUpdateOne) ClearSourceDeleteAt() *RTEDemandUpdateOne {
+	_u.mutation.ClearSourceDeleteAt()
 	return _u
 }
 
@@ -687,17 +639,11 @@ func (_u *RTEDemandUpdateOne) sqlSave(ctx context.Context) (_node *RTEDemand, er
 	if value, ok := _u.mutation.AddedCompletedVersion(); ok {
 		_spec.AddField(rtedemand.FieldCompletedVersion, field.TypeInt64, value)
 	}
-	if value, ok := _u.mutation.RefreshInterval(); ok {
-		_spec.SetField(rtedemand.FieldRefreshInterval, field.TypeInt64, value)
+	if value, ok := _u.mutation.SourceDeleteAt(); ok {
+		_spec.SetField(rtedemand.FieldSourceDeleteAt, field.TypeTime, value)
 	}
-	if value, ok := _u.mutation.AddedRefreshInterval(); ok {
-		_spec.AddField(rtedemand.FieldRefreshInterval, field.TypeInt64, value)
-	}
-	if value, ok := _u.mutation.NextRefreshAt(); ok {
-		_spec.SetField(rtedemand.FieldNextRefreshAt, field.TypeTime, value)
-	}
-	if _u.mutation.NextRefreshAtCleared() {
-		_spec.ClearField(rtedemand.FieldNextRefreshAt, field.TypeTime)
+	if _u.mutation.SourceDeleteAtCleared() {
+		_spec.ClearField(rtedemand.FieldSourceDeleteAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastCalculatedAt(); ok {
 		_spec.SetField(rtedemand.FieldLastCalculatedAt, field.TypeTime, value)

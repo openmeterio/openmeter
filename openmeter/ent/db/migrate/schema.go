@@ -5597,7 +5597,6 @@ var (
 		{Name: "pull_until", Type: field.TypeTime, Nullable: true},
 		{Name: "dirty_version", Type: field.TypeInt64, Default: 1},
 		{Name: "completed_version", Type: field.TypeInt64, Default: 0},
-		{Name: "refresh_interval", Type: field.TypeInt64, Default: 0},
 		{Name: "next_refresh_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_calculated_at", Type: field.TypeTime, Nullable: true},
 		{Name: "next_attempt_at", Type: field.TypeTime},
@@ -5630,7 +5629,7 @@ var (
 			{
 				Name:    "rte_demand_work",
 				Unique:  false,
-				Columns: []*schema.Column{RteDemandsColumns[16], RteDemandsColumns[0]},
+				Columns: []*schema.Column{RteDemandsColumns[15], RteDemandsColumns[0]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL AND push_enabled AND (dirty_version > completed_version OR next_refresh_at IS NOT NULL)",
 				},

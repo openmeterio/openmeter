@@ -64,7 +64,7 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 			require.NoError(t, err)
 			pull := rte.EnsureFreshInput{Target: event.CalculationTarget, PullTTL: 2 * time.Hour}
 			if tc.push {
-				require.NoError(t, demand.Activate(ctx, rte.ActivateDemandInput{Target: pull.Target}))
+				require.NoError(t, demand.Activate(ctx, pull.Target))
 			}
 
 			require.NoError(t, demand.EnsureFresh(ctx, pull))
@@ -87,9 +87,8 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 			if tc.scheduled {
 				require.NoError(t, demand.EnsureFresh(ctx, pull))
 				if tc.push {
-					// Changing or removing the periodic policy must preserve the deletion deadline.
-					require.NoError(t, demand.Activate(ctx, rte.ActivateDemandInput{Target: pull.Target, RefreshInterval: 3 * time.Hour}))
-					require.NoError(t, demand.Activate(ctx, rte.ActivateDemandInput{Target: pull.Target}))
+					// Registering the key again preserves its deletion deadline.
+					require.NoError(t, demand.Activate(ctx, pull.Target))
 				}
 
 				processed, err := demand.Process(ctx)

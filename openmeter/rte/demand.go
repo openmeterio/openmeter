@@ -12,22 +12,12 @@ import (
 // DemandService tracks changed inputs and refreshes balances in the background
 // (Activate) or on request (EnsureFresh). Get reads the last stored result.
 type DemandService interface {
-	Activate(context.Context, ActivateDemandInput) error
+	Activate(context.Context, CalculationTarget) error
 	EnsureFresh(context.Context, EnsureFreshInput) error
 	Deactivate(context.Context, CalculationTarget) error
 	Invalidate(context.Context, InvalidateInput) error
 	// Process reports whether a ready key was handled, including a durably deferred failure.
 	Process(context.Context) (bool, error)
-}
-
-type ActivateDemandInput struct {
-	Target CalculationTarget
-	// Zero disables time-based refresh. Source invalidations still schedule work.
-	RefreshInterval time.Duration
-}
-
-func (i ActivateDemandInput) Validate() error {
-	return models.NewNillableGenericValidationError(errors.Join(i.Target.Validate(), validateNonNegativeDuration("refresh interval", i.RefreshInterval)))
 }
 
 type EnsureFreshInput struct {
@@ -40,20 +30,16 @@ type EnsureFreshInput struct {
 
 func (i EnsureFreshInput) Validate() error {
 	var errs []error
-	errs = append(errs, i.Target.Validate(), validateNonNegativeDuration("max age", i.MaxAge))
+	errs = append(errs, i.Target.Validate())
+	if i.MaxAge < 0 {
+		errs = append(errs, errors.New("max age must not be negative"))
+	}
+
 	if i.PullTTL <= 0 {
 		errs = append(errs, errors.New("pull TTL must be positive"))
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
-func validateNonNegativeDuration(name string, duration time.Duration) error {
-	if duration < 0 {
-		return fmt.Errorf("%s must not be negative", name)
-	}
-
-	return nil
 }
 
 // DemandSelector selects tracked identities. An empty owner/target list selects
@@ -167,7 +153,7 @@ func (i PruneInvalidationsInput) Validate() error {
 // completion atomic. A failed callback rolls back to a savepoint before durable
 // retry bookkeeping; a process crash rolls back the entire attempt.
 type DemandRepository interface {
-	Activate(context.Context, ActivateDemandInput) error
+	Activate(context.Context, CalculationTarget) error
 	// EnsurePull returns true when renewal confirms the key is clean. Otherwise the caller must check for work.
 	EnsurePull(context.Context, EnsureFreshInput) (clean bool, err error)
 	Deactivate(context.Context, CalculationTarget) error

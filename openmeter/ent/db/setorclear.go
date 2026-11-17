@@ -6210,18 +6210,18 @@ func (u *RTEDemandUpdateOne) SetOrClearPullUntil(value *time.Time) *RTEDemandUpd
 	return u.SetPullUntil(*value)
 }
 
-func (u *RTEDemandUpdate) SetOrClearNextRefreshAt(value *time.Time) *RTEDemandUpdate {
+func (u *RTEDemandUpdate) SetOrClearSourceDeleteAt(value *time.Time) *RTEDemandUpdate {
 	if value == nil {
-		return u.ClearNextRefreshAt()
+		return u.ClearSourceDeleteAt()
 	}
-	return u.SetNextRefreshAt(*value)
+	return u.SetSourceDeleteAt(*value)
 }
 
-func (u *RTEDemandUpdateOne) SetOrClearNextRefreshAt(value *time.Time) *RTEDemandUpdateOne {
+func (u *RTEDemandUpdateOne) SetOrClearSourceDeleteAt(value *time.Time) *RTEDemandUpdateOne {
 	if value == nil {
-		return u.ClearNextRefreshAt()
+		return u.ClearSourceDeleteAt()
 	}
-	return u.SetNextRefreshAt(*value)
+	return u.SetSourceDeleteAt(*value)
 }
 
 func (u *RTEDemandUpdate) SetOrClearLastCalculatedAt(value *time.Time) *RTEDemandUpdate {

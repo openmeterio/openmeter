@@ -14,7 +14,7 @@ The existing product balance APIs and notification worker continue to use their 
 | Queue a one-time calculation | `RequestCalculation(key)` | Returns after Kafka accepts the request. The worker can still fail or retry. |
 | Queue a freshness check | `RequestRefresh(key, freshness)` | Returns after Kafka accepts the request. The worker may reuse clean state. The event carries durations in whole seconds. |
 | A current value on demand | `EnsureFresh(key, freshness)`, then `Get(key)` | Tracks changes between requests. Reuses a clean result within the caller’s age limit or waits for a recalculation. |
-| Background updates | `Activate(key, interval)` | Enables background refresh. A worker calculates the initial balance and refreshes it after tracked changes. Activation can return before the first result is ready. |
+| Background updates | `Activate(key)` | Enables background refresh. A worker calculates the initial balance and refreshes it after tracked changes. Activation can return before the first result is ready. |
 | To stop tracking a key | `Deactivate(key)` | Stops background refresh and change tracking for the key. The last stored value stays readable. |
 
 Trusted callers use [`rte.Client`](client.go) after authorizing the namespace and key.
@@ -31,8 +31,7 @@ that require the caller’s transaction use the underlying domain services direc
 Each `EnsureFresh` call extends change tracking for at least `PullTTL`. If tracking expires and
 background refresh is off, the next `EnsureFresh` recalculates to cover any missed changes.
 `MaxAge` limits how old a completed calculation the caller accepts. Zero accepts any age
-while the tracked key is clean. With background refresh enabled, `RefreshInterval` schedules
-periodic work even when no event arrives. Set it to zero to disable periodic refreshes.
+while the tracked key is clean.
 
 ## What identifies a balance
 
@@ -74,8 +73,8 @@ posting groups. For example, a pending credit purchase can affect the answer bef
 any postings. For an ingest batch, the worker resolves demand after the batch’s storage second
 ends. This includes credit keys whose first calculation ran too early to count that batch.
 
-Freshness is relative to the source facts RTE has processed. Set a finite `MaxAge` or
-`RefreshInterval` when the answer can change with time alone or through a writer without a
+Freshness is relative to the source facts RTE has processed. Use a finite `MaxAge` on freshness requests
+when the answer can change with time alone or through a writer without a
 matching source event, including charge lifecycle writes outside creation and patching.
 
 ### Request and update contracts
@@ -134,7 +133,7 @@ to the credit calculator process. A restart loses cache entries and preserves st
 - Choose the `kind` value that identifies the calculation in events. Use it when decoding
   keys, identifying balances, building event metadata, validating demand and dispatching work.
   Extend [upstream routing](upstream/README.md) for the facts that can change the result. Document which
-  changes callers must cover with a refresh interval or maximum age.
+  changes callers must cover with a maximum age on reads.
 - Exercise the real calculator and store and check both an affected key and an unaffected key.
   The [RTE test guide](../../test/rte/README.md) covers the PostgreSQL integration suite and the
   separate worker process running against Kafka and ClickHouse.

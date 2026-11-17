@@ -151,30 +151,16 @@ func (_c *RTEDemandCreate) SetNillableCompletedVersion(v *int64) *RTEDemandCreat
 	return _c
 }
 
-// SetRefreshInterval sets the "refresh_interval" field.
-func (_c *RTEDemandCreate) SetRefreshInterval(v int64) *RTEDemandCreate {
-	_c.mutation.SetRefreshInterval(v)
+// SetSourceDeleteAt sets the "source_delete_at" field.
+func (_c *RTEDemandCreate) SetSourceDeleteAt(v time.Time) *RTEDemandCreate {
+	_c.mutation.SetSourceDeleteAt(v)
 	return _c
 }
 
-// SetNillableRefreshInterval sets the "refresh_interval" field if the given value is not nil.
-func (_c *RTEDemandCreate) SetNillableRefreshInterval(v *int64) *RTEDemandCreate {
+// SetNillableSourceDeleteAt sets the "source_delete_at" field if the given value is not nil.
+func (_c *RTEDemandCreate) SetNillableSourceDeleteAt(v *time.Time) *RTEDemandCreate {
 	if v != nil {
-		_c.SetRefreshInterval(*v)
-	}
-	return _c
-}
-
-// SetNextRefreshAt sets the "next_refresh_at" field.
-func (_c *RTEDemandCreate) SetNextRefreshAt(v time.Time) *RTEDemandCreate {
-	_c.mutation.SetNextRefreshAt(v)
-	return _c
-}
-
-// SetNillableNextRefreshAt sets the "next_refresh_at" field if the given value is not nil.
-func (_c *RTEDemandCreate) SetNillableNextRefreshAt(v *time.Time) *RTEDemandCreate {
-	if v != nil {
-		_c.SetNextRefreshAt(*v)
+		_c.SetSourceDeleteAt(*v)
 	}
 	return _c
 }
@@ -268,10 +254,6 @@ func (_c *RTEDemandCreate) defaults() {
 		v := rtedemand.DefaultCompletedVersion
 		_c.mutation.SetCompletedVersion(v)
 	}
-	if _, ok := _c.mutation.RefreshInterval(); !ok {
-		v := rtedemand.DefaultRefreshInterval
-		_c.mutation.SetRefreshInterval(v)
-	}
 	if _, ok := _c.mutation.Attempts(); !ok {
 		v := rtedemand.DefaultAttempts
 		_c.mutation.SetAttempts(v)
@@ -329,9 +311,6 @@ func (_c *RTEDemandCreate) check() error {
 	}
 	if _, ok := _c.mutation.CompletedVersion(); !ok {
 		return &ValidationError{Name: "completed_version", err: errors.New(`db: missing required field "RTEDemand.completed_version"`)}
-	}
-	if _, ok := _c.mutation.RefreshInterval(); !ok {
-		return &ValidationError{Name: "refresh_interval", err: errors.New(`db: missing required field "RTEDemand.refresh_interval"`)}
 	}
 	if _, ok := _c.mutation.NextAttemptAt(); !ok {
 		return &ValidationError{Name: "next_attempt_at", err: errors.New(`db: missing required field "RTEDemand.next_attempt_at"`)}
@@ -419,13 +398,9 @@ func (_c *RTEDemandCreate) createSpec() (*RTEDemand, *sqlgraph.CreateSpec) {
 		_spec.SetField(rtedemand.FieldCompletedVersion, field.TypeInt64, value)
 		_node.CompletedVersion = value
 	}
-	if value, ok := _c.mutation.RefreshInterval(); ok {
-		_spec.SetField(rtedemand.FieldRefreshInterval, field.TypeInt64, value)
-		_node.RefreshInterval = value
-	}
-	if value, ok := _c.mutation.NextRefreshAt(); ok {
-		_spec.SetField(rtedemand.FieldNextRefreshAt, field.TypeTime, value)
-		_node.NextRefreshAt = &value
+	if value, ok := _c.mutation.SourceDeleteAt(); ok {
+		_spec.SetField(rtedemand.FieldSourceDeleteAt, field.TypeTime, value)
+		_node.SourceDeleteAt = &value
 	}
 	if value, ok := _c.mutation.LastCalculatedAt(); ok {
 		_spec.SetField(rtedemand.FieldLastCalculatedAt, field.TypeTime, value)
@@ -587,39 +562,21 @@ func (u *RTEDemandUpsert) AddCompletedVersion(v int64) *RTEDemandUpsert {
 	return u
 }
 
-// SetRefreshInterval sets the "refresh_interval" field.
-func (u *RTEDemandUpsert) SetRefreshInterval(v int64) *RTEDemandUpsert {
-	u.Set(rtedemand.FieldRefreshInterval, v)
+// SetSourceDeleteAt sets the "source_delete_at" field.
+func (u *RTEDemandUpsert) SetSourceDeleteAt(v time.Time) *RTEDemandUpsert {
+	u.Set(rtedemand.FieldSourceDeleteAt, v)
 	return u
 }
 
-// UpdateRefreshInterval sets the "refresh_interval" field to the value that was provided on create.
-func (u *RTEDemandUpsert) UpdateRefreshInterval() *RTEDemandUpsert {
-	u.SetExcluded(rtedemand.FieldRefreshInterval)
+// UpdateSourceDeleteAt sets the "source_delete_at" field to the value that was provided on create.
+func (u *RTEDemandUpsert) UpdateSourceDeleteAt() *RTEDemandUpsert {
+	u.SetExcluded(rtedemand.FieldSourceDeleteAt)
 	return u
 }
 
-// AddRefreshInterval adds v to the "refresh_interval" field.
-func (u *RTEDemandUpsert) AddRefreshInterval(v int64) *RTEDemandUpsert {
-	u.Add(rtedemand.FieldRefreshInterval, v)
-	return u
-}
-
-// SetNextRefreshAt sets the "next_refresh_at" field.
-func (u *RTEDemandUpsert) SetNextRefreshAt(v time.Time) *RTEDemandUpsert {
-	u.Set(rtedemand.FieldNextRefreshAt, v)
-	return u
-}
-
-// UpdateNextRefreshAt sets the "next_refresh_at" field to the value that was provided on create.
-func (u *RTEDemandUpsert) UpdateNextRefreshAt() *RTEDemandUpsert {
-	u.SetExcluded(rtedemand.FieldNextRefreshAt)
-	return u
-}
-
-// ClearNextRefreshAt clears the value of the "next_refresh_at" field.
-func (u *RTEDemandUpsert) ClearNextRefreshAt() *RTEDemandUpsert {
-	u.SetNull(rtedemand.FieldNextRefreshAt)
+// ClearSourceDeleteAt clears the value of the "source_delete_at" field.
+func (u *RTEDemandUpsert) ClearSourceDeleteAt() *RTEDemandUpsert {
+	u.SetNull(rtedemand.FieldSourceDeleteAt)
 	return u
 }
 
@@ -843,45 +800,24 @@ func (u *RTEDemandUpsertOne) UpdateCompletedVersion() *RTEDemandUpsertOne {
 	})
 }
 
-// SetRefreshInterval sets the "refresh_interval" field.
-func (u *RTEDemandUpsertOne) SetRefreshInterval(v int64) *RTEDemandUpsertOne {
+// SetSourceDeleteAt sets the "source_delete_at" field.
+func (u *RTEDemandUpsertOne) SetSourceDeleteAt(v time.Time) *RTEDemandUpsertOne {
 	return u.Update(func(s *RTEDemandUpsert) {
-		s.SetRefreshInterval(v)
+		s.SetSourceDeleteAt(v)
 	})
 }
 
-// AddRefreshInterval adds v to the "refresh_interval" field.
-func (u *RTEDemandUpsertOne) AddRefreshInterval(v int64) *RTEDemandUpsertOne {
+// UpdateSourceDeleteAt sets the "source_delete_at" field to the value that was provided on create.
+func (u *RTEDemandUpsertOne) UpdateSourceDeleteAt() *RTEDemandUpsertOne {
 	return u.Update(func(s *RTEDemandUpsert) {
-		s.AddRefreshInterval(v)
+		s.UpdateSourceDeleteAt()
 	})
 }
 
-// UpdateRefreshInterval sets the "refresh_interval" field to the value that was provided on create.
-func (u *RTEDemandUpsertOne) UpdateRefreshInterval() *RTEDemandUpsertOne {
+// ClearSourceDeleteAt clears the value of the "source_delete_at" field.
+func (u *RTEDemandUpsertOne) ClearSourceDeleteAt() *RTEDemandUpsertOne {
 	return u.Update(func(s *RTEDemandUpsert) {
-		s.UpdateRefreshInterval()
-	})
-}
-
-// SetNextRefreshAt sets the "next_refresh_at" field.
-func (u *RTEDemandUpsertOne) SetNextRefreshAt(v time.Time) *RTEDemandUpsertOne {
-	return u.Update(func(s *RTEDemandUpsert) {
-		s.SetNextRefreshAt(v)
-	})
-}
-
-// UpdateNextRefreshAt sets the "next_refresh_at" field to the value that was provided on create.
-func (u *RTEDemandUpsertOne) UpdateNextRefreshAt() *RTEDemandUpsertOne {
-	return u.Update(func(s *RTEDemandUpsert) {
-		s.UpdateNextRefreshAt()
-	})
-}
-
-// ClearNextRefreshAt clears the value of the "next_refresh_at" field.
-func (u *RTEDemandUpsertOne) ClearNextRefreshAt() *RTEDemandUpsertOne {
-	return u.Update(func(s *RTEDemandUpsert) {
-		s.ClearNextRefreshAt()
+		s.ClearSourceDeleteAt()
 	})
 }
 
@@ -1279,45 +1215,24 @@ func (u *RTEDemandUpsertBulk) UpdateCompletedVersion() *RTEDemandUpsertBulk {
 	})
 }
 
-// SetRefreshInterval sets the "refresh_interval" field.
-func (u *RTEDemandUpsertBulk) SetRefreshInterval(v int64) *RTEDemandUpsertBulk {
+// SetSourceDeleteAt sets the "source_delete_at" field.
+func (u *RTEDemandUpsertBulk) SetSourceDeleteAt(v time.Time) *RTEDemandUpsertBulk {
 	return u.Update(func(s *RTEDemandUpsert) {
-		s.SetRefreshInterval(v)
+		s.SetSourceDeleteAt(v)
 	})
 }
 
-// AddRefreshInterval adds v to the "refresh_interval" field.
-func (u *RTEDemandUpsertBulk) AddRefreshInterval(v int64) *RTEDemandUpsertBulk {
+// UpdateSourceDeleteAt sets the "source_delete_at" field to the value that was provided on create.
+func (u *RTEDemandUpsertBulk) UpdateSourceDeleteAt() *RTEDemandUpsertBulk {
 	return u.Update(func(s *RTEDemandUpsert) {
-		s.AddRefreshInterval(v)
+		s.UpdateSourceDeleteAt()
 	})
 }
 
-// UpdateRefreshInterval sets the "refresh_interval" field to the value that was provided on create.
-func (u *RTEDemandUpsertBulk) UpdateRefreshInterval() *RTEDemandUpsertBulk {
+// ClearSourceDeleteAt clears the value of the "source_delete_at" field.
+func (u *RTEDemandUpsertBulk) ClearSourceDeleteAt() *RTEDemandUpsertBulk {
 	return u.Update(func(s *RTEDemandUpsert) {
-		s.UpdateRefreshInterval()
-	})
-}
-
-// SetNextRefreshAt sets the "next_refresh_at" field.
-func (u *RTEDemandUpsertBulk) SetNextRefreshAt(v time.Time) *RTEDemandUpsertBulk {
-	return u.Update(func(s *RTEDemandUpsert) {
-		s.SetNextRefreshAt(v)
-	})
-}
-
-// UpdateNextRefreshAt sets the "next_refresh_at" field to the value that was provided on create.
-func (u *RTEDemandUpsertBulk) UpdateNextRefreshAt() *RTEDemandUpsertBulk {
-	return u.Update(func(s *RTEDemandUpsert) {
-		s.UpdateNextRefreshAt()
-	})
-}
-
-// ClearNextRefreshAt clears the value of the "next_refresh_at" field.
-func (u *RTEDemandUpsertBulk) ClearNextRefreshAt() *RTEDemandUpsertBulk {
-	return u.Update(func(s *RTEDemandUpsert) {
-		s.ClearNextRefreshAt()
+		s.ClearSourceDeleteAt()
 	})
 }
 

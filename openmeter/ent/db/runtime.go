@@ -3227,12 +3227,8 @@ func init() {
 	rtedemandDescCompletedVersion := rtedemandFields[7].Descriptor()
 	// rtedemand.DefaultCompletedVersion holds the default value on creation for the completed_version field.
 	rtedemand.DefaultCompletedVersion = rtedemandDescCompletedVersion.Default.(int64)
-	// rtedemandDescRefreshInterval is the schema descriptor for refresh_interval field.
-	rtedemandDescRefreshInterval := rtedemandFields[8].Descriptor()
-	// rtedemand.DefaultRefreshInterval holds the default value on creation for the refresh_interval field.
-	rtedemand.DefaultRefreshInterval = rtedemandDescRefreshInterval.Default.(int64)
 	// rtedemandDescAttempts is the schema descriptor for attempts field.
-	rtedemandDescAttempts := rtedemandFields[12].Descriptor()
+	rtedemandDescAttempts := rtedemandFields[11].Descriptor()
 	// rtedemand.DefaultAttempts holds the default value on creation for the attempts field.
 	rtedemand.DefaultAttempts = rtedemandDescAttempts.Default.(int)
 	// rtedemand.AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.

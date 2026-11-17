@@ -37,10 +37,8 @@ const (
 	FieldDirtyVersion = "dirty_version"
 	// FieldCompletedVersion holds the string denoting the completed_version field in the database.
 	FieldCompletedVersion = "completed_version"
-	// FieldRefreshInterval holds the string denoting the refresh_interval field in the database.
-	FieldRefreshInterval = "refresh_interval"
-	// FieldNextRefreshAt holds the string denoting the next_refresh_at field in the database.
-	FieldNextRefreshAt = "next_refresh_at"
+	// FieldSourceDeleteAt holds the string denoting the source_delete_at field in the database.
+	FieldSourceDeleteAt = "next_refresh_at"
 	// FieldLastCalculatedAt holds the string denoting the last_calculated_at field in the database.
 	FieldLastCalculatedAt = "last_calculated_at"
 	// FieldNextAttemptAt holds the string denoting the next_attempt_at field in the database.
@@ -66,8 +64,7 @@ var Columns = []string{
 	FieldPullUntil,
 	FieldDirtyVersion,
 	FieldCompletedVersion,
-	FieldRefreshInterval,
-	FieldNextRefreshAt,
+	FieldSourceDeleteAt,
 	FieldLastCalculatedAt,
 	FieldNextAttemptAt,
 	FieldAttempts,
@@ -104,8 +101,6 @@ var (
 	DefaultDirtyVersion int64
 	// DefaultCompletedVersion holds the default value on creation for the "completed_version" field.
 	DefaultCompletedVersion int64
-	// DefaultRefreshInterval holds the default value on creation for the "refresh_interval" field.
-	DefaultRefreshInterval int64
 	// DefaultAttempts holds the default value on creation for the "attempts" field.
 	DefaultAttempts int
 	// AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
@@ -175,14 +170,9 @@ func ByCompletedVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCompletedVersion, opts...).ToFunc()
 }
 
-// ByRefreshInterval orders the results by the refresh_interval field.
-func ByRefreshInterval(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRefreshInterval, opts...).ToFunc()
-}
-
-// ByNextRefreshAt orders the results by the next_refresh_at field.
-func ByNextRefreshAt(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldNextRefreshAt, opts...).ToFunc()
+// BySourceDeleteAt orders the results by the source_delete_at field.
+func BySourceDeleteAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSourceDeleteAt, opts...).ToFunc()
 }
 
 // ByLastCalculatedAt orders the results by the last_calculated_at field.

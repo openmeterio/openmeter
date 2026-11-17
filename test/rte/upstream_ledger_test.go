@@ -87,7 +87,7 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 	for _, key := range []rte.Key{base, unrestricted, otherCurrency} {
 		event, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
-		s.Require().NoError(repository.Activate(ctx, rte.ActivateDemandInput{Target: event.CalculationTarget}))
+		s.Require().NoError(repository.Activate(ctx, event.CalculationTarget))
 		defer func() {
 			s.Require().NoError(repository.Deactivate(ctx, event.CalculationTarget))
 		}()
@@ -116,7 +116,7 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 	for _, key := range []rte.Key{customKey, otherCustomKey} {
 		event, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
-		s.Require().NoError(repository.Activate(ctx, rte.ActivateDemandInput{Target: event.CalculationTarget}))
+		s.Require().NoError(repository.Activate(ctx, event.CalculationTarget))
 		defer func() {
 			s.Require().NoError(repository.Deactivate(ctx, event.CalculationTarget))
 		}()

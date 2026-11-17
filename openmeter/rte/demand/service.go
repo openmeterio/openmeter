@@ -98,12 +98,12 @@ func New(config Config) (rte.DemandService, error) {
 	return &service{config: config, operations: operations, invalidated: invalidated, ensureDuration: ensureDuration}, nil
 }
 
-func (s *service) Activate(ctx context.Context, input rte.ActivateDemandInput) error {
-	if err := input.Validate(); err != nil {
+func (s *service) Activate(ctx context.Context, target rte.CalculationTarget) error {
+	if err := target.Validate(); err != nil {
 		return err
 	}
 
-	return s.config.Repository.Activate(ctx, input)
+	return s.config.Repository.Activate(ctx, target)
 }
 
 func (s *service) EnsureFresh(ctx context.Context, input rte.EnsureFreshInput) error {
