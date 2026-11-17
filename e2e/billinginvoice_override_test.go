@@ -635,7 +635,12 @@ type invoiceOverrideCharge struct {
 // listChargesByName groups customer charges by display name while keeping the
 // concrete charge shape available. The override assertions need lifecycle
 // controller ownership from both flat-fee and usage-based charge variants.
+//
+// Subscription sync also provisions the next billing period's charges ahead, under
+// the same names. This test only follows the current period, so charges whose
+// service has not started yet are left out.
 func listChargesByName(t require.TestingT, c *v3Client, customerID string, statuses []v3sdk.ChargeStatus) map[string]invoiceOverrideCharge {
+	now := time.Now()
 	statusValues := lo.Map(statuses, func(status v3sdk.ChargeStatus, _ int) string {
 		return string(status)
 	})
@@ -654,11 +659,21 @@ func listChargesByName(t require.TestingT, c *v3Client, customerID string, statu
 		case string(v3sdk.ChargeTypeFlatFee):
 			flatFee, err := charge.AsChargeFlatFee()
 			require.NoError(t, err)
+
+			if flatFee.ServicePeriod.From.After(now) {
+				continue
+			}
+
 			require.NotContains(t, out, flatFee.Name, "duplicate charge name %q", flatFee.Name)
 			out[flatFee.Name] = invoiceOverrideCharge{flatFee: flatFee}
 		case string(v3sdk.ChargeTypeUsageBased):
 			usageBased, err := charge.AsChargeUsageBased()
 			require.NoError(t, err)
+
+			if usageBased.ServicePeriod.From.After(now) {
+				continue
+			}
+
 			require.NotContains(t, out, usageBased.Name, "duplicate charge name %q", usageBased.Name)
 			out[usageBased.Name] = invoiceOverrideCharge{usageBased: usageBased}
 		}

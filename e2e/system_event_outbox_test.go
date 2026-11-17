@@ -59,7 +59,8 @@ func TestV3SystemEventOutbox(t *testing.T) {
 	})
 
 	runRequired(t, "billing worker reconciles the committed subscription", func(t *testing.T) {
-		// Then the worker consumes the event and produces a charge visible through the API.
+		// Then the worker consumes the event and produces the fee's charges, visible through
+		// the API: one for the current billing period and one for the next, provisioned ahead.
 		require.EventuallyWithT(t, func(collect *assert.CollectT) {
 			charges, err := c.Customers.Charges.List(t.Context(), customer.ID, v3sdk.ListCustomerChargesParams{
 				Page: &v3sdk.PageParams{Size: lo.ToPtr(100)},
@@ -67,19 +68,22 @@ func TestV3SystemEventOutbox(t *testing.T) {
 			require.NoError(collect, err)
 			require.NotNil(collect, charges)
 			t.Logf("subscription_id=%s charges=%s", subscription.ID, formatLogJSON(charges.Data))
-			require.Len(collect, charges.Data, 1)
-			charge, err := charges.Data[0].AsChargeFlatFee()
-			require.NoError(collect, err)
-			require.Equal(collect, chargeName, charge.Name)
-			require.Equal(collect, v3sdk.LifecycleControllerSystem, charge.LifecycleController)
-			// An in-arrears fee waits in created until its future invoice date.
-			require.Equal(collect, v3sdk.ChargeStatusCreated, charge.Status)
-			require.Equal(collect, "10", charge.Price.Amount)
-			require.Empty(collect, charge.ValidationIssues)
-			require.NotNil(collect, charge.Subscription)
-			ref, err := charge.Subscription.AsSubscriptionReference()
-			require.NoError(collect, err)
-			require.Equal(collect, subscription.ID, ref.ID)
+			require.Len(collect, charges.Data, 2)
+
+			for _, item := range charges.Data {
+				charge, err := item.AsChargeFlatFee()
+				require.NoError(collect, err)
+				require.Equal(collect, chargeName, charge.Name)
+				require.Equal(collect, v3sdk.LifecycleControllerSystem, charge.LifecycleController)
+				// An in-arrears fee waits in created until its future invoice date.
+				require.Equal(collect, v3sdk.ChargeStatusCreated, charge.Status)
+				require.Equal(collect, "10", charge.Price.Amount)
+				require.Empty(collect, charge.ValidationIssues)
+				require.NotNil(collect, charge.Subscription)
+				ref, err := charge.Subscription.AsSubscriptionReference()
+				require.NoError(collect, err)
+				require.Equal(collect, subscription.ID, ref.ID)
+			}
 		}, time.Minute, time.Second)
 	})
 }
