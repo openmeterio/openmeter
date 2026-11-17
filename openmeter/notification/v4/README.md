@@ -73,7 +73,9 @@ object key order do not matter, but array order and number text do.
 A released definition must not change in place; a changed contract is a new
 Event type version. `definitions.Fingerprint` hashes what must stay fixed: the
 Event type and its schemas in canonical form, but not `DeprecatedBy`, which is
-set on released definitions. [`definitions.sum`](definitions/definitions.sum)
+set on released definitions. It also skips the schema annotations
+(`description`, `title`, `$comment`, `examples`, `deprecated`), so fixing the
+docs of a released contract does not count as a change. [`definitions.sum`](definitions/definitions.sum)
 records the fingerprint of every definition and, in a separate column, its
 replacement. The file is embedded, and `definitions.Verify` fails a test when
 either no longer matches, so removing or changing a deprecation is caught too.

@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -76,18 +77,18 @@ func verify(committed []byte, defs []v4.EventTypeDefinition) error {
 
 // Fingerprint identifies what must not change once the definition is
 // released: the Event type, the payload schema and the Rule configuration
-// schema, if any. Schemas are hashed in canonical form, so formatting and object
-// key order do not change it. DeprecatedBy is left out because it is set on
-// released definitions.
+// schema, if any. Schemas are hashed in canonical form without annotations, so
+// formatting, object key order and documentation edits do not change it.
+// DeprecatedBy is left out because it is set on released definitions.
 func Fingerprint(d v4.EventTypeDefinition) (string, error) {
-	payload, err := jsonx.Canonical(d.PayloadJSONSchema)
+	payload, err := fingerprintSchema(d.PayloadJSONSchema)
 	if err != nil {
 		return "", fmt.Errorf("payload JSON schema: %w", err)
 	}
 
 	ruleConfig := json.RawMessage("null")
 	if d.Rule != nil {
-		ruleConfig, err = jsonx.Canonical(d.Rule.JSONSchema)
+		ruleConfig, err = fingerprintSchema(d.Rule.JSONSchema)
 		if err != nil {
 			return "", fmt.Errorf("rule config JSON schema: %w", err)
 		}
@@ -109,4 +110,84 @@ func Fingerprint(d v4.EventTypeDefinition) (string, error) {
 	sum := sha256.Sum256(doc)
 
 	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}
+
+// Annotation keywords only document a schema: validation ignores them, so
+// editing the docs of a released contract is not a contract change.
+var annotationKeywords = []string{"$comment", "deprecated", "description", "examples", "title"}
+
+// Keywords whose value is a map from names to subschemas. Their keys are
+// property or definition names, so a property called "description" stays.
+// The values of draft-07 dependencies can also be arrays of property names,
+// which are kept as they are.
+var namedSubschemaKeywords = []string{"$defs", "definitions", "dependencies", "dependentSchemas", "patternProperties", "properties"}
+
+// Keywords whose value is a subschema or an array of subschemas.
+var subschemaKeywords = []string{
+	"additionalItems", "additionalProperties", "allOf", "anyOf", "contains", "contentSchema", "else", "if", "items",
+	"not", "oneOf", "prefixItems", "propertyNames", "then", "unevaluatedItems", "unevaluatedProperties",
+}
+
+func fingerprintSchema(schema []byte) (json.RawMessage, error) {
+	dec := json.NewDecoder(bytes.NewReader(schema))
+	dec.UseNumber()
+
+	var value any
+	if err := dec.Decode(&value); err != nil {
+		return nil, err
+	}
+
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return nil, errors.New("unexpected data after JSON document")
+	}
+
+	stripped, err := json.Marshal(withoutAnnotations(value))
+	if err != nil {
+		return nil, err
+	}
+
+	// Marshal escapes HTML characters; Canonical writes them as they are.
+	return jsonx.Canonical(stripped)
+}
+
+// withoutAnnotations removes the annotation keywords from a schema and its
+// subschemas. Values of other keywords, such as enum, const or default, are
+// data and are kept as they are.
+func withoutAnnotations(schema any) any {
+	obj, ok := schema.(map[string]any)
+	if !ok {
+		return schema
+	}
+
+	out := make(map[string]any, len(obj))
+	for k, v := range obj {
+		switch {
+		case slices.Contains(annotationKeywords, k):
+			continue
+		case slices.Contains(namedSubschemaKeywords, k):
+			if named, ok := v.(map[string]any); ok {
+				m := make(map[string]any, len(named))
+				for name, sub := range named {
+					m[name] = withoutAnnotations(sub)
+				}
+
+				v = m
+			}
+		case slices.Contains(subschemaKeywords, k):
+			if list, ok := v.([]any); ok {
+				l := make([]any, len(list))
+				for i, sub := range list {
+					l[i] = withoutAnnotations(sub)
+				}
+
+				v = l
+			} else {
+				v = withoutAnnotations(v)
+			}
+		}
+
+		out[k] = v
+	}
+
+	return out
 }
