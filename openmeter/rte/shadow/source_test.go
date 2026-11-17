@@ -65,6 +65,7 @@ func TestCurrentCreditReads(t *testing.T) {
 	var observed sourceObservations
 	facade, err := customerbalance.NewFacade(shadow.ObserveCreditReads(source, &observed))
 	require.NoError(t, err)
+
 	input := customerbalance.GetBalancesInput{
 		CustomerID:    customer.CustomerID{Namespace: "ns", ID: "customer"},
 		FeatureFilter: customerbalance.NewFeatureFilter([]string{"storage"}),
@@ -117,7 +118,8 @@ func TestCurrentMeteredOperations(t *testing.T) {
 	id := models.NamespacedID{Namespace: "ns", ID: "entitlement"}
 	ent := &entitlement.Entitlement{GenericProperties: entitlement.GenericProperties{
 		NamespacedModel: models.NamespacedModel{Namespace: id.Namespace},
-		ID:              id.ID, EntitlementType: entitlement.EntitlementTypeMetered,
+		ID:              id.ID,
+		EntitlementType: entitlement.EntitlementTypeMetered,
 	}}
 	source := &meteredSource{value: &meteredentitlement.MeteredEntitlementValue{Balance: 23}}
 	var observed sourceObservations

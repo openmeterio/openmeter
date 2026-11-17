@@ -30,11 +30,13 @@ type CalculationRequestedEvent struct {
 	Freshness *FreshnessPolicy `json:"freshness,omitempty"`
 }
 
-// FreshnessPolicy permits reuse of a clean result. TrackForSeconds controls
-// how long source changes continue to mark the key dirty between freshness requests.
+// FreshnessPolicy permits reuse of a clean result.
 type FreshnessPolicy struct {
+	// TrackForSeconds controls how long source changes mark the key dirty between requests.
 	TrackForSeconds int32 `json:"track_for_seconds"`
-	MaxAgeSeconds   int32 `json:"max_age_seconds"`
+
+	// MaxAgeSeconds limits the age of a completed calculation. Zero accepts any age.
+	MaxAgeSeconds int32 `json:"max_age_seconds"`
 }
 
 func (p FreshnessPolicy) EnsureFreshInput(target CalculationTarget) EnsureFreshInput {

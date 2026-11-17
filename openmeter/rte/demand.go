@@ -16,15 +16,18 @@ type DemandService interface {
 	EnsureFresh(context.Context, EnsureFreshInput) error
 	Deactivate(context.Context, CalculationTarget) error
 	Invalidate(context.Context, InvalidateInput) error
+
 	// Process reports whether a ready key was handled, including a durably deferred failure.
 	Process(context.Context) (bool, error)
 }
 
 type EnsureFreshInput struct {
 	Target CalculationTarget
+
 	// PullTTL controls how long RTE tracks changes between calls to EnsureFresh.
 	PullTTL time.Duration
-	// Zero accepts the current completed version without an age bound.
+
+	// MaxAge limits the age of a completed calculation. Zero accepts any age.
 	MaxAge time.Duration
 }
 
@@ -51,9 +54,9 @@ type DemandSelector struct {
 	Targets   []CalculationTarget
 }
 
+// InvalidateInput identifies one immutable fact by Source and EventID, across all
+// selectors and redeliveries. Reusing that identity for a different fact suppresses it.
 type InvalidateInput struct {
-	// Source and EventID identify one immutable fact, across all selectors and
-	// redeliveries. Reusing an ID for a different fact suppresses that fact.
 	Source    string
 	EventID   string
 	Selectors []DemandSelector
@@ -154,8 +157,10 @@ func (i PruneInvalidationsInput) Validate() error {
 // retry bookkeeping; a process crash rolls back the entire attempt.
 type DemandRepository interface {
 	Activate(context.Context, CalculationTarget) error
+
 	// EnsurePull returns true when renewal confirms the key is clean. Otherwise the caller must check for work.
 	EnsurePull(context.Context, EnsureFreshInput) (clean bool, err error)
+
 	Deactivate(context.Context, CalculationTarget) error
 	Invalidate(context.Context, InvalidateInput) (InvalidationResult, error)
 	PruneInvalidations(context.Context, PruneInvalidationsInput) (int, error)

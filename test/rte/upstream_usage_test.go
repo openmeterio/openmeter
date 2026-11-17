@@ -42,6 +42,7 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	start := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(start)
 	defer clock.UnFreeze()
+
 	ns := s.GetUniqueNamespace("rte-upstream")
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	customInvoicing := s.SetupCustomInvoicing(ns)
@@ -50,29 +51,40 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	other := s.CreateLedgerBackedCustomer(ns, "other-customer")
 	feature := s.SetupApiRequestsTotalFeature(ctx, ns)
 	defer feature.Cleanup()
+
 	ent, err := s.Entitlements.Entitlement.CreateCustomerEntitlement(ctx, entitlement.CreateCustomerEntitlementInput{
 		CustomerID: cust.GetID(),
 		Entitlement: entitlement.CreateEntitlementInputs{
-			FeatureID: &feature.Feature.ID, EntitlementType: entitlement.EntitlementTypeMetered,
+			FeatureID:       &feature.Feature.ID,
+			EntitlementType: entitlement.EntitlementTypeMetered,
 			IssueAfterReset: lo.ToPtr(float64(100)),
 			UsagePeriod:     lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{Anchor: start, Interval: timeutil.RecurrencePeriodMonth})),
 		},
 	})
 	s.Require().NoError(err)
-	_, err = s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(
-		s.CreateMockChargeIntent(creditstest.CreateMockChargeIntentInput{
-			Customer: cust.GetID(), Currency: creditstest.USD,
-			ServicePeriod:  timeutil.ClosedPeriod{From: start, To: start.AddDate(0, 1, 0)},
-			SettlementMode: productcatalog.CreditOnlySettlementMode,
-			Price:          productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
-			Name:           "Usage", ManagedBy: billing.SubscriptionManagedLine,
-			UniqueReferenceID: "rte-upstream-usage", FeatureKey: feature.Feature.Key,
-		}),
-	)})
+
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: ns,
+		Intents: charges.NewCreateChargeIntents(
+			s.CreateMockChargeIntent(creditstest.CreateMockChargeIntentInput{
+				Customer:          cust.GetID(),
+				Currency:          creditstest.USD,
+				ServicePeriod:     timeutil.ClosedPeriod{From: start, To: start.AddDate(0, 1, 0)},
+				SettlementMode:    productcatalog.CreditOnlySettlementMode,
+				Price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+				Name:              "Usage",
+				ManagedBy:         billing.SubscriptionManagedLine,
+				UniqueReferenceID: "rte-upstream-usage",
+				FeatureKey:        feature.Feature.Key,
+			}),
+		),
+	})
 	s.Require().NoError(err)
+
 	logger := testutils.NewDiscardLogger(s.T())
 	repository, err := rteadapter.NewDemandRepository(rteadapter.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
+
 	resolver, err := upstream.New(upstream.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
 
@@ -91,10 +103,12 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	for _, key := range []rte.Key{all, featureKey, unrestricted, otherFeature, otherCurrency, otherCustomer, meteredKey} {
 		target, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
+
 		// JSON decoding accepts this spelling. The SQL selectors must still
 		// distinguish currency and feature scope after registration.
 		target.Key = bytes.Replace(target.Key, []byte(`"currency":`), []byte(`"Currency":`), 1)
 		s.Require().NoError(repository.Activate(ctx, target.CalculationTarget))
+
 		defer func() {
 			s.Require().NoError(repository.Deactivate(ctx, target.CalculationTarget))
 		}()
@@ -103,10 +117,13 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	now := start.Add(48 * time.Hour)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
+
 	event := ingestevents.EventBatchedIngest{
-		Namespace: eventmodels.NamespaceID{ID: ns}, SubjectKey: "rte-upstream-customer",
-		MeterSlugs: []string{"api-requests-total", "api-requests-total"}, StoredAt: now,
-		RawEvents: []serializer.CloudEventsKafkaPayload{{Type: "test", Time: start.Add(time.Hour).Unix()}, {Type: "test", Time: start.Add(time.Hour).Unix()}},
+		Namespace:  eventmodels.NamespaceID{ID: ns},
+		SubjectKey: "rte-upstream-customer",
+		MeterSlugs: []string{"api-requests-total", "api-requests-total"},
+		StoredAt:   now,
+		RawEvents:  []serializer.CloudEventsKafkaPayload{{Type: "test", Time: start.Add(time.Hour).Unix()}, {Type: "test", Time: start.Add(time.Hour).Unix()}},
 	}
 
 	// when: late duplicate usage is resolved after arrival, only the matching
@@ -117,6 +134,7 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 			for _, target := range selector.Targets {
 				identity, err := target.Identity()
 				s.Require().NoError(err)
+
 				result = append(result, identity.KeyHash)
 			}
 		}
@@ -127,8 +145,10 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 	for _, key := range []rte.Key{all, featureKey, meteredKey} {
 		target, err := rte.NewCalculationRequestedEvent(key)
 		s.Require().NoError(err)
+
 		identity, err := target.Identity()
 		s.Require().NoError(err)
+
 		expected = append(expected, identity.KeyHash)
 	}
 
@@ -143,6 +163,7 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 
 	resolvedMeter, err := s.MeterAdapter.GetMeterByIDOrSlug(ctx, meter.GetMeterInput{Namespace: ns, IDOrSlug: "api-requests-total"})
 	s.Require().NoError(err)
+
 	for _, fact := range []marshaler.Event{
 		featurepkg.NewFeatureUpdateEvent(ctx, &feature.Feature),
 		meter.NewMeterUpdateEvent(ctx, &resolvedMeter),
@@ -208,7 +229,8 @@ func (s *RTEIntegrationSuite) TestUsageAfterEntitlementActivityEndRefreshesBalan
 		ActiveTo:         lo.ToPtr(start.Add(10 * time.Minute)),
 		IssueAfterReset:  lo.ToPtr(float64(100)),
 		UsagePeriod: lo.ToPtr(entitlement.NewUsagePeriodInputFromRecurrence(timeutil.Recurrence{
-			Anchor: start, Interval: timeutil.RecurrencePeriodMonth,
+			Anchor:   start,
+			Interval: timeutil.RecurrencePeriodMonth,
 		})),
 	})
 	s.Require().NoError(err)
@@ -216,17 +238,22 @@ func (s *RTEIntegrationSuite) TestUsageAfterEntitlementActivityEndRefreshesBalan
 	logger := testutils.NewDiscardLogger(s.T())
 	resolver, err := upstream.New(upstream.Config{Client: s.DBClient, Logger: logger})
 	s.Require().NoError(err)
+
 	engine := s.newRTE()
 	demands, err := common.NewRTEDemandService(s.DBClient, engine, logger, noop.NewMeterProvider().Meter("test"), config.RTEConfiguration{CalculationTimeout: 30 * time.Second})
 	s.Require().NoError(err)
+
 	key := rtemetered.Key{EntitlementID: models.NamespacedID{Namespace: ns, ID: ent.ID}}
 	target, err := rte.NewCalculationTarget(key)
 	s.Require().NoError(err)
+
 	pull := rte.EnsureFreshInput{Target: target, PullTTL: time.Hour}
 
 	clock.FreezeTime(start.Add(12 * time.Minute))
 	defer clock.UnFreeze()
+
 	s.Require().NoError(demands.EnsureFresh(ctx, pull))
+
 	before, err := engine.MeteredEntitlements().Get(ctx, key)
 	s.Require().NoError(err)
 
@@ -234,6 +261,7 @@ func (s *RTEIntegrationSuite) TestUsageAfterEntitlementActivityEndRefreshesBalan
 	at := start.Add(20 * time.Minute)
 	clock.FreezeTime(at)
 	defer clock.UnFreeze()
+
 	occurred := start.Add(15 * time.Minute)
 	s.MockStreamingConnector.AddSimpleEvent("api-requests-total", 25, occurred)
 	expected, err := s.Entitlements.MeteredEntitlement.GetEntitlementBalance(ctx, key.EntitlementID, at)
@@ -241,14 +269,18 @@ func (s *RTEIntegrationSuite) TestUsageAfterEntitlementActivityEndRefreshesBalan
 	s.Require().Equal(before.Value.UsageInPeriod+25, expected.UsageInPeriod)
 
 	selected, err := resolver.Resolve(ctx, &ingestevents.EventBatchedIngest{
-		Namespace: eventmodels.NamespaceID{ID: ns}, SubjectKey: subject, StoredAt: at,
-		MeterSlugs: []string{"api-requests-total"}, RawEvents: []serializer.CloudEventsKafkaPayload{{Time: occurred.Unix()}},
+		Namespace:  eventmodels.NamespaceID{ID: ns},
+		SubjectKey: subject,
+		StoredAt:   at,
+		MeterSlugs: []string{"api-requests-total"},
+		RawEvents:  []serializer.CloudEventsKafkaPayload{{Time: occurred.Unix()}},
 	})
 	s.Require().NoError(err)
 	s.Require().NoError(demands.Invalidate(ctx, rte.InvalidateInput{Source: "ingest", EventID: "post-end-usage", Selectors: selected}))
 
 	// Then a pull with an unexpired lease refreshes to the same balance as the source.
 	s.Require().NoError(demands.EnsureFresh(ctx, pull))
+
 	after, err := engine.MeteredEntitlements().Get(ctx, key)
 	s.Require().NoError(err)
 	s.Equal(*expected, after.Value)

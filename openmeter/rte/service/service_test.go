@@ -58,6 +58,7 @@ func TestServiceLifecycle(t *testing.T) {
 	var stored *rte.State[int]
 	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
 	require.NoError(t, err)
+
 	engine := newCalculation(Registration[testKey, int]{
 		Calculator: calculatorFunc(func(_ context.Context, input rte.CalculateInput[testKey]) (int, error) {
 			calls++
@@ -130,6 +131,7 @@ func TestCalculatePreservesStartAndReturnsStoredWinner(t *testing.T) {
 	winner := rte.State[int]{CalculatedAt: startedAt.Add(time.Minute), Value: 100}
 	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
 	require.NoError(t, err)
+
 	engine := newCalculation(Registration[testKey, int]{
 		Calculator: calculatorFunc(func(gotCtx context.Context, input rte.CalculateInput[testKey]) (int, error) {
 			require.Equal(t, ctx, gotCtx)
@@ -161,6 +163,7 @@ func TestServiceRejectsInvalidKeys(t *testing.T) {
 	calls := 0
 	metrics, err := newCalculationMetrics(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
 	require.NoError(t, err)
+
 	engine := newCalculation(Registration[testKey, int]{
 		Calculator: calculatorFunc(func(context.Context, rte.CalculateInput[testKey]) (int, error) {
 			calls++

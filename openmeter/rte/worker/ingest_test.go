@@ -112,9 +112,14 @@ func TestLedgerFactInvalidatesDemandImmediately(t *testing.T) {
 
 func TestCanceledCreditIngestDoesNotInvalidate(t *testing.T) {
 	// Given credit ingestion whose visibility wait exceeds the processing deadline.
-	event := &ingestevents.EventBatchedIngest{Namespace: eventmodels.NamespaceID{ID: "ns"}, SubjectKey: "subject", StoredAt: time.Now().Add(time.Hour)}
+	event := &ingestevents.EventBatchedIngest{
+		Namespace:  eventmodels.NamespaceID{ID: "ns"},
+		SubjectKey: "subject",
+		StoredAt:   time.Now().Add(time.Hour),
+	}
 	msg, err := marshaler.New(nil).Marshal(event)
 	require.NoError(t, err)
+
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
 	defer cancel()
 	msg.SetContext(ctx)
@@ -132,11 +137,18 @@ func sourceWorker(t *testing.T, sources rte.UpstreamResolver, invalidate func(co
 	meter := noop.NewMeterProvider().Meter("rte-worker-test")
 	count, err := meter.Int64Counter("events")
 	require.NoError(t, err)
+
 	lag, err := meter.Float64Histogram("lag")
 	require.NoError(t, err)
 
 	routing, err := meter.Float64Histogram("routing")
 	require.NoError(t, err)
 
-	return &worker{routingDuration: routing, sources: sources, demand: recordingDemand{invalidate: invalidate}, sourceEvents: count, sourceLag: lag}
+	return &worker{
+		routingDuration: routing,
+		sources:         sources,
+		demand:          recordingDemand{invalidate: invalidate},
+		sourceEvents:    count,
+		sourceLag:       lag,
+	}
 }

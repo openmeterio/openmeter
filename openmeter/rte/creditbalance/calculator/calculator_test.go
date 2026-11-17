@@ -67,7 +67,8 @@ func TestCalculateUsesCurrentCustomerBalance(t *testing.T) {
 
 	// When RTE supplies its invocation time, it must not become a historical AsOf.
 	result, err := calc.Calculate(ctx, rte.CalculateInput[creditbalance.Key]{
-		Key: key, At: time.Date(2026, time.January, 1, 0, 0, 15, 0, time.UTC),
+		Key: key,
+		At:  time.Date(2026, time.January, 1, 0, 0, 15, 0, time.UTC),
 	})
 	require.NoError(t, err)
 

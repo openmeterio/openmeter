@@ -27,9 +27,13 @@ func TestCalculateUsesExistingEntitlementBalance(t *testing.T) {
 	key := rtemetered.Key{EntitlementID: models.NamespacedID{Namespace: "rte-metered", ID: "entitlement"}}
 	at := time.Date(2026, time.January, 1, 0, 0, 15, 0, time.UTC)
 	expected := meteredentitlement.EntitlementBalance{
-		EntitlementID: key.EntitlementID.ID,
-		Balance:       75, UsageInPeriod: 25, Overage: 0, TotalAvailableGrantAmount: 100,
-		GrantBalances: map[string]float64{"grant": 75}, StartOfPeriod: at.Add(-time.Hour),
+		EntitlementID:             key.EntitlementID.ID,
+		Balance:                   75,
+		UsageInPeriod:             25,
+		Overage:                   0,
+		TotalAvailableGrantAmount: 100,
+		GrantBalances:             map[string]float64{"grant": 75},
+		StartOfPeriod:             at.Add(-time.Hour),
 	}
 	calc, err := calculator.New(calculator.Config{
 		Logger: testutils.NewDiscardLogger(t),

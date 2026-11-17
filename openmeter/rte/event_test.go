@@ -38,10 +38,13 @@ func TestCalculationRequestPreservesCreditScope(t *testing.T) {
 			codec := marshaler.New(nil)
 			message, err := codec.Marshal(event)
 			require.NoError(t, err)
+
 			var decoded rte.CalculationRequestedEvent
 			require.NoError(t, codec.Unmarshal(message, &decoded))
+
 			decodedKey, err := decoded.DecodeKey()
 			require.NoError(t, err)
+
 			actual := decodedKey.(creditbalance.Key)
 
 			// Then routing and calculation keep the original scope and currency.
@@ -57,7 +60,10 @@ func TestCalculationRequestRejectsInvalidIdentity(t *testing.T) {
 	for _, event := range []rte.CalculationTarget{
 		{Kind: "unknown", Key: json.RawMessage(`{}`)},
 		{Kind: rte.CalculationKindCreditBalance, Key: json.RawMessage(`null`)},
-		{Kind: rte.CalculationKindMeteredEntitlement, Key: json.RawMessage(`{"customerId":{"namespace":"rte","id":"customer"}}`)},
+		{
+			Kind: rte.CalculationKindMeteredEntitlement,
+			Key:  json.RawMessage(`{"customerId":{"namespace":"rte","id":"customer"}}`),
+		},
 	} {
 		require.Error(t, event.Validate())
 	}

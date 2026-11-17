@@ -46,7 +46,7 @@ func TestRTEClient(t *testing.T) {
 	require.NoError(t, err)
 	client, err := rteclient.New(rteclient.Config{DB: driver.Client(), Publisher: bus, Logger: logger})
 	require.NoError(t, err)
-	credits := client.CreditBalances()
+	creditClient := client.CreditBalances()
 
 	// Given a new customer with no stored RTE balance.
 	customerKey := uniqueKey("rte-client")
@@ -56,14 +56,14 @@ func TestRTEClient(t *testing.T) {
 		CustomerID: customer.CustomerID{Namespace: getCustomerNamespaceByKey(t, pool, customerKey), ID: cust.ID},
 		Currency:   currencies.NewCurrencyReference("USD"),
 	}
-	_, err = credits.Get(ctx, key)
+	_, err = creditClient.Get(ctx, key)
 	require.True(t, models.IsGenericNotFoundError(err), "%v", err)
 
 	// When the client asks for a calculation, the separate worker stores a real zero.
-	require.NoError(t, credits.RequestCalculation(ctx, key))
+	require.NoError(t, creditClient.RequestCalculation(ctx, key))
 	var initial rte.State[creditbalance.Balance]
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		initial, err = credits.Get(ctx, key)
+		initial, err = creditClient.Get(ctx, key)
 		require.NoError(c, err)
 		require.False(c, initial.CalculatedAt.IsZero())
 		require.Zero(c, initial.Value.Live.InexactFloat64())
@@ -74,27 +74,27 @@ func TestRTEClient(t *testing.T) {
 		Name: "RTE client balance", Currency: "USD", Amount: "25", FundingMethod: v3sdk.CreditFundingMethodNone,
 	})
 	api.requireStatus(http.StatusCreated, err)
-	require.NoError(t, credits.RequestRefresh(ctx, key, rte.FreshnessPolicy{TrackForSeconds: 60}))
+	require.NoError(t, creditClient.RequestRefresh(ctx, key, rte.FreshnessPolicy{TrackForSeconds: 60}))
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		state, err := credits.Get(ctx, key)
+		state, err := creditClient.Get(ctx, key)
 		require.NoError(c, err)
 		require.True(c, state.CalculatedAt.After(initial.CalculatedAt))
 		require.Equal(c, float64(25), state.Value.Live.InexactFloat64())
 	}, 30*time.Second, 100*time.Millisecond)
 	// Activating the key makes subsequent grants refresh state without another pull.
-	require.NoError(t, credits.Activate(ctx, key))
+	require.NoError(t, creditClient.Activate(ctx, key))
 	_, err = api.Customers.Credits.Grants.Create(ctx, cust.ID, v3sdk.CreateCreditGrantRequest{
 		Name: "tracked credit", Currency: "USD", Amount: "10", FundingMethod: v3sdk.CreditFundingMethodNone,
 	})
 	api.requireStatus(http.StatusCreated, err)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
-		state, err := credits.Get(ctx, key)
+		state, err := creditClient.Get(ctx, key)
 		require.NoError(c, err)
 		require.Equal(c, float64(35), state.Value.Live.InexactFloat64())
 	}, 30*time.Second, 100*time.Millisecond)
 
-	require.NoError(t, credits.Deactivate(ctx, key))
-	retained, err := credits.Get(ctx, key)
+	require.NoError(t, creditClient.Deactivate(ctx, key))
+	retained, err := creditClient.Get(ctx, key)
 	require.NoError(t, err)
 	require.Equal(t, float64(35), retained.Value.Live.InexactFloat64())
 }

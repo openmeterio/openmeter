@@ -35,7 +35,10 @@ func TestCreditBalanceStore(t *testing.T) {
 		return store
 	}
 	reader := newStore()
-	key := creditbalance.Key{CustomerID: customer.CustomerID{Namespace: "rte-credit-store", ID: ulid.Make().String()}, Currency: currencies.NewCurrencyReference("USD")}
+	key := creditbalance.Key{
+		CustomerID: customer.CustomerID{Namespace: "rte-credit-store", ID: ulid.Make().String()},
+		Currency:   currencies.NewCurrencyReference("USD"),
+	}
 	startedAt := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	// When a scope has never been stored, reading it cannot create placeholder state.
@@ -53,9 +56,11 @@ func TestCreditBalanceStore(t *testing.T) {
 		Pending:   alpacadecimal.RequireFromString("10.1234567890123456789"),
 	}
 	_, err = reader.Store(t.Context(), rte.StoreInput[creditbalance.Key, creditbalance.Balance]{
-		Key: key, State: rte.State[creditbalance.Balance]{CalculatedAt: startedAt, Value: expected},
+		Key:   key,
+		State: rte.State[creditbalance.Balance]{CalculatedAt: startedAt, Value: expected},
 	})
 	require.NoError(t, err)
+
 	stored, err := newStore().Get(t.Context(), key)
 	require.NoError(t, err)
 	require.True(t, startedAt.Equal(stored.CalculatedAt))
@@ -75,8 +80,11 @@ func TestCreditBalanceStore(t *testing.T) {
 			State: rte.State[creditbalance.Balance]{CalculatedAt: startedAt, Value: creditbalance.Balance{Live: alpacadecimal.NewFromInt(80)}},
 		}
 		newer := rte.StoreInput[creditbalance.Key, creditbalance.Balance]{
-			Key:   freshKey,
-			State: rte.State[creditbalance.Balance]{CalculatedAt: startedAt.Add(time.Second), Value: creditbalance.Balance{Live: alpacadecimal.NewFromInt(180)}},
+			Key: freshKey,
+			State: rte.State[creditbalance.Balance]{
+				CalculatedAt: startedAt.Add(time.Second),
+				Value:        creditbalance.Balance{Live: alpacadecimal.NewFromInt(180)},
+			},
 		}
 		first, second := newStore(), newStore()
 		release := make(chan struct{})

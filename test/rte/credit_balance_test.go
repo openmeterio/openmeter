@@ -85,6 +85,7 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 	updated := pipeline.calculate(s.T(), key)
 	var calculated rte.State[creditbalance.Balance]
 	s.Require().NoError(json.Unmarshal(updated.State, &calculated))
+
 	storedAfterEvent, err := engine.CreditBalances().Get(ctx, key)
 	s.Require().NoError(err)
 	s.True(calculated.CalculatedAt.Equal(storedAfterEvent.CalculatedAt))
@@ -115,8 +116,10 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 		config.RTEConfiguration{CalculationTimeout: 30 * time.Second},
 	)
 	s.Require().NoError(err)
+
 	syncClient, err := client.NewSync(reader, demand)
 	s.Require().NoError(err)
+
 	refreshed, err := syncClient.CreditBalances().Calculate(ctx, key)
 	s.Require().NoError(err)
 	s.True(refreshed.CalculatedAt.After(stored.CalculatedAt))
@@ -128,7 +131,9 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 	clock.UnFreeze()
 	clock.FreezeTime(now.Add(2 * time.Second))
 	defer clock.UnFreeze()
+
 	s.Require().NoError(syncClient.CreditBalances().EnsureFresh(ctx, key, rte.FreshnessPolicy{TrackForSeconds: 60}))
+
 	fresh, err := reader.CreditBalances().Get(ctx, key)
 	s.Require().NoError(err)
 	s.True(fresh.CalculatedAt.After(refreshed.CalculatedAt))
