@@ -14,6 +14,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel/metric/noop"
 
 	v3sdk "github.com/openmeterio/openmeter/api/v3/client"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -44,7 +45,7 @@ func TestRTEClient(t *testing.T) {
 		TopicMapping: eventbus.TopicMapping{SystemEventsTopic: "om_sys.api_events", IngestEventsTopic: "om_sys.ingest_events", BalanceWorkerEventsTopic: "om_sys.balance_worker_events"},
 	})
 	require.NoError(t, err)
-	client, err := rteclient.New(rteclient.Config{DB: driver.Client(), Publisher: bus, Logger: logger})
+	client, err := rteclient.New(rteclient.Config{DB: driver.Client(), Publisher: bus, Meter: noop.NewMeterProvider().Meter("test"), Logger: logger})
 	require.NoError(t, err)
 	creditClient := client.CreditBalances()
 

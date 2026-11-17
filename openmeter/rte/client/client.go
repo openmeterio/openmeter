@@ -5,19 +5,25 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
+
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/adapter"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
+	"github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Config struct {
 	DB        *db.Client
 	Publisher eventbus.Publisher
 	Logger    *slog.Logger
+	Meter     metric.Meter
 }
 
 type client struct {
@@ -28,6 +34,10 @@ type client struct {
 func New(config Config) (rte.Client, error) {
 	if config.Publisher == nil {
 		return nil, errors.New("RTE request publisher is required")
+	}
+
+	if config.Meter == nil {
+		return nil, errors.New("RTE client meter is required")
 	}
 
 	cfg := adapter.Config{Client: config.DB, Logger: config.Logger}
@@ -46,9 +56,19 @@ func New(config Config) (rte.Client, error) {
 		return nil, err
 	}
 
+	creditReads, err := metrics.NewStateReads(config.Meter, rte.CalculationKindCreditBalance)
+	if err != nil {
+		return nil, err
+	}
+
+	meteredReads, err := metrics.NewStateReads(config.Meter, rte.CalculationKindMeteredEntitlement)
+	if err != nil {
+		return nil, err
+	}
+
 	return &client{
-		credit:  balances[creditbalance.Key, creditbalance.Balance]{reader: credit, demand: demand, publisher: config.Publisher},
-		metered: balances[meteredentitlement.Key, meteredentitlement.Balance]{reader: metered, demand: demand, publisher: config.Publisher},
+		credit:  balances[creditbalance.Key, creditbalance.Balance]{reader: credit, metrics: creditReads, demand: demand, publisher: config.Publisher},
+		metered: balances[meteredentitlement.Key, meteredentitlement.Balance]{reader: metered, metrics: meteredReads, demand: demand, publisher: config.Publisher},
 	}, nil
 }
 
@@ -65,9 +85,29 @@ type reader[K rte.Key, V any] interface {
 }
 
 type balances[K rte.Key, V any] struct {
-	reader[K, V]
+	reader    reader[K, V]
+	metrics   metrics.StateReads
 	demand    rte.DemandRepository
 	publisher eventbus.Publisher
+}
+
+func (b balances[K, V]) Get(ctx context.Context, key K) (rte.State[V], error) {
+	if err := key.Validate(); err != nil {
+		return rte.State[V]{}, err
+	}
+
+	start := time.Now()
+	state, err := b.reader.Get(ctx, key)
+	switch {
+	case err == nil:
+		b.metrics.Read(ctx, start, metrics.ReadOutcomeHit)
+	case models.IsGenericNotFoundError(err):
+		b.metrics.Read(ctx, start, metrics.ReadOutcomeMissing)
+	default:
+		b.metrics.Read(ctx, start, metrics.ReadOutcomeFailed)
+	}
+
+	return state, err
 }
 
 func (b balances[K, V]) RequestCalculation(ctx context.Context, key K) error {
