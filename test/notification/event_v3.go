@@ -136,7 +136,7 @@ func (s *LegacyEventV3TestSuite) Setup(ctx context.Context, t *testing.T) {
 }
 
 func (s *LegacyEventV3TestSuite) newV1Router(service notification.Service) http.Handler {
-	handler := notificationhttpdriver.New(namespacedriver.StaticNamespaceDecoder(s.namespace), service, nil)
+	handler := notificationhttpdriver.New(namespacedriver.StaticNamespaceDecoder(s.namespace), service, nil, nil)
 
 	router := chi.NewRouter()
 	router.Get("/api/v1/notification/events", func(w http.ResponseWriter, r *http.Request) {

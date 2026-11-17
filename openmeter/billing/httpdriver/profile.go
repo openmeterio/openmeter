@@ -96,7 +96,10 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 
 				// Nothing is stored yet, so the gate rejects any tax code and nothing gets resolved
 				// or created; only behavior can get through.
-				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, input.Namespace, mapTaxConfigToEntity(request.DefaultTaxConfig), nil)
+				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, billingconvert.ResolveProfileDefaultTaxConfigInput{
+					Namespace: input.Namespace,
+					Raw:       mapTaxConfigToEntity(request.DefaultTaxConfig),
+				})
 				if err != nil {
 					return err
 				}
@@ -268,7 +271,11 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 					return err
 				}
 
-				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, input.Namespace, mapTaxConfigToEntity(request.DefaultTaxConfig), storedDefaultTaxConfig)
+				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, billingconvert.ResolveProfileDefaultTaxConfigInput{
+					Namespace: input.Namespace,
+					Raw:       mapTaxConfigToEntity(request.DefaultTaxConfig),
+					Stored:    storedDefaultTaxConfig,
+				})
 				if err != nil {
 					return err
 				}
@@ -358,7 +365,7 @@ func (h *handler) ListProfiles() ListProfilesHandler {
 			}
 
 			for _, profile := range profiles.Items {
-				apiProfile, err := mapProfileToAPI(&profile, taxCodes)
+				apiProfile, err := toAPIBillingProfile(&profile, taxCodes)
 				if err != nil {
 					return ListProfilesResponse{}, fmt.Errorf("failed to convert profile to API: %w", err)
 				}
@@ -528,10 +535,10 @@ func (h *handler) mapProfileWithTaxCodesToAPI(ctx context.Context, p *billing.Pr
 		return apiv1models.BillingProfile{}, err
 	}
 
-	return mapProfileToAPI(p, taxCodes)
+	return toAPIBillingProfile(p, taxCodes)
 }
 
-func mapProfileToAPI(p *billing.Profile, taxCodes map[string]*taxcode.TaxCode) (apiv1models.BillingProfile, error) {
+func toAPIBillingProfile(p *billing.Profile, taxCodes map[string]*taxcode.TaxCode) (apiv1models.BillingProfile, error) {
 	if p == nil {
 		return apiv1models.BillingProfile{}, errors.New("profile is nil")
 	}

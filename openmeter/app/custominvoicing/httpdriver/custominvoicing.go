@@ -52,7 +52,7 @@ func (h *handler) DraftSyncronized() DraftSyncronizedHandler {
 				return DraftSyncronizedResponse{}, err
 			}
 
-			return h.mapInvoiceToAPI(ctx, invoice)
+			return h.toAPIInvoice(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[DraftSyncronizedResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -103,7 +103,7 @@ func (h *handler) IssuingSyncronized() IssuingSyncronizedHandler {
 				return IssuingSyncronizedResponse{}, err
 			}
 
-			return h.mapInvoiceToAPI(ctx, invoice)
+			return h.toAPIInvoice(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[IssuingSyncronizedResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -159,7 +159,7 @@ func (h *handler) UpdatePaymentStatus() UpdatePaymentStatusHandler {
 				return UpdatePaymentStatusResponse{}, err
 			}
 
-			return h.mapInvoiceToAPI(ctx, invoice)
+			return h.toAPIInvoice(ctx, invoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdatePaymentStatusResponse](http.StatusOK),
 		httptransport.AppendOptions(

@@ -6,8 +6,8 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingerrors"
-	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )

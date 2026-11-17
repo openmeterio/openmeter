@@ -59,7 +59,7 @@ func New(
 	}
 }
 
-func (h *handler) mapInvoiceToAPI(ctx context.Context, invoice billing.StandardInvoice) (apiv1models.Invoice, error) {
+func (h *handler) toAPIInvoice(ctx context.Context, invoice billing.StandardInvoice) (apiv1models.Invoice, error) {
 	taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, invoice.Namespace, invoice.Workflow.Config)
 	if err != nil {
 		return apiv1models.Invoice{}, err

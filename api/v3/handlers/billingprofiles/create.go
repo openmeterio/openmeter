@@ -65,7 +65,10 @@ func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 
 				// Nothing is stored yet, so the gate rejects any tax code and nothing gets
 				// resolved or created; only behavior can get through.
-				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, input.Namespace, request.DefaultTaxConfig, nil)
+				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, billingconvert.ResolveProfileDefaultTaxConfigInput{
+					Namespace: input.Namespace,
+					Raw:       request.DefaultTaxConfig,
+				})
 				if err != nil {
 					return err
 				}

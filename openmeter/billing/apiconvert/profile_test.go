@@ -56,9 +56,13 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 	t.Run("create rejects a tax code without resolving it", func(t *testing.T) {
 		// when: a stripe code is sent with nothing stored
 		resolver := &recordingBackfillResolver{}
-		_, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, namespace, &productcatalog.TaxConfig{
-			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		}, nil)
+		_, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, ResolveProfileDefaultTaxConfigInput{
+			Namespace: namespace,
+			Raw: &productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			},
+			Stored: nil,
+		})
 
 		// then: the gate rejects it with a validation error and nothing is resolved
 		var validationErr billing.ValidationError
@@ -69,10 +73,14 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 	t.Run("a stripe-only echo keeps the stored tax code ID", func(t *testing.T) {
 		// when: a legacy client echoes the stored stripe code with a new behavior
 		resolver := &recordingBackfillResolver{taxCodes: map[string]*taxcode.TaxCode{"txcd_10000000": otherTaxCode}}
-		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, namespace, &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-			Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		}, stored)
+		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, ResolveProfileDefaultTaxConfigInput{
+			Namespace: namespace,
+			Raw: &productcatalog.TaxConfig{
+				Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+				Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			},
+			Stored: stored,
+		})
 		require.NoError(t, err)
 
 		// then: the stored ID is reused instead of looking the code up by mapping
@@ -88,9 +96,13 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 		// Production can't produce this state (the stored shape always carries the ID), but
 		// FromAPITaxConfig is the live path for plans and add-ons: this pins its fallback.
 		resolver := &recordingBackfillResolver{taxCodes: map[string]*taxcode.TaxCode{"txcd_10000000": storedTaxCode}}
-		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, namespace, &productcatalog.TaxConfig{
-			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		}, &productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}})
+		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, ResolveProfileDefaultTaxConfigInput{
+			Namespace: namespace,
+			Raw: &productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			},
+			Stored: &productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}},
+		})
 		require.NoError(t, err)
 
 		// then: the code is resolved by mapping
@@ -101,9 +113,13 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 	t.Run("resolver failures are passed through, not reported as validation errors", func(t *testing.T) {
 		// when: resolving the fallback stripe code fails
 		resolver := &recordingBackfillResolver{err: errors.New("db down")}
-		_, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, namespace, &productcatalog.TaxConfig{
-			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		}, &productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}})
+		_, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, ResolveProfileDefaultTaxConfigInput{
+			Namespace: namespace,
+			Raw: &productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+			},
+			Stored: &productcatalog.TaxConfig{Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"}},
+		})
 
 		// then: it's a TaxCodeResolutionError, not a billing.ValidationError
 		var resolveErr *productcataloghttp.TaxCodeResolutionError
@@ -116,7 +132,11 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 	t.Run("an echoed tax code ID wins without resolving", func(t *testing.T) {
 		// when: both the stored ID and stripe code are echoed
 		resolver := &recordingBackfillResolver{}
-		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, namespace, stored, stored)
+		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, ResolveProfileDefaultTaxConfigInput{
+			Namespace: namespace,
+			Raw:       stored,
+			Stored:    stored,
+		})
 		require.NoError(t, err)
 
 		// then: the stored reference is kept
@@ -130,10 +150,14 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 	t.Run("dropping the stripe code while echoing the ID removes the pair", func(t *testing.T) {
 		// when: the stripe code is dropped but the ID echoed
 		resolver := &recordingBackfillResolver{}
-		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, namespace, &productcatalog.TaxConfig{
-			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			TaxCodeID: lo.ToPtr(storedTaxCode.ID),
-		}, stored)
+		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, ResolveProfileDefaultTaxConfigInput{
+			Namespace: namespace,
+			Raw: &productcatalog.TaxConfig{
+				Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+				TaxCodeID: lo.ToPtr(storedTaxCode.ID),
+			},
+			Stored: stored,
+		})
 		require.NoError(t, err)
 
 		// then: only the behavior is left
@@ -144,9 +168,13 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 
 	t.Run("a malformed stripe code is a validation error", func(t *testing.T) {
 		// when: the stripe code doesn't look like a Stripe tax code
-		_, err := ResolveProfileDefaultTaxConfig(t.Context(), &recordingBackfillResolver{}, namespace, &productcatalog.TaxConfig{
-			Stripe: &productcatalog.StripeTaxConfig{Code: "not-a-code"},
-		}, stored)
+		_, err := ResolveProfileDefaultTaxConfig(t.Context(), &recordingBackfillResolver{}, ResolveProfileDefaultTaxConfigInput{
+			Namespace: namespace,
+			Raw: &productcatalog.TaxConfig{
+				Stripe: &productcatalog.StripeTaxConfig{Code: "not-a-code"},
+			},
+			Stored: stored,
+		})
 
 		// then: it's rejected as invalid input
 		var validationErr billing.ValidationError

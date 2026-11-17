@@ -79,13 +79,17 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 					return err
 				}
 
-			// The gate compares against the stored default the way responses show it.
-			storedDefaultTaxConfig, err := billingconvert.LegacyProfileDefaultTaxConfig(ctx, h.taxCodeResolver, request.Namespace, stored.WorkflowConfig)
-			if err != nil {
-				return err
-			}
+				// The gate compares against the stored default the way responses show it.
+				storedDefaultTaxConfig, err := billingconvert.LegacyProfileDefaultTaxConfig(ctx, h.taxCodeResolver, request.Namespace, stored.WorkflowConfig)
+				if err != nil {
+					return err
+				}
 
-			defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, request.Namespace, request.DefaultTaxConfig, storedDefaultTaxConfig)
+				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, billingconvert.ResolveProfileDefaultTaxConfigInput{
+					Namespace: request.Namespace,
+					Raw:       request.DefaultTaxConfig,
+					Stored:    storedDefaultTaxConfig,
+				})
 				if err != nil {
 					return err
 				}

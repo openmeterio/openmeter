@@ -318,7 +318,7 @@ func mapCustomerOverrideToAPI(in billing.CustomerBillingProfile, taxCodes map[st
 
 	res.BaseBillingProfileId = in.EffectiveProfile.ID
 
-	profile, err := mapCustomerProfileToAPI(in.EffectiveProfile, taxCodes)
+	profile, err := toAPIBillingCustomerProfile(in.EffectiveProfile, taxCodes)
 	if err != nil {
 		return res, err
 	}
@@ -328,8 +328,8 @@ func mapCustomerOverrideToAPI(in billing.CustomerBillingProfile, taxCodes map[st
 	return res, nil
 }
 
-func mapCustomerProfileToAPI(in billing.Profile, taxCodes map[string]*taxcode.TaxCode) (apiv1models.BillingCustomerProfile, error) {
-	profile, err := mapProfileToAPI(&in, taxCodes)
+func toAPIBillingCustomerProfile(in billing.Profile, taxCodes map[string]*taxcode.TaxCode) (apiv1models.BillingCustomerProfile, error) {
+	profile, err := toAPIBillingProfile(&in, taxCodes)
 	if err != nil {
 		return apiv1models.BillingCustomerProfile{}, err
 	}
