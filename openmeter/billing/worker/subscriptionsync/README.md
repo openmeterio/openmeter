@@ -44,6 +44,8 @@ lines.
 The target builder walks each phase and item version into service periods up to
 the requested horizon. The horizon normally expands to the end of the aligned
 billing period containing `asOf`; it is not simply a database query cutoff.
+A phase starting exactly at that horizon is included so its in-advance fees
+are provisioned when the phase starts.
 
 Each target item keeps three periods:
 
