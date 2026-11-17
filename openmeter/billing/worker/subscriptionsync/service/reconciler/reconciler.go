@@ -148,6 +148,7 @@ type Plan struct {
 	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
 	NextBillingPeriod                  *timeutil.ClosedPeriod
+	BillingEndsAt                      *time.Time
 }
 
 func (p *Plan) IsEmpty() bool {
@@ -386,6 +387,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 			NextBillingPeriod:                  input.Target.NextBillingPeriod,
+			BillingEndsAt:                      input.Target.BillingEndsAt,
 		}, nil
 	}
 
@@ -418,6 +420,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 			NextBillingPeriod:                  input.Target.NextBillingPeriod,
+			BillingEndsAt:                      input.Target.BillingEndsAt,
 		}, nil
 	}
 
@@ -493,6 +496,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
 		NextBillingPeriod:                  input.Target.NextBillingPeriod,
+		BillingEndsAt:                      input.Target.BillingEndsAt,
 	}, nil
 }
 
