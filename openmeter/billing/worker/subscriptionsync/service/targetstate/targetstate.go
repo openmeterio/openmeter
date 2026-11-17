@@ -284,7 +284,9 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 
 			inScopeLines = append(inScopeLines, items...)
 
-			if phaseEnd := iterator.PhaseEnd(); phaseEnd != nil && !phaseEnd.Before(asOf) {
+			// Include the next phase when it starts at the generation limit: its
+			// advance fees are due at that boundary and must already be provisioned.
+			if phaseEnd := iterator.PhaseEnd(); phaseEnd != nil && phaseEnd.After(generationLimit) {
 				break
 			}
 		}

@@ -357,6 +357,114 @@ func (s *SyncStateTestSuite) TestFreeToPaidProgression() {
 	s.requireActiveDeadline(view.Subscription.NamespacedID, secondPaidPeriod)
 }
 
+func (s *SyncStateTestSuite) TestPaidToPaidPhaseTransitionProvisionsAdvanceFeeOnTime() {
+	for _, tc := range []struct {
+		name    string
+		service *Service
+		asOf    time.Time
+	}{
+		{
+			name:    "legacy billing before the phase boundary",
+			service: s.LegacySyncService,
+			asOf:    s.mustParseTime("2026-11-25T00:00:00Z"),
+		},
+		{
+			name:    "charges before the phase boundary",
+			service: s.ChargeSyncService,
+			asOf:    s.mustParseTime("2026-11-25T00:00:00Z"),
+		},
+		{
+			name:    "legacy billing at the phase boundary",
+			service: s.LegacySyncService,
+			asOf:    s.mustParseTime("2026-12-01T00:00:00Z"),
+		},
+		{
+			name:    "charges at the phase boundary",
+			service: s.ChargeSyncService,
+			asOf:    s.mustParseTime("2026-12-01T00:00:00Z"),
+		},
+	} {
+		s.Run(tc.name, func() {
+			// Given two paid phases, the second phase's advance fee is due on December 1.
+			ctx := s.T().Context()
+			start := s.mustParseTime("2026-11-01T00:00:00Z")
+			december := s.mustParseTime("2026-12-01T00:00:00Z")
+			january := s.mustParseTime("2027-01-01T00:00:00Z")
+			february := s.mustParseTime("2027-02-01T00:00:00Z")
+			clock.FreezeTime(start)
+			defer clock.UnFreeze()
+			s.Service = tc.service
+			s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
+			_, err := s.LedgerResolver.CreateCustomerAccounts(ctx, s.Customer.GetID())
+			s.Require().NoError(err)
+
+			firstPhase := s.paidMonthlyPhase()
+			firstPhase.PhaseMeta = s.phaseMeta("first-paid", "P1M")
+			view := s.createSyncStateSubscription(syncStateSubscriptionInput{
+				Start: start,
+				Phases: []productcatalog.Phase{
+					firstPhase,
+					s.paidMonthlyPhase(),
+				},
+			})
+			firstFeeID := (recurringLineMatcher{PhaseKey: "first-paid", ItemKey: "monthly-fee"}).ChildIDs(view.Subscription.ID)[0]
+			secondPhaseFeeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: 1}).ChildIDs(view.Subscription.ID)
+			expectedFees := map[string]timeutil.ClosedPeriod{
+				firstFeeID:           {From: start, To: december},
+				secondPhaseFeeIDs[0]: {From: december, To: january},
+			}
+
+			// When sync generates through December 1, it must include the second phase's fee.
+			clock.FreezeTime(tc.asOf)
+			defer clock.UnFreeze()
+			s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+			s.requirePhaseTransitionFees(view, expectedFees)
+			next := s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: december, To: january})
+
+			// Then following the December deadline adds January's fee without duplicating earlier fees.
+			clock.FreezeTime(next)
+			defer clock.UnFreeze()
+			s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+			expectedFees[secondPhaseFeeIDs[1]] = timeutil.ClosedPeriod{From: january, To: february}
+			s.requirePhaseTransitionFees(view, expectedFees)
+			s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{From: january, To: february})
+		})
+	}
+}
+
+func (s *SyncStateTestSuite) requirePhaseTransitionFees(view subscription.SubscriptionView, expected map[string]timeutil.ClosedPeriod) {
+	s.T().Helper()
+	actual := make(map[string]timeutil.ClosedPeriod)
+	if s.Service == s.ChargeSyncService {
+		result, err := s.Charges.ListCharges(s.T().Context(), charges.ListChargesInput{
+			Namespace:       s.Namespace,
+			SubscriptionIDs: []string{view.Subscription.ID},
+		})
+		s.Require().NoError(err)
+		s.Require().Len(result.Items, len(expected))
+		for _, item := range result.Items {
+			charge, err := item.AsFlatFeeCharge()
+			s.Require().NoError(err)
+			intent := charge.Intent.GetBaseIntent()
+			reference, err := item.GetUniqueReferenceID()
+			s.Require().NoError(err)
+			s.Require().NotNil(reference)
+			s.Equal(intent.ServicePeriod.From, intent.InvoiceAt)
+			actual[*reference] = intent.ServicePeriod
+		}
+	} else {
+		invoice := s.gatheringInvoice(s.T().Context(), s.Namespace, s.Customer.ID)
+		s.Require().Len(invoice.Lines.OrEmpty(), len(expected))
+		for _, line := range invoice.Lines.OrEmpty() {
+			s.Require().NotNil(line.ChildUniqueReferenceID)
+			s.Equal(line.GetServicePeriod().From, line.InvoiceAt)
+			actual[*line.ChildUniqueReferenceID] = line.GetServicePeriod()
+		}
+	}
+
+	s.Equal(expected, actual)
+}
+
 func (s *SyncStateTestSuite) TestNoBillablesHasNoReconciliationDeadline() {
 	// Given a subscription with a monthly billing calendar but no priced items.
 	start := s.mustParseTime("2026-11-01T00:00:00Z")
