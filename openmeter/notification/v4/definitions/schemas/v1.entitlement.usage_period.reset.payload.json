@@ -38,7 +38,7 @@
     "unevaluatedProperties": {
         "not": {}
     },
-    "description": "Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`\nEvent type.",
+    "description": "A metered entitlement's usage period was reset. The payload carries the\nentitlement, its feature, subject, customer and value.\n\nLegacy name: `entitlements.reset`.",
     "$defs": {
         "V1EntitlementMetered": {
             "type": "object",

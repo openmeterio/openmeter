@@ -44,7 +44,7 @@
     "unevaluatedProperties": {
         "not": {}
     },
-    "description": "Payload of `v1.entitlement.balance_threshold.triggered`, the legacy\n`entitlements.balance.threshold` Event type.",
+    "description": "A metered entitlement's balance crossed one of the thresholds configured on the\nRule. The payload carries the entitlement, its feature, subject, customer and\nvalue, and the threshold that was crossed.\n\nLegacy name: `entitlements.balance.threshold`.",
     "$defs": {
         "V1EntitlementMetered": {
             "type": "object",
