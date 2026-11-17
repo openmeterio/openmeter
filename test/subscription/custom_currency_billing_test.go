@@ -302,7 +302,8 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				To:   setupAt,
 			}
 			grants, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
-				Namespace: namespace,
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    namespace,
 				Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 					Intent: chargesmeta.Intent{
 						ManagedBy:  billing.ManuallyManagedLine,
@@ -479,7 +480,8 @@ func TestSubscriptionSyncCustomCurrencyBilling(t *testing.T) {
 				require.NoError(t, err)
 
 				purchases, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
-					Namespace: namespace,
+					ChangeSource: billing.ChangeSourceSystem,
+					Namespace:    namespace,
 					Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 						Intent: chargesmeta.Intent{
 							ManagedBy:  billing.ManuallyManagedLine,

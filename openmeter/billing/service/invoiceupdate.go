@@ -182,6 +182,10 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 
 	defaultTaxCodeResolvers := s.defaultTaxCodeResolversForInvoiceUpdate(after)
 	if source == billing.ChangeSourceAPIRequest {
+		// Both sides are sanitized with deleted codes allowed: the diff must compare the
+		// persisted and requested states in the same resolved representation, and an edit
+		// that leaves a line's Tax Code untouched is allowed to keep referencing a deleted
+		// one. Newly authored deleted references are rejected below.
 		var err error
 		before, err = s.invoiceWithSanitizedTaxConfigForDiff(
 			ctx,
@@ -193,9 +197,20 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 			return mutableInvoiceLineDiff{}, fmt.Errorf("sanitizing persisted invoice line tax configs for diff: %w", err)
 		}
 
-		after, err = s.invoiceWithSanitizedTaxConfigForDiff(ctx, defaultTaxCodeResolvers, after)
+		after, err = s.invoiceWithSanitizedTaxConfigForDiff(
+			ctx,
+			defaultTaxCodeResolvers,
+			after,
+			productcatalog.AllowDeletedTaxCodeByID(),
+		)
 		if err != nil {
 			return mutableInvoiceLineDiff{}, fmt.Errorf("sanitizing expected invoice line tax configs for diff: %w", err)
+		}
+
+		// after keeps its sanitized lines below; the deleted-ID check runs against the
+		// same normalized state the diff compares.
+		if err := s.rejectAuthoredDeletedTaxCodes(ctx, before, after); err != nil {
+			return mutableInvoiceLineDiff{}, err
 		}
 	}
 
@@ -319,6 +334,8 @@ func (s *Service) sanitizeTaxConfigForDiff(
 	}
 
 	if sanitized.TaxCodeID == nil && (sanitized.Stripe == nil || sanitized.Stripe.Code == "") {
+		// A new API line without tax identity gets the provider default, which counts as
+		// authored by the edit; fine, because the provider default cannot be deleted today.
 		providerDefaultTaxCode, err := s.taxCodeService.GetTaxCodeByKey(ctx, taxcode.GetTaxCodeByKeyInput{
 			Namespace: namespace,
 			Key:       taxcode.ProviderDefaultTaxCodeKey,
@@ -357,6 +374,72 @@ func validateTaxConfigTaxCodeIDResolvedForDiff(taxConfig *billing.TaxConfig) err
 	return billing.ValidationError{
 		Err: models.NewGenericValidationError(errors.New("cannot resolve tax code id")),
 	}
+}
+
+// rejectAuthoredDeletedTaxCodes rejects Tax Code IDs an API edit authored. Both invoice
+// states were sanitized with deleted codes included, so the comparison is on the resolved
+// TaxCodeID: a line whose ID equals its previous state (or a line the edit leaves alone)
+// inherited its reference and passes; only a newly referenced deleted code is rejected.
+func (s *Service) rejectAuthoredDeletedTaxCodes(ctx context.Context, before, after billing.GenericInvoiceReader) error {
+	afterLines := after.GetGenericLines().OrEmpty()
+	beforeByLineID := make(map[string]billing.GenericInvoiceLine, len(before.GetGenericLines().OrEmpty()))
+	for _, line := range before.GetGenericLines().OrEmpty() {
+		beforeByLineID[line.GetID()] = line
+	}
+
+	// Collect the distinct Tax Code IDs the edit authored, so they are checked with one
+	// batch lookup and a deleted code is named by ID in the issue.
+	authoredIDs := make(map[string]string) // tax code ID -> first line ID referencing it
+	for _, afterLine := range afterLines {
+		taxCodeID := taxCodeIDFromTaxConfig(afterLine.GetTaxConfig())
+		if taxCodeID == "" {
+			continue
+		}
+
+		if beforeLine, ok := beforeByLineID[afterLine.GetID()]; ok {
+			if beforeTaxCodeID := taxCodeIDFromTaxConfig(beforeLine.GetTaxConfig()); beforeTaxCodeID == taxCodeID {
+				continue
+			}
+		}
+
+		if _, seen := authoredIDs[taxCodeID]; !seen {
+			authoredIDs[taxCodeID] = afterLine.GetID()
+		}
+	}
+
+	if len(authoredIDs) == 0 {
+		return nil
+	}
+
+	// The sanitizer already rejects IDs the namespace cannot resolve, so the batched
+	// authored check here only ever fires its deleted classification.
+	refs := make([]billing.AuthoredTaxCodeID, 0, len(authoredIDs))
+	for taxCodeID, lineID := range authoredIDs {
+		refs = append(refs, billing.AuthoredTaxCodeID{
+			TaxCodeID: taxCodeID,
+			FieldPath: fmt.Sprintf("lines/%s/tax_config/tax_code", lineID),
+		})
+	}
+
+	if err := billing.ValidateAuthoredTaxCodeIDs(ctx, billing.ValidateAuthoredTaxCodeIDsInput{
+		Namespace:  after.GetInvoiceID().Namespace,
+		Resolver:   s.taxCodeResolver,
+		References: refs,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// taxCodeIDFromTaxConfig reads the resolved Tax Code ID the edit diff compares on. Nil and
+// empty mean "no tax code", which the sanitizer already normalized on both sides.
+func taxCodeIDFromTaxConfig(taxConfig *billing.TaxConfig) string {
+	if taxConfig == nil || taxConfig.TaxCodeID == nil {
+		return ""
+	}
+
+	return *taxConfig.TaxCodeID
 }
 
 func validateInvoiceReaderForDiff(invoice billing.GenericInvoiceReader) error {

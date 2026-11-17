@@ -45,6 +45,35 @@ type ChargeService interface {
 type CreateInput struct {
 	Namespace string
 	Intents   CreateChargeIntents
+
+	// ChangeSource classifies where the intents' tax code references come from.
+	//
+	// ChangeSourceAPIRequest means an API caller authored the intents, so a Tax Code ID
+	// referencing a deleted Tax Code is rejected before defaults are applied.
+	// ChangeSourceSystem means the references are inherited from stored data or freshly
+	// stamped defaults, which may point at a Tax Code deleted since. The zero value is
+	// rejected by Validate: every caller must classify its references.
+	ChangeSource billing.ChangeSource
+}
+
+func (i CreateInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	// The zero value is invalid like on the billing pending-lines input: every caller must
+	// classify its references, because the authored check above only runs for API requests.
+	if err := i.ChangeSource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
+	}
+
+	if err := i.Intents.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intents: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateChargeIntent struct {
@@ -144,20 +173,6 @@ type (
 	CreatePendingInvoiceLinesInput  = billing.CreatePendingInvoiceLinesInput
 	CreatePendingInvoiceLinesResult = billing.CreatePendingInvoiceLinesResult
 )
-
-func (i CreateInput) Validate() error {
-	var errs []error
-
-	if i.Namespace == "" {
-		errs = append(errs, fmt.Errorf("namespace is required"))
-	}
-
-	if err := i.Intents.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("intents: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
 
 type GetByIDInput struct {
 	ChargeID meta.ChargeID

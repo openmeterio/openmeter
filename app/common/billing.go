@@ -270,6 +270,7 @@ func NewBillingRegistry(
 			accountService,
 			breakageService,
 			taxCodeService,
+			taxCodeResolver,
 			currencyResolver,
 			currenciesService,
 			customerService,

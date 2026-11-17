@@ -61,8 +61,9 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		})
 
 		res, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     cust.GetID(),
+			Currency:     "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				lineIn,
 			}),
@@ -169,8 +170,9 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	}
 
 	_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: "USD",
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     "USD",
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    period,
@@ -250,8 +252,9 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 
 	s.Run("should not create line with usage discount", func() {
 		_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     cust.GetID(),
+			Currency:     "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 					Period:    period,
@@ -276,8 +279,9 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 
 	s.Run("empty period is allowed", func() {
 		_, err := s.Charges.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     cust.GetID(),
+			Currency:     "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				NewFlatFeeManuallyManagedGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{

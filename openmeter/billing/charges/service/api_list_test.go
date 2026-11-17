@@ -224,7 +224,8 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 	subscriptionID := subscriptionView.Subscription.ID
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
@@ -335,7 +336,8 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 		// - a second customer with its own charge
 		other := s.CreateTestCustomer(namespace, "api-list-other")
 		otherCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          other.GetID(),
@@ -417,7 +419,8 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 			To:   datetime.MustParseTimeInLocation(s.T(), "2027-06-01T00:00:00Z", time.UTC).AsTime(),
 		}
 		mayCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),

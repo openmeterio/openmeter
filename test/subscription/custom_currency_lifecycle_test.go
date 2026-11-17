@@ -64,7 +64,8 @@ func setupCustomCurrencyFlatFeeSubscription(t *testing.T) customCurrencyFlatFeeF
 	fiat, err := currencyx.NewFiatCurrency("USD")
 	require.NoError(t, err)
 	grants, err := deps.chargesService.Create(t.Context(), charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: chargesmeta.Intent{ManagedBy: billing.ManuallyManagedLine, CustomerID: customer.ID, Currency: credits},
 			IntentMutableFields: creditpurchase.IntentMutableFields{

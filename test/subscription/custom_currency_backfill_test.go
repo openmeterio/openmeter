@@ -67,7 +67,8 @@ func TestSubscriptionCustomCurrencyBackfillAcrossPeriods(t *testing.T) {
 	require.NoError(t, err)
 
 	purchases, err := f.chargesService.Create(ctx, charges.CreateInput{
-		Namespace: f.view.Subscription.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    f.view.Subscription.Namespace,
 		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: chargesmeta.Intent{
 				ManagedBy:  billing.ManuallyManagedLine,

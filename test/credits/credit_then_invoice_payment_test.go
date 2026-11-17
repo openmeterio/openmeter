@@ -169,7 +169,8 @@ func (s *CreditThenInvoiceTestSuite) setupPaymentBookingInvoice() paymentBooking
 	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
 	s.ProvisionBillingProfile(ctx, ns, invoicing.App.GetID())
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 			Customer:          cust.GetID(),
 			Currency:          USD,

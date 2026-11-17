@@ -11275,7 +11275,8 @@ func (s *CreditThenInvoiceTestSuite) createPromotionalCreditFunding(ctx context.
 	s.T().Helper()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: input.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    input.Namespace,
 		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: chargesmeta.Intent{
 				ManagedBy:  billing.SystemManagedLine,

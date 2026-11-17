@@ -326,6 +326,9 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 					BypassFeatureMeterValidation: true,
 				}
 			}),
+			// Sync re-creates lines from stored subscription items, whose tax code
+			// references may point at a Tax Code deleted since.
+			ChangeSource: billing.ChangeSourceSystem,
 		})
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines: %w", err)
