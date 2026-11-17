@@ -8,12 +8,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -23,6 +23,7 @@ type Config struct {
 	Service     rte.Service
 	Logger      *slog.Logger
 	MetricMeter metric.Meter
+
 	// Zero uses seven days. Replays beyond this window can trigger extra work.
 	InvalidationRetention time.Duration
 	CalculationTimeout    time.Duration
@@ -64,11 +65,9 @@ func (c Config) Validate() error {
 }
 
 type service struct {
-	config         Config
-	operations     metric.Int64Counter
-	ensureDuration metric.Float64Histogram
-	invalidated    metric.Int64Counter
-	lastPrune      atomic.Int64
+	config    Config
+	metrics   *rtemetrics.Demand
+	lastPrune atomic.Int64
 }
 
 func New(config Config) (rte.DemandService, error) {
@@ -80,22 +79,12 @@ func New(config Config) (rte.DemandService, error) {
 		config.InvalidationRetention = 7 * 24 * time.Hour
 	}
 
-	operations, err := config.MetricMeter.Int64Counter("rte.demand.operations", metric.WithDescription("Demand operations by operation and outcome"))
+	metrics, err := rtemetrics.NewDemand(config.MetricMeter)
 	if err != nil {
 		return nil, err
 	}
 
-	invalidated, err := config.MetricMeter.Int64Counter("rte.demand.invalidated", metric.WithDescription("Active calculation keys marked dirty"))
-	if err != nil {
-		return nil, err
-	}
-
-	ensureDuration, err := config.MetricMeter.Float64Histogram("rte.demand.ensure_fresh.duration", rte.DurationBuckets(), metric.WithUnit("s"), metric.WithDescription("Elapsed time to register demand and refresh a balance when needed"))
-	if err != nil {
-		return nil, err
-	}
-
-	return &service{config: config, operations: operations, invalidated: invalidated, ensureDuration: ensureDuration}, nil
+	return &service{config: config, metrics: metrics}, nil
 }
 
 func (s *service) Activate(ctx context.Context, target rte.CalculationTarget) error {
@@ -112,10 +101,9 @@ func (s *service) EnsureFresh(ctx context.Context, input rte.EnsureFreshInput) e
 	}
 
 	start := time.Now()
-	outcome := "error"
+	outcome := rtemetrics.DemandOutcomeError
 	defer func() {
-		s.record(ctx, "pull", outcome)
-		s.ensureDuration.Record(ctx, time.Since(start).Seconds(), metric.WithAttributes(attribute.String("kind", string(input.Target.Kind)), attribute.String("outcome", outcome)))
+		s.metrics.EnsureFresh(ctx, input.Target.Kind, start, outcome)
 	}()
 
 	clean, err := s.config.Repository.EnsurePull(ctx, input)
@@ -124,7 +112,7 @@ func (s *service) EnsureFresh(ctx context.Context, input rte.EnsureFreshInput) e
 	}
 
 	if clean {
-		outcome = "cache_hit"
+		outcome = rtemetrics.DemandOutcomeCacheHit
 		return nil
 	}
 
@@ -133,9 +121,9 @@ func (s *service) EnsureFresh(ctx context.Context, input rte.EnsureFreshInput) e
 		return err
 	}
 
-	outcome = "cache_hit"
+	outcome = rtemetrics.DemandOutcomeCacheHit
 	if processed {
-		outcome = "calculated"
+		outcome = rtemetrics.DemandOutcomeCalculated
 	}
 
 	return nil
@@ -155,19 +143,17 @@ func (s *service) Invalidate(ctx context.Context, input rte.InvalidateInput) err
 	}
 
 	result, err := s.config.Repository.Invalidate(ctx, input)
-	outcome := "marked"
+	outcome := rtemetrics.DemandOutcomeMarked
 	if result.Duplicate {
-		outcome = "duplicate"
+		outcome = rtemetrics.DemandOutcomeDuplicate
 	}
 
 	if err != nil {
-		outcome = "error"
+		outcome = rtemetrics.DemandOutcomeError
 	}
 
-	s.record(ctx, "invalidate", outcome)
-	if result.Matched > 0 {
-		s.invalidated.Add(ctx, int64(result.Matched))
-	}
+	s.metrics.Operation(ctx, rtemetrics.DemandOperationInvalidate, outcome)
+	s.metrics.Invalidated(ctx, result.Matched)
 
 	return err
 }
@@ -194,17 +180,17 @@ func (s *service) pruneReceipts(ctx context.Context) {
 		s.lastPrune.CompareAndSwap(now.UnixNano(), now.Add(-time.Minute+time.Second).UnixNano())
 	}
 
-	outcome := "empty"
+	outcome := rtemetrics.DemandOutcomeEmpty
 	if count > 0 {
-		outcome = "pruned"
+		outcome = rtemetrics.DemandOutcomePruned
 	}
 
 	if err != nil {
-		outcome = "error"
+		outcome = rtemetrics.DemandOutcomeError
 		s.config.Logger.WarnContext(ctx, "prune RTE invalidation receipts", "error", err)
 	}
 
-	s.record(ctx, "maintenance", outcome)
+	s.metrics.Operation(ctx, rtemetrics.DemandOperationMaintenance, outcome)
 }
 
 func (s *service) process(ctx context.Context, target *rte.CalculationTarget) (bool, error) {
@@ -227,23 +213,19 @@ func (s *service) process(ctx context.Context, target *rte.CalculationTarget) (b
 
 		return err
 	})
-	outcome := "empty"
+	outcome := rtemetrics.DemandOutcomeEmpty
 	switch {
 	case err != nil:
-		outcome = "error"
+		outcome = rtemetrics.DemandOutcomeError
 	case result.Retired:
-		outcome = "retired"
+		outcome = rtemetrics.DemandOutcomeRetired
 	case result.CalculationError != nil:
-		outcome = "retry"
+		outcome = rtemetrics.DemandOutcomeRetry
 	case result.Processed:
-		outcome = "calculated"
+		outcome = rtemetrics.DemandOutcomeCalculated
 	}
 
-	s.record(ctx, "process", outcome)
+	s.metrics.Operation(ctx, rtemetrics.DemandOperationProcess, outcome)
 
 	return result.Processed && err == nil, errors.Join(err, result.CalculationError)
-}
-
-func (s *service) record(ctx context.Context, operation, outcome string) {
-	s.operations.Add(ctx, 1, metric.WithAttributes(attribute.String("operation", operation), attribute.String("outcome", outcome)))
 }

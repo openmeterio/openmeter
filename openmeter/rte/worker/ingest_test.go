@@ -13,6 +13,7 @@ import (
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/rte"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
@@ -135,20 +136,12 @@ func TestCanceledCreditIngestDoesNotInvalidate(t *testing.T) {
 func sourceWorker(t *testing.T, sources rte.UpstreamResolver, invalidate func(context.Context, rte.InvalidateInput) error) *worker {
 	t.Helper()
 	meter := noop.NewMeterProvider().Meter("rte-worker-test")
-	count, err := meter.Int64Counter("events")
-	require.NoError(t, err)
-
-	lag, err := meter.Float64Histogram("lag")
-	require.NoError(t, err)
-
-	routing, err := meter.Float64Histogram("routing")
+	metrics, err := rtemetrics.NewUpstream(meter)
 	require.NoError(t, err)
 
 	return &worker{
-		routingDuration: routing,
-		sources:         sources,
-		demand:          recordingDemand{invalidate: invalidate},
-		sourceEvents:    count,
-		sourceLag:       lag,
+		upstream: metrics,
+		sources:  sources,
+		demand:   recordingDemand{invalidate: invalidate},
 	}
 }

@@ -86,7 +86,11 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 	deadLetters, err := transport.Subscribe(ctx, "rte-dlq")
 	require.NoError(t, err)
 
-	workerConfig := config.RTEConfiguration{PollInterval: time.Second, CalculationTimeout: 30 * time.Second}
+	workerConfig := config.RTEConfiguration{
+		PollInterval:           time.Second,
+		CalculationTimeout:     30 * time.Second,
+		CalculationConcurrency: 4,
+	}
 	demands, err := common.NewRTEDemandService(s.DBClient, service, logger, metricnoop.NewMeterProvider().Meter("test"), workerConfig)
 	require.NoError(t, err)
 

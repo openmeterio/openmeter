@@ -38,7 +38,7 @@ not-found error.
 
 Each key has a dirty version and a completed version. Independent invalidations
 advance the dirty version in PostgreSQL, so pending changes survive a worker restart.
-The worker polls for one ready key at a time. One calculation can cover all changes
+Each background worker slot claims one ready key at a time. One calculation can cover all changes
 recorded before the worker claims that key. Each calculator reads its own sources
 under their usual consistency rules.
 

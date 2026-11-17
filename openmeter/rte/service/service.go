@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -58,12 +59,12 @@ func New(config Config) (rte.Service, error) {
 		return nil, err
 	}
 
-	creditMetrics, err := newCalculationMetrics(config.Meter, rte.CalculationKindCreditBalance)
+	creditMetrics, err := rtemetrics.NewCalculation(config.Meter, rte.CalculationKindCreditBalance)
 	if err != nil {
 		return nil, err
 	}
 
-	meteredMetrics, err := newCalculationMetrics(config.Meter, rte.CalculationKindMeteredEntitlement)
+	meteredMetrics, err := rtemetrics.NewCalculation(config.Meter, rte.CalculationKindMeteredEntitlement)
 	if err != nil {
 		return nil, err
 	}

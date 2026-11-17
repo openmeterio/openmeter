@@ -1,11 +1,21 @@
 # Event and demand processing
 
 The worker uses one Kafka consumer group across distinct ingest and system-event topics. It runs
-the message router alongside a loop that drains due background refreshes. After a calculation succeeds
-or its retry is recorded, the worker checks the next key immediately. If no key is ready or the
-worker cannot claim one, it waits for the next poll. The
-[demand repository](../demand/README.md) owns the durable work, so another instance can take ready
-keys after a restart.
+message handling alongside a bounded pool that drains the durable PostgreSQL demand queue.
+`rte.calculationConcurrency` sets background slots per process (default 4). Each slot claims one
+ready key with `FOR UPDATE SKIP LOCKED` and keeps the claim through calculation and completion.
+Slots and replicas skip keys already held by another calculation.
+
+After processing a key, including recording its retry, that slot immediately checks for more work.
+An empty or failed claim waits `rte.pollInterval` before another attempt. Each idle slot polls
+independently, so idle query volume grows with the configured concurrency. Size the pool with DB
+connection capacity in mind: in-flight calculations hold a transaction open. Shutdown cancels all
+slots and waits for them to finish. The worker owns execution and idle waiting; the
+[demand repository](../demand/README.md) owns claims and retries.
+
+This limit applies to background demand processing. Explicit requests and shadow comparisons run
+in the message handlers and can calculate alongside the pool. Polling discovers dirty work and
+retries; it does not periodically recalculate clean balances.
 
 | Message | Worker action |
 | --- | --- |

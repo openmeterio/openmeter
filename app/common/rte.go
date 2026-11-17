@@ -11,7 +11,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/google/wire"
 	"github.com/oklog/run"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
@@ -25,6 +24,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte/demand"
 	rtemetered "github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
 	meteredcalculator "github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement/calculator"
+	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	rteservice "github.com/openmeterio/openmeter/openmeter/rte/service"
 	"github.com/openmeterio/openmeter/openmeter/rte/upstream"
 	rteworker "github.com/openmeterio/openmeter/openmeter/rte/worker"
@@ -54,21 +54,14 @@ func NewRTEService(client *db.Client, source customerbalance.Service, entitlemen
 		return nil, err
 	}
 
-	lookups, err := meter.Int64Counter("rte.rating.lookups", metric.WithDescription("Per-charge rating cache lookups"))
+	ratingMetrics, err := rtemetrics.NewRating(meter)
 	if err != nil {
 		return nil, err
 	}
 
 	creditCalculator, err := creditcalculator.New(creditcalculator.Config{
 		Source: source, Logger: logger,
-		RatingReuseObserver: func(ctx context.Context, hit bool) {
-			outcome := "miss"
-			if hit {
-				outcome = "hit"
-			}
-
-			lookups.Add(ctx, 1, metric.WithAttributes(attribute.String("outcome", outcome)))
-		},
+		RatingReuseObserver: ratingMetrics.Lookup,
 	})
 	if err != nil {
 		return nil, err
@@ -171,10 +164,14 @@ func NewRTEWorker(service rte.Service, demands rte.DemandService, client *db.Cli
 	}
 
 	return rteworker.New(rteworker.Config{
-		Demand: demands, Sources: sources, PollInterval: conf.PollInterval, IngestEventsTopic: events.IngestEvents.Topic,
-		Service:           service,
-		SystemEventsTopic: events.SystemEvents.Topic,
-		Router:            options,
-		Marshaler:         publisher.Marshaler(),
+		Demand:                 demands,
+		Sources:                sources,
+		PollInterval:           conf.PollInterval,
+		IngestEventsTopic:      events.IngestEvents.Topic,
+		CalculationConcurrency: conf.CalculationConcurrency,
+		Service:                service,
+		SystemEventsTopic:      events.SystemEvents.Topic,
+		Router:                 options,
+		Marshaler:              publisher.Marshaler(),
 	})
 }

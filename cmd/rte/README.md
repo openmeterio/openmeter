@@ -21,7 +21,8 @@ continue through their usual publishers. Delivery limits and retries use the
 | `events.systemEvents.topic`, `events.ingestEvents.topic` | Inputs for calculation requests, domain facts and stored-usage notifications |
 | `rte.consumerGroupName` | Kafka group shared by RTE replicas, default `om_rte` |
 | `rte.retry`, `rte.dlq` | Message-processing retries and dead lettering |
-| `rte.pollInterval` | Interval between polls when no key is ready or a claim fails, default 1s |
+| `rte.pollInterval` | Wait per idle background slot after an empty or failed claim, default 1s |
+| `rte.calculationConcurrency` | Background calculation slots per process, default 4; does not limit message-handler calculations |
 | `rte.calculationTimeout` | Time budget for one demand calculation, default 30s |
 | `rte.enabled` | Starts the worker and enables shadow observations and source facts on participating processes. The Helm chart uses `config.rte.enabled` to deploy the worker. |
 | `rte.shadowSamplePercent` | Percentage of balance keys observed on the API and balance workers (1–100, default 10). |
