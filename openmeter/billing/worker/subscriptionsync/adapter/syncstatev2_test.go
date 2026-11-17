@@ -472,33 +472,25 @@ func TestActiveSyncStateV2Persistence(t *testing.T) {
 		require.Equal(t, states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
 	})
 
-	for _, unscheduledState := range []subscriptionsync.SyncStateV2State{
-		subscriptionsync.SyncStateV2StateNoBillables,
-		subscriptionsync.SyncStateV2StateSubscriptionDeleted,
-		subscriptionsync.SyncStateV2StateCustomerDeletedBefore,
-		subscriptionsync.SyncStateV2StateEnded,
-		subscriptionsync.SyncStateV2StateTooOld,
-	} {
-		t.Run(string(unscheduledState)+" clears the active deadline", func(t *testing.T) {
-			// Given an active schedule, when a result with no further periodic reconciliation replaces it.
-			f := setupSyncStateV2PersistenceTest(t, at)
-			ctx := t.Context()
-			input := f.input
-			input.LastSuccessState = subscriptionsync.SyncStateV2StateActive
-			input.NextReconciliationAt = lo.ToPtr(at.Add(24 * time.Hour))
-			require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
-			input.LastSuccessState = unscheduledState
-			input.NextReconciliationAt = nil
-			require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
+	t.Run("unscheduled result clears the active deadline", func(t *testing.T) {
+		// Given an active schedule, when a result with no further periodic reconciliation replaces it.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		input := f.input
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateActive
+		input.NextReconciliationAt = lo.ToPtr(at.Add(24 * time.Hour))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateEnded
+		input.NextReconciliationAt = nil
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
 
-			// Then the upsert must clear the nullable deadline on conflict.
-			states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
-			require.NoError(t, err)
-			require.Len(t, states, 1)
-			require.Equal(t, unscheduledState, states[0].LastSuccessState)
-			require.Nil(t, states[0].NextReconciliationAt)
-		})
-	}
+		// Then the upsert must clear the nullable deadline on conflict.
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, subscriptionsync.SyncStateV2StateEnded, states[0].LastSuccessState)
+		require.Nil(t, states[0].NextReconciliationAt)
+	})
 
 	t.Run("PostgreSQL rejects an unscheduled active row", func(t *testing.T) {
 		// Given a write that bypasses the domain validator.

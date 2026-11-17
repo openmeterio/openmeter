@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -1285,52 +1284,4 @@ func (s *SuiteBase) getSyncStateV2(subscriptionID models.NamespacedID) subscript
 	s.Require().NoError(states[0].Validate())
 
 	return states[0]
-}
-
-func (s *SuiteBase) createSubscriptionForRevisionChange(activeFrom time.Time) subscription.SubscriptionView {
-	s.T().Helper()
-	// Each command case owns its customer so its subscription cannot overlap another case.
-	s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
-	if activeFrom.IsZero() {
-		activeFrom = clock.Now().Add(24 * time.Hour)
-	}
-
-	return s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Subscription revision hooks",
-				Key:            ulid.Make().String(),
-				Version:        1,
-				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
-				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			},
-			Phases: []productcatalog.Phase{{
-				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default phase"},
-				RateCards: productcatalog.RateCards{
-					&productcatalog.FlatFeeRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:  "flat-fee",
-							Name: "Flat fee",
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      alpacadecimal.NewFromInt(1),
-								PaymentTerm: productcatalog.InAdvancePaymentTerm,
-							}),
-						},
-						BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
-					},
-					&productcatalog.UsageBasedRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:     s.APIRequestsTotalFeature.Key,
-							Name:    "Usage",
-							Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
-							Price:   productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
-						},
-						BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-					},
-				},
-			}},
-		},
-	}, activeFrom)
 }
