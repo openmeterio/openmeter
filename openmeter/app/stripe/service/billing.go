@@ -23,6 +23,14 @@ func (s *Service) GetSupplierContact(ctx context.Context, input appstripe.GetSup
 	return s.adapter.GetSupplierContact(ctx, input)
 }
 
+func (s *Service) GetLatestInvoiceGeneration(ctx context.Context, invoiceID billing.InvoiceID) (int, error) {
+	return s.adapter.GetLatestInvoiceGeneration(ctx, invoiceID)
+}
+
+func (s *Service) IncrementInvoiceGeneration(ctx context.Context, invoiceID billing.InvoiceID) error {
+	return s.adapter.IncrementInvoiceGeneration(ctx, invoiceID)
+}
+
 // Invoice webhook handlers
 func (s *Service) HandleInvoiceStateTransition(ctx context.Context, input appstripe.HandleInvoiceStateTransitionInput) error {
 	if err := input.Validate(); err != nil {
