@@ -7,9 +7,10 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/stretchr/testify/require"
 )
 
 const testSchema = `{"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}`
