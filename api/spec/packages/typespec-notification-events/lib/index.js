@@ -1,6 +1,7 @@
 import {
   createTypeSpecLibrary,
   emitFile,
+  getDoc,
   getFriendlyName,
   paramMessage,
   resolvePath,
@@ -236,6 +237,9 @@ export async function $onEmit(context) {
       `var ${stem}Definition = ${eventTypePkg}.EventTypeDefinition{`,
       `\tEventType:         ${stem}EventType,`,
       `\tPayloadJSONSchema: ${stem}PayloadJSONSchema,`,
+      // The payload's doc comment describes the Event type. JSON string
+      // escaping is valid Go string literal syntax.
+      `\tDescription:       ${JSON.stringify(getDoc(program, e.model) ?? '')},`,
       ...(e.ruleConfig
         ? [
             `\tRule: &${eventTypePkg}.RuleConfigDefinition{`,

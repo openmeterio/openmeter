@@ -167,7 +167,7 @@
     "unevaluatedProperties": {
         "not": {}
     },
-    "description": "Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event\ntype: the invoice after the update.",
+    "description": "An invoice was updated. The payload is the invoice after the update.\n\nLegacy name: `invoice.updated`.",
     "$defs": {
         "V1Metadata": {
             "type": "object",
