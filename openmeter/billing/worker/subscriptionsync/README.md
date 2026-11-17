@@ -153,6 +153,8 @@ may still exist. Sync removes those artifacts instead of only stopping future
 scheduling. It uses the deletion timestamp even when it is ahead of the worker
 clock, so collection cannot invoice those lines while cleanup waits. Customer
 deletion after subscription start still allows reconciliation of earlier service.
+It caps recurring service periods at customer deletion even if the stored item
+dates extend further. Full service periods remain unchanged for proration.
 
 Legacy sync state is written only after the plan has been applied. `HasBillables`
 prevents needless future scheduling; `NextSyncAfter` is the end of the

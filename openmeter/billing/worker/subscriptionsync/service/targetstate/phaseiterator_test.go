@@ -98,9 +98,62 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 		expectedErr                              error
 		phaseEnd                                 *time.Time
 		subscriptionEnd                          *time.Time
+		customerDeletedAt                        *time.Time
 		alignedBillingCadence                    datetime.ISODuration
 		billingAnchorRelativeToSubscriptionStart datetime.ISODuration // remember to use a negative otherwise test will fail
 	}{
+		{
+			name: "customer deletion truncates recurring flat fee service",
+			items: []subscriptionItemViewMock{{
+				Key:     "item-key",
+				Cadence: "P1M",
+				Type:    productcatalog.FlatPriceType,
+			}},
+			end:                   s.mustParseTime("2021-01-20T00:00:00Z"),
+			customerDeletedAt:     lo.ToPtr(s.mustParseTime("2021-01-15T00:00:00Z")),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			expected: []expectedIterations{{
+				Key:               "subID/phase-test/item-key/v[0]/period[0]",
+				ServicePeriod:     timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-01-15T00:00:00Z")},
+				FullServicePeriod: timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-02-01T00:00:00Z")},
+				BillingPeriod:     timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-01-15T00:00:00Z")},
+			}},
+		},
+		{
+			name: "customer deletion truncates recurring usage service",
+			items: []subscriptionItemViewMock{{
+				Key:     "item-key",
+				Cadence: "P1M",
+				Type:    productcatalog.UnitPriceType,
+			}},
+			end:                   s.mustParseTime("2021-01-20T00:00:00Z"),
+			customerDeletedAt:     lo.ToPtr(s.mustParseTime("2021-01-15T00:00:00Z")),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			expected: []expectedIterations{{
+				Key:               "subID/phase-test/item-key/v[0]/period[0]",
+				ServicePeriod:     timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-01-15T00:00:00Z")},
+				FullServicePeriod: timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-02-01T00:00:00Z")},
+				BillingPeriod:     timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-01-15T00:00:00Z")},
+			}},
+		},
+		{
+			name: "item ending before customer deletion keeps its service end",
+			items: []subscriptionItemViewMock{{
+				Key:      "item-key",
+				Cadence:  "P1M",
+				Type:     productcatalog.FlatPriceType,
+				EndAfter: lo.ToPtr(datetime.MustParseDuration(s.T(), "P9D")),
+			}},
+			end:                   s.mustParseTime("2021-01-20T00:00:00Z"),
+			customerDeletedAt:     lo.ToPtr(s.mustParseTime("2021-01-15T00:00:00Z")),
+			alignedBillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			expected: []expectedIterations{{
+				Key:               "subID/phase-test/item-key/v[0]/period[0]",
+				ServicePeriod:     timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-01-10T00:00:00Z")},
+				FullServicePeriod: timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-02-01T00:00:00Z")},
+				BillingPeriod:     timeutil.ClosedPeriod{From: s.mustParseTime("2021-01-01T00:00:00Z"), To: s.mustParseTime("2021-01-15T00:00:00Z")},
+			}},
+		},
 		{
 			name:     "unaligned empty",
 			items:    []subscriptionItemViewMock{},
@@ -1268,6 +1321,12 @@ func (s *PhaseIteratorTestSuite) TestPhaseIterator() {
 			if tc.phaseEnd != nil {
 				subs.Spec.ActiveTo = tc.phaseEnd
 				subs.Subscription.ActiveTo = tc.phaseEnd
+			}
+
+			if tc.customerDeletedAt != nil {
+				// The target builder caps subscription dates for customer deletion;
+				// the stored item dates still describe the original subscription.
+				subs = withActiveTo(subs, *tc.customerDeletedAt)
 			}
 
 			it, err := NewPhaseIterator(
