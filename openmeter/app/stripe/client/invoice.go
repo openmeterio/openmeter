@@ -57,7 +57,7 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 	// See: https://docs.stripe.com/api/idempotent_requests
 	// Stripe’s idempotency works by saving the resulting status code and body of the first request made for any given idempotency key,
 	// regardless of whether it succeeds or fails. Subsequent requests with the same key return the same result, including 500 errors.
-	params.SetIdempotencyKey(fmt.Sprintf("invoice-create-%s", input.InvoiceID))
+	params.SetIdempotencyKey(input.IdempotencyKey())
 
 	invoice, err := c.client.Invoices.New(params)
 	if err != nil {
@@ -160,6 +160,12 @@ type CreateInvoiceInput struct {
 	StatementDescriptor          *string
 	StripeCustomerID             string
 	StripeDefaultPaymentMethodID *string
+}
+
+// IdempotencyKey identifies the create request towards Stripe, which replays the first response
+// it stored for a key on every later request with the same key.
+func (i CreateInvoiceInput) IdempotencyKey() string {
+	return fmt.Sprintf("invoice-create-%s", i.InvoiceID)
 }
 
 func (i CreateInvoiceInput) Validate() error {
