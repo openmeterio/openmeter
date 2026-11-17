@@ -118,6 +118,10 @@ type BillingInvoice struct {
 	QuantitySnapshotedAt *time.Time `json:"quantity_snapshoted_at,omitempty"`
 	// DeletionSource holds the value of the "deletion_source" field.
 	DeletionSource *billing.ChangeSource `json:"deletion_source,omitempty"`
+	// InvoicingAppOutcome holds the value of the "invoicing_app_outcome" field.
+	InvoicingAppOutcome *billing.InvoicingAppOutcome `json:"invoicing_app_outcome,omitempty"`
+	// InvoicingAppOutcomeReason holds the value of the "invoicing_app_outcome_reason" field.
+	InvoicingAppOutcomeReason *billing.InvoicingAppOutcomeReason `json:"invoicing_app_outcome_reason,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.FiatCode `json:"currency,omitempty"`
 	// DueAt holds the value of the "due_at" field.
@@ -312,7 +316,7 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 			values[i] = new(alpacadecimal.Decimal)
 		case billinginvoice.FieldSchemaLevel:
 			values[i] = new(sql.NullInt64)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID, billinginvoice.FieldTaxAppExternalID, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerKey, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldDeletionSource, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldSupplierAddressCountry, billinginvoice.FieldSupplierAddressPostalCode, billinginvoice.FieldSupplierAddressState, billinginvoice.FieldSupplierAddressCity, billinginvoice.FieldSupplierAddressLine1, billinginvoice.FieldSupplierAddressLine2, billinginvoice.FieldSupplierAddressPhoneNumber, billinginvoice.FieldCustomerAddressCountry, billinginvoice.FieldCustomerAddressPostalCode, billinginvoice.FieldCustomerAddressState, billinginvoice.FieldCustomerAddressCity, billinginvoice.FieldCustomerAddressLine1, billinginvoice.FieldCustomerAddressLine2, billinginvoice.FieldCustomerAddressPhoneNumber, billinginvoice.FieldInvoicingAppExternalID, billinginvoice.FieldPaymentAppExternalID, billinginvoice.FieldTaxAppExternalID, billinginvoice.FieldSupplierName, billinginvoice.FieldSupplierTaxCode, billinginvoice.FieldCustomerKey, billinginvoice.FieldCustomerName, billinginvoice.FieldNumber, billinginvoice.FieldType, billinginvoice.FieldDescription, billinginvoice.FieldCustomerID, billinginvoice.FieldSourceBillingProfileID, billinginvoice.FieldDeletionSource, billinginvoice.FieldInvoicingAppOutcome, billinginvoice.FieldInvoicingAppOutcomeReason, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID, billinginvoice.FieldTaxAppID, billinginvoice.FieldInvoicingAppID, billinginvoice.FieldPaymentAppID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldIssuedAt, billinginvoice.FieldSentToCustomerAt, billinginvoice.FieldDraftUntil, billinginvoice.FieldQuantitySnapshotedAt, billinginvoice.FieldDueAt, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd, billinginvoice.FieldCollectionAt, billinginvoice.FieldPaymentProcessingEnteredAt:
 			values[i] = new(sql.NullTime)
@@ -643,6 +647,20 @@ func (_m *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.DeletionSource = new(billing.ChangeSource)
 				*_m.DeletionSource = billing.ChangeSource(value.String)
+			}
+		case billinginvoice.FieldInvoicingAppOutcome:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_outcome", values[i])
+			} else if value.Valid {
+				_m.InvoicingAppOutcome = new(billing.InvoicingAppOutcome)
+				*_m.InvoicingAppOutcome = billing.InvoicingAppOutcome(value.String)
+			}
+		case billinginvoice.FieldInvoicingAppOutcomeReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_outcome_reason", values[i])
+			} else if value.Valid {
+				_m.InvoicingAppOutcomeReason = new(billing.InvoicingAppOutcomeReason)
+				*_m.InvoicingAppOutcomeReason = billing.InvoicingAppOutcomeReason(value.String)
 			}
 		case billinginvoice.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -1014,6 +1032,16 @@ func (_m *BillingInvoice) String() string {
 	builder.WriteString(", ")
 	if v := _m.DeletionSource; v != nil {
 		builder.WriteString("deletion_source=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.InvoicingAppOutcome; v != nil {
+		builder.WriteString("invoicing_app_outcome=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.InvoicingAppOutcomeReason; v != nil {
+		builder.WriteString("invoicing_app_outcome_reason=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

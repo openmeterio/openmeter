@@ -136,7 +136,7 @@ func (c *StripeAppClientMock) DeleteInvoice(ctx context.Context, input stripecli
 
 	args := c.Called(input)
 
-	return args.Error(1)
+	return args.Error(0)
 }
 
 func (c *StripeAppClientMock) FinalizeInvoice(ctx context.Context, input stripeclient.FinalizeInvoiceInput) (*stripe.Invoice, error) {

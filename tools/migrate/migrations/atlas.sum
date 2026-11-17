@@ -1,4 +1,4 @@
-h1:WFIbaEoBVkefOlB5R0N+AW5Nb4NrtrY6f2rhWZ1Ypgk=
+h1:Xim7fMYRGCvtJLZqA/tqPqIF1Gbyj44R1pPVRB5xsfA=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -326,3 +326,4 @@ h1:WFIbaEoBVkefOlB5R0N+AW5Nb4NrtrY6f2rhWZ1Ypgk=
 20261116101155_backfill_subscription_sync_revisions.up.sql h1:AnIMqNIFtgJDZ2IyyqPBg9nUGLhm0pTKBX3jrzMv2Rg=
 20261116104138_require_subscription_sync_revisions.up.sql h1:Q/Gzch51sVz5AtgmRL5/B49LXARKNY3J+YozWGKsYJI=
 20261116154613_subscription_sync_change_hooks.up.sql h1:T/g8bElPs3HajzO4FQMcRxYy6wuNIBtHIrRY+MjqUxM=
+20261117111642_add_billing_invoice_invoicing_app_outcome.up.sql h1:uSThMDADy7yOTEWodDTD1lPgSFaY0KULLarxnkeyME8=

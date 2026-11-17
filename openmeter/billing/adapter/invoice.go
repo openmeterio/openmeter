@@ -467,6 +467,8 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 			SetOrClearIssuedAt(convert.SafeToUTC(in.IssuedAt)).
 			SetOrClearDeletedAt(convert.SafeToUTC(in.DeletedAt)).
 			SetOrClearDeletionSource(lo.EmptyableToPtr(in.DeletionSource)).
+			SetOrClearInvoicingAppOutcome(lo.EmptyableToPtr(in.InvoicingAppStatus.Outcome)).
+			SetOrClearInvoicingAppOutcomeReason(lo.EmptyableToPtr(in.InvoicingAppStatus.Reason)).
 			SetOrClearSentToCustomerAt(convert.SafeToUTC(in.SentToCustomerAt)).
 			SetOrClearQuantitySnapshotedAt(convert.SafeToUTC(in.QuantitySnapshotedAt))
 
@@ -682,6 +684,11 @@ func (a *adapter) mapStandardInvoiceBaseFromDB(invoice *db.BillingInvoice) billi
 		PaymentProcessingEnteredAt: convert.TimePtrIn(invoice.PaymentProcessingEnteredAt, time.UTC),
 
 		ExternalIDs: externalid.MapInvoiceExternalIDFromDB(invoice),
+
+		InvoicingAppStatus: billing.InvoicingAppStatus{
+			Outcome: lo.FromPtr(invoice.InvoicingAppOutcome),
+			Reason:  lo.FromPtr(invoice.InvoicingAppOutcomeReason),
+		},
 
 		SchemaLevel: invoice.SchemaLevel,
 	}

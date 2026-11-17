@@ -176,6 +176,7 @@ type stripeAppClient struct {
 	appService app.Service
 	appID      app.AppID
 	client     *client.API
+	logger     *slog.Logger
 }
 
 func NewStripeAppClient(config StripeAppClientConfig) (StripeAppClient, error) {
@@ -199,6 +200,7 @@ func NewStripeAppClient(config StripeAppClientConfig) (StripeAppClient, error) {
 		appService: config.AppService,
 		appID:      config.AppID,
 		client:     client,
+		logger:     config.Logger,
 	}, nil
 }
 

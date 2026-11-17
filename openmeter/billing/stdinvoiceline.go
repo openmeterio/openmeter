@@ -299,6 +299,7 @@ func (i standardInvoiceLineGenericWrapper) WithTargetState(target GenericInvoice
 	merged.UpdatedAt = i.UpdatedAt
 	merged.DeletedAt = i.DeletedAt
 	merged.InvoiceID = i.InvoiceID
+	merged.ExternalIDs = i.ExternalIDs
 	merged.DBState = i.DBState
 	merged.DetailedLines = i.DetailedLinesWithIDReuse(merged.DetailedLines)
 
@@ -914,6 +915,9 @@ func (c StandardLine) DetailedLinesWithIDReuse(l DetailedLines) DetailedLines {
 			// don't trigger an update in vain
 			newChild.CreatedAt = existing.CreatedAt
 			newChild.UpdatedAt = existing.UpdatedAt
+
+			// The reused row is still the same object in the invoicing app
+			newChild.ExternalIDs = existing.ExternalIDs
 
 			discountsWithIDReuse := newChild.AmountDiscounts.ReuseIDsFrom(existing.AmountDiscounts)
 			newChild.AmountDiscounts = discountsWithIDReuse

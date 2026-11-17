@@ -776,6 +776,46 @@ func (_u *BillingInvoiceUpdate) ClearDeletionSource() *BillingInvoiceUpdate {
 	return _u
 }
 
+// SetInvoicingAppOutcome sets the "invoicing_app_outcome" field.
+func (_u *BillingInvoiceUpdate) SetInvoicingAppOutcome(v billing.InvoicingAppOutcome) *BillingInvoiceUpdate {
+	_u.mutation.SetInvoicingAppOutcome(v)
+	return _u
+}
+
+// SetNillableInvoicingAppOutcome sets the "invoicing_app_outcome" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableInvoicingAppOutcome(v *billing.InvoicingAppOutcome) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetInvoicingAppOutcome(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppOutcome clears the value of the "invoicing_app_outcome" field.
+func (_u *BillingInvoiceUpdate) ClearInvoicingAppOutcome() *BillingInvoiceUpdate {
+	_u.mutation.ClearInvoicingAppOutcome()
+	return _u
+}
+
+// SetInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field.
+func (_u *BillingInvoiceUpdate) SetInvoicingAppOutcomeReason(v billing.InvoicingAppOutcomeReason) *BillingInvoiceUpdate {
+	_u.mutation.SetInvoicingAppOutcomeReason(v)
+	return _u
+}
+
+// SetNillableInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field if the given value is not nil.
+func (_u *BillingInvoiceUpdate) SetNillableInvoicingAppOutcomeReason(v *billing.InvoicingAppOutcomeReason) *BillingInvoiceUpdate {
+	if v != nil {
+		_u.SetInvoicingAppOutcomeReason(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppOutcomeReason clears the value of the "invoicing_app_outcome_reason" field.
+func (_u *BillingInvoiceUpdate) ClearInvoicingAppOutcomeReason() *BillingInvoiceUpdate {
+	_u.mutation.ClearInvoicingAppOutcomeReason()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdate) SetDueAt(v time.Time) *BillingInvoiceUpdate {
 	_u.mutation.SetDueAt(v)
@@ -1256,6 +1296,16 @@ func (_u *BillingInvoiceUpdate) check() error {
 			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InvoicingAppOutcome(); ok {
+		if err := billinginvoice.InvoicingAppOutcomeValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_app_outcome", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_app_outcome": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InvoicingAppOutcomeReason(); ok {
+		if err := billinginvoice.InvoicingAppOutcomeReasonValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_app_outcome_reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_app_outcome_reason": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := billinginvoice.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
@@ -1506,6 +1556,18 @@ func (_u *BillingInvoiceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if _u.mutation.DeletionSourceCleared() {
 		_spec.ClearField(billinginvoice.FieldDeletionSource, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.InvoicingAppOutcome(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppOutcome, field.TypeEnum, value)
+	}
+	if _u.mutation.InvoicingAppOutcomeCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppOutcome, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.InvoicingAppOutcomeReason(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppOutcomeReason, field.TypeEnum, value)
+	}
+	if _u.mutation.InvoicingAppOutcomeReasonCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppOutcomeReason, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)
@@ -2609,6 +2671,46 @@ func (_u *BillingInvoiceUpdateOne) ClearDeletionSource() *BillingInvoiceUpdateOn
 	return _u
 }
 
+// SetInvoicingAppOutcome sets the "invoicing_app_outcome" field.
+func (_u *BillingInvoiceUpdateOne) SetInvoicingAppOutcome(v billing.InvoicingAppOutcome) *BillingInvoiceUpdateOne {
+	_u.mutation.SetInvoicingAppOutcome(v)
+	return _u
+}
+
+// SetNillableInvoicingAppOutcome sets the "invoicing_app_outcome" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableInvoicingAppOutcome(v *billing.InvoicingAppOutcome) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetInvoicingAppOutcome(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppOutcome clears the value of the "invoicing_app_outcome" field.
+func (_u *BillingInvoiceUpdateOne) ClearInvoicingAppOutcome() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearInvoicingAppOutcome()
+	return _u
+}
+
+// SetInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field.
+func (_u *BillingInvoiceUpdateOne) SetInvoicingAppOutcomeReason(v billing.InvoicingAppOutcomeReason) *BillingInvoiceUpdateOne {
+	_u.mutation.SetInvoicingAppOutcomeReason(v)
+	return _u
+}
+
+// SetNillableInvoicingAppOutcomeReason sets the "invoicing_app_outcome_reason" field if the given value is not nil.
+func (_u *BillingInvoiceUpdateOne) SetNillableInvoicingAppOutcomeReason(v *billing.InvoicingAppOutcomeReason) *BillingInvoiceUpdateOne {
+	if v != nil {
+		_u.SetInvoicingAppOutcomeReason(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppOutcomeReason clears the value of the "invoicing_app_outcome_reason" field.
+func (_u *BillingInvoiceUpdateOne) ClearInvoicingAppOutcomeReason() *BillingInvoiceUpdateOne {
+	_u.mutation.ClearInvoicingAppOutcomeReason()
+	return _u
+}
+
 // SetDueAt sets the "due_at" field.
 func (_u *BillingInvoiceUpdateOne) SetDueAt(v time.Time) *BillingInvoiceUpdateOne {
 	_u.mutation.SetDueAt(v)
@@ -3102,6 +3204,16 @@ func (_u *BillingInvoiceUpdateOne) check() error {
 			return &ValidationError{Name: "deletion_source", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.deletion_source": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.InvoicingAppOutcome(); ok {
+		if err := billinginvoice.InvoicingAppOutcomeValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_app_outcome", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_app_outcome": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.InvoicingAppOutcomeReason(); ok {
+		if err := billinginvoice.InvoicingAppOutcomeReasonValidator(v); err != nil {
+			return &ValidationError{Name: "invoicing_app_outcome_reason", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.invoicing_app_outcome_reason": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Status(); ok {
 		if err := billinginvoice.StatusValidator(v); err != nil {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.status": %w`, err)}
@@ -3369,6 +3481,18 @@ func (_u *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *BillingI
 	}
 	if _u.mutation.DeletionSourceCleared() {
 		_spec.ClearField(billinginvoice.FieldDeletionSource, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.InvoicingAppOutcome(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppOutcome, field.TypeEnum, value)
+	}
+	if _u.mutation.InvoicingAppOutcomeCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppOutcome, field.TypeEnum)
+	}
+	if value, ok := _u.mutation.InvoicingAppOutcomeReason(); ok {
+		_spec.SetField(billinginvoice.FieldInvoicingAppOutcomeReason, field.TypeEnum, value)
+	}
+	if _u.mutation.InvoicingAppOutcomeReasonCleared() {
+		_spec.ClearField(billinginvoice.FieldInvoicingAppOutcomeReason, field.TypeEnum)
 	}
 	if value, ok := _u.mutation.DueAt(); ok {
 		_spec.SetField(billinginvoice.FieldDueAt, field.TypeTime, value)

@@ -1219,6 +1219,16 @@ func (BillingInvoice) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		field.Enum("invoicing_app_outcome").
+			GoType(billing.InvoicingAppOutcome("")).
+			Optional().
+			Nillable(),
+
+		field.Enum("invoicing_app_outcome_reason").
+			GoType(billing.InvoicingAppOutcomeReason("")).
+			Optional().
+			Nillable(),
+
 		field.String("currency").
 			GoType(currencyx.FiatCode("")).
 			NotEmpty().

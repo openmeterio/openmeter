@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/samber/lo"
 	"github.com/stripe/stripe-go/v80"
@@ -96,6 +97,16 @@ func (c *stripeAppClient) DeleteInvoice(ctx context.Context, input DeleteInvoice
 
 	_, err := c.client.Invoices.Del(input.StripeInvoiceID, nil)
 	if err != nil {
+		// Already gone in Stripe, e.g. a retry after the first delete succeeded but our transaction rolled back.
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.HTTPStatusCode == http.StatusNotFound {
+			c.logger.WarnContext(ctx, "stripe invoice not found on delete, treating it as deleted",
+				"stripe_invoice_id", input.StripeInvoiceID,
+				"app_id", c.appID.ID,
+			)
+
+			return nil
+		}
+
 		return c.providerError(err)
 	}
 
