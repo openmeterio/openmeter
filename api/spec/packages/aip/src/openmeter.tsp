@@ -262,3 +262,8 @@ interface NotificationRulesEndpoints
 @tag(Shared.NotificationsTag)
 interface NotificationEventsEndpoints
   extends Notifications.NotificationEventOperations {}
+
+@route("/openmeter/notification/event-types")
+@tag(Shared.NotificationsTag)
+interface NotificationEventTypesEndpoints
+  extends Notifications.NotificationEventTypeOperations {}

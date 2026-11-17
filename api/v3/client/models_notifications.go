@@ -33,8 +33,11 @@ type CreateNotificationChannelRequest struct {
 	SigningSecret *string `json:"signing_secret,omitempty"`
 }
 
-// Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
-// `entitlements.balance.threshold` Event type.
+// A metered entitlement's balance crossed one of the thresholds configured on the
+// Rule. The payload carries the entitlement, its feature, subject, customer and
+// value, and the threshold that was crossed.
+//
+// Legacy name: `entitlements.balance.threshold`.
 type EntitlementBalanceThresholdTriggeredV1Payload struct {
 	// Entitlement.
 	Entitlement NotificationEventV1EntitlementMetered `json:"entitlement"`
@@ -50,8 +53,10 @@ type EntitlementBalanceThresholdTriggeredV1Payload struct {
 	Threshold NotificationEventV1RuleBalanceThresholdValue `json:"threshold"`
 }
 
-// Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
-// Event type.
+// A metered entitlement's usage period was reset. The payload carries the
+// entitlement, its feature, subject, customer and value.
+//
+// Legacy name: `entitlements.reset`.
 type EntitlementUsagePeriodResetV1Payload struct {
 	// Entitlement.
 	Entitlement NotificationEventV1EntitlementMetered `json:"entitlement"`
@@ -65,8 +70,9 @@ type EntitlementUsagePeriodResetV1Payload struct {
 	Customer *NotificationEventV1Customer `json:"customer,omitempty"`
 }
 
-// Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
-// type: the invoice as it was created.
+// An invoice was created. The payload is the invoice as it was created.
+//
+// Legacy name: `invoice.created`.
 type InvoiceCreatedV1Payload struct {
 	// A unique identifier for the resource.
 	ID string `json:"id"`
@@ -167,8 +173,9 @@ type InvoiceCreatedV1Payload struct {
 	ExternalIds *NotificationEventV1InvoiceAppExternalIds `json:"external_ids,omitempty"`
 }
 
-// Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
-// type: the invoice after the update.
+// An invoice was updated. The payload is the invoice after the update.
+//
+// Legacy name: `invoice.updated`.
 type InvoiceUpdatedV1Payload struct {
 	// A unique identifier for the resource.
 	ID string `json:"id"`
@@ -643,6 +650,42 @@ func (value NotificationEventType) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// A notification event type with the JSON Schemas of its contract.
+type NotificationEventTypeDefinition struct {
+	// The canonical event type, `v<version>.<name>`, for example
+	// `v1.billing.invoice.created`.
+	Type string `json:"type"`
+	// What the event type means, including the legacy name it replaces, if any.
+	Description string `json:"description"`
+	// The event type that replaces this one. Deprecated event types stay usable.
+	// Absent when the event type is not deprecated.
+	DeprecatedBy *string `json:"deprecated_by,omitempty"`
+	// The JSON Schema (draft 2020-12) of the event payload.
+	PayloadJSONSchema map[string]any `json:"payload_json_schema"`
+	// The JSON Schema (draft 2020-12) of the rule configuration. Absent when no rule
+	// can produce the event type.
+	RuleConfigJSONSchema map[string]any `json:"rule_config_json_schema,omitempty"`
+}
+
+// A versioned kind of notification event. Its contract covers the payload and,
+// when rules can produce it, the rule configuration.
+type NotificationEventTypeSummary struct {
+	// The canonical event type, `v<version>.<name>`, for example
+	// `v1.billing.invoice.created`.
+	Type string `json:"type"`
+	// What the event type means, including the legacy name it replaces, if any.
+	Description string `json:"description"`
+	// The event type that replaces this one. Deprecated event types stay usable.
+	// Absent when the event type is not deprecated.
+	DeprecatedBy *string `json:"deprecated_by,omitempty"`
+}
+
+// Page paginated response.
+type NotificationEventTypeSummaryPagePaginatedResponse struct {
+	Data []NotificationEventTypeSummary `json:"data"`
+	Meta PaginatedMeta                  `json:"meta"`
 }
 
 // Address

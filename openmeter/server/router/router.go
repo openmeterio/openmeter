@@ -53,6 +53,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationhttpdriver "github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
+	notificationv4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	portalhttphandler "github.com/openmeterio/openmeter/openmeter/portal/httphandler"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -132,6 +133,7 @@ type Config struct {
 	MeterManageService          meter.ManageService
 	MeterEventService           meterevent.Service
 	Notification                notification.Service
+	NotificationEventRegistry   *notificationv4.EventRegistry
 	Plan                        plan.Service
 	PlanAddon                   planaddon.Service
 	PlanSubscriptionService     plansubscription.PlanSubscriptionService
@@ -220,6 +222,10 @@ func (c Config) Validate() error {
 
 	if c.Notification == nil {
 		return errors.New("notification service is required")
+	}
+
+	if c.NotificationEventRegistry == nil {
+		return errors.New("notification event registry is required")
 	}
 
 	if c.PlanAddon == nil {

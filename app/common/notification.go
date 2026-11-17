@@ -15,6 +15,8 @@ import (
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	"github.com/openmeterio/openmeter/openmeter/notification/eventhandler"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
+	notificationv4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/definitions"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	webhooknoop "github.com/openmeterio/openmeter/openmeter/notification/webhook/noop"
 	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
@@ -28,6 +30,12 @@ var Notification = wire.NewSet(
 	NewNotificationService,
 	NewNotificationWebhookHandler,
 	NewNotificationEventHandler,
+)
+
+// NotificationEventRegistry is a wire set for the registry of every generated
+// Notification Event type.
+var NotificationEventRegistry = wire.NewSet(
+	NewNotificationEventRegistry,
 )
 
 // NotificationService is a wire set for the notification service, it can be used at
@@ -141,4 +149,18 @@ func NewNotificationWebhookHandler(
 	}
 
 	return handler, nil
+}
+
+// NewNotificationEventRegistry registers every generated Event type definition.
+// Building it compiles their schemas, so an invalid contract fails startup.
+func NewNotificationEventRegistry(logger *slog.Logger) (*notificationv4.EventRegistry, error) {
+	registry, err := notificationv4.NewEventRegistry(notificationv4.EventRegistryConfig{
+		Logger:      logger,
+		Definitions: definitions.All(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification event registry: %w", err)
+	}
+
+	return registry, nil
 }

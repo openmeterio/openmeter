@@ -19,6 +19,8 @@ import {
   listBillingNotificationEvents,
   getBillingNotificationEvent,
   resendBillingNotificationEvent,
+  listBillingNotificationEventTypes,
+  getBillingNotificationEventType,
 } from '../funcs/notifications.js'
 import type {
   InvoiceCustomerChargesRequest,
@@ -53,8 +55,16 @@ import type {
   GetBillingNotificationEventResponse,
   ResendBillingNotificationEventRequest,
   ResendBillingNotificationEventResponse,
+  ListBillingNotificationEventTypesRequest,
+  ListBillingNotificationEventTypesResponse,
+  GetBillingNotificationEventTypeRequest,
+  GetBillingNotificationEventTypeResponse,
 } from '../models/operations/notifications.js'
-import type { NotificationEvent, NotificationRule } from '../models/types.js'
+import type {
+  NotificationEvent,
+  NotificationEventTypeSummary,
+  NotificationRule,
+} from '../models/types.js'
 
 /**
  * Operations marked internal in the API definition. They are not part of
@@ -361,6 +371,61 @@ export class InternalNotifications {
   ): Promise<ResendBillingNotificationEventResponse> {
     return unwrap(
       await resendBillingNotificationEvent(this._client, request, options),
+    )
+  }
+
+  /**
+   * List notification event types
+   *
+   * List the notification event types, without their JSON Schemas. Event types are
+   * the same in every namespace. Deprecated event types stay listed.
+   *
+   * GET /openmeter/notification/event-types
+   */
+  async listBillingEventTypes(
+    request?: ListBillingNotificationEventTypesRequest,
+    options?: RequestOptions,
+  ): Promise<ListBillingNotificationEventTypesResponse> {
+    return unwrap(
+      await listBillingNotificationEventTypes(this._client, request, options),
+    )
+  }
+
+  /**
+   * List notification event types
+   *
+   * List the notification event types, without their JSON Schemas. Event types are
+   * the same in every namespace. Deprecated event types stay listed.
+   *
+   * Iterates every item across all pages, fetching more as the returned iterable is consumed.
+   *
+   * GET /openmeter/notification/event-types
+   */
+  listBillingEventTypesAll(
+    request?: ListBillingNotificationEventTypesRequest,
+    options?: RequestOptions,
+  ): AsyncIterable<NotificationEventTypeSummary> {
+    return paginatePages(
+      (req, opts) => listBillingNotificationEventTypes(this._client, req, opts),
+      request ?? {},
+      options,
+    )
+  }
+
+  /**
+   * Get notification event type
+   *
+   * Get a notification event type with the JSON Schemas of its payload and rule
+   * configuration.
+   *
+   * GET /openmeter/notification/event-types/{notificationEventType}
+   */
+  async getBillingEventType(
+    request: GetBillingNotificationEventTypeRequest,
+    options?: RequestOptions,
+  ): Promise<GetBillingNotificationEventTypeResponse> {
+    return unwrap(
+      await getBillingNotificationEventType(this._client, request, options),
     )
   }
 }
