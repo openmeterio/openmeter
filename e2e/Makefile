@@ -66,6 +66,13 @@ test-base: ## Run the default e2e test package
 	$(MAKE) test-http-errors
 	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) go test -count=1 -v ./
 
+.PHONY: test-rte
+test-rte: ## Run the opt-in client test against an RTE-enabled e2e stack
+	$(call print-target)
+	curl --fail --retry 30 --retry-max-time 120 --retry-all-errors --retry-delay 1 http://localhost:30002/healthz/subscriptions
+	TZ=UTC OPENMETER_ADDRESS=$(OPENMETER_ADDRESS) OPENMETER_E2E_POSTGRES_URL='$(OPENMETER_E2E_POSTGRES_URL)' \
+		go test -tags=rte_e2e -count=1 -v -run '^TestRTEClient$$' ./
+
 .PHONY: test-http-errors
 test-http-errors: ## Run HTTP error handling scenarios with real HTTP, gRPC, and PostgreSQL connections
 	$(call print-target)
@@ -86,6 +93,7 @@ env-local-down:
 		-f docker-compose.debug-ports.yaml \
 		-f docker-compose.openmeter.yaml \
 		-f docker-compose.openmeter-local.yaml \
+		$(OPENMETER_E2E_EXTRA_COMPOSE_FILES) \
 		down
 
 .PHONY: env-local-up

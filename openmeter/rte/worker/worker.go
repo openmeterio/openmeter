@@ -196,11 +196,7 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 
 func (w *worker) handleRequested(ctx context.Context, event *rte.CalculationRequestedEvent) error {
 	if policy := event.Freshness; policy != nil {
-		return w.demand.EnsureFresh(ctx, rte.EnsureFreshInput{
-			Target:  event.CalculationTarget,
-			PullTTL: time.Duration(policy.TrackForSeconds) * time.Second,
-			MaxAge:  time.Duration(policy.MaxAgeSeconds) * time.Second,
-		})
+		return w.demand.EnsureFresh(ctx, policy.EnsureFreshInput(event.CalculationTarget))
 	}
 
 	key, err := event.DecodeKey()

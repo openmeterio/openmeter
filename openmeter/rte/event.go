@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
@@ -34,6 +35,14 @@ type CalculationRequestedEvent struct {
 type FreshnessPolicy struct {
 	TrackForSeconds int32 `json:"track_for_seconds"`
 	MaxAgeSeconds   int32 `json:"max_age_seconds"`
+}
+
+func (p FreshnessPolicy) EnsureFreshInput(target CalculationTarget) EnsureFreshInput {
+	return EnsureFreshInput{
+		Target:  target,
+		PullTTL: time.Duration(p.TrackForSeconds) * time.Second,
+		MaxAge:  time.Duration(p.MaxAgeSeconds) * time.Second,
+	}
 }
 
 func (e CalculationRequestedEvent) Validate() error {
