@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -15,7 +16,7 @@ import (
 )
 
 // NewRTEClient connects a trusted caller to RTE's stored state and command topic.
-func NewRTEClient(conf config.RTEConfiguration, events config.EventsConfiguration, dbClient *db.Client, publisher message.Publisher, logger *slog.Logger) (rte.Client, error) {
+func NewRTEClient(conf config.RTEConfiguration, events config.EventsConfiguration, dbClient *db.Client, publisher message.Publisher, meter metric.Meter, logger *slog.Logger) (rte.Client, error) {
 	if !conf.Enabled {
 		return nil, errors.New("RTE client requires rte.enabled")
 	}
@@ -25,7 +26,7 @@ func NewRTEClient(conf config.RTEConfiguration, events config.EventsConfiguratio
 		return nil, err
 	}
 
-	return rteclient.New(rteclient.Config{DB: dbClient, Publisher: bus, Logger: logger})
+	return rteclient.New(rteclient.Config{DB: dbClient, Publisher: bus, Meter: meter, Logger: logger})
 }
 
 // Commands are acknowledged by Kafka. Neither commands nor trial observations use the business outbox.

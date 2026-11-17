@@ -45,7 +45,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 	defer live.stop()
 
 	logger := testutils.NewDiscardLogger(t)
-	client, err := common.NewRTEClient(live.conf.RTE, live.conf.Events, s.DBClient, live.publisher, logger)
+	client, err := common.NewRTEClient(live.conf.RTE, live.conf.Events, s.DBClient, live.publisher, noop.NewMeterProvider().Meter("test"), logger)
 	require.NoError(t, err)
 
 	creditClient := client.CreditBalances()

@@ -18,6 +18,7 @@ require (
 	github.com/openmeterio/openmeter/api/v3/client v0.0.0
 	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.12.1
+	go.opentelemetry.io/otel/metric v1.47.0
 	golang.org/x/sync v0.25.0
 	google.golang.org/grpc v1.85.0
 )
@@ -110,7 +111,6 @@ require (
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
-	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect

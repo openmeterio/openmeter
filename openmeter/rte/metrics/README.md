@@ -15,7 +15,7 @@ inside the measured operation.
 | --- | --- | --- | --- |
 | `rte.calculations` | Counter | `kind`, `outcome` | Calculation calls: `updated` when the store accepts the result, `superseded` when it retains a newer or equal-start result, `failed` on error. |
 | `rte.calculation.duration` | Histogram / s | `kind`, `outcome` | The same calls, including domain calculation, state storage and update enqueueing. Excludes asynchronous outbox delivery. |
-| `rte.state.reads` | Counter | `kind`, `outcome` | Calculation-service `Get` calls: `hit`, `missing` (not calculated), or `failed`. |
+| `rte.state.reads` | Counter | `kind`, `outcome` | Client and calculation-service `Get` calls: `hit`, `missing` (not calculated), or `failed`. |
 | `rte.state.read.duration` | Histogram / s | `kind`, `outcome` | Time spent reading stored state, without refreshing it. |
 | `rte.demand.operations` | Counter | `operation`, `outcome` | Freshness requests, invalidations, processing attempts and receipt maintenance; see outcomes below. |
 | `rte.demand.ensure_fresh.duration` | Histogram / s | `kind`, `outcome` | `EnsureFresh`, including demand registration, lock waits and any required calculation. Outcomes: `cache_hit`, `calculated`, `error`. |
@@ -29,9 +29,11 @@ inside the measured operation.
 | `rte.comparison.duration` | Histogram / ms | `kind`, `operation`, `variant` | Paired successful production and RTE timings, with `variant=direct` and `variant=rte`. |
 | `rte.comparison.lag` | Histogram / ms | `kind`, `operation` | Delay from completion of the production observation to worker handling, including observations that have expired. |
 
-Calculation and stored-read instruments cover the calculation service, including
-shadow replays. The ordinary client's direct-database `Get` bypasses these
-instruments. Validation failures before a timed operation starts are also excluded.
+Calculation instruments cover the calculation service, including shadow replays.
+Stored-read instruments also cover the ordinary client's direct-database `Get`,
+using the meter supplied at client construction. Each path records once; raw
+adapter reads are not instrumented. Validation failures before a timed operation
+starts are excluded.
 Calculation outcomes do not prove that an enclosing demand transaction committed
 or that Kafka delivered the update.
 
