@@ -100,6 +100,11 @@ export function $onValidate(program) {
       }),
     )
 
+  // Every definition lands in one Go package and its identifiers derive from
+  // the payload name, so two contracts sharing it would not compile. The Rule
+  // configuration name derives from the payload name too.
+  const eventTypeByPayload = new Map()
+
   for (const [model, e] of program.stateMap(eventTypeKey)) {
     const payload = goName(program, model)
     const payloadSuffix = `V${e.version}Payload`
@@ -109,6 +114,16 @@ export function $onValidate(program) {
         model,
         `Payload ${payload} of ${e.eventType} must have a friendly name ending in ${payloadSuffix}.`,
       )
+    }
+
+    const other = eventTypeByPayload.get(payload)
+    if (other) {
+      invalid(
+        model,
+        `Payload ${payload} of ${e.eventType} has the same friendly name as the payload of ${other}.`,
+      )
+    } else {
+      eventTypeByPayload.set(payload, e.eventType)
     }
 
     const roots = [[model, `${e.eventType}.payload`]]

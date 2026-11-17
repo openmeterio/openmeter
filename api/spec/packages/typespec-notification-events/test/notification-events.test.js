@@ -85,6 +85,35 @@ describe('contract validation', () => {
     })
   })
 
+  it('rejects two payloads with the same friendly name', async () => {
+    // given two Event types whose payloads would generate the same Go names
+    const diagnostics = await Tester.diagnose(`
+      namespace Widget.NotificationEvents {
+        @jsonSchema
+        @id("v1.widget.thing.created.payload")
+        @eventType("v1.widget.thing.created")
+        @friendlyName("WidgetThingV1Payload")
+        model ThingCreatedV1Payload {
+          thing_id: string;
+        }
+
+        @jsonSchema
+        @id("v1.widget.thing.updated.payload")
+        @eventType("v1.widget.thing.updated")
+        @friendlyName("WidgetThingV1Payload")
+        model ThingUpdatedV1Payload {
+          thing_id: string;
+        }
+      }
+    `)
+
+    expectDiagnostics(diagnostics, {
+      code: `${lib}/invalid-contract`,
+      message:
+        'Payload WidgetThingV1Payload of v1.widget.thing.updated has the same friendly name as the payload of v1.widget.thing.created.',
+    })
+  })
+
   it('rejects a contract root without @jsonSchema', async () => {
     const diagnostics = await Tester.diagnose(
       contract({ ruleConfigJsonSchema: '' }),
