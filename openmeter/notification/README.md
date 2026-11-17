@@ -31,9 +31,9 @@ payload compatibility and retention therefore matter for historical data.
 
 The service uses `webhook`; V1 HTTP uses `WEBHOOK`, while V3 uses `webhook`.
 The Ent field scanner reads either stored spelling as the lowercase domain value.
-New Channels still store `WEBHOOK`, and configuration writes retain the legacy
-`{type, data}` envelope with an uppercase discriminator, so older backends can
-read resources written during a rolling deployment. Channel type filters match
+New Channels store `webhook` in the type column. Updates preserve the stored
+type. Configuration writes retain the `{type, data}` envelope with its
+`WEBHOOK` discriminator. Channel type filters match
 both stored spellings using `in`/`nin`, including exclusions and nested `and`/`or`.
 Type filters accept exact comparisons and existence checks; pattern and range
 operators are rejected. Other string filters retain their existing operators.
@@ -63,12 +63,9 @@ are `unknown`, `pending`, `in_sync`, and `error`. Current updates and soft delet
 preserve these fields; they do not activate scheduling or change synchronous
 provider operations. Migration defaults do not establish provider synchronization.
 
-This is the compatibility phase of the [V4 migration](../../notification%20v4%20migration.md).
-No data conversion is required in this phase. Finalization switches writes and
-converts remaining rows only after all active and supported rollback versions
-can read the final format. Temporary storage mappings remain until all writers
-and rows have converged. Already-lowercase rows are readable by the new adapter;
-this does not make those rows readable by an old backend.
+Roll out this writer from v1.0.0-beta.237, which reads both spellings and
+writes `WEBHOOK`. Backfill uppercase rows in a later release, after all
+uppercase writers and their in-flight transactions have drained.
 
 ## Rule and Event type storage compatibility
 

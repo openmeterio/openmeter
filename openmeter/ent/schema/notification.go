@@ -316,14 +316,10 @@ func (NotificationEventDeliveryStatus) Indexes() []ent.Index {
 	}
 }
 
-// TODO(notification-v4): keep legacy writes until every deployed and rollback
-// version supports the final format; remove legacy reads after data conversion.
+// TODO(notification-v4): remove the uppercase read mapping after all legacy
+// writers are retired and existing Channel types have been backfilled.
 var ChannelTypeValueScanner = field.ValueScannerFunc[notification.ChannelType, *sql.NullString]{
 	V: func(channelType notification.ChannelType) (driver.Value, error) {
-		if channelType == notification.ChannelTypeWebhook {
-			return "WEBHOOK", nil
-		}
-
 		return string(channelType), nil
 	},
 	S: func(value *sql.NullString) (notification.ChannelType, error) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Requires Bash, Docker Compose, curl and jq. From the repository root:
-# OLD_IMAGE=<baseline> CANDIDATE_IMAGE=<candidate> test/notification/rolling/smoke.sh
+# OLD_IMAGE=<beta.237 image> CANDIDATE_IMAGE=<candidate> test/notification/rolling/smoke.sh
 # Images contain both binaries. Override OLD_JOBS_IMAGE/CANDIDATE_JOBS_IMAGE for split builds.
 set -euo pipefail
 
@@ -87,15 +87,15 @@ cross_read() {
 }
 
 stored_format() {
-    local writer=$1 dir="$artifacts/$1" event
+    local writer=$1 expected_channel_type=$2 dir="$artifacts/$1" event
     event=$(id_from "$dir/event")
     sql "SELECT jsonb_build_object('channel', c.type, 'config', c.config, 'rule', r.type, 'ruleConfig', r.config,
             'event', e.type, 'payload', e.payload, 'state', s.state)
          FROM notification_events e JOIN notification_rules r ON r.id=e.rule_id
          JOIN notification_event_delivery_status s ON s.event_id=e.id
          JOIN notification_channels c ON c.id=s.channel_id WHERE e.id='$event'" >"$dir/stored.json"
-    jq -es --slurpfile input "$dir/channel-input" 'length==1 and (.[0] |
-        .channel=="WEBHOOK" and .config=={type:"WEBHOOK",data:($input[0] | {url,customHeaders,signingSecret})} and
+    jq -es --arg channel_type "$expected_channel_type" --slurpfile input "$dir/channel-input" 'length==1 and (.[0] |
+        .channel==$channel_type and .config=={type:"WEBHOOK",data:($input[0] | {url,customHeaders,signingSecret})} and
         .rule=="entitlements.reset" and .ruleConfig.type==.rule and (.ruleConfig.data|type)=="object" and
         .event==.rule and .payload.type==.event and .payload.version==1 and
         (.payload.entitlementReset|type)=="object" and .state=="PENDING")' "$dir/stored.json" >/dev/null ||
@@ -134,13 +134,13 @@ baseline=$(version)
 start_server old
 seed old
 old_event=$(id_from "$artifacts/old/event")
-stored_format old
+stored_format old WEBHOOK
 sql "UPDATE notification_event_delivery_status SET next_attempt_at=now()-interval '1 minute' WHERE event_id='$old_event'"
 pending=$(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'")
 
 dc run --rm -T candidate-jobs >"$artifacts/candidate-migration.log" 2>&1
 upgraded=$(version)
-[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded > baseline )) || fail "Expected migrations after $baseline, got $upgraded"
+[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded >= baseline )) || fail "Expected schema version at least $baseline, got $upgraded"
 [[ $(identity) == "$db" ]] || fail "Database changed during migration"
 [[ $(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'") == "$pending" ]] ||
     fail "Migration changed the in-flight delivery"
@@ -151,7 +151,7 @@ cross_read candidate old
 seed candidate
 event=$(id_from "$artifacts/candidate/event")
 channel=$(id_from "$artifacts/candidate/channel")
-stored_format candidate
+stored_format candidate webhook
 cross_read old candidate
 
 # Defer this destination until rollback. A sentinel detects an old writer clearing an unfamiliar column.
@@ -159,9 +159,9 @@ sql "UPDATE notification_event_delivery_status SET next_attempt_at=now()+interva
 sql "UPDATE notification_channels SET provider_data='{\"smoke\":\"preserve\"}' WHERE id='$channel'"
 jq '.name="updated by old"' "$artifacts/candidate/channel-input" >"$artifacts/old-update"
 api old PUT "channels/$channel" --data-binary "@$artifacts/old-update" >/dev/null
-[[ $(sql "SELECT name || '/' || (provider_data->>'smoke') FROM notification_channels WHERE id='$channel'") == 'updated by old/preserve' ]] ||
-    fail "Old update lost candidate data"
-echo "Old server updated candidate Channel and preserved provider_data"
+[[ $(sql "SELECT name || '/' || type || '/' || (provider_data->>'smoke') FROM notification_channels WHERE id='$channel'") == 'updated by old/webhook/preserve' ]] ||
+    fail "Old update changed the candidate Channel type or lost provider data"
+echo "Old server updated candidate Channel and preserved type and provider_data"
 
 # Only one reconciler may deliver during each handoff.
 dc stop old

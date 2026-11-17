@@ -92,7 +92,7 @@ func TestChannelTypeStorageCompatibility(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// given: a canonical service input written for legacy readers
+			// given: a new Channel uses the lowercase column and the legacy config envelope
 			channel := createChannel(t, env, ulid.Make().String(), clock.Now(), func(input *notification.CreateChannelInput) {
 				input.Config.WebHook.CustomHeaders = map[string]string{"X-Test": "preserve"}
 				input.Config.WebHook.SigningSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
@@ -114,7 +114,7 @@ func TestChannelTypeStorageCompatibility(t *testing.T) {
 
 			require.NoError(t, json.Unmarshal([]byte(rawConfig), &legacyConfig))
 
-			assert.Equal(t, "WEBHOOK", columnType)
+			assert.Equal(t, "webhook", columnType)
 			assert.Equal(t, "WEBHOOK", legacyConfig.Type)
 			assert.Equal(t, channel.Config.WebHook, legacyConfig.Data)
 
@@ -182,7 +182,7 @@ func TestListChannels_MixedTypeFormats(t *testing.T) {
 	legacy := createChannel(t, env, namespace, clock.Now(), nil)
 	canonical := createChannel(t, env, namespace, clock.Now(), nil)
 	_, err := env.sqlDB.ExecContext(t.Context(),
-		"UPDATE notification_channels SET type = 'webhook' WHERE id = $1", canonical.ID)
+		"UPDATE notification_channels SET type = 'WEBHOOK' WHERE id = $1", legacy.ID)
 	require.NoError(t, err)
 
 	tests := []struct {
