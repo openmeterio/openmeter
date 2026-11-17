@@ -36,6 +36,7 @@ import (
 	metershandler "github.com/openmeterio/openmeter/api/v3/handlers/meters"
 	notificationchannelshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/channels"
 	notificationeventshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
+	notificationeventtypeshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/eventtypes"
 	notificationruleshandler "github.com/openmeterio/openmeter/api/v3/handlers/notification/rules"
 	planshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans"
 	planaddonshandler "github.com/openmeterio/openmeter/api/v3/handlers/plans/planaddons"
@@ -64,6 +65,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	notificationv4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -121,6 +123,7 @@ type Config struct {
 	CostService                 cost.Service
 	FeatureConnector            feature.FeatureConnector
 	NotificationService         notification.Service
+	NotificationEventRegistry   *notificationv4.EventRegistry
 
 	FeatureGate *featuregate.FeatureGateChecker
 }
@@ -224,6 +227,10 @@ func (c *Config) Validate() error {
 		errs = append(errs, errors.New("notification service is required"))
 	}
 
+	if c.NotificationEventRegistry == nil {
+		errs = append(errs, errors.New("notification event registry is required"))
+	}
+
 	if c.Credits.Enabled {
 		if c.CustomerBalanceFacade == nil {
 			errs = append(errs, errors.New("customer balance facade is required when credits are enabled"))
@@ -267,33 +274,34 @@ type Server struct {
 	swagger *openapi3.T
 
 	// handlers
-	addonHandler                 addonshandler.Handler
-	appsHandler                  appshandler.Handler
-	eventsHandler                eventshandler.Handler
-	llmcostHandler               llmcosthandler.Handler
-	customersHandler             customershandler.Handler
-	customersBillingHandler      customersbillinghandler.Handler
-	customersCreditsHandler      customerscreditshandler.Handler
-	customersEntitlementHandler  customersentitlementhandler.Handler
-	customersEntitlementsHandler customersentitlementshandler.Handler
-	grantsHandler                grantshandler.Handler
-	entitlementAccessHandler     entitlementaccesshandler.Handler
-	entitlementsHandler          entitlementshandler.Handler
-	notificationChannelsHandler  notificationchannelshandler.Handler
-	notificationEventsHandler    notificationeventshandler.Handler
-	notificationRulesHandler     notificationruleshandler.Handler
-	metersHandler                metershandler.Handler
-	subscriptionsHandler         subscriptionshandler.Handler
-	subscriptionAddonsHandler    subscriptionaddonshandler.Handler
-	billingProfilesHandler       billingprofileshandler.Handler
-	billingInvoicesHandler       billinginvoiceshandler.Handler
-	plansHandler                 planshandler.Handler
-	planAddonsHandler            planaddonshandler.Handler
-	chargesHandler               chargeshandler.Handler
-	taxcodesHandler              taxcodeshandler.Handler
-	currenciesHandler            currencieshandler.Handler
-	featuresHandler              featureshandler.Handler
-	featureCostHandler           featurecosthandler.Handler
+	addonHandler                  addonshandler.Handler
+	appsHandler                   appshandler.Handler
+	eventsHandler                 eventshandler.Handler
+	llmcostHandler                llmcosthandler.Handler
+	customersHandler              customershandler.Handler
+	customersBillingHandler       customersbillinghandler.Handler
+	customersCreditsHandler       customerscreditshandler.Handler
+	customersEntitlementHandler   customersentitlementhandler.Handler
+	customersEntitlementsHandler  customersentitlementshandler.Handler
+	grantsHandler                 grantshandler.Handler
+	entitlementAccessHandler      entitlementaccesshandler.Handler
+	entitlementsHandler           entitlementshandler.Handler
+	notificationChannelsHandler   notificationchannelshandler.Handler
+	notificationEventsHandler     notificationeventshandler.Handler
+	notificationEventTypesHandler notificationeventtypeshandler.Handler
+	notificationRulesHandler      notificationruleshandler.Handler
+	metersHandler                 metershandler.Handler
+	subscriptionsHandler          subscriptionshandler.Handler
+	subscriptionAddonsHandler     subscriptionaddonshandler.Handler
+	billingProfilesHandler        billingprofileshandler.Handler
+	billingInvoicesHandler        billinginvoiceshandler.Handler
+	plansHandler                  planshandler.Handler
+	planAddonsHandler             planaddonshandler.Handler
+	chargesHandler                chargeshandler.Handler
+	taxcodesHandler               taxcodeshandler.Handler
+	currenciesHandler             currencieshandler.Handler
+	featuresHandler               featureshandler.Handler
+	featureCostHandler            featurecosthandler.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -371,6 +379,7 @@ func NewServer(config *Config) (*Server, error) {
 	entitlementsHandler := entitlementshandler.New(resolveNamespace, config.EntitlementService, httptransport.WithErrorHandler(config.ErrorHandler))
 	notificationChannelsHandler := notificationchannelshandler.New(resolveNamespace, config.NotificationService, httptransport.WithErrorHandler(config.ErrorHandler))
 	notificationEventsHandler := notificationeventshandler.New(resolveNamespace, config.NotificationService, httptransport.WithErrorHandler(config.ErrorHandler))
+	notificationEventTypesHandler := notificationeventtypeshandler.New(config.NotificationEventRegistry, httptransport.WithErrorHandler(config.ErrorHandler))
 	notificationRulesHandler := notificationruleshandler.New(resolveNamespace, config.NotificationService, config.BillingService, config.TaxCodeResolver, httptransport.WithErrorHandler(config.ErrorHandler))
 
 	var llmcostH llmcosthandler.Handler
@@ -384,35 +393,36 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	return &Server{
-		Config:                       config,
-		swagger:                      swagger,
-		addonHandler:                 addonHandler,
-		appsHandler:                  appsHandler,
-		eventsHandler:                eventsHandler,
-		llmcostHandler:               llmcostH,
-		customersHandler:             customersHandler,
-		customersBillingHandler:      customersBillingHandler,
-		customersCreditsHandler:      customersCreditsHandler,
-		customersEntitlementHandler:  customersEntitlementHandler,
-		customersEntitlementsHandler: customersEntitlementsHandler,
-		grantsHandler:                grantsHandler,
-		metersHandler:                metersHandler,
-		subscriptionsHandler:         subscriptionsHandler,
-		subscriptionAddonsHandler:    subscriptionAddonsHandler,
-		billingProfilesHandler:       billingProfilesHandler,
-		billingInvoicesHandler:       billingInvoicesHandler,
-		plansHandler:                 plansHandler,
-		planAddonsHandler:            planAddonsHandler,
-		chargesHandler:               chargesH,
-		taxcodesHandler:              taxcodesHandler,
-		currenciesHandler:            currenciesHandler,
-		featuresHandler:              featuresH,
-		featureCostHandler:           featureCostH,
-		entitlementAccessHandler:     entitlementAccessHandler,
-		entitlementsHandler:          entitlementsHandler,
-		notificationChannelsHandler:  notificationChannelsHandler,
-		notificationEventsHandler:    notificationEventsHandler,
-		notificationRulesHandler:     notificationRulesHandler,
+		Config:                        config,
+		swagger:                       swagger,
+		addonHandler:                  addonHandler,
+		appsHandler:                   appsHandler,
+		eventsHandler:                 eventsHandler,
+		llmcostHandler:                llmcostH,
+		customersHandler:              customersHandler,
+		customersBillingHandler:       customersBillingHandler,
+		customersCreditsHandler:       customersCreditsHandler,
+		customersEntitlementHandler:   customersEntitlementHandler,
+		customersEntitlementsHandler:  customersEntitlementsHandler,
+		grantsHandler:                 grantsHandler,
+		metersHandler:                 metersHandler,
+		subscriptionsHandler:          subscriptionsHandler,
+		subscriptionAddonsHandler:     subscriptionAddonsHandler,
+		billingProfilesHandler:        billingProfilesHandler,
+		billingInvoicesHandler:        billingInvoicesHandler,
+		plansHandler:                  plansHandler,
+		planAddonsHandler:             planAddonsHandler,
+		chargesHandler:                chargesH,
+		taxcodesHandler:               taxcodesHandler,
+		currenciesHandler:             currenciesHandler,
+		featuresHandler:               featuresH,
+		featureCostHandler:            featureCostH,
+		entitlementAccessHandler:      entitlementAccessHandler,
+		entitlementsHandler:           entitlementsHandler,
+		notificationChannelsHandler:   notificationChannelsHandler,
+		notificationEventsHandler:     notificationEventsHandler,
+		notificationEventTypesHandler: notificationEventTypesHandler,
+		notificationRulesHandler:      notificationRulesHandler,
 	}, nil
 }
 

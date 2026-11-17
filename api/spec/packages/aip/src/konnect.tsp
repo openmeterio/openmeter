@@ -258,6 +258,11 @@ interface NotificationRulesEndpoints
 interface NotificationEventsEndpoints
   extends Notifications.NotificationEventOperations {}
 
+@route("/openmeter/notification/event-types")
+@tag(Shared.NotificationsTag)
+interface NotificationEventTypesEndpoints
+  extends Notifications.NotificationEventTypeOperations {}
+
 /**
  * The system account access token is meant for automations and integrations that
  * are not directly associated with a human identity.

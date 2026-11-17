@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -803,6 +804,19 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
+	eventRegistry, err := common.NewNotificationEventRegistry(logger)
+	if err != nil {
+		cleanup9()
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
 	eventHandler, err := common.NewNotificationEventHandler(notificationConfiguration, logger, tracer, notificationRepository, webhookHandler, driver)
 	if err != nil {
 		cleanup9()
@@ -962,6 +976,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		MeterEventService:                metereventService,
 		NamespaceManager:                 manager,
 		Notification:                     notificationService,
+		NotificationEventRegistry:        eventRegistry,
 		NotificationEventHandler:         eventHandler,
 		Plan:                             planService,
 		PlanAddon:                        planaddonService,
@@ -1038,6 +1053,7 @@ type Application struct {
 	MeterEventService                meterevent.Service
 	NamespaceManager                 *namespace.Manager
 	Notification                     notification.Service
+	NotificationEventRegistry        *v4.EventRegistry
 	NotificationEventHandler         notification.EventHandler
 	Plan                             plan.Service
 	PlanAddon                        planaddon.Service

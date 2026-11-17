@@ -29,6 +29,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	notificationv4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/openmeter/portal"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -87,6 +88,7 @@ type Application struct {
 	MeterEventService                meterevent.Service
 	NamespaceManager                 *namespace.Manager
 	Notification                     notification.Service
+	NotificationEventRegistry        *notificationv4.EventRegistry
 	NotificationEventHandler         notification.EventHandler
 	Plan                             plan.Service
 	PlanAddon                        planaddon.Service
@@ -144,6 +146,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NewIngestService,
 		common.NewServerPublisher,
 		common.Notification,
+		common.NotificationEventRegistry,
 		common.Streaming,
 		common.Portal,
 		common.ProductCatalog,

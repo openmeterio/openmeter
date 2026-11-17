@@ -161,6 +161,7 @@ func NewServer(config *Config) (*Server, error) {
 		CostService:                 config.RouterConfig.CostService,
 		FeatureConnector:            config.RouterConfig.FeatureConnector,
 		NotificationService:         config.RouterConfig.Notification,
+		NotificationEventRegistry:   config.RouterConfig.NotificationEventRegistry,
 		Middlewares:                 v3Middlewares,
 		PostAuthMiddlewares:         config.PostAuthMiddlewares,
 		ResponseValidation:          config.ResponseValidation,

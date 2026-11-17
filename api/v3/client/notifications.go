@@ -140,6 +140,27 @@ func (p NotificationEventListParams) values() url.Values {
 	return q
 }
 
+type NotificationEventTypeSummaryFilter struct {
+	Type *StringFilter
+}
+
+type NotificationEventTypeSummaryListParams struct {
+	Page   *PageParams
+	Filter *NotificationEventTypeSummaryFilter
+}
+
+func (p NotificationEventTypeSummaryListParams) values() url.Values {
+	q := url.Values{}
+
+	addPageParams(q, p.Page)
+
+	if p.Filter != nil {
+		addStringFilter(q, "filter[type]", p.Filter.Type)
+	}
+
+	return q
+}
+
 // List all notification channels.
 func (s *NotificationsService) ListBillingChannels(ctx context.Context, params NotificationChannelListParams) (*NotificationChannelPagePaginatedResponse, error) {
 	path := "/openmeter/notification/channels"
@@ -469,4 +490,61 @@ func (s *NotificationsService) ResendBillingEvent(ctx context.Context, notificat
 
 	_, err = s.client.doRaw(req)
 	return err
+}
+
+// List the notification event types, without their JSON Schemas. Event types are
+// the same in every namespace. Deprecated event types stay listed.
+func (s *NotificationsService) ListBillingEventTypes(ctx context.Context, params NotificationEventTypeSummaryListParams) (*NotificationEventTypeSummaryPagePaginatedResponse, error) {
+	path := "/openmeter/notification/event-types"
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationEventTypeSummaryPagePaginatedResponse
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+// ListBillingEventTypesAll returns an iterator over all NotificationEventTypeSummary results, fetching pages of ListBillingEventTypes transparently. Iteration stops at the first error, which is yielded as the second value.
+func (s *NotificationsService) ListBillingEventTypesAll(ctx context.Context, params NotificationEventTypeSummaryListParams) iter.Seq2[NotificationEventTypeSummary, error] {
+	return paginate(params.Page, func(page, size int) ([]NotificationEventTypeSummary, int, error) {
+		pageParams := params
+		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+
+		resp, err := s.ListBillingEventTypes(ctx, pageParams)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return resp.Data, resp.Meta.Page.Total, nil
+	})
+}
+
+// Get a notification event type with the JSON Schemas of its payload and rule
+// configuration.
+func (s *NotificationsService) GetBillingEventType(ctx context.Context, notificationEventType string) (*NotificationEventTypeDefinition, error) {
+	if notificationEventType == "" {
+		return nil, fmt.Errorf("openmeter: %s must not be empty: %w", "notificationEventType", ErrEmptyID)
+	}
+
+	path := "/openmeter/notification/event-types/{notificationEventType}"
+
+	path = replacePathParam(path, "notificationEventType", notificationEventType)
+
+	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, nil, nil, "", "application/json")
+	if err != nil {
+		return nil, err
+	}
+
+	var out NotificationEventTypeDefinition
+	if err := s.client.doJSON(req, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
 }

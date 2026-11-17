@@ -8,6 +8,7 @@ import "../common/parameters.tsp";
 import "../shared/index.tsp";
 import "./channel.tsp";
 import "./event.tsp";
+import "./event-type.tsp";
 import "./rule.tsp";
 
 using TypeSpec.Http;
@@ -405,4 +406,64 @@ interface NotificationEventOperations {
     @body
     request: NotificationEventResendRequest,
   ): Shared.AcceptedResponse | Common.NotFound | Common.ErrorResponses;
+}
+
+/**
+ * Filter options for listing notification event types.
+ */
+@friendlyName("ListNotificationEventTypesParamsFilter")
+model ListNotificationEventTypesParamsFilter {
+  #suppress "@openmeter/api-spec-aip/doc-decorator" "filter field"
+  type?: Common.StringFieldFilter;
+}
+
+interface NotificationEventTypeOperations {
+  /**
+   * List the notification event types, without their JSON Schemas. Event types are
+   * the same in every namespace. Deprecated event types stay listed.
+   */
+  @get
+  @operationId("list-billing-notification-event-types")
+  @summary("List notification event types")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  list(
+    ...Common.PagePaginationQuery,
+
+    /**
+     * Filter notification event types returned in the response. Event types are
+     * ordered by version, then name.
+     *
+     * Examples:
+     *
+     * - `filter[type]=v1.billing.invoice.created`
+     * - `filter[type][contains]=entitlement`
+     */
+    @query(#{ style: "deepObject", explode: true })
+    filter?: ListNotificationEventTypesParamsFilter,
+  ):
+    | Shared.PagePaginatedResponse<NotificationEventTypeSummary>
+    | Common.ErrorResponses;
+
+  /**
+   * Get a notification event type with the JSON Schemas of its payload and rule
+   * configuration.
+   */
+  @get
+  @route("/{notificationEventType}")
+  @operationId("get-billing-notification-event-type")
+  @summary("Get notification event type")
+  @extension(Shared.UnstableExtension, true)
+  @extension(Shared.InternalExtension, true)
+  @extension(Shared.PrivateExtension, true)
+  get(
+    /**
+     * The canonical event type, for example `v1.billing.invoice.created`.
+     */
+    @path notificationEventType: string,
+  ):
+    | Shared.GetResponse<NotificationEventTypeDefinition>
+    | Common.NotFound
+    | Common.ErrorResponses;
 }

@@ -6368,8 +6368,9 @@ type BillingInvoiceAvailableActions struct {
 	SnapshotQuantities *BillingInvoiceAvailableActionDetails `json:"snapshot_quantities,omitempty"`
 }
 
-// BillingInvoiceCreatedV1Payload Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
-// type: the invoice as it was created.
+// BillingInvoiceCreatedV1Payload An invoice was created. The payload is the invoice as it was created.
+//
+// Legacy name: `invoice.created`.
 type BillingInvoiceCreatedV1Payload struct {
 	// CollectionAt The time when the invoice will be/has been collected.
 	CollectionAt *time.Time `json:"collection_at,omitempty"`
@@ -6893,8 +6894,9 @@ type BillingInvoiceStatusDetails struct {
 	Immutable bool `json:"immutable"`
 }
 
-// BillingInvoiceUpdatedV1Payload Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
-// type: the invoice after the update.
+// BillingInvoiceUpdatedV1Payload An invoice was updated. The payload is the invoice after the update.
+//
+// Legacy name: `invoice.updated`.
 type BillingInvoiceUpdatedV1Payload struct {
 	// CollectionAt The time when the invoice will be/has been collected.
 	CollectionAt *time.Time `json:"collection_at,omitempty"`
@@ -7330,6 +7332,42 @@ type BillingNotificationEventResetPayloadType string
 // BillingNotificationEventType The type of a notification event. It determines which payload variant the event
 // carries.
 type BillingNotificationEventType string
+
+// BillingNotificationEventTypeDefinition A notification event type with the JSON Schemas of its contract.
+type BillingNotificationEventTypeDefinition struct {
+	// DeprecatedBy The event type that replaces this one. Deprecated event types stay usable.
+	// Absent when the event type is not deprecated.
+	DeprecatedBy *string `json:"deprecated_by,omitempty"`
+
+	// Description What the event type means, including the legacy name it replaces, if any.
+	Description string `json:"description"`
+
+	// PayloadJsonSchema The JSON Schema (draft 2020-12) of the event payload.
+	PayloadJsonSchema map[string]interface{} `json:"payload_json_schema"`
+
+	// RuleConfigJsonSchema The JSON Schema (draft 2020-12) of the rule configuration. Absent when no rule
+	// can produce the event type.
+	RuleConfigJsonSchema *map[string]interface{} `json:"rule_config_json_schema,omitempty"`
+
+	// Type The canonical event type, `v<version>.<name>`, for example
+	// `v1.billing.invoice.created`.
+	Type string `json:"type"`
+}
+
+// BillingNotificationEventTypeSummary A versioned kind of notification event. Its contract covers the payload and,
+// when rules can produce it, the rule configuration.
+type BillingNotificationEventTypeSummary struct {
+	// DeprecatedBy The event type that replaces this one. Deprecated event types stay usable.
+	// Absent when the event type is not deprecated.
+	DeprecatedBy *string `json:"deprecated_by,omitempty"`
+
+	// Description What the event type means, including the legacy name it replaces, if any.
+	Description string `json:"description"`
+
+	// Type The canonical event type, `v<version>.<name>`, for example
+	// `v1.billing.invoice.created`.
+	Type string `json:"type"`
+}
 
 // BillingNotificationEventV1Address Address
 type BillingNotificationEventV1Address struct {
@@ -12403,8 +12441,11 @@ type EntitlementAccessQueryResult struct {
 	UpdatedAt DateTime `json:"updated_at"`
 }
 
-// EntitlementBalanceThresholdTriggeredV1Payload Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
-// `entitlements.balance.threshold` Event type.
+// EntitlementBalanceThresholdTriggeredV1Payload A metered entitlement's balance crossed one of the thresholds configured on the
+// Rule. The payload carries the entitlement, its feature, subject, customer and
+// value, and the threshold that was crossed.
+//
+// Legacy name: `entitlements.balance.threshold`.
 type EntitlementBalanceThresholdTriggeredV1Payload struct {
 	// Customer Customer.
 	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
@@ -12471,8 +12512,10 @@ type EntitlementPagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
-// EntitlementUsagePeriodResetV1Payload Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
-// Event type.
+// EntitlementUsagePeriodResetV1Payload A metered entitlement's usage period was reset. The payload carries the
+// entitlement, its feature, subject, customer and value.
+//
+// Legacy name: `entitlements.reset`.
 type EntitlementUsagePeriodResetV1Payload struct {
 	// Customer Customer.
 	Customer *BillingNotificationEventV1Customer `json:"customer,omitempty"`
@@ -13206,6 +13249,13 @@ type ListNotificationChannelsParamsFilter struct {
 	UpdatedAt *DateTimeFieldFilter `json:"updated_at,omitempty"`
 }
 
+// ListNotificationEventTypesParamsFilter Filter options for listing notification event types.
+type ListNotificationEventTypesParamsFilter struct {
+	// Type Filters on the given string field value by either exact or fuzzy match. All
+	// properties are optional; provide exactly one to specify the comparison.
+	Type *StringFieldFilter `json:"type,omitempty"`
+}
+
 // ListNotificationEventsParamsFilter Filter options for listing notification events.
 type ListNotificationEventsParamsFilter struct {
 	// ChannelId Filter by a channel of the generating rule. Matches events whose rule targets at
@@ -13571,6 +13621,14 @@ type NotificationChannelReference struct {
 // NotificationEventPagePaginatedResponse Page paginated response.
 type NotificationEventPagePaginatedResponse struct {
 	Data []BillingNotificationEvent `json:"data"`
+
+	// Meta returns the pagination information
+	Meta PaginatedMeta `json:"meta"`
+}
+
+// NotificationEventTypeSummaryPagePaginatedResponse Page paginated response.
+type NotificationEventTypeSummaryPagePaginatedResponse struct {
+	Data []BillingNotificationEventTypeSummary `json:"data"`
 
 	// Meta returns the pagination information
 	Meta PaginatedMeta `json:"meta"`
@@ -15360,6 +15418,21 @@ type ListBillingNotificationChannelsParams struct {
 	// To filter notification channels by type add the following query param:
 	// filter[type]=webhook
 	Filter *ListNotificationChannelsParamsFilter `json:"filter,omitempty"`
+}
+
+// ListBillingNotificationEventTypesParams defines parameters for ListBillingNotificationEventTypes.
+type ListBillingNotificationEventTypesParams struct {
+	// Page Determines which page of the collection to retrieve.
+	Page *PagePaginationQuery `json:"page,omitempty"`
+
+	// Filter Filter notification event types returned in the response. Event types are
+	// ordered by version, then name.
+	//
+	// Examples:
+	//
+	// - `filter[type]=v1.billing.invoice.created`
+	// - `filter[type][contains]=entitlement`
+	Filter *ListNotificationEventTypesParamsFilter `json:"filter,omitempty"`
 }
 
 // ListBillingNotificationEventsParams defines parameters for ListBillingNotificationEvents.

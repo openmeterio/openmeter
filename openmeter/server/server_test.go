@@ -49,6 +49,8 @@ import (
 	metereventadapter "github.com/openmeterio/openmeter/openmeter/meterevent/adapter"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	notificationv4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/definitions"
 	portaladapter "github.com/openmeterio/openmeter/openmeter/portal/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
@@ -883,6 +885,12 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 	})
 	assert.NoError(t, err, "failed to create entitlement access service")
 
+	notificationEventRegistry, err := notificationv4.NewEventRegistry(notificationv4.EventRegistryConfig{
+		Logger:      logger,
+		Definitions: definitions.All(),
+	})
+	require.NoError(t, err)
+
 	config := &Config{
 		RouterConfig: router.Config{
 			NamespaceDecoder:            namespacedriver.StaticNamespaceDecoder(DefaultNamespace),
@@ -902,12 +910,13 @@ func getTestServer(t *testing.T, opts ...func(*router.Config)) (*Server, *MockSt
 			EntitlementAccessService:    entitlementAccessService,
 			GrantConnector:              &NoopGrantConnector{},
 			// Use the grant repo
-			GrantRepo:          grantRepo,
-			IngestService:      &NoopIngestService{},
-			Logger:             logger,
-			MeterManageService: meterManageService,
-			MeterEventService:  meterEventService,
-			Notification:       &NoopNotificationService{},
+			GrantRepo:                 grantRepo,
+			IngestService:             &NoopIngestService{},
+			Logger:                    logger,
+			MeterManageService:        meterManageService,
+			MeterEventService:         meterEventService,
+			Notification:              &NoopNotificationService{},
+			NotificationEventRegistry: notificationEventRegistry,
 			// Use the plan service
 			Plan:      planService,
 			PlanAddon: planAddonService,

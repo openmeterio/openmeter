@@ -376,6 +376,8 @@ The full call path, HTTP route, and a short description are listed below.
 | `om.Notifications.ListBillingEvents` | `GET /openmeter/notification/events` | List all notification events. |
 | `om.Notifications.GetBillingEvent` | `GET /openmeter/notification/events/{notificationEventId}` | Get a notification event by id. |
 | `om.Notifications.ResendBillingEvent` | `POST /openmeter/notification/events/{notificationEventId}/resend` | Resend a notification event to the channels of the rule that generated it. Delivery is asynchronous: the request marks the selected channels for redelivery and returns immediately. Channels whose delivery is still pending or already being resent are left untouched. |
+| `om.Notifications.ListBillingEventTypes` | `GET /openmeter/notification/event-types` | List the notification event types, without their JSON Schemas. Event types are the same in every namespace. Deprecated event types stay listed. |
+| `om.Notifications.GetBillingEventType` | `GET /openmeter/notification/event-types/{notificationEventType}` | Get a notification event type with the JSON Schemas of its payload and rule configuration. |
 
 ## Error Handling
 
