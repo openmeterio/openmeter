@@ -120,6 +120,7 @@ func (r Recurrence) iterateFromNextAfterInclusive(t time.Time) (RecurrenceIterat
 			}
 
 			if v.Before(t) {
+				ic += 1
 				break
 			}
 
@@ -252,6 +253,7 @@ func (r Recurrence) iterateFromPrevBeforeInclusive(t time.Time) (RecurrenceItera
 			}
 
 			if v.After(t) {
+				ic -= 1
 				break
 			}
 

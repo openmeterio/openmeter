@@ -1,10 +1,12 @@
 package timeutil_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -429,4 +431,52 @@ func TestGetPeriodAt(t *testing.T) {
 
 func addDateNoOverflow(t time.Time, years int, months int, days int) time.Time {
 	return datetime.NewDateTime(t).AddDateNoOverflow(years, months, days).AsTime()
+}
+
+func TestRecurrenceIteratorNavigation(t *testing.T) {
+	query := time.Date(2024, time.March, 15, 0, 0, 0, 0, time.UTC)
+	for _, anchorMonth := range []time.Month{time.January, time.June} {
+		for _, boundary := range []timeutil.Boundary{timeutil.Inclusive, timeutil.Exclusive} {
+			for _, onBoundary := range []bool{false, true} {
+				for _, nextAfter := range []bool{false, true} {
+					name := fmt.Sprintf("anchor=%s/boundary=%v/onBoundary=%t/nextAfter=%t", anchorMonth, boundary, onBoundary, nextAfter)
+					t.Run(name, func(t *testing.T) {
+						r, err := timeutil.NewRecurrence(timeutil.RecurrencePeriodMonth, time.Date(2024, anchorMonth, 1, 0, 0, 0, 0, time.UTC))
+						require.NoError(t, err)
+						at := query
+						if onBoundary {
+							at = time.Date(2024, time.March, 1, 0, 0, 0, 0, time.UTC)
+						}
+						var it timeutil.RecurrenceIterator
+						if nextAfter {
+							it, err = r.IterateFromNextAfter(at, boundary)
+						} else {
+							it, err = r.IterateFromPrevBefore(at, boundary)
+						}
+						require.NoError(t, err)
+						month := time.March
+						if nextAfter && (!onBoundary || boundary == timeutil.Exclusive) {
+							month = time.April
+						} else if !nextAfter && onBoundary && boundary == timeutil.Exclusive {
+							month = time.February
+						}
+						want := time.Date(2024, month, 1, 0, 0, 0, 0, time.UTC)
+						require.Equal(t, want, it.At)
+						for _, delta := range []int{-1, 1} {
+							cur := it
+							for step := 1; step <= 2; step++ {
+								if delta > 0 {
+									cur, err = cur.Next()
+								} else {
+									cur, err = cur.Prev()
+								}
+								require.NoError(t, err)
+								assert.Equal(t, want.AddDate(0, delta*step, 0), cur.At)
+							}
+						}
+					})
+				}
+			}
+		}
+	}
 }
