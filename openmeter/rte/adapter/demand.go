@@ -56,12 +56,8 @@ func activeDemand(at time.Time) predicate.RTEDemand {
 	return demanddb.And(demanddb.DeletedAtIsNil(), demanddb.Or(demanddb.PushEnabledEQ(true), demanddb.PullUntilGT(at)))
 }
 
-func (r *demandRepository) Activate(ctx context.Context, input rte.ActivateDemandInput) error {
-	if err := input.Validate(); err != nil {
-		return err
-	}
-
-	_, err := r.ensure(ctx, ensureDemandInput{Target: input.Target, PushEnabled: true, RefreshInterval: input.RefreshInterval})
+func (r *demandRepository) Activate(ctx context.Context, target rte.CalculationTarget) error {
+	_, err := r.ensure(ctx, ensureDemandInput{Target: target, PushEnabled: true})
 
 	return err
 }
@@ -75,11 +71,10 @@ func (r *demandRepository) EnsurePull(ctx context.Context, input rte.EnsureFresh
 }
 
 type ensureDemandInput struct {
-	Target          rte.CalculationTarget
-	PushEnabled     bool
-	RefreshInterval time.Duration
-	PullTTL         time.Duration
-	MaxAge          time.Duration
+	Target      rte.CalculationTarget
+	PushEnabled bool
+	PullTTL     time.Duration
+	MaxAge      time.Duration
 }
 
 // The driver encodes query arguments after acquiring a connection. A busy
@@ -96,7 +91,7 @@ func (t pullRenewalTime) Value() (driver.Value, error) {
 func (i ensureDemandInput) Validate() error {
 	var errs []error
 	errs = append(errs, i.Target.Validate())
-	if i.RefreshInterval < 0 || i.PullTTL < 0 || i.MaxAge < 0 {
+	if i.PullTTL < 0 || i.MaxAge < 0 {
 		errs = append(errs, errors.New("demand durations must not be negative"))
 	}
 
@@ -186,23 +181,7 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 			wasActive := row.PushEnabled || (row.PullUntil != nil && row.PullUntil.After(now))
 			update := a.db.RTEDemand.UpdateOneID(row.ID)
 			if input.PushEnabled {
-				update.SetPushEnabled(true).SetRefreshInterval(int64(input.RefreshInterval))
-				if row.RefreshInterval != int64(input.RefreshInterval) {
-					deletedAt, err := a.demandSourceDeletionAt(ctx, row)
-					if err != nil {
-						return err
-					}
-
-					next := nextDemandRefresh(now, input.RefreshInterval, deletedAt)
-					if next != nil {
-						update.SetNextRefreshAt(*next)
-						if row.CompletedVersion == row.DirtyVersion {
-							update.SetNextAttemptAt(*next)
-						}
-					} else {
-						update.ClearNextRefreshAt()
-					}
-				}
+				update.SetPushEnabled(true)
 			}
 
 			if input.PullTTL > 0 {
@@ -233,7 +212,7 @@ func (r *demandRepository) Deactivate(ctx context.Context, target rte.Calculatio
 	}
 
 	return entutils.TransactingRepoWithNoValue(ctx, r.adapter, func(ctx context.Context, a *adapter) error {
-		return a.db.RTEDemand.Update().Where(condition).SetPushEnabled(false).ClearPullUntil().ClearNextRefreshAt().SetRefreshInterval(0).Exec(ctx)
+		return a.db.RTEDemand.Update().Where(condition).SetPushEnabled(false).ClearPullUntil().ClearSourceDeleteAt().Exec(ctx)
 	})
 }
 
@@ -312,7 +291,7 @@ func (r *demandRepository) Invalidate(ctx context.Context, input rte.InvalidateI
 	})
 }
 
-// A new fact wakes healthy keys ahead of their next periodic refresh. Failed
+// A new fact makes a healthy key immediately eligible for calculation. Failed
 // keys accumulate the same work while keeping their existing retry deadline.
 func markDemandDirty(update *sql.UpdateBuilder, now time.Time) {
 	update.Add(demanddb.FieldDirtyVersion, 1).
@@ -346,17 +325,6 @@ func (a *adapter) demandSourceDeletionAt(ctx context.Context, row *db.RTEDemand)
 	return source.DeletedAt, nil
 }
 
-func nextDemandRefresh(now time.Time, interval time.Duration, deletedAt *time.Time) *time.Time {
-	if interval > 0 {
-		next := now.Add(interval)
-		if deletedAt == nil || next.Before(*deletedAt) {
-			return &next
-		}
-	}
-
-	return deletedAt
-}
-
 func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandInput, calculate func(context.Context, rte.CalculationTarget) error) (rte.DemandWorkResult, error) {
 	if err := input.Validate(); err != nil {
 		return rte.DemandWorkResult{}, err
@@ -369,7 +337,6 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 	_, transactionErr := transaction.GetDriverFromContext(ctx)
 	ownsTransaction := transactionErr != nil
 	var failedAttempt *db.RTEDemand
-	var failedVersion int64
 	var retryAt time.Time
 	var calculationFailure error
 	result, processErr := transaction.Run(ctx, r, func(ctx context.Context) (rte.DemandWorkResult, error) {
@@ -377,7 +344,7 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 			now := clock.Now()
 			due := demanddb.Or(func(s *sql.Selector) {
 				s.Where(sql.ColumnsGT(s.C(demanddb.FieldDirtyVersion), s.C(demanddb.FieldCompletedVersion)))
-			}, demanddb.NextRefreshAtLTE(now))
+			}, demanddb.SourceDeleteAtLTE(now))
 			query := a.db.RTEDemand.Query().Where(demanddb.DeletedAtIsNil(), due).Order(demanddb.ByNextAttemptAt(), demanddb.ByID()).Limit(1)
 			if input.Target == nil {
 				// Keep the push predicate literal so prepared generic plans can
@@ -402,10 +369,6 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 			}
 
 			now = clock.Now()
-			workVersion := row.DirtyVersion
-			if row.DirtyVersion == row.CompletedVersion {
-				workVersion++
-			}
 
 			deletedAt, err := a.demandSourceDeletionAt(ctx, row)
 			if err != nil {
@@ -415,8 +378,8 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 			if deletedAt != nil && !deletedAt.After(clock.Now()) {
 				// Keep the last successful value readable. Leave this version
 				// outstanding so an explicit pull still sees a deleted source.
-				err := a.db.RTEDemand.UpdateOneID(row.ID).SetDirtyVersion(workVersion).
-					SetPushEnabled(false).ClearPullUntil().ClearNextRefreshAt().SetRefreshInterval(0).SetAttempts(0).Exec(ctx)
+				err := a.db.RTEDemand.UpdateOneID(row.ID).SetDirtyVersion(max(row.DirtyVersion, row.CompletedVersion+1)).
+					SetPushEnabled(false).ClearPullUntil().ClearSourceDeleteAt().SetAttempts(0).Exec(ctx)
 				if err != nil {
 					return rte.DemandWorkResult{}, err
 				}
@@ -427,6 +390,17 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 				}
 
 				return result, nil
+			}
+
+			if row.DirtyVersion == row.CompletedVersion {
+				// The deletion was moved or canceled, or an older worker set a periodic
+				// deadline. Update the wake-up time without running a clean calculation.
+				update := a.db.RTEDemand.UpdateOneID(row.ID).SetOrClearSourceDeleteAt(deletedAt)
+				if deletedAt != nil {
+					update.SetNextAttemptAt(*deletedAt)
+				}
+
+				return rte.DemandWorkResult{}, update.Exec(ctx)
 			}
 
 			target := rte.CalculationTarget{Kind: rte.CalculationKind(row.Kind), Key: row.Key}
@@ -441,7 +415,7 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 
 				return attemptCtx.Err()
 			})
-			update := a.db.RTEDemand.UpdateOneID(row.ID).SetDirtyVersion(workVersion)
+			update := a.db.RTEDemand.UpdateOneID(row.ID)
 			if calculationErr != nil {
 				delay := input.RetryMinDelay
 				for attempt := 0; attempt < row.Attempts && delay < input.RetryMaxDelay; attempt++ {
@@ -458,14 +432,13 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 					retryAt = *deletedAt
 				}
 
-				failedVersion = workVersion
 				update.SetAttempts(row.Attempts + 1).SetNextAttemptAt(retryAt)
 			} else {
-				update.SetCompletedVersion(workVersion).SetAttempts(0).SetLastCalculatedAt(now).SetNextAttemptAt(clock.Now())
-				if next := nextDemandRefresh(clock.Now(), time.Duration(row.RefreshInterval), deletedAt); next != nil {
-					update.SetNextRefreshAt(*next).SetNextAttemptAt(*next)
+				update.SetCompletedVersion(row.DirtyVersion).SetAttempts(0).SetLastCalculatedAt(now).SetNextAttemptAt(clock.Now())
+				if deletedAt != nil {
+					update.SetSourceDeleteAt(*deletedAt).SetNextAttemptAt(*deletedAt)
 				} else {
-					update.ClearNextRefreshAt()
+					update.ClearSourceDeleteAt()
 				}
 			}
 
@@ -488,7 +461,7 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 					demanddb.DirtyVersionEQ(failedAttempt.DirtyVersion),
 					demanddb.CompletedVersionEQ(failedAttempt.CompletedVersion),
 					demanddb.AttemptsEQ(failedAttempt.Attempts),
-				).SetDirtyVersion(failedVersion).SetAttempts(failedAttempt.Attempts + 1).SetNextAttemptAt(retryAt).Exec(ctx)
+				).SetAttempts(failedAttempt.Attempts + 1).SetNextAttemptAt(retryAt).Exec(ctx)
 			})
 		})
 		if recoveryErr != nil {

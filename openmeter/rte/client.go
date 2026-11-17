@@ -2,7 +2,6 @@ package rte
 
 import (
 	"context"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
@@ -20,8 +19,9 @@ type BalanceClient[K Key, V any] interface {
 	// Requests acknowledge publication. A subsequent Get may still see the previous value.
 	RequestCalculation(context.Context, K) error
 	RequestRefresh(context.Context, K, FreshnessPolicy) error
-	// Activate registers background refresh. The first result may arrive later.
-	Activate(ctx context.Context, key K, refreshInterval time.Duration) error
+	// Activate asks the worker to calculate a newly tracked balance and recalculate
+	// it when its inputs change. The first result may arrive after Activate returns.
+	Activate(context.Context, K) error
 	// Deactivate stops tracking changes and keeps the last successful result.
 	Deactivate(context.Context, K) error
 }

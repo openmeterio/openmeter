@@ -196,8 +196,8 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 			return true
 		}, 15*time.Second, 100*time.Millisecond)
 	})
-	s.Require().NoError(credits.Activate(ctx, creditKey, 0))
-	s.Require().NoError(metered.Activate(ctx, meteredKey, 0))
+	s.Require().NoError(credits.Activate(ctx, creditKey))
+	s.Require().NoError(metered.Activate(ctx, meteredKey))
 
 	var creditState rte.State[creditbalance.Balance]
 	var meteredState rte.State[rtemetered.Balance]

@@ -229,6 +229,8 @@ func (w *worker) Run(ctx context.Context) error {
 	return err
 }
 
+// Input handlers commit dirty versions to PostgreSQL. Poll the durable queue so
+// bursts can share a calculation and a worker can pick up work after a restart.
 func (w *worker) processDemand(ctx context.Context) {
 	ticker := time.NewTicker(w.pollInterval)
 	defer ticker.Stop()

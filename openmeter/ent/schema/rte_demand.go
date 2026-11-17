@@ -27,8 +27,8 @@ func (RTEDemand) Fields() []ent.Field {
 		field.Time("pull_until").Optional().Nillable(),
 		field.Int64("dirty_version").Default(1),
 		field.Int64("completed_version").Default(0),
-		field.Int64("refresh_interval").Default(0),
-		field.Time("next_refresh_at").Optional().Nillable(),
+		// Preserve previously recorded deletion deadlines when upgrading the worker.
+		field.Time("source_delete_at").StorageKey("next_refresh_at").Optional().Nillable(),
 		field.Time("last_calculated_at").Optional().Nillable(),
 		field.Time("next_attempt_at"),
 		field.Int("attempts").Default(0).NonNegative(),

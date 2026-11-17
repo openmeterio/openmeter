@@ -1,13 +1,13 @@
 # PostgreSQL storage
 
-RTE stores each balance separately from its refresh settings. `Get` can still return the last
+RTE stores each balance separately from its change-tracking state. `Get` can still return the last
 successful calculation after tracking expires or a caller deactivates the key.
 
 | Record | Identity | Stored information |
 | --- | --- | --- |
 | Credit balance | Namespace, customer ID, currency identity, feature scope | Calculation start and four decimal amounts |
 | Metered entitlement balance | Namespace and entitlement ID | Calculation start and the complete domain balance as JSON, including per-grant amounts |
-| Demand | Namespace, kind and hash of the semantic key | Decodable key, owner, background refresh setting, tracking expiry, dirty/completed versions, schedule and retry state |
+| Demand | Namespace, kind and hash of the semantic key | Decodable key, owner, background tracking, pull expiry, dirty/completed versions, entitlement deletion deadline and retry state |
 | Invalidation receipt | CloudEvents source and ID | A fact already applied to matching demand |
 
 For either balance store, an atomic upsert accepts a calculation whose start is strictly later

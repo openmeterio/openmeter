@@ -119934,9 +119934,7 @@ type RTEDemandMutation struct {
 	adddirty_version     *int64
 	completed_version    *int64
 	addcompleted_version *int64
-	refresh_interval     *int64
-	addrefresh_interval  *int64
-	next_refresh_at      *time.Time
+	source_delete_at     *time.Time
 	last_calculated_at   *time.Time
 	next_attempt_at      *time.Time
 	attempts             *int
@@ -120558,109 +120556,53 @@ func (m *RTEDemandMutation) ResetCompletedVersion() {
 	m.addcompleted_version = nil
 }
 
-// SetRefreshInterval sets the "refresh_interval" field.
-func (m *RTEDemandMutation) SetRefreshInterval(i int64) {
-	m.refresh_interval = &i
-	m.addrefresh_interval = nil
+// SetSourceDeleteAt sets the "source_delete_at" field.
+func (m *RTEDemandMutation) SetSourceDeleteAt(t time.Time) {
+	m.source_delete_at = &t
 }
 
-// RefreshInterval returns the value of the "refresh_interval" field in the mutation.
-func (m *RTEDemandMutation) RefreshInterval() (r int64, exists bool) {
-	v := m.refresh_interval
+// SourceDeleteAt returns the value of the "source_delete_at" field in the mutation.
+func (m *RTEDemandMutation) SourceDeleteAt() (r time.Time, exists bool) {
+	v := m.source_delete_at
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldRefreshInterval returns the old "refresh_interval" field's value of the RTEDemand entity.
+// OldSourceDeleteAt returns the old "source_delete_at" field's value of the RTEDemand entity.
 // If the RTEDemand object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RTEDemandMutation) OldRefreshInterval(ctx context.Context) (v int64, err error) {
+func (m *RTEDemandMutation) OldSourceDeleteAt(ctx context.Context) (v *time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRefreshInterval is only allowed on UpdateOne operations")
+		return v, errors.New("OldSourceDeleteAt is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRefreshInterval requires an ID field in the mutation")
+		return v, errors.New("OldSourceDeleteAt requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRefreshInterval: %w", err)
+		return v, fmt.Errorf("querying old value for OldSourceDeleteAt: %w", err)
 	}
-	return oldValue.RefreshInterval, nil
+	return oldValue.SourceDeleteAt, nil
 }
 
-// AddRefreshInterval adds i to the "refresh_interval" field.
-func (m *RTEDemandMutation) AddRefreshInterval(i int64) {
-	if m.addrefresh_interval != nil {
-		*m.addrefresh_interval += i
-	} else {
-		m.addrefresh_interval = &i
-	}
+// ClearSourceDeleteAt clears the value of the "source_delete_at" field.
+func (m *RTEDemandMutation) ClearSourceDeleteAt() {
+	m.source_delete_at = nil
+	m.clearedFields[rtedemand.FieldSourceDeleteAt] = struct{}{}
 }
 
-// AddedRefreshInterval returns the value that was added to the "refresh_interval" field in this mutation.
-func (m *RTEDemandMutation) AddedRefreshInterval() (r int64, exists bool) {
-	v := m.addrefresh_interval
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ResetRefreshInterval resets all changes to the "refresh_interval" field.
-func (m *RTEDemandMutation) ResetRefreshInterval() {
-	m.refresh_interval = nil
-	m.addrefresh_interval = nil
-}
-
-// SetNextRefreshAt sets the "next_refresh_at" field.
-func (m *RTEDemandMutation) SetNextRefreshAt(t time.Time) {
-	m.next_refresh_at = &t
-}
-
-// NextRefreshAt returns the value of the "next_refresh_at" field in the mutation.
-func (m *RTEDemandMutation) NextRefreshAt() (r time.Time, exists bool) {
-	v := m.next_refresh_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldNextRefreshAt returns the old "next_refresh_at" field's value of the RTEDemand entity.
-// If the RTEDemand object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RTEDemandMutation) OldNextRefreshAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldNextRefreshAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldNextRefreshAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldNextRefreshAt: %w", err)
-	}
-	return oldValue.NextRefreshAt, nil
-}
-
-// ClearNextRefreshAt clears the value of the "next_refresh_at" field.
-func (m *RTEDemandMutation) ClearNextRefreshAt() {
-	m.next_refresh_at = nil
-	m.clearedFields[rtedemand.FieldNextRefreshAt] = struct{}{}
-}
-
-// NextRefreshAtCleared returns if the "next_refresh_at" field was cleared in this mutation.
-func (m *RTEDemandMutation) NextRefreshAtCleared() bool {
-	_, ok := m.clearedFields[rtedemand.FieldNextRefreshAt]
+// SourceDeleteAtCleared returns if the "source_delete_at" field was cleared in this mutation.
+func (m *RTEDemandMutation) SourceDeleteAtCleared() bool {
+	_, ok := m.clearedFields[rtedemand.FieldSourceDeleteAt]
 	return ok
 }
 
-// ResetNextRefreshAt resets all changes to the "next_refresh_at" field.
-func (m *RTEDemandMutation) ResetNextRefreshAt() {
-	m.next_refresh_at = nil
-	delete(m.clearedFields, rtedemand.FieldNextRefreshAt)
+// ResetSourceDeleteAt resets all changes to the "source_delete_at" field.
+func (m *RTEDemandMutation) ResetSourceDeleteAt() {
+	m.source_delete_at = nil
+	delete(m.clearedFields, rtedemand.FieldSourceDeleteAt)
 }
 
 // SetLastCalculatedAt sets the "last_calculated_at" field.
@@ -120838,7 +120780,7 @@ func (m *RTEDemandMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RTEDemandMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, rtedemand.FieldNamespace)
 	}
@@ -120875,11 +120817,8 @@ func (m *RTEDemandMutation) Fields() []string {
 	if m.completed_version != nil {
 		fields = append(fields, rtedemand.FieldCompletedVersion)
 	}
-	if m.refresh_interval != nil {
-		fields = append(fields, rtedemand.FieldRefreshInterval)
-	}
-	if m.next_refresh_at != nil {
-		fields = append(fields, rtedemand.FieldNextRefreshAt)
+	if m.source_delete_at != nil {
+		fields = append(fields, rtedemand.FieldSourceDeleteAt)
 	}
 	if m.last_calculated_at != nil {
 		fields = append(fields, rtedemand.FieldLastCalculatedAt)
@@ -120922,10 +120861,8 @@ func (m *RTEDemandMutation) Field(name string) (ent.Value, bool) {
 		return m.DirtyVersion()
 	case rtedemand.FieldCompletedVersion:
 		return m.CompletedVersion()
-	case rtedemand.FieldRefreshInterval:
-		return m.RefreshInterval()
-	case rtedemand.FieldNextRefreshAt:
-		return m.NextRefreshAt()
+	case rtedemand.FieldSourceDeleteAt:
+		return m.SourceDeleteAt()
 	case rtedemand.FieldLastCalculatedAt:
 		return m.LastCalculatedAt()
 	case rtedemand.FieldNextAttemptAt:
@@ -120965,10 +120902,8 @@ func (m *RTEDemandMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldDirtyVersion(ctx)
 	case rtedemand.FieldCompletedVersion:
 		return m.OldCompletedVersion(ctx)
-	case rtedemand.FieldRefreshInterval:
-		return m.OldRefreshInterval(ctx)
-	case rtedemand.FieldNextRefreshAt:
-		return m.OldNextRefreshAt(ctx)
+	case rtedemand.FieldSourceDeleteAt:
+		return m.OldSourceDeleteAt(ctx)
 	case rtedemand.FieldLastCalculatedAt:
 		return m.OldLastCalculatedAt(ctx)
 	case rtedemand.FieldNextAttemptAt:
@@ -121068,19 +121003,12 @@ func (m *RTEDemandMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCompletedVersion(v)
 		return nil
-	case rtedemand.FieldRefreshInterval:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetRefreshInterval(v)
-		return nil
-	case rtedemand.FieldNextRefreshAt:
+	case rtedemand.FieldSourceDeleteAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetNextRefreshAt(v)
+		m.SetSourceDeleteAt(v)
 		return nil
 	case rtedemand.FieldLastCalculatedAt:
 		v, ok := value.(time.Time)
@@ -121117,9 +121045,6 @@ func (m *RTEDemandMutation) AddedFields() []string {
 	if m.addcompleted_version != nil {
 		fields = append(fields, rtedemand.FieldCompletedVersion)
 	}
-	if m.addrefresh_interval != nil {
-		fields = append(fields, rtedemand.FieldRefreshInterval)
-	}
 	if m.addattempts != nil {
 		fields = append(fields, rtedemand.FieldAttempts)
 	}
@@ -121135,8 +121060,6 @@ func (m *RTEDemandMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedDirtyVersion()
 	case rtedemand.FieldCompletedVersion:
 		return m.AddedCompletedVersion()
-	case rtedemand.FieldRefreshInterval:
-		return m.AddedRefreshInterval()
 	case rtedemand.FieldAttempts:
 		return m.AddedAttempts()
 	}
@@ -121162,13 +121085,6 @@ func (m *RTEDemandMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddCompletedVersion(v)
 		return nil
-	case rtedemand.FieldRefreshInterval:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddRefreshInterval(v)
-		return nil
 	case rtedemand.FieldAttempts:
 		v, ok := value.(int)
 		if !ok {
@@ -121190,8 +121106,8 @@ func (m *RTEDemandMutation) ClearedFields() []string {
 	if m.FieldCleared(rtedemand.FieldPullUntil) {
 		fields = append(fields, rtedemand.FieldPullUntil)
 	}
-	if m.FieldCleared(rtedemand.FieldNextRefreshAt) {
-		fields = append(fields, rtedemand.FieldNextRefreshAt)
+	if m.FieldCleared(rtedemand.FieldSourceDeleteAt) {
+		fields = append(fields, rtedemand.FieldSourceDeleteAt)
 	}
 	if m.FieldCleared(rtedemand.FieldLastCalculatedAt) {
 		fields = append(fields, rtedemand.FieldLastCalculatedAt)
@@ -121216,8 +121132,8 @@ func (m *RTEDemandMutation) ClearField(name string) error {
 	case rtedemand.FieldPullUntil:
 		m.ClearPullUntil()
 		return nil
-	case rtedemand.FieldNextRefreshAt:
-		m.ClearNextRefreshAt()
+	case rtedemand.FieldSourceDeleteAt:
+		m.ClearSourceDeleteAt()
 		return nil
 	case rtedemand.FieldLastCalculatedAt:
 		m.ClearLastCalculatedAt()
@@ -121266,11 +121182,8 @@ func (m *RTEDemandMutation) ResetField(name string) error {
 	case rtedemand.FieldCompletedVersion:
 		m.ResetCompletedVersion()
 		return nil
-	case rtedemand.FieldRefreshInterval:
-		m.ResetRefreshInterval()
-		return nil
-	case rtedemand.FieldNextRefreshAt:
-		m.ResetNextRefreshAt()
+	case rtedemand.FieldSourceDeleteAt:
+		m.ResetSourceDeleteAt()
 		return nil
 	case rtedemand.FieldLastCalculatedAt:
 		m.ResetLastCalculatedAt()

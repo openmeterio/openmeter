@@ -43,10 +43,8 @@ type RTEDemand struct {
 	DirtyVersion int64 `json:"dirty_version,omitempty"`
 	// CompletedVersion holds the value of the "completed_version" field.
 	CompletedVersion int64 `json:"completed_version,omitempty"`
-	// RefreshInterval holds the value of the "refresh_interval" field.
-	RefreshInterval int64 `json:"refresh_interval,omitempty"`
-	// NextRefreshAt holds the value of the "next_refresh_at" field.
-	NextRefreshAt *time.Time `json:"next_refresh_at,omitempty"`
+	// SourceDeleteAt holds the value of the "source_delete_at" field.
+	SourceDeleteAt *time.Time `json:"source_delete_at,omitempty"`
 	// LastCalculatedAt holds the value of the "last_calculated_at" field.
 	LastCalculatedAt *time.Time `json:"last_calculated_at,omitempty"`
 	// NextAttemptAt holds the value of the "next_attempt_at" field.
@@ -65,11 +63,11 @@ func (*RTEDemand) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case rtedemand.FieldPushEnabled:
 			values[i] = new(sql.NullBool)
-		case rtedemand.FieldID, rtedemand.FieldDirtyVersion, rtedemand.FieldCompletedVersion, rtedemand.FieldRefreshInterval, rtedemand.FieldAttempts:
+		case rtedemand.FieldID, rtedemand.FieldDirtyVersion, rtedemand.FieldCompletedVersion, rtedemand.FieldAttempts:
 			values[i] = new(sql.NullInt64)
 		case rtedemand.FieldNamespace, rtedemand.FieldKind, rtedemand.FieldOwnerID, rtedemand.FieldKeyHash:
 			values[i] = new(sql.NullString)
-		case rtedemand.FieldCreatedAt, rtedemand.FieldUpdatedAt, rtedemand.FieldDeletedAt, rtedemand.FieldPullUntil, rtedemand.FieldNextRefreshAt, rtedemand.FieldLastCalculatedAt, rtedemand.FieldNextAttemptAt:
+		case rtedemand.FieldCreatedAt, rtedemand.FieldUpdatedAt, rtedemand.FieldDeletedAt, rtedemand.FieldPullUntil, rtedemand.FieldSourceDeleteAt, rtedemand.FieldLastCalculatedAt, rtedemand.FieldNextAttemptAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -168,18 +166,12 @@ func (_m *RTEDemand) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.CompletedVersion = value.Int64
 			}
-		case rtedemand.FieldRefreshInterval:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field refresh_interval", values[i])
-			} else if value.Valid {
-				_m.RefreshInterval = value.Int64
-			}
-		case rtedemand.FieldNextRefreshAt:
+		case rtedemand.FieldSourceDeleteAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field next_refresh_at", values[i])
+				return fmt.Errorf("unexpected type %T for field source_delete_at", values[i])
 			} else if value.Valid {
-				_m.NextRefreshAt = new(time.Time)
-				*_m.NextRefreshAt = value.Time
+				_m.SourceDeleteAt = new(time.Time)
+				*_m.SourceDeleteAt = value.Time
 			}
 		case rtedemand.FieldLastCalculatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -276,11 +268,8 @@ func (_m *RTEDemand) String() string {
 	builder.WriteString("completed_version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CompletedVersion))
 	builder.WriteString(", ")
-	builder.WriteString("refresh_interval=")
-	builder.WriteString(fmt.Sprintf("%v", _m.RefreshInterval))
-	builder.WriteString(", ")
-	if v := _m.NextRefreshAt; v != nil {
-		builder.WriteString("next_refresh_at=")
+	if v := _m.SourceDeleteAt; v != nil {
+		builder.WriteString("source_delete_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")

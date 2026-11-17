@@ -109,14 +109,9 @@ func CompletedVersion(v int64) predicate.RTEDemand {
 	return predicate.RTEDemand(sql.FieldEQ(FieldCompletedVersion, v))
 }
 
-// RefreshInterval applies equality check predicate on the "refresh_interval" field. It's identical to RefreshIntervalEQ.
-func RefreshInterval(v int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldEQ(FieldRefreshInterval, v))
-}
-
-// NextRefreshAt applies equality check predicate on the "next_refresh_at" field. It's identical to NextRefreshAtEQ.
-func NextRefreshAt(v time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldEQ(FieldNextRefreshAt, v))
+// SourceDeleteAt applies equality check predicate on the "source_delete_at" field. It's identical to SourceDeleteAtEQ.
+func SourceDeleteAt(v time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldEQ(FieldSourceDeleteAt, v))
 }
 
 // LastCalculatedAt applies equality check predicate on the "last_calculated_at" field. It's identical to LastCalculatedAtEQ.
@@ -664,94 +659,54 @@ func CompletedVersionLTE(v int64) predicate.RTEDemand {
 	return predicate.RTEDemand(sql.FieldLTE(FieldCompletedVersion, v))
 }
 
-// RefreshIntervalEQ applies the EQ predicate on the "refresh_interval" field.
-func RefreshIntervalEQ(v int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldEQ(FieldRefreshInterval, v))
+// SourceDeleteAtEQ applies the EQ predicate on the "source_delete_at" field.
+func SourceDeleteAtEQ(v time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldEQ(FieldSourceDeleteAt, v))
 }
 
-// RefreshIntervalNEQ applies the NEQ predicate on the "refresh_interval" field.
-func RefreshIntervalNEQ(v int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldNEQ(FieldRefreshInterval, v))
+// SourceDeleteAtNEQ applies the NEQ predicate on the "source_delete_at" field.
+func SourceDeleteAtNEQ(v time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldNEQ(FieldSourceDeleteAt, v))
 }
 
-// RefreshIntervalIn applies the In predicate on the "refresh_interval" field.
-func RefreshIntervalIn(vs ...int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldIn(FieldRefreshInterval, vs...))
+// SourceDeleteAtIn applies the In predicate on the "source_delete_at" field.
+func SourceDeleteAtIn(vs ...time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldIn(FieldSourceDeleteAt, vs...))
 }
 
-// RefreshIntervalNotIn applies the NotIn predicate on the "refresh_interval" field.
-func RefreshIntervalNotIn(vs ...int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldNotIn(FieldRefreshInterval, vs...))
+// SourceDeleteAtNotIn applies the NotIn predicate on the "source_delete_at" field.
+func SourceDeleteAtNotIn(vs ...time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldNotIn(FieldSourceDeleteAt, vs...))
 }
 
-// RefreshIntervalGT applies the GT predicate on the "refresh_interval" field.
-func RefreshIntervalGT(v int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldGT(FieldRefreshInterval, v))
+// SourceDeleteAtGT applies the GT predicate on the "source_delete_at" field.
+func SourceDeleteAtGT(v time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldGT(FieldSourceDeleteAt, v))
 }
 
-// RefreshIntervalGTE applies the GTE predicate on the "refresh_interval" field.
-func RefreshIntervalGTE(v int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldGTE(FieldRefreshInterval, v))
+// SourceDeleteAtGTE applies the GTE predicate on the "source_delete_at" field.
+func SourceDeleteAtGTE(v time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldGTE(FieldSourceDeleteAt, v))
 }
 
-// RefreshIntervalLT applies the LT predicate on the "refresh_interval" field.
-func RefreshIntervalLT(v int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldLT(FieldRefreshInterval, v))
+// SourceDeleteAtLT applies the LT predicate on the "source_delete_at" field.
+func SourceDeleteAtLT(v time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldLT(FieldSourceDeleteAt, v))
 }
 
-// RefreshIntervalLTE applies the LTE predicate on the "refresh_interval" field.
-func RefreshIntervalLTE(v int64) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldLTE(FieldRefreshInterval, v))
+// SourceDeleteAtLTE applies the LTE predicate on the "source_delete_at" field.
+func SourceDeleteAtLTE(v time.Time) predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldLTE(FieldSourceDeleteAt, v))
 }
 
-// NextRefreshAtEQ applies the EQ predicate on the "next_refresh_at" field.
-func NextRefreshAtEQ(v time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldEQ(FieldNextRefreshAt, v))
+// SourceDeleteAtIsNil applies the IsNil predicate on the "source_delete_at" field.
+func SourceDeleteAtIsNil() predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldIsNull(FieldSourceDeleteAt))
 }
 
-// NextRefreshAtNEQ applies the NEQ predicate on the "next_refresh_at" field.
-func NextRefreshAtNEQ(v time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldNEQ(FieldNextRefreshAt, v))
-}
-
-// NextRefreshAtIn applies the In predicate on the "next_refresh_at" field.
-func NextRefreshAtIn(vs ...time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldIn(FieldNextRefreshAt, vs...))
-}
-
-// NextRefreshAtNotIn applies the NotIn predicate on the "next_refresh_at" field.
-func NextRefreshAtNotIn(vs ...time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldNotIn(FieldNextRefreshAt, vs...))
-}
-
-// NextRefreshAtGT applies the GT predicate on the "next_refresh_at" field.
-func NextRefreshAtGT(v time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldGT(FieldNextRefreshAt, v))
-}
-
-// NextRefreshAtGTE applies the GTE predicate on the "next_refresh_at" field.
-func NextRefreshAtGTE(v time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldGTE(FieldNextRefreshAt, v))
-}
-
-// NextRefreshAtLT applies the LT predicate on the "next_refresh_at" field.
-func NextRefreshAtLT(v time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldLT(FieldNextRefreshAt, v))
-}
-
-// NextRefreshAtLTE applies the LTE predicate on the "next_refresh_at" field.
-func NextRefreshAtLTE(v time.Time) predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldLTE(FieldNextRefreshAt, v))
-}
-
-// NextRefreshAtIsNil applies the IsNil predicate on the "next_refresh_at" field.
-func NextRefreshAtIsNil() predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldIsNull(FieldNextRefreshAt))
-}
-
-// NextRefreshAtNotNil applies the NotNil predicate on the "next_refresh_at" field.
-func NextRefreshAtNotNil() predicate.RTEDemand {
-	return predicate.RTEDemand(sql.FieldNotNull(FieldNextRefreshAt))
+// SourceDeleteAtNotNil applies the NotNil predicate on the "source_delete_at" field.
+func SourceDeleteAtNotNil() predicate.RTEDemand {
+	return predicate.RTEDemand(sql.FieldNotNull(FieldSourceDeleteAt))
 }
 
 // LastCalculatedAtEQ applies the EQ predicate on the "last_calculated_at" field.

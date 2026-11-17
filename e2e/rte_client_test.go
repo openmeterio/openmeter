@@ -82,7 +82,7 @@ func TestRTEClient(t *testing.T) {
 		require.Equal(c, float64(25), state.Value.Live.InexactFloat64())
 	}, 30*time.Second, 100*time.Millisecond)
 	// Activating the key makes subsequent grants refresh state without another pull.
-	require.NoError(t, credits.Activate(ctx, key, 0))
+	require.NoError(t, credits.Activate(ctx, key))
 	_, err = api.Customers.Credits.Grants.Create(ctx, cust.ID, v3sdk.CreateCreditGrantRequest{
 		Name: "tracked credit", Currency: "USD", Amount: "10", FundingMethod: v3sdk.CreditFundingMethodNone,
 	})

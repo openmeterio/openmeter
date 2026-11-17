@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/rte"
@@ -93,13 +92,13 @@ func (b balances[K, V]) request(ctx context.Context, key K, policy *rte.Freshnes
 	return b.publisher.Publish(ctx, request)
 }
 
-func (b balances[K, V]) Activate(ctx context.Context, key K, interval time.Duration) error {
+func (b balances[K, V]) Activate(ctx context.Context, key K) error {
 	target, err := rte.NewCalculationTarget(key)
 	if err != nil {
 		return err
 	}
 
-	return b.demand.Activate(ctx, rte.ActivateDemandInput{Target: target, RefreshInterval: interval})
+	return b.demand.Activate(ctx, target)
 }
 
 func (b balances[K, V]) Deactivate(ctx context.Context, key K) error {

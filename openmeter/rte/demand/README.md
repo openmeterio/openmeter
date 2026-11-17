@@ -3,7 +3,7 @@
 RTE tracks whether a balance needs recalculating after its inputs change.
 
 - **Background refresh** (`Activate`). When a tracked input changes, the worker recalculates
-  the balance even if nobody asks for it. An optional interval also refreshes it as time passes.
+  the balance even if nobody asks for it.
 - **On-demand refresh** (`EnsureFresh`). RTE remembers changes between requests for
   `PullTTL`. With background refresh off, those changes wait for the next `EnsureFresh`
   call, which recalculates if needed.
@@ -14,7 +14,6 @@ RTE tracks whether a balance needs recalculating after its inputs change.
 
 | Setting | What it controls |
 | --- | --- |
-| `ActivateDemandInput.RefreshInterval` | Optional background refresh when time alone changes the result. Zero disables periodic refreshes. |
 | `EnsureFreshInput.PullTTL` | How long to track changes between calls to `EnsureFresh`. Must be positive. |
 | `EnsureFreshInput.MaxAge` | How old a completed calculation `EnsureFresh` accepts. Zero accepts any age if the key is active and clean. |
 
@@ -23,24 +22,24 @@ For example, a client calls `EnsureFresh` every ten seconds with `PullTTL=1m` an
 batches arrive between calls, one recalculation covers both. With background refresh off, a
 gap longer than a minute means the next call recalculates because tracking expired.
 
-Demand is shared per semantic key. `Activate` on an already active key updates
-its refresh policy. `Deactivate` stops background refresh and change tracking for that key.
+Demand is shared per semantic key. Repeated activation keeps the existing registration.
+`Deactivate` stops background refresh and change tracking for that key.
 There is no per-caller ownership count. Coordinate deactivation when several
 consumers depend on the same balance.
 
 When a metered entitlement has a scheduled deletion, demand remains active until
-its effective time. With background refresh enabled, the worker checks the deadline even when
-periodic refreshes are disabled. Otherwise, `EnsureFresh` checks it on the next call. Once deletion
-takes effect, processing clears demand and leaves the last successful result
+its effective time. The worker checks the deadline for activated keys. For pull-only keys,
+`EnsureFresh` checks it on the next call. Once deletion takes effect, processing clears
+demand and leaves the last successful result
 available through `Get`. An explicit `EnsureFresh` returns the entitlement's
 not-found error.
 
 ## Coalescing and redelivery
 
 Each key has a dirty version and a completed version. Independent invalidations
-advance the dirty version. A due timer also makes a clean key eligible for work.
-One successful calculation can cover several invalidations. These versions track
-how much demand the worker has handled. Each calculator reads its own sources
+advance the dirty version in PostgreSQL, so pending changes survive a worker restart.
+The worker polls for one ready key at a time. One calculation can cover all changes
+recorded before the worker claims that key. Each calculator reads its own sources
 under their usual consistency rules.
 
 `EnsureFresh` accepts a clean version, with an optional maximum age, or calculates

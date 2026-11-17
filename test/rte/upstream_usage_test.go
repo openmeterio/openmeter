@@ -94,7 +94,7 @@ func (s *RTEIntegrationSuite) TestUpstreamUsageTargetsActiveDemand() {
 		// JSON decoding accepts this spelling. The SQL selectors must still
 		// distinguish currency and feature scope after registration.
 		target.Key = bytes.Replace(target.Key, []byte(`"currency":`), []byte(`"Currency":`), 1)
-		s.Require().NoError(repository.Activate(ctx, rte.ActivateDemandInput{Target: target.CalculationTarget}))
+		s.Require().NoError(repository.Activate(ctx, target.CalculationTarget))
 		defer func() {
 			s.Require().NoError(repository.Deactivate(ctx, target.CalculationTarget))
 		}()
