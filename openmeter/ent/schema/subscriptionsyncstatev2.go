@@ -18,7 +18,13 @@ import (
 type SubscriptionSyncStateV2 struct{ ent.Schema }
 
 func (SubscriptionSyncStateV2) Annotations() []schema.Annotation {
-	return []schema.Annotation{entsql.Annotation{Table: "subscription_sync_states_v2"}}
+	return []schema.Annotation{
+		entsql.Annotation{Table: "subscription_sync_states_v2"},
+		// A missing deadline would silently remove an active subscription from v2 reconciliation.
+		entsql.Checks(map[string]string{
+			"subscription_sync_v2_active_reconciliation_at": "last_success_state <> 'active' OR next_reconciliation_at IS NOT NULL",
+		}),
+	}
 }
 
 func (SubscriptionSyncStateV2) Mixin() []ent.Mixin {
@@ -30,6 +36,7 @@ func (SubscriptionSyncStateV2) Fields() []ent.Field {
 		field.String("subscription_id").NotEmpty().Immutable().Unique().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 		field.Enum("last_success_state").GoType(subscriptionsync.SyncStateV2State("")),
 		field.Time("last_success_at").Optional().Nillable(),
+		field.Time("next_reconciliation_at").Optional().Nillable(),
 		field.String("last_synced_subs_revision").NotEmpty().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 		field.String("current_subs_revision").NotEmpty().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 	}

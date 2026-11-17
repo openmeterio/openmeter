@@ -10,7 +10,6 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
 	"github.com/lib/pq"
-	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
@@ -109,65 +108,6 @@ func (s *SubscriptionHandlerTestSuite) createScheduledSubscriptionWithBillingLin
 	s.Require().NotEmpty(invoice.Lines.OrEmpty())
 
 	return subscriptionID, invoice
-}
-
-func (s *SubscriptionHandlerTestSuite) createSubscriptionForRevisionChange(activeFrom time.Time) subscription.SubscriptionView {
-	s.T().Helper()
-	// Each command case owns its customer so its subscription cannot overlap another case.
-	s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
-	if activeFrom.IsZero() {
-		activeFrom = clock.Now().Add(24 * time.Hour)
-	}
-
-	return s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
-		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
-		Plan: productcatalog.Plan{
-			PlanMeta: productcatalog.PlanMeta{
-				Name:           "Subscription revision hooks",
-				Key:            ulid.Make().String(),
-				Version:        1,
-				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
-				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-			},
-			Phases: []productcatalog.Phase{{
-				PhaseMeta: productcatalog.PhaseMeta{Key: "default", Name: "Default phase"},
-				RateCards: productcatalog.RateCards{
-					&productcatalog.FlatFeeRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:  "flat-fee",
-							Name: "Flat fee",
-							Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
-								Amount:      alpacadecimal.NewFromInt(1),
-								PaymentTerm: productcatalog.InAdvancePaymentTerm,
-							}),
-						},
-						BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
-					},
-					&productcatalog.UsageBasedRateCard{
-						RateCardMeta: productcatalog.RateCardMeta{
-							Key:     s.APIRequestsTotalFeature.Key,
-							Name:    "Usage",
-							Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
-							Price:   productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
-						},
-						BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
-					},
-				},
-			}},
-		},
-	}, activeFrom)
-}
-
-func (s *SubscriptionHandlerTestSuite) getSyncStateV2(subscriptionID models.NamespacedID) subscriptionsync.SyncStateV2Managed {
-	s.T().Helper()
-	states, err := s.Service.GetSyncStatesV2(s.T().Context(), subscriptionsync.GetSyncStatesV2Input{subscriptionID})
-	s.Require().NoError(err)
-	s.Require().Len(states, 1)
-	s.Equal(subscriptionID, states[0].SubscriptionID)
-	s.Require().NoError(states[0].Validate())
-
-	return states[0]
 }
 
 type subscriptionRevisionChangeCase struct {
@@ -388,23 +328,6 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionCreationRevisionFailureRo
 	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
 }
 
-func (s *SubscriptionHandlerTestSuite) TestActiveSubscriptionSyncDoesNotRecordDeletionCleanup() {
-	ctx := s.T().Context()
-	now := s.mustParseTime("2024-01-01T00:00:00Z")
-	clock.FreezeTime(now)
-	defer clock.UnFreeze()
-
-	// given/when: a scheduled subscription is synced to generate its future billing lines
-	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
-
-	// then: syncing a non-deleted subscription does not record deletion cleanup
-	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
-	s.Require().NoError(err)
-	s.Require().Len(states, 1)
-	s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
-	s.Nil(states[0].LastSuccessAt)
-}
-
 func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupDryRun() {
 	ctx := s.T().Context()
 	now := s.mustParseTime("2024-01-01T00:00:00Z")
@@ -416,6 +339,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupDryRun() {
 	legacyBefore, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+	v2Before := s.getSyncStateV2(subscriptionID)
 
 	// when: deletion cleanup is planned as a dry run
 	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now, subscriptionsync.EnableDryRun()))
@@ -425,8 +349,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupDryRun() {
 	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
-	s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
-	s.Nil(states[0].LastSuccessAt)
+	s.Equal(v2Before, states[0])
 	legacyAfter, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Equal(legacyBefore, legacyAfter)
@@ -443,6 +366,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() 
 	legacyBefore, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
+	v2Before := s.getSyncStateV2(subscriptionID)
 	persistErr := errors.New("cannot record deletion cleanup")
 	failingService := *s.Service
 	failingService.subscriptionSyncAdapter = failingDeletionSyncStateAdapter{Adapter: s.Adapter, err: persistErr}
@@ -458,8 +382,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() 
 	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
-	s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
-	s.Nil(states[0].LastSuccessAt)
+	s.Equal(v2Before, states[0])
 	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 		Namespaces: []string{s.Namespace},
 		Limit:      10,
@@ -531,8 +454,9 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupWithLegacyS
 	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
 	s.Nil(pending[0].SyncState, "legacy scheduling must not suppress deletion cleanup")
 	s.Require().NotNil(pending[0].SyncStateV2)
-	s.Equal(subscriptionsync.SyncStateV2StateNew, pending[0].SyncStateV2.LastSuccessState)
-	s.Nil(pending[0].SyncStateV2.LastSuccessAt)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, pending[0].SyncStateV2.LastSuccessState)
+	s.Equal(lo.ToPtr(now), pending[0].SyncStateV2.LastSuccessAt)
+	s.NotNil(pending[0].SyncStateV2.NextReconciliationAt)
 	s.True(pending[0].ShouldReconcile(now))
 
 	// when: periodic reconciliation processes the pending cleanup
@@ -636,8 +560,9 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWork
 	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
 	s.Nil(pending[0].SyncState)
 	s.Require().NotNil(pending[0].SyncStateV2)
-	s.Equal(subscriptionsync.SyncStateV2StateNew, pending[0].SyncStateV2.LastSuccessState)
-	s.Nil(pending[0].SyncStateV2.LastSuccessAt)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, pending[0].SyncStateV2.LastSuccessState)
+	s.Equal(lo.ToPtr(createdAt), pending[0].SyncStateV2.LastSuccessAt)
+	s.NotNil(pending[0].SyncStateV2.NextReconciliationAt)
 	s.True(pending[0].ShouldReconcile(now))
 	s.Require().NoError(periodic.All(ctx, periodicreconciler.ReconcilerAllInput{
 		ReconcilerListSubscriptionsInput: listInput,
@@ -5795,6 +5720,10 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateNoBillables() {
 		SyncedAt:      clock.Now().UTC(),
 		NextSyncAfter: nil,
 	}, syncStates[0])
+
+	v2State := s.getSyncStateV2(subsView.Subscription.NamespacedID)
+	s.Equal(subscriptionsync.SyncStateV2StateNoBillables, v2State.LastSuccessState)
+	s.Nil(v2State.NextReconciliationAt)
 
 	// The optimized lookup fetches by globally unique subscription ID, but must
 	// still conceal sync states from callers requesting that ID in another namespace.

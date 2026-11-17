@@ -6021,8 +6021,9 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "last_success_state", Type: field.TypeEnum, Enums: []string{"new", "subscription_deleted", "customer_deleted_before", "ended", "too_old"}},
+		{Name: "last_success_state", Type: field.TypeEnum, Enums: []string{"new", "active", "no_billables", "subscription_deleted", "customer_deleted_before", "ended", "too_old"}},
 		{Name: "last_success_at", Type: field.TypeTime, Nullable: true},
+		{Name: "next_reconciliation_at", Type: field.TypeTime, Nullable: true},
 		{Name: "last_synced_subs_revision", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "current_subs_revision", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subscription_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6035,7 +6036,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscription_sync_state_v2_subscription_fk",
-				Columns:    []*schema.Column{SubscriptionSyncStatesV2Columns[9]},
+				Columns:    []*schema.Column{SubscriptionSyncStatesV2Columns[10]},
 				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
@@ -6054,7 +6055,7 @@ var (
 			{
 				Name:    "subscriptionsyncstatev2_namespace_subscription_id",
 				Unique:  true,
-				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[1], SubscriptionSyncStatesV2Columns[9]},
+				Columns: []*schema.Column{SubscriptionSyncStatesV2Columns[1], SubscriptionSyncStatesV2Columns[10]},
 				Annotation: &entsql.IndexAnnotation{
 					IncludeColumns: []string{
 						SubscriptionSyncStatesV2Columns[5].Name,
@@ -6626,6 +6627,9 @@ func init() {
 	SubscriptionSyncStatesV2Table.ForeignKeys[0].RefTable = SubscriptionsTable
 	SubscriptionSyncStatesV2Table.Annotation = &entsql.Annotation{
 		Table: "subscription_sync_states_v2",
+	}
+	SubscriptionSyncStatesV2Table.Annotation.Checks = map[string]string{
+		"subscription_sync_v2_active_reconciliation_at": "last_success_state <> 'active' OR next_reconciliation_at IS NOT NULL",
 	}
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable

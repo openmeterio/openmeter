@@ -26,6 +26,10 @@ import (
 type State struct {
 	Items                  []StateItem
 	MaxGenerationTimeLimit time.Time
+	// NextBillingPeriod is resolved from the generation limit. Nil means the next
+	// reconciliation should use ActiveTo, or no periodic sync is needed for cleanup
+	// or a subscription without billables.
+	NextBillingPeriod *timeutil.ClosedPeriod
 }
 
 type BuildInput struct {
@@ -108,6 +112,15 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			return State{}, fmt.Errorf("collecting upcoming lines: %w", err)
 		}
 
+		nextBillingPeriod, err := calculateNextBillingPeriod(calculateNextBillingPeriodInput{
+			SubscriptionSpec:   subs.Spec,
+			MaxGenerationLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
+			AsOf:               input.AsOf,
+		})
+		if err != nil {
+			return State{}, fmt.Errorf("getting next reconciliation billing period: %w", err)
+		}
+
 		inScopeLines, err := b.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, upcomingLinesResult.Lines, input.Persisted)
 		if err != nil {
 			return State{}, fmt.Errorf("correcting period start for upcoming lines: %w", err)
@@ -133,8 +146,63 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 		return State{
 			Items:                  items,
 			MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
+			NextBillingPeriod:      nextBillingPeriod,
 		}, nil
 	})
+}
+
+type calculateNextBillingPeriodInput struct {
+	SubscriptionSpec   subscription.SubscriptionSpec
+	MaxGenerationLimit time.Time
+	AsOf               time.Time
+}
+
+func (i calculateNextBillingPeriodInput) Validate() error {
+	if i.AsOf.IsZero() {
+		return models.NewNillableGenericValidationError(errors.New("asOf is required"))
+	}
+
+	return nil
+}
+
+// calculateNextBillingPeriod returns nil when there are no billables or when
+// reconciliation must run exactly at ActiveTo instead of within a billing period.
+func calculateNextBillingPeriod(input calculateNextBillingPeriodInput) (*timeutil.ClosedPeriod, error) {
+	if err := input.Validate(); err != nil {
+		return nil, fmt.Errorf("validating input: %w", err)
+	}
+
+	if !input.SubscriptionSpec.HasBillables() {
+		return nil, nil
+	}
+
+	billingPeriodAt := input.MaxGenerationLimit
+	if billingPeriodAt.IsZero() {
+		// If no phase produced a generation limit, use the requested sync horizon.
+		billingPeriodAt = input.AsOf
+	}
+
+	if billingPeriodAt.Before(input.SubscriptionSpec.ActiveFrom) {
+		billingPeriodAt = input.SubscriptionSpec.ActiveFrom
+	}
+
+	if input.SubscriptionSpec.ActiveTo != nil && !billingPeriodAt.Before(*input.SubscriptionSpec.ActiveTo) {
+		return nil, nil
+	}
+
+	// At a billing boundary this returns the following period. Do not advance
+	// by another cadence: an exact-start sync may only have generated through that start.
+	period, err := input.SubscriptionSpec.GetAlignedBillingPeriodAt(billingPeriodAt)
+	if err != nil {
+		return nil, err
+	}
+
+	// The final period needs an exact sync at ActiveTo instead of a jittered deadline.
+	if input.SubscriptionSpec.ActiveTo != nil && !period.To.Before(*input.SubscriptionSpec.ActiveTo) {
+		return nil, nil
+	}
+
+	return &period, nil
 }
 
 func resolveSubscriptionItemCurrency(item SubscriptionItemWithPeriods, invoiceCurrency currencyx.Code) (currencies.Currency, error) {

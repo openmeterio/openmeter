@@ -128972,6 +128972,7 @@ type SubscriptionSyncStateV2Mutation struct {
 	deleted_at                *time.Time
 	last_success_state        *subscriptionsync.SyncStateV2State
 	last_success_at           *time.Time
+	next_reconciliation_at    *time.Time
 	last_synced_subs_revision *string
 	current_subs_revision     *string
 	clearedFields             map[string]struct{}
@@ -129364,6 +129365,55 @@ func (m *SubscriptionSyncStateV2Mutation) ResetLastSuccessAt() {
 	delete(m.clearedFields, subscriptionsyncstatev2.FieldLastSuccessAt)
 }
 
+// SetNextReconciliationAt sets the "next_reconciliation_at" field.
+func (m *SubscriptionSyncStateV2Mutation) SetNextReconciliationAt(t time.Time) {
+	m.next_reconciliation_at = &t
+}
+
+// NextReconciliationAt returns the value of the "next_reconciliation_at" field in the mutation.
+func (m *SubscriptionSyncStateV2Mutation) NextReconciliationAt() (r time.Time, exists bool) {
+	v := m.next_reconciliation_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextReconciliationAt returns the old "next_reconciliation_at" field's value of the SubscriptionSyncStateV2 entity.
+// If the SubscriptionSyncStateV2 object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionSyncStateV2Mutation) OldNextReconciliationAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextReconciliationAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextReconciliationAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextReconciliationAt: %w", err)
+	}
+	return oldValue.NextReconciliationAt, nil
+}
+
+// ClearNextReconciliationAt clears the value of the "next_reconciliation_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ClearNextReconciliationAt() {
+	m.next_reconciliation_at = nil
+	m.clearedFields[subscriptionsyncstatev2.FieldNextReconciliationAt] = struct{}{}
+}
+
+// NextReconciliationAtCleared returns if the "next_reconciliation_at" field was cleared in this mutation.
+func (m *SubscriptionSyncStateV2Mutation) NextReconciliationAtCleared() bool {
+	_, ok := m.clearedFields[subscriptionsyncstatev2.FieldNextReconciliationAt]
+	return ok
+}
+
+// ResetNextReconciliationAt resets all changes to the "next_reconciliation_at" field.
+func (m *SubscriptionSyncStateV2Mutation) ResetNextReconciliationAt() {
+	m.next_reconciliation_at = nil
+	delete(m.clearedFields, subscriptionsyncstatev2.FieldNextReconciliationAt)
+}
+
 // SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
 func (m *SubscriptionSyncStateV2Mutation) SetLastSyncedSubsRevision(s string) {
 	m.last_synced_subs_revision = &s
@@ -129497,7 +129547,7 @@ func (m *SubscriptionSyncStateV2Mutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionSyncStateV2Mutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.namespace != nil {
 		fields = append(fields, subscriptionsyncstatev2.FieldNamespace)
 	}
@@ -129518,6 +129568,9 @@ func (m *SubscriptionSyncStateV2Mutation) Fields() []string {
 	}
 	if m.last_success_at != nil {
 		fields = append(fields, subscriptionsyncstatev2.FieldLastSuccessAt)
+	}
+	if m.next_reconciliation_at != nil {
+		fields = append(fields, subscriptionsyncstatev2.FieldNextReconciliationAt)
 	}
 	if m.last_synced_subs_revision != nil {
 		fields = append(fields, subscriptionsyncstatev2.FieldLastSyncedSubsRevision)
@@ -129547,6 +129600,8 @@ func (m *SubscriptionSyncStateV2Mutation) Field(name string) (ent.Value, bool) {
 		return m.LastSuccessState()
 	case subscriptionsyncstatev2.FieldLastSuccessAt:
 		return m.LastSuccessAt()
+	case subscriptionsyncstatev2.FieldNextReconciliationAt:
+		return m.NextReconciliationAt()
 	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
 		return m.LastSyncedSubsRevision()
 	case subscriptionsyncstatev2.FieldCurrentSubsRevision:
@@ -129574,6 +129629,8 @@ func (m *SubscriptionSyncStateV2Mutation) OldField(ctx context.Context, name str
 		return m.OldLastSuccessState(ctx)
 	case subscriptionsyncstatev2.FieldLastSuccessAt:
 		return m.OldLastSuccessAt(ctx)
+	case subscriptionsyncstatev2.FieldNextReconciliationAt:
+		return m.OldNextReconciliationAt(ctx)
 	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
 		return m.OldLastSyncedSubsRevision(ctx)
 	case subscriptionsyncstatev2.FieldCurrentSubsRevision:
@@ -129636,6 +129693,13 @@ func (m *SubscriptionSyncStateV2Mutation) SetField(name string, value ent.Value)
 		}
 		m.SetLastSuccessAt(v)
 		return nil
+	case subscriptionsyncstatev2.FieldNextReconciliationAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextReconciliationAt(v)
+		return nil
 	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
 		v, ok := value.(string)
 		if !ok {
@@ -129686,6 +129750,9 @@ func (m *SubscriptionSyncStateV2Mutation) ClearedFields() []string {
 	if m.FieldCleared(subscriptionsyncstatev2.FieldLastSuccessAt) {
 		fields = append(fields, subscriptionsyncstatev2.FieldLastSuccessAt)
 	}
+	if m.FieldCleared(subscriptionsyncstatev2.FieldNextReconciliationAt) {
+		fields = append(fields, subscriptionsyncstatev2.FieldNextReconciliationAt)
+	}
 	return fields
 }
 
@@ -129705,6 +129772,9 @@ func (m *SubscriptionSyncStateV2Mutation) ClearField(name string) error {
 		return nil
 	case subscriptionsyncstatev2.FieldLastSuccessAt:
 		m.ClearLastSuccessAt()
+		return nil
+	case subscriptionsyncstatev2.FieldNextReconciliationAt:
+		m.ClearNextReconciliationAt()
 		return nil
 	}
 	return fmt.Errorf("unknown SubscriptionSyncStateV2 nullable field %s", name)
@@ -129734,6 +129804,9 @@ func (m *SubscriptionSyncStateV2Mutation) ResetField(name string) error {
 		return nil
 	case subscriptionsyncstatev2.FieldLastSuccessAt:
 		m.ResetLastSuccessAt()
+		return nil
+	case subscriptionsyncstatev2.FieldNextReconciliationAt:
+		m.ResetNextReconciliationAt()
 		return nil
 	case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
 		m.ResetLastSyncedSubsRevision()

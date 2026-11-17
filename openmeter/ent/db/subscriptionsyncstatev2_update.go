@@ -89,6 +89,26 @@ func (_u *SubscriptionSyncStateV2Update) ClearLastSuccessAt() *SubscriptionSyncS
 	return _u
 }
 
+// SetNextReconciliationAt sets the "next_reconciliation_at" field.
+func (_u *SubscriptionSyncStateV2Update) SetNextReconciliationAt(v time.Time) *SubscriptionSyncStateV2Update {
+	_u.mutation.SetNextReconciliationAt(v)
+	return _u
+}
+
+// SetNillableNextReconciliationAt sets the "next_reconciliation_at" field if the given value is not nil.
+func (_u *SubscriptionSyncStateV2Update) SetNillableNextReconciliationAt(v *time.Time) *SubscriptionSyncStateV2Update {
+	if v != nil {
+		_u.SetNextReconciliationAt(*v)
+	}
+	return _u
+}
+
+// ClearNextReconciliationAt clears the value of the "next_reconciliation_at" field.
+func (_u *SubscriptionSyncStateV2Update) ClearNextReconciliationAt() *SubscriptionSyncStateV2Update {
+	_u.mutation.ClearNextReconciliationAt()
+	return _u
+}
+
 // SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
 func (_u *SubscriptionSyncStateV2Update) SetLastSyncedSubsRevision(v string) *SubscriptionSyncStateV2Update {
 	_u.mutation.SetLastSyncedSubsRevision(v)
@@ -211,6 +231,12 @@ func (_u *SubscriptionSyncStateV2Update) sqlSave(ctx context.Context) (_node int
 	if _u.mutation.LastSuccessAtCleared() {
 		_spec.ClearField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.NextReconciliationAt(); ok {
+		_spec.SetField(subscriptionsyncstatev2.FieldNextReconciliationAt, field.TypeTime, value)
+	}
+	if _u.mutation.NextReconciliationAtCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldNextReconciliationAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
 	}
@@ -294,6 +320,26 @@ func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableLastSuccessAt(v *time.Tim
 // ClearLastSuccessAt clears the value of the "last_success_at" field.
 func (_u *SubscriptionSyncStateV2UpdateOne) ClearLastSuccessAt() *SubscriptionSyncStateV2UpdateOne {
 	_u.mutation.ClearLastSuccessAt()
+	return _u
+}
+
+// SetNextReconciliationAt sets the "next_reconciliation_at" field.
+func (_u *SubscriptionSyncStateV2UpdateOne) SetNextReconciliationAt(v time.Time) *SubscriptionSyncStateV2UpdateOne {
+	_u.mutation.SetNextReconciliationAt(v)
+	return _u
+}
+
+// SetNillableNextReconciliationAt sets the "next_reconciliation_at" field if the given value is not nil.
+func (_u *SubscriptionSyncStateV2UpdateOne) SetNillableNextReconciliationAt(v *time.Time) *SubscriptionSyncStateV2UpdateOne {
+	if v != nil {
+		_u.SetNextReconciliationAt(*v)
+	}
+	return _u
+}
+
+// ClearNextReconciliationAt clears the value of the "next_reconciliation_at" field.
+func (_u *SubscriptionSyncStateV2UpdateOne) ClearNextReconciliationAt() *SubscriptionSyncStateV2UpdateOne {
+	_u.mutation.ClearNextReconciliationAt()
 	return _u
 }
 
@@ -448,6 +494,12 @@ func (_u *SubscriptionSyncStateV2UpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.LastSuccessAtCleared() {
 		_spec.ClearField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.NextReconciliationAt(); ok {
+		_spec.SetField(subscriptionsyncstatev2.FieldNextReconciliationAt, field.TypeTime, value)
+	}
+	if _u.mutation.NextReconciliationAtCleared() {
+		_spec.ClearField(subscriptionsyncstatev2.FieldNextReconciliationAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)

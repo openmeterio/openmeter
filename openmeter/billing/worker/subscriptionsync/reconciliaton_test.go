@@ -373,8 +373,9 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
 			s.Require().NoError(err)
 			if !tc.wantCleanup {
 				s.Require().Len(states, 1)
-				s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
-				s.Nil(states[0].LastSuccessAt)
+				s.Equal(subscriptionsync.SyncStateV2StateActive, states[0].LastSuccessState)
+				s.Equal(lo.ToPtr(now), states[0].LastSuccessAt)
+				s.NotNil(states[0].NextReconciliationAt)
 				invoice := s.gatheringInvoice()
 				s.NotEmpty(invoice.Lines.OrEmpty())
 
@@ -412,7 +413,7 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
 	}
 }
 
-func (s *ReconciliationTestSuite) TestOrdinarySyncLeavesRevisionsUnchanged() {
+func (s *ReconciliationTestSuite) TestOrdinarySyncAcknowledgesCurrentRevision() {
 	ctx := s.T().Context()
 	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
@@ -424,18 +425,26 @@ func (s *ReconciliationTestSuite) TestOrdinarySyncLeavesRevisionsUnchanged() {
 	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
 		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+		ClearNextReconciliationAt().
 		SetLastSuccessAt(now.Add(-time.Hour)).
 		SetLastSyncedSubsRevision(ulid.Make().String()).
 		SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))
 	before, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(before, 1)
+	s.Require().NoError(before[0].Validate())
 
-	// When ordinary reconciliation succeeds, it still does not write v2 state.
+	// When ordinary reconciliation succeeds, it acknowledges the observed revision.
 	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, view.Subscription.ActiveFrom.Add(time.Minute)))
 	after, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
-	s.Equal(before, after)
+	s.Require().Len(after, 1)
+	s.Equal(before[0].ID, after[0].ID)
+	s.Equal(before[0].CurrentSubsRevision, after[0].CurrentSubsRevision)
+	s.Equal(after[0].CurrentSubsRevision, after[0].LastSyncedSubsRevision)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, after[0].LastSuccessState)
+	s.Equal(lo.ToPtr(now), after[0].LastSuccessAt)
+	s.NotNil(after[0].NextReconciliationAt)
 }
 
 func (s *ReconciliationTestSuite) TestCleanupAcknowledgesCurrentRevision() {
@@ -451,9 +460,14 @@ func (s *ReconciliationTestSuite) TestCleanupAcknowledgesCurrentRevision() {
 	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
 		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+		ClearNextReconciliationAt().
 		SetLastSuccessAt(now.Add(-time.Hour)).
 		SetLastSyncedSubsRevision(ulid.Make().String()).
 		SetCurrentSubsRevision(currentRevision).Exec(ctx))
+	seededStates, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(seededStates, 1)
+	s.Require().NoError(seededStates[0].Validate())
 	s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).SetDeletedAt(now).Exec(ctx))
 
 	// When cleanup succeeds, the observed current revision becomes acknowledged.
@@ -482,12 +496,14 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupDryRun() {
 	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
 		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 		SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+		ClearNextReconciliationAt().
 		SetLastSuccessAt(now.Add(-time.Hour)).
 		SetLastSyncedSubsRevision(ulid.Make().String()).
 		SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))
 	v2Before, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(v2Before, 1)
+	s.Require().NoError(v2Before[0].Validate())
 	s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).SetDeletedAt(now).Exec(ctx))
 
 	// When cleanup is requested as a dry run, with invoicing also requested.
@@ -541,12 +557,14 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanupRollback() {
 			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
 				Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).
 				SetLastSuccessState(subscriptionsync.SyncStateV2StateCustomerDeletedBefore).
+				ClearNextReconciliationAt().
 				SetLastSuccessAt(now.Add(-time.Hour)).
 				SetLastSyncedSubsRevision(ulid.Make().String()).
 				SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))
 			v2Before, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 			s.Require().NoError(err)
 			s.Require().Len(v2Before, 1)
+			s.Require().NoError(v2Before[0].Validate())
 			s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).SetDeletedAt(now).Exec(ctx))
 			// Reject the real cleanup write in PostgreSQL without replacing any service or adapter.
 			// Scope the constraint to this fixture so the suite's other records remain valid.
@@ -706,11 +724,13 @@ func (s *ReconciliationTestSuite) TestEndedSubscriptionSyncResult() {
 			name:          "future horizon does not mark future cancellation ended",
 			syncOffset:    -time.Hour,
 			horizonOffset: time.Hour,
+			wantState:     subscriptionsync.SyncStateV2StateActive,
 		},
 		{
 			name:          "historical horizon does not record final reconciliation",
 			syncOffset:    24 * time.Hour,
 			horizonOffset: -time.Hour,
+			wantState:     subscriptionsync.SyncStateV2StateActive,
 		},
 	}
 	for _, tc := range cases {
@@ -727,21 +747,17 @@ func (s *ReconciliationTestSuite) TestEndedSubscriptionSyncResult() {
 			s.Require().NoError(s.Service.SyncByID(s.T().Context(), subs.NamespacedID, subs.ActiveTo.Add(tc.horizonOffset)))
 
 			// Then only reconciliation covering an already-ended subscription records completion.
-			if tc.wantState == "" {
-				states, err := s.Service.GetSyncStatesV2(s.T().Context(), subscriptionsync.GetSyncStatesV2Input{subs.NamespacedID})
-				s.Require().NoError(err)
-				s.Require().Len(states, 1)
-				s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
-				s.Nil(states[0].LastSuccessAt)
-
-				return
-			}
 
 			state := s.getSyncStateV2(subs.NamespacedID)
 			s.Equal(tc.wantState, state.LastSuccessState)
 			s.Equal(lo.ToPtr(syncAt), state.LastSuccessAt)
 			s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-			s.requireReconciledSubscriptionEnd(subs)
+			if tc.wantState == subscriptionsync.SyncStateV2StateActive {
+				s.Equal(subs.ActiveTo, state.NextReconciliationAt)
+			} else {
+				s.Nil(state.NextReconciliationAt)
+				s.requireReconciledSubscriptionEnd(subs)
+			}
 		})
 	}
 }
@@ -852,6 +868,7 @@ func (s *ReconciliationTestSuite) TestTerminalSubscriptionSyncDryRun() {
 
 			// Given an ended subscription with generated billing artifacts.
 			subs := s.createCanceledSubscriptionForReconciliation()
+			v2Before := s.getSyncStateV2(subs.NamespacedID)
 			invoice := s.gatheringInvoice()
 			legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subs.NamespacedID})
 			s.Require().NoError(err)
@@ -870,8 +887,7 @@ func (s *ReconciliationTestSuite) TestTerminalSubscriptionSyncDryRun() {
 			states, err := s.Service.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subs.NamespacedID})
 			s.Require().NoError(err)
 			s.Require().Len(states, 1)
-			s.Equal(subscriptionsync.SyncStateV2StateNew, states[0].LastSuccessState)
-			s.Nil(states[0].LastSuccessAt)
+			s.Equal(v2Before, states[0])
 		})
 	}
 }
@@ -938,6 +954,7 @@ func (s *ReconciliationTestSuite) TestTerminalSyncResultRollback() {
 			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
 				Where(subscriptionsyncstatev2.SubscriptionID(subs.ID)).
 				SetLastSuccessState(subscriptionsync.SyncStateV2StateTooOld).
+				ClearNextReconciliationAt().
 				SetLastSuccessAt(now.Add(-time.Hour)).
 				SetLastSyncedSubsRevision(ulid.Make().String()).
 				SetCurrentSubsRevision(ulid.Make().String()).Exec(ctx))

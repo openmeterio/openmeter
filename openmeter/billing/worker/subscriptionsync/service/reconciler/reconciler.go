@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 type Reconciler interface {
@@ -146,6 +147,7 @@ type Plan struct {
 	ChargePatches                      charges.ApplyPatchesInput
 	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
+	NextBillingPeriod                  *timeutil.ClosedPeriod
 }
 
 func (p *Plan) IsEmpty() bool {
@@ -383,6 +385,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	if len(input.Target.Items) == 0 && len(input.Persisted.ByUniqueID) == 0 {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+			NextBillingPeriod:                  input.Target.NextBillingPeriod,
 		}, nil
 	}
 
@@ -414,6 +417,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	if len(inScopeLines) == 0 && len(persisted.ByUniqueID) == 0 {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+			NextBillingPeriod:                  input.Target.NextBillingPeriod,
 		}, nil
 	}
 
@@ -488,6 +492,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		ChargePatches:                      chargePatches,
 		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+		NextBillingPeriod:                  input.Target.NextBillingPeriod,
 	}, nil
 }
 

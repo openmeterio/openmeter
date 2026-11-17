@@ -33,6 +33,8 @@ type SubscriptionSyncStateV2 struct {
 	LastSuccessState subscriptionsync.SyncStateV2State `json:"last_success_state,omitempty"`
 	// LastSuccessAt holds the value of the "last_success_at" field.
 	LastSuccessAt *time.Time `json:"last_success_at,omitempty"`
+	// NextReconciliationAt holds the value of the "next_reconciliation_at" field.
+	NextReconciliationAt *time.Time `json:"next_reconciliation_at,omitempty"`
 	// LastSyncedSubsRevision holds the value of the "last_synced_subs_revision" field.
 	LastSyncedSubsRevision string `json:"last_synced_subs_revision,omitempty"`
 	// CurrentSubsRevision holds the value of the "current_subs_revision" field.
@@ -70,7 +72,7 @@ func (*SubscriptionSyncStateV2) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case subscriptionsyncstatev2.FieldID, subscriptionsyncstatev2.FieldNamespace, subscriptionsyncstatev2.FieldSubscriptionID, subscriptionsyncstatev2.FieldLastSuccessState, subscriptionsyncstatev2.FieldLastSyncedSubsRevision, subscriptionsyncstatev2.FieldCurrentSubsRevision:
 			values[i] = new(sql.NullString)
-		case subscriptionsyncstatev2.FieldCreatedAt, subscriptionsyncstatev2.FieldUpdatedAt, subscriptionsyncstatev2.FieldDeletedAt, subscriptionsyncstatev2.FieldLastSuccessAt:
+		case subscriptionsyncstatev2.FieldCreatedAt, subscriptionsyncstatev2.FieldUpdatedAt, subscriptionsyncstatev2.FieldDeletedAt, subscriptionsyncstatev2.FieldLastSuccessAt, subscriptionsyncstatev2.FieldNextReconciliationAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -136,6 +138,13 @@ func (_m *SubscriptionSyncStateV2) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.LastSuccessAt = new(time.Time)
 				*_m.LastSuccessAt = value.Time
+			}
+		case subscriptionsyncstatev2.FieldNextReconciliationAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field next_reconciliation_at", values[i])
+			} else if value.Valid {
+				_m.NextReconciliationAt = new(time.Time)
+				*_m.NextReconciliationAt = value.Time
 			}
 		case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -212,6 +221,11 @@ func (_m *SubscriptionSyncStateV2) String() string {
 	builder.WriteString(", ")
 	if v := _m.LastSuccessAt; v != nil {
 		builder.WriteString("last_success_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.NextReconciliationAt; v != nil {
+		builder.WriteString("next_reconciliation_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
