@@ -697,45 +697,163 @@ func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
 	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: end}})
 }
-func (s *SyncStateTestSuite) TestCustomerDeletionSetsExactReconciliationDeadline() {
-	createdAt := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
 
-	for _, tc := range []struct {
-		name      string
-		deletedAt time.Time
-		asOf      time.Time
+func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
+	createdAt := s.mustParseTime("2026-11-01T00:00:00Z")
+	november15 := s.mustParseTime("2026-11-15T00:00:00Z")
+	december := s.mustParseTime("2026-12-01T00:00:00Z")
+	december15 := s.mustParseTime("2026-12-15T00:00:00Z")
+	january := s.mustParseTime("2027-01-01T00:00:00Z")
+
+	for _, backend := range []struct {
+		name    string
+		service *Service
 	}{
-		{
-			name:      "future deletion",
-			deletedAt: createdAt.AddDate(0, 1, 0),
-			asOf:      createdAt.Add(14 * 24 * time.Hour),
-		},
-		{
-			name:      "past deletion",
-			deletedAt: createdAt.AddDate(0, 1, 0),
-			asOf:      createdAt.AddDate(0, 1, 0).Add(14 * 24 * time.Hour),
-		},
+		{name: "legacy billing", service: s.LegacySyncService},
+		{name: "charges", service: s.ChargeSyncService},
 	} {
-		s.Run(tc.name, func() {
-			// Given an open-ended subscription whose customer was deleted at a billing boundary.
-			ctx := s.T().Context()
-			clock.FreezeTime(createdAt)
-			defer clock.UnFreeze()
-			s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
-			view := s.createSyncStateSubscription(syncStateSubscriptionInput{Start: createdAt, Phases: []productcatalog.Phase{s.paidMonthlyPhase()}})
-			s.Require().Nil(view.Spec.ActiveTo)
-			// Deleted customers no longer resolve subject keys, so keep their invoice snapshot identifiable.
-			s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).
-				SetKey(s.Customer.ID).
-				SetDeletedAt(tc.deletedAt).Exec(ctx))
-			clock.FreezeTime(tc.asOf)
-			defer clock.UnFreeze()
+		s.Run(backend.name, func() {
+			s.Service = backend.service
+			for _, tc := range []struct {
+				name                 string
+				deletedAt            time.Time
+				subscriptionActiveTo *time.Time
+				now                  time.Time
+				asOf                 time.Time
+				withoutBillables     bool
+				wantState            subscriptionsync.SyncStateV2State
+				wantDeadline         *time.Time
+			}{
+				{
+					name:         "future deletion schedules the final sync",
+					deletedAt:    december,
+					now:          november15,
+					asOf:         november15,
+					wantState:    subscriptionsync.SyncStateV2StateActive,
+					wantDeadline: &december,
+				},
+				{
+					name:         "future horizon cannot retire a customer before deletion",
+					deletedAt:    december,
+					now:          november15,
+					asOf:         december15,
+					wantState:    subscriptionsync.SyncStateV2StateActive,
+					wantDeadline: &december,
+				},
+				{
+					name:      "sync at deletion records completion",
+					deletedAt: december,
+					now:       december,
+					asOf:      december,
+					wantState: subscriptionsync.SyncStateV2StateEnded,
+				},
+				{
+					name:      "sync after deletion clears the final deadline",
+					deletedAt: december,
+					now:       december15,
+					asOf:      december15,
+					wantState: subscriptionsync.SyncStateV2StateEnded,
+				},
+				{
+					name:         "historical horizon does not record completion",
+					deletedAt:    december,
+					now:          december15,
+					asOf:         november15,
+					wantState:    subscriptionsync.SyncStateV2StateActive,
+					wantDeadline: &december,
+				},
+				{
+					name:                 "subscription end before deletion wins",
+					deletedAt:            january,
+					subscriptionActiveTo: &december,
+					now:                  december15,
+					asOf:                 december15,
+					wantState:            subscriptionsync.SyncStateV2StateEnded,
+				},
+				{
+					name:                 "deletion before subscription end wins",
+					deletedAt:            december,
+					subscriptionActiveTo: &january,
+					now:                  december15,
+					asOf:                 december15,
+					wantState:            subscriptionsync.SyncStateV2StateEnded,
+				},
+				{
+					name:             "empty plan still records completion",
+					deletedAt:        december,
+					now:              december15,
+					asOf:             december15,
+					withoutBillables: true,
+					wantState:        subscriptionsync.SyncStateV2StateEnded,
+				},
+			} {
+				s.Run(tc.name, func() {
+					// Given a subscription whose customer deletion may end billing before ActiveTo.
+					ctx := s.T().Context()
+					clock.FreezeTime(createdAt)
+					defer clock.UnFreeze()
+					s.Customer = s.CreateTestCustomer(s.Namespace, ulid.Make().String())
+					_, err := s.LedgerResolver.CreateCustomerAccounts(ctx, s.Customer.GetID())
+					s.Require().NoError(err)
 
-			// When the next billing period is nil, use the target's customer-deletion cutoff.
-			s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.asOf))
-			state := s.getSyncStateV2(view.Subscription.NamespacedID)
-			s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
-			s.Equal(&tc.deletedAt, state.NextReconciliationAt)
+					phase := s.paidMonthlyPhase()
+					if tc.withoutBillables {
+						phase = s.freeMonthlyPhase("")
+					}
+
+					view := s.createSyncStateSubscription(syncStateSubscriptionInput{
+						Start:  createdAt,
+						Phases: []productcatalog.Phase{phase},
+					})
+					if tc.subscriptionActiveTo != nil {
+						_, err := s.SubscriptionService.Cancel(ctx, view.Subscription.NamespacedID, subscription.Timing{Custom: tc.subscriptionActiveTo})
+						s.Require().NoError(err)
+					}
+
+					// Deleted customers no longer resolve subject keys; retain an identifiable invoice snapshot.
+					s.Require().NoError(s.DBClient.Customer.UpdateOneID(s.Customer.ID).
+						SetKey(s.Customer.ID).
+						SetDeletedAt(tc.deletedAt).Exec(ctx))
+
+					// First record the future deadline, so completion must clear an existing active result.
+					s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, createdAt))
+					if !tc.withoutBillables {
+						initial := s.getSyncStateV2(view.Subscription.NamespacedID)
+						s.Equal(subscriptionsync.SyncStateV2StateActive, initial.LastSuccessState)
+						s.Equal(&december, initial.NextReconciliationAt)
+					}
+
+					// When sync completes, its result and deadline must use the same end as billing generation.
+					clock.FreezeTime(tc.now)
+					defer clock.UnFreeze()
+					s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.asOf))
+					state := s.getSyncStateV2(view.Subscription.NamespacedID)
+					s.Equal(tc.wantState, state.LastSuccessState)
+					s.Equal(tc.wantDeadline, state.NextReconciliationAt)
+					s.Equal(&tc.now, state.LastSuccessAt)
+					s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
+					if tc.withoutBillables {
+						s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+					} else {
+						s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: createdAt, To: december}})
+					}
+
+					// Then retrying a completed reconciliation stays ended and does not add billing artifacts.
+					if tc.wantState == subscriptionsync.SyncStateV2StateEnded {
+						retryAt := tc.now.Add(time.Minute)
+						clock.FreezeTime(retryAt)
+						defer clock.UnFreeze()
+						s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.asOf))
+						retried := s.getSyncStateV2(view.Subscription.NamespacedID)
+						s.Equal(subscriptionsync.SyncStateV2StateEnded, retried.LastSuccessState)
+						s.Nil(retried.NextReconciliationAt)
+						s.Equal(&retryAt, retried.LastSuccessAt)
+						if !tc.withoutBillables {
+							s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: createdAt, To: december}})
+						}
+					}
+				})
+			}
 		})
 	}
 }
@@ -873,6 +991,7 @@ func (s *SyncStateTestSuite) TestNextBillingPeriodForMidPeriodCustomerDeletion()
 			})
 			s.Require().NoError(err)
 			s.Equal(tc.generationLimit, target.MaxGenerationTimeLimit)
+			s.Equal(tc.customerDeletedAt, target.BillingEndsAt)
 			s.Nil(target.NextBillingPeriod)
 		})
 	}

@@ -167,7 +167,7 @@ The v2 sync-state table keeps the last recorded outcome and subscription revisio
 - `no_billables`: reconciliation succeeded and no phase contains billable items. No next reconciliation is scheduled. Free phases followed by paid phases and one-time fees waiting for cancellation still have billables.
 - `subscription_deleted`: an empty billing target was reconciled for a deleted subscription.
 - `customer_deleted_before`: an empty target was reconciled because the customer was deleted at or before subscription start.
-- `ended`: normal billing reconciliation succeeded after `ActiveTo`, with a requested horizon covering that end.
+- `ended`: normal billing reconciliation succeeded at or after the effective end (the earlier of subscription `ActiveTo` and customer deletion), with a requested horizon covering that end.
 - `too_old`: billing reconciliation was deliberately skipped because `ActiveTo` is more than 30 days before the worker clock. This outcome does not establish that billing artifacts were reconciled.
 
 Deletion cleanup takes precedence over the age cutoff, with subscription deletion
@@ -195,7 +195,9 @@ For ongoing subscriptions, sync chooses a random point 80–95% through that who
 billing period. If the selected time is already due, it schedules the period end
 instead. If generation reaches `ActiveTo`, or the next period would reach it,
 `NextBillingPeriod` is nil and sync schedules exactly at `ActiveTo`. This uses the
-same customer-deletion cutoff as target generation when that shortens service.
+effective end returned by target generation, including customer deletion when that
+shortens service. Once both the worker clock and `AsOf` reach that end, successful
+reconciliation records `ended` and clears the deadline.
 A historical deadline remains due.
 `no_billables` and terminal results clear any previous active deadline. Periodic workers still use
 legacy scheduling; the v2 deadline does not yet change candidate selection.

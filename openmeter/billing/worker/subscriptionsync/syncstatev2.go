@@ -35,8 +35,9 @@ const (
 	// an empty billing target because the customer was deleted at or before the
 	// non-deleted subscription's ActiveFrom.
 	SyncStateV2StateCustomerDeletedBefore SyncStateV2State = "customer_deleted_before"
-	// SyncStateV2StateEnded records successful billing reconciliation
-	// after ActiveTo, with a sync horizon that covers the subscription end.
+	// SyncStateV2StateEnded records successful billing reconciliation at or after
+	// the earlier of subscription ActiveTo and customer deletion, with a sync
+	// horizon that covers that end.
 	SyncStateV2StateEnded SyncStateV2State = "ended"
 	// SyncStateV2StateTooOld records an intentional skip of billing
 	// reconciliation because ActiveTo is more than 30 days before the worker clock.

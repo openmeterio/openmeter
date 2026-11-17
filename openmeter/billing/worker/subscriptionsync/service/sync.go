@@ -261,23 +261,14 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return res, nil
 			}
 
-			resultState := cleanupState
 			var subsView *subscription.SubscriptionView
 			if cleanupState == "" {
-				resultState = subscriptionsync.SyncStateV2StateActive
 				view, err := s.subscriptionService.GetView(ctx, subscriptionID)
 				if err != nil {
 					return nil, fmt.Errorf("getting subscription view: %w", err)
 				}
 
 				subsView = &view
-				// Record ended only when the worker clock has reached ActiveTo
-				// and AsOf includes billing through ActiveTo.
-				if view.Spec.ActiveTo != nil && !view.Spec.ActiveTo.After(now) && !view.Spec.ActiveTo.After(asOf) {
-					resultState = subscriptionsync.SyncStateV2StateEnded
-				} else if !view.Spec.HasBillables() {
-					resultState = subscriptionsync.SyncStateV2StateNoBillables
-				}
 			}
 
 			res.ShouldInvoicePendingLines = cleanupState == ""
@@ -313,6 +304,18 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				hasBillables = subsView.Spec.HasBillables()
 			}
 
+			resultState := cleanupState
+			if cleanupState == "" {
+				resultState = subscriptionsync.SyncStateV2StateActive
+				// Customer deletion can end billing before the subscription's own ActiveTo.
+				// Record completion only once both the worker clock and AsOf cover that end.
+				if billingEndsAt := linesDiff.BillingEndsAt; billingEndsAt != nil && !billingEndsAt.After(now) && !billingEndsAt.After(asOf) {
+					resultState = subscriptionsync.SyncStateV2StateEnded
+				} else if !hasBillables {
+					resultState = subscriptionsync.SyncStateV2StateNoBillables
+				}
+			}
+
 			if !linesDiff.IsEmpty() {
 				if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
 					DryRun:   options.DryRun,
@@ -331,15 +334,9 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			reconciledAt := clock.Now().UTC()
 			var nextReconciliationAt *time.Time
 			if resultState == subscriptionsync.SyncStateV2StateActive {
-				// Use the same customer-deletion cutoff that target generation applies to ActiveTo.
-				activeTo := subsView.Spec.ActiveTo
-				if customer.DeletedAt != nil && (activeTo == nil || customer.DeletedAt.Before(*activeTo)) {
-					activeTo = customer.DeletedAt
-				}
-
 				next, err := s.getNextReconciliationAt(nextReconciliationAtInput{
 					NextBillingPeriod:    linesDiff.NextBillingPeriod,
-					SubscriptionActiveTo: activeTo,
+					SubscriptionActiveTo: linesDiff.BillingEndsAt,
 					ReconciledAt:         reconciledAt,
 					RandomFraction:       rand.Float64(),
 				})

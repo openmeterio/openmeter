@@ -26,8 +26,11 @@ import (
 type State struct {
 	Items                  []StateItem
 	MaxGenerationTimeLimit time.Time
+	// BillingEndsAt is the subscription end capped by customer deletion, when either is set.
+	// Sync uses the same end as billing generation to record completion and schedule reconciliation.
+	BillingEndsAt *time.Time
 	// NextBillingPeriod is resolved from the generation limit. Nil means the next
-	// reconciliation should use ActiveTo, or no periodic sync is needed for cleanup
+	// reconciliation should use BillingEndsAt, or no periodic sync is needed for cleanup
 	// or a subscription without billables.
 	NextBillingPeriod *timeutil.ClosedPeriod
 }
@@ -147,6 +150,8 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			Items:                  items,
 			MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
 			NextBillingPeriod:      nextBillingPeriod,
+			// ActiveTo already includes the customer deletion cutoff when it ends billing earlier.
+			BillingEndsAt: subs.Spec.ActiveTo,
 		}, nil
 	})
 }
