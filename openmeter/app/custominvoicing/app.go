@@ -157,6 +157,11 @@ func (a appOperations) DeleteStandardInvoice(ctx context.Context, invoice billin
 	return nil
 }
 
+// WouldStandardInvoiceBeEmpty never omits: the external system decides what to do with an empty invoice.
+func (a appOperations) WouldStandardInvoiceBeEmpty(billing.StandardInvoice) (bool, error) {
+	return false, nil
+}
+
 // InvoicingAppAsyncSyncer
 
 func (a appOperations) CanDraftSyncAdvance(invoice billing.StandardInvoice) (bool, error) {

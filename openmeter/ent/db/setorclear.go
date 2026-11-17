@@ -1352,6 +1352,34 @@ func (u *BillingInvoiceUpdateOne) SetOrClearDeletionSource(value *billing.Change
 	return u.SetDeletionSource(*value)
 }
 
+func (u *BillingInvoiceUpdate) SetOrClearInvoicingAppOutcome(value *billing.InvoicingAppOutcome) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppOutcome()
+	}
+	return u.SetInvoicingAppOutcome(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearInvoicingAppOutcome(value *billing.InvoicingAppOutcome) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppOutcome()
+	}
+	return u.SetInvoicingAppOutcome(*value)
+}
+
+func (u *BillingInvoiceUpdate) SetOrClearInvoicingAppOutcomeReason(value *billing.InvoicingAppOutcomeReason) *BillingInvoiceUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppOutcomeReason()
+	}
+	return u.SetInvoicingAppOutcomeReason(*value)
+}
+
+func (u *BillingInvoiceUpdateOne) SetOrClearInvoicingAppOutcomeReason(value *billing.InvoicingAppOutcomeReason) *BillingInvoiceUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppOutcomeReason()
+	}
+	return u.SetInvoicingAppOutcomeReason(*value)
+}
+
 func (u *BillingInvoiceUpdate) SetOrClearDueAt(value *time.Time) *BillingInvoiceUpdate {
 	if value == nil {
 		return u.ClearDueAt()

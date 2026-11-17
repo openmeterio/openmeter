@@ -142,6 +142,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateTaxBehavior().
 					UpdateDescription().
 					UpdateRatecardDiscounts().
+					UpdateInvoicingAppExternalID().
 					Exec(ctx)
 			},
 			MarkDeleted: func(ctx context.Context, line *billing.StandardLine) (*billing.StandardLine, error) {
@@ -282,6 +283,7 @@ func (a *adapter) upsertDetailedLines(ctx context.Context, in detailedLineDiff) 
 				UpdateIndex().
 				UpdateDeletedAt().
 				UpdateCreditsApplied().
+				UpdateInvoicingAppExternalID().
 				Exec(ctx)
 		},
 		MarkDeleted: func(ctx context.Context, line detailedLineWithParent) (detailedLineWithParent, error) {

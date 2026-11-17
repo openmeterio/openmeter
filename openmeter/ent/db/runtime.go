@@ -632,11 +632,11 @@ func init() {
 	// billinginvoice.SourceBillingProfileIDValidator is a validator for the "source_billing_profile_id" field. It is called by the builders before save.
 	billinginvoice.SourceBillingProfileIDValidator = billinginvoiceDescSourceBillingProfileID.Validators[0].(func(string) error)
 	// billinginvoiceDescCurrency is the schema descriptor for currency field.
-	billinginvoiceDescCurrency := billinginvoiceFields[16].Descriptor()
+	billinginvoiceDescCurrency := billinginvoiceFields[18].Descriptor()
 	// billinginvoice.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
 	billinginvoice.CurrencyValidator = billinginvoiceDescCurrency.Validators[0].(func(string) error)
 	// billinginvoiceDescSchemaLevel is the schema descriptor for schema_level field.
-	billinginvoiceDescSchemaLevel := billinginvoiceFields[28].Descriptor()
+	billinginvoiceDescSchemaLevel := billinginvoiceFields[30].Descriptor()
 	// billinginvoice.DefaultSchemaLevel holds the default value on creation for the schema_level field.
 	billinginvoice.DefaultSchemaLevel = billinginvoiceDescSchemaLevel.Default.(int)
 	// billinginvoiceDescID is the schema descriptor for id field.
