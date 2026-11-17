@@ -30,6 +30,8 @@ const (
 	FieldLastSuccessState = "last_success_state"
 	// FieldLastSuccessAt holds the string denoting the last_success_at field in the database.
 	FieldLastSuccessAt = "last_success_at"
+	// FieldNextReconciliationAt holds the string denoting the next_reconciliation_at field in the database.
+	FieldNextReconciliationAt = "next_reconciliation_at"
 	// FieldLastSyncedSubsRevision holds the string denoting the last_synced_subs_revision field in the database.
 	FieldLastSyncedSubsRevision = "last_synced_subs_revision"
 	// FieldCurrentSubsRevision holds the string denoting the current_subs_revision field in the database.
@@ -57,6 +59,7 @@ var Columns = []string{
 	FieldSubscriptionID,
 	FieldLastSuccessState,
 	FieldLastSuccessAt,
+	FieldNextReconciliationAt,
 	FieldLastSyncedSubsRevision,
 	FieldCurrentSubsRevision,
 }
@@ -93,7 +96,7 @@ var (
 // LastSuccessStateValidator is a validator for the "last_success_state" field enum values. It is called by the builders before save.
 func LastSuccessStateValidator(lss subscriptionsync.SyncStateV2State) error {
 	switch lss {
-	case "new", "subscription_deleted", "customer_deleted_before", "ended", "too_old":
+	case "new", "active", "no_billables", "subscription_deleted", "customer_deleted_before", "ended", "too_old":
 		return nil
 	default:
 		return fmt.Errorf("subscriptionsyncstatev2: invalid enum value for last_success_state field: %q", lss)
@@ -141,6 +144,11 @@ func ByLastSuccessState(opts ...sql.OrderTermOption) OrderOption {
 // ByLastSuccessAt orders the results by the last_success_at field.
 func ByLastSuccessAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLastSuccessAt, opts...).ToFunc()
+}
+
+// ByNextReconciliationAt orders the results by the next_reconciliation_at field.
+func ByNextReconciliationAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNextReconciliationAt, opts...).ToFunc()
 }
 
 // ByLastSyncedSubsRevision orders the results by the last_synced_subs_revision field.

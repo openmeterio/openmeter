@@ -22,6 +22,12 @@ const (
 	// SyncStateV2StateNew means that no v2 sync result has been recorded yet,
 	// even when the initialized current and last synced revisions are equal.
 	SyncStateV2StateNew SyncStateV2State = "new"
+	// SyncStateV2StateActive records a successful non-terminal reconciliation,
+	// including scheduled subscriptions with billable items.
+	SyncStateV2StateActive SyncStateV2State = "active"
+	// SyncStateV2StateNoBillables records successful reconciliation of a subscription
+	// with no billable items in any phase. No periodic reconciliation is scheduled.
+	SyncStateV2StateNoBillables SyncStateV2State = "no_billables"
 	// SyncStateV2StateSubscriptionDeleted records successful reconciliation against
 	// an empty billing target because the subscription has a non-nil DeletedAt.
 	SyncStateV2StateSubscriptionDeleted SyncStateV2State = "subscription_deleted"
@@ -40,6 +46,8 @@ const (
 func (SyncStateV2State) Values() []string {
 	return []string{
 		string(SyncStateV2StateNew),
+		string(SyncStateV2StateActive),
+		string(SyncStateV2StateNoBillables),
 		string(SyncStateV2StateSubscriptionDeleted),
 		string(SyncStateV2StateCustomerDeletedBefore),
 		string(SyncStateV2StateEnded),
@@ -62,6 +70,9 @@ type SyncStateV2 struct {
 	LastSuccessState SyncStateV2State
 	// LastSuccessAt is nil until a v2 sync result has been recorded.
 	LastSuccessAt *time.Time
+	// NextReconciliationAt schedules the next v2 reconciliation. It is required for
+	// active results and must be nil for every other state.
+	NextReconciliationAt *time.Time
 	// LastSyncedSubsRevision is initialized on new rows and acknowledged by recorded sync results.
 	LastSyncedSubsRevision string
 	// CurrentSubsRevision may change while sync is running; recording its result must not overwrite it.
@@ -95,9 +106,10 @@ func (s SyncStateV2Managed) Validate() error {
 type GetSyncStatesV2Input = []models.NamespacedID
 
 type RecordSyncResultV2Input struct {
-	SubscriptionID   models.NamespacedID
-	LastSuccessState SyncStateV2State
-	LastSuccessAt    time.Time
+	SubscriptionID       models.NamespacedID
+	LastSuccessState     SyncStateV2State
+	LastSuccessAt        time.Time
+	NextReconciliationAt *time.Time
 	// CurrentSubsRevision is deliberately absent: sync can acknowledge its
 	// observed revision but cannot replace a newer one.
 	LastSyncedSubsRevision string
@@ -121,6 +133,14 @@ func (i SyncStateV2) Validate() error {
 		}
 	} else if i.LastSuccessAt == nil || i.LastSuccessAt.IsZero() {
 		errs = append(errs, errors.New("last success at is required for a recorded sync result"))
+	}
+
+	if i.LastSuccessState == SyncStateV2StateActive && (i.NextReconciliationAt == nil || i.NextReconciliationAt.IsZero()) {
+		errs = append(errs, errors.New("next reconciliation at is required for an active sync result"))
+	}
+
+	if i.LastSuccessState != SyncStateV2StateActive && i.NextReconciliationAt != nil {
+		errs = append(errs, errors.New("next reconciliation at is only allowed for an active sync result"))
 	}
 
 	if i.LastSyncedSubsRevision == "" {
@@ -150,6 +170,14 @@ func (i RecordSyncResultV2Input) Validate() error {
 
 	if i.LastSuccessAt.IsZero() {
 		errs = append(errs, errors.New("last success at is required"))
+	}
+
+	if i.LastSuccessState == SyncStateV2StateActive && (i.NextReconciliationAt == nil || i.NextReconciliationAt.IsZero()) {
+		errs = append(errs, errors.New("next reconciliation at is required for an active sync result"))
+	}
+
+	if i.LastSuccessState != SyncStateV2StateActive && i.NextReconciliationAt != nil {
+		errs = append(errs, errors.New("next reconciliation at is only allowed for an active sync result"))
 	}
 
 	if i.LastSyncedSubsRevision == "" {

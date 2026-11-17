@@ -99,6 +99,20 @@ func (_c *SubscriptionSyncStateV2Create) SetNillableLastSuccessAt(v *time.Time) 
 	return _c
 }
 
+// SetNextReconciliationAt sets the "next_reconciliation_at" field.
+func (_c *SubscriptionSyncStateV2Create) SetNextReconciliationAt(v time.Time) *SubscriptionSyncStateV2Create {
+	_c.mutation.SetNextReconciliationAt(v)
+	return _c
+}
+
+// SetNillableNextReconciliationAt sets the "next_reconciliation_at" field if the given value is not nil.
+func (_c *SubscriptionSyncStateV2Create) SetNillableNextReconciliationAt(v *time.Time) *SubscriptionSyncStateV2Create {
+	if v != nil {
+		_c.SetNextReconciliationAt(*v)
+	}
+	return _c
+}
+
 // SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
 func (_c *SubscriptionSyncStateV2Create) SetLastSyncedSubsRevision(v string) *SubscriptionSyncStateV2Create {
 	_c.mutation.SetLastSyncedSubsRevision(v)
@@ -290,6 +304,10 @@ func (_c *SubscriptionSyncStateV2Create) createSpec() (*SubscriptionSyncStateV2,
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime, value)
 		_node.LastSuccessAt = &value
 	}
+	if value, ok := _c.mutation.NextReconciliationAt(); ok {
+		_spec.SetField(subscriptionsyncstatev2.FieldNextReconciliationAt, field.TypeTime, value)
+		_node.NextReconciliationAt = &value
+	}
 	if value, ok := _c.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
 		_node.LastSyncedSubsRevision = value
@@ -424,6 +442,24 @@ func (u *SubscriptionSyncStateV2Upsert) UpdateLastSuccessAt() *SubscriptionSyncS
 // ClearLastSuccessAt clears the value of the "last_success_at" field.
 func (u *SubscriptionSyncStateV2Upsert) ClearLastSuccessAt() *SubscriptionSyncStateV2Upsert {
 	u.SetNull(subscriptionsyncstatev2.FieldLastSuccessAt)
+	return u
+}
+
+// SetNextReconciliationAt sets the "next_reconciliation_at" field.
+func (u *SubscriptionSyncStateV2Upsert) SetNextReconciliationAt(v time.Time) *SubscriptionSyncStateV2Upsert {
+	u.Set(subscriptionsyncstatev2.FieldNextReconciliationAt, v)
+	return u
+}
+
+// UpdateNextReconciliationAt sets the "next_reconciliation_at" field to the value that was provided on create.
+func (u *SubscriptionSyncStateV2Upsert) UpdateNextReconciliationAt() *SubscriptionSyncStateV2Upsert {
+	u.SetExcluded(subscriptionsyncstatev2.FieldNextReconciliationAt)
+	return u
+}
+
+// ClearNextReconciliationAt clears the value of the "next_reconciliation_at" field.
+func (u *SubscriptionSyncStateV2Upsert) ClearNextReconciliationAt() *SubscriptionSyncStateV2Upsert {
+	u.SetNull(subscriptionsyncstatev2.FieldNextReconciliationAt)
 	return u
 }
 
@@ -575,6 +611,27 @@ func (u *SubscriptionSyncStateV2UpsertOne) UpdateLastSuccessAt() *SubscriptionSy
 func (u *SubscriptionSyncStateV2UpsertOne) ClearLastSuccessAt() *SubscriptionSyncStateV2UpsertOne {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
 		s.ClearLastSuccessAt()
+	})
+}
+
+// SetNextReconciliationAt sets the "next_reconciliation_at" field.
+func (u *SubscriptionSyncStateV2UpsertOne) SetNextReconciliationAt(v time.Time) *SubscriptionSyncStateV2UpsertOne {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.SetNextReconciliationAt(v)
+	})
+}
+
+// UpdateNextReconciliationAt sets the "next_reconciliation_at" field to the value that was provided on create.
+func (u *SubscriptionSyncStateV2UpsertOne) UpdateNextReconciliationAt() *SubscriptionSyncStateV2UpsertOne {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.UpdateNextReconciliationAt()
+	})
+}
+
+// ClearNextReconciliationAt clears the value of the "next_reconciliation_at" field.
+func (u *SubscriptionSyncStateV2UpsertOne) ClearNextReconciliationAt() *SubscriptionSyncStateV2UpsertOne {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.ClearNextReconciliationAt()
 	})
 }
 
@@ -897,6 +954,27 @@ func (u *SubscriptionSyncStateV2UpsertBulk) UpdateLastSuccessAt() *SubscriptionS
 func (u *SubscriptionSyncStateV2UpsertBulk) ClearLastSuccessAt() *SubscriptionSyncStateV2UpsertBulk {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
 		s.ClearLastSuccessAt()
+	})
+}
+
+// SetNextReconciliationAt sets the "next_reconciliation_at" field.
+func (u *SubscriptionSyncStateV2UpsertBulk) SetNextReconciliationAt(v time.Time) *SubscriptionSyncStateV2UpsertBulk {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.SetNextReconciliationAt(v)
+	})
+}
+
+// UpdateNextReconciliationAt sets the "next_reconciliation_at" field to the value that was provided on create.
+func (u *SubscriptionSyncStateV2UpsertBulk) UpdateNextReconciliationAt() *SubscriptionSyncStateV2UpsertBulk {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.UpdateNextReconciliationAt()
+	})
+}
+
+// ClearNextReconciliationAt clears the value of the "next_reconciliation_at" field.
+func (u *SubscriptionSyncStateV2UpsertBulk) ClearNextReconciliationAt() *SubscriptionSyncStateV2UpsertBulk {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.ClearNextReconciliationAt()
 	})
 }
 

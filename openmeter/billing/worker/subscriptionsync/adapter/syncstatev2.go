@@ -53,6 +53,7 @@ func mapSyncStateV2FromDB(state *entdb.SubscriptionSyncStateV2) subscriptionsync
 			},
 			LastSuccessState:       state.LastSuccessState,
 			LastSuccessAt:          convert.SafeToUTC(state.LastSuccessAt),
+			NextReconciliationAt:   convert.SafeToUTC(state.NextReconciliationAt),
 			LastSyncedSubsRevision: state.LastSyncedSubsRevision,
 			CurrentSubsRevision:    state.CurrentSubsRevision,
 		},
@@ -111,11 +112,14 @@ func (a *adapter) RecordSyncResultV2(ctx context.Context, input subscriptionsync
 			SetSubscriptionID(input.SubscriptionID.ID).
 			SetLastSuccessState(input.LastSuccessState).
 			SetLastSuccessAt(input.LastSuccessAt.UTC()).
+			SetNillableNextReconciliationAt(convert.SafeToUTC(input.NextReconciliationAt)).
 			SetLastSyncedSubsRevision(input.LastSyncedSubsRevision).
 			SetCurrentSubsRevision(input.LastSyncedSubsRevision).
 			OnConflictColumns(subscriptionsyncstatev2.FieldNamespace, subscriptionsyncstatev2.FieldSubscriptionID).
 			UpdateLastSuccessState().
 			UpdateLastSuccessAt().
+			// Include NULL so a terminal result clears the previous active deadline.
+			UpdateNextReconciliationAt().
 			UpdateUpdatedAt().
 			UpdateLastSyncedSubsRevision().
 			Exec(ctx)

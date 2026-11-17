@@ -163,6 +163,8 @@ write artifacts or sync state.
 The v2 sync-state table keeps the last recorded outcome and subscription revisions:
 
 - `new`: no v2 outcome has been recorded; `last_success_at` is NULL.
+- `active`: ordinary reconciliation succeeded. This also covers scheduled subscriptions with billables; it is not the subscription's lifecycle status.
+- `no_billables`: reconciliation succeeded and no phase contains billable items. No next reconciliation is scheduled. Free phases followed by paid phases and one-time fees waiting for cancellation still have billables.
 - `subscription_deleted`: an empty billing target was reconciled for a deleted subscription.
 - `customer_deleted_before`: an empty target was reconciled because the customer was deleted at or before subscription start.
 - `ended`: normal billing reconciliation succeeded after `ActiveTo`, with a requested horizon covering that end.
@@ -180,6 +182,24 @@ and legacy scheduling, even when the plan was empty. Both a missing row and
 `new` mean no v2 outcome has been recorded. Other states require a non-NULL
 `last_success_at`. Dry runs and failed syncs do not record outcomes.
 
+An `active` result requires `next_reconciliation_at`, enforced by domain validation
+and a PostgreSQL check. Sync records a deadline even when no billing patches were
+needed. After generating the target, the plan resolves `NextBillingPeriod` from
+the generation limit. Looking up a billing boundary yields the following period;
+an exact-start sync can still use the period beginning at that start. Subscriptions
+without billables return no next billing period and record `no_billables` with no
+reconciliation deadline. Sync still applies billing changes before recording this
+result, so removing the last billable item also removes its pending billing artifacts.
+
+For ongoing subscriptions, sync chooses a random point 80–95% through that whole
+billing period. If the selected time is already due, it schedules the period end
+instead. If generation reaches `ActiveTo`, or the next period would reach it,
+`NextBillingPeriod` is nil and sync schedules exactly at `ActiveTo`. This uses the
+same customer-deletion cutoff as target generation when that shortens service.
+A historical deadline remains due.
+`no_billables` and terminal results clear any previous active deadline. Periodic workers still use
+legacy scheduling; the v2 deadline does not yet change candidate selection.
+
 Subscription create, update, cancel, continue, and delete hooks mark changes in
 the subscription command's transaction. If no v2 row exists, the hook inserts
 `new` with no success timestamp and initializes both revisions to the same ULID.
@@ -195,10 +215,10 @@ revision to reconcile; `last_synced_subs_revision` records the revision observed
 at the start of the recorded sync outcome, including intentional age skips.
 Both revisions are required on every v2 row. For subscriptions without a v2 row,
 sync generates a ULID and recording the outcome inserts it into both columns.
-On conflict, it updates only the last synced revision; the current revision is
-never overwritten by sync. Syncs without a cleanup, ended, or age-skip outcome
-leave v2 unchanged. Revisions do not yet change periodic scheduling or suppress
-reconciliation.
+On conflict, it updates the result, deadline, and last synced revision; the current
+revision is never overwritten by sync. Every successful reconciliation records
+an outcome, including an empty plan. Revisions do not yet change periodic
+scheduling or suppress reconciliation.
 
 The regular periodic list requires `DeletedAt` to be nil. A separate cleanup
 query selects all subscriptions with non-nil `DeletedAt` whose v2 result is not

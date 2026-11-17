@@ -96,6 +96,11 @@ func LastSuccessAt(v time.Time) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldLastSuccessAt, v))
 }
 
+// NextReconciliationAt applies equality check predicate on the "next_reconciliation_at" field. It's identical to NextReconciliationAtEQ.
+func NextReconciliationAt(v time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldNextReconciliationAt, v))
+}
+
 // LastSyncedSubsRevision applies equality check predicate on the "last_synced_subs_revision" field. It's identical to LastSyncedSubsRevisionEQ.
 func LastSyncedSubsRevision(v string) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldLastSyncedSubsRevision, v))
@@ -444,6 +449,56 @@ func LastSuccessAtIsNil() predicate.SubscriptionSyncStateV2 {
 // LastSuccessAtNotNil applies the NotNil predicate on the "last_success_at" field.
 func LastSuccessAtNotNil() predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldNotNull(FieldLastSuccessAt))
+}
+
+// NextReconciliationAtEQ applies the EQ predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtEQ(v time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldNextReconciliationAt, v))
+}
+
+// NextReconciliationAtNEQ applies the NEQ predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtNEQ(v time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNEQ(FieldNextReconciliationAt, v))
+}
+
+// NextReconciliationAtIn applies the In predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtIn(vs ...time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldIn(FieldNextReconciliationAt, vs...))
+}
+
+// NextReconciliationAtNotIn applies the NotIn predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtNotIn(vs ...time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNotIn(FieldNextReconciliationAt, vs...))
+}
+
+// NextReconciliationAtGT applies the GT predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtGT(v time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldGT(FieldNextReconciliationAt, v))
+}
+
+// NextReconciliationAtGTE applies the GTE predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtGTE(v time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldGTE(FieldNextReconciliationAt, v))
+}
+
+// NextReconciliationAtLT applies the LT predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtLT(v time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldLT(FieldNextReconciliationAt, v))
+}
+
+// NextReconciliationAtLTE applies the LTE predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtLTE(v time.Time) predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldLTE(FieldNextReconciliationAt, v))
+}
+
+// NextReconciliationAtIsNil applies the IsNil predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtIsNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldIsNull(FieldNextReconciliationAt))
+}
+
+// NextReconciliationAtNotNil applies the NotNil predicate on the "next_reconciliation_at" field.
+func NextReconciliationAtNotNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNotNull(FieldNextReconciliationAt))
 }
 
 // LastSyncedSubsRevisionEQ applies the EQ predicate on the "last_synced_subs_revision" field.

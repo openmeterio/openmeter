@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
+	"math/rand/v2"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -22,11 +24,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/tracex"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
 const (
 	SubscriptionSyncComponentName billing.ComponentName = "subscription-sync"
 	oldSubscriptionSyncThreshold                        = 30 * 24 * time.Hour
+
+	// Subscription sync schedules its next reconciliation at a random point between
+	// these percentages of the whole next billing period, measured from its start.
+	nextReconciliationMinPercentage = 80
+	nextReconciliationMaxPercentage = 95
 )
 
 func (s *Service) invoicePendingLines(ctx context.Context, customer customer.CustomerID) error {
@@ -111,6 +119,53 @@ func (i synchronizeSubscriptionInput) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type nextReconciliationAtInput struct {
+	NextBillingPeriod    *timeutil.ClosedPeriod
+	SubscriptionActiveTo *time.Time
+	ReconciledAt         time.Time
+	RandomFraction       float64
+}
+
+func (i nextReconciliationAtInput) Validate() error {
+	var errs []error
+	if i.NextBillingPeriod != nil {
+		if err := i.NextBillingPeriod.ValidateAsRequired(); err != nil {
+			errs = append(errs, fmt.Errorf("next billing period: %w", err))
+		}
+	} else if i.SubscriptionActiveTo == nil || i.SubscriptionActiveTo.IsZero() {
+		errs = append(errs, errors.New("active to is required when there is no next billing period"))
+	}
+
+	if i.ReconciledAt.IsZero() {
+		errs = append(errs, errors.New("reconciled at is required"))
+	}
+
+	if math.IsNaN(i.RandomFraction) || i.RandomFraction < 0 || i.RandomFraction > 1 {
+		errs = append(errs, errors.New("random fraction must be between 0 and 1"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func (s *Service) getNextReconciliationAt(input nextReconciliationAtInput) (time.Time, error) {
+	if err := input.Validate(); err != nil {
+		return time.Time{}, err
+	}
+
+	if input.NextBillingPeriod == nil {
+		return *input.SubscriptionActiveTo, nil
+	}
+
+	percentage := nextReconciliationMinPercentage + (nextReconciliationMaxPercentage-nextReconciliationMinPercentage)*input.RandomFraction
+	next := input.NextBillingPeriod.From.Add(time.Duration(float64(input.NextBillingPeriod.Duration()) * percentage / 100))
+	// A late sync must not schedule itself in the past and be requeued on every poll.
+	if !next.After(input.ReconciledAt) {
+		return input.NextBillingPeriod.To, nil
+	}
+
+	return next, nil
 }
 
 func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSubscriptionInput) (*synchronizeSubscriptionResult, error) {
@@ -209,6 +264,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			resultState := cleanupState
 			var subsView *subscription.SubscriptionView
 			if cleanupState == "" {
+				resultState = subscriptionsync.SyncStateV2StateActive
 				view, err := s.subscriptionService.GetView(ctx, subscriptionID)
 				if err != nil {
 					return nil, fmt.Errorf("getting subscription view: %w", err)
@@ -219,6 +275,8 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				// and AsOf includes billing through ActiveTo.
 				if view.Spec.ActiveTo != nil && !view.Spec.ActiveTo.After(now) && !view.Spec.ActiveTo.After(asOf) {
 					resultState = subscriptionsync.SyncStateV2StateEnded
+				} else if !view.Spec.HasBillables() {
+					resultState = subscriptionsync.SyncStateV2StateNoBillables
 				}
 			}
 
@@ -244,6 +302,10 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return nil, err
 			}
 
+			if linesDiff == nil {
+				return nil, errors.New("building subscription sync plan returned nil without an error")
+			}
+
 			// An empty cleanup target must stop periodic scheduling even if the
 			// subscription's spec still contains billable items.
 			hasBillables := false
@@ -251,7 +313,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				hasBillables = subsView.Spec.HasBillables()
 			}
 
-			if linesDiff != nil && !linesDiff.IsEmpty() {
+			if !linesDiff.IsEmpty() {
 				if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
 					DryRun:   options.DryRun,
 					Customer: customerID,
@@ -266,30 +328,53 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return res, nil
 			}
 
-			generationLimit := time.Time{}
-			if linesDiff != nil {
-				generationLimit = linesDiff.SubscriptionMaxGenerationTimeLimit
+			reconciledAt := clock.Now().UTC()
+			var nextReconciliationAt *time.Time
+			if resultState == subscriptionsync.SyncStateV2StateActive {
+				// Use the same customer-deletion cutoff that target generation applies to ActiveTo.
+				activeTo := subsView.Spec.ActiveTo
+				if customer.DeletedAt != nil && (activeTo == nil || customer.DeletedAt.Before(*activeTo)) {
+					activeTo = customer.DeletedAt
+				}
+
+				next, err := s.getNextReconciliationAt(nextReconciliationAtInput{
+					NextBillingPeriod:    linesDiff.NextBillingPeriod,
+					SubscriptionActiveTo: activeTo,
+					ReconciledAt:         reconciledAt,
+					RandomFraction:       rand.Float64(),
+				})
+				if err != nil {
+					return nil, fmt.Errorf("calculating next reconciliation at: %w", err)
+				}
+
+				if next.Before(reconciledAt) {
+					s.logger.WarnContext(ctx, "next subscription reconciliation is in the past, which can cause repeated syncs",
+						"subscription_id", subscriptionID.ID,
+						"next_reconciliation_at", next,
+						"reconciled_at", reconciledAt,
+					)
+				}
+
+				nextReconciliationAt = &next
 			}
 
 			if err := s.updateSyncState(ctx, updateSyncStateInput{
 				SubscriptionID:         subscriptionID,
-				MaxGenerationTimeLimit: generationLimit,
+				MaxGenerationTimeLimit: linesDiff.SubscriptionMaxGenerationTimeLimit,
 				HasBillables:           hasBillables,
 			}); err != nil {
 				return nil, fmt.Errorf("updating sync state: %w", err)
 			}
 
-			if resultState != "" {
-				// Record completion even when the plan was empty. The result must commit
-				// together with billing changes and the legacy scheduling update.
-				if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
-					SubscriptionID:         subscriptionID,
-					LastSuccessState:       resultState,
-					LastSuccessAt:          clock.Now().UTC(),
-					LastSyncedSubsRevision: subsRevision,
-				}); err != nil {
-					return nil, fmt.Errorf("recording subscription sync result: %w", err)
-				}
+			// Record success even for an empty plan, together with billing changes and legacy scheduling.
+			if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
+				SubscriptionID:         subscriptionID,
+				LastSuccessState:       resultState,
+				LastSuccessAt:          reconciledAt,
+				NextReconciliationAt:   nextReconciliationAt,
+				LastSyncedSubsRevision: subsRevision,
+			}); err != nil {
+				return nil, fmt.Errorf("recording subscription sync result: %w", err)
 			}
 
 			return res, nil
