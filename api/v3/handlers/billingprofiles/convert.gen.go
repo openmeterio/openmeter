@@ -129,7 +129,7 @@ func init() {
 		modelsBillingAppReference.Id = source.ID
 		return modelsBillingAppReference
 	}
-	ToAPIBillingProfile = func(source billing.Profile) (models.BillingProfile, error) {
+	ToAPIBillingProfile = func(source billing.Profile, context TaxCodes) (models.BillingProfile, error) {
 		var modelsBillingProfile models.BillingProfile
 		modelsBillingProfile.Apps = pBillingProfileAppsToModelsBillingProfileAppReferences(source.Apps)
 		modelsBillingProfile.CreatedAt = timeTimeToTimeTime(source.BaseProfile.CreatedAt)
@@ -141,7 +141,7 @@ func init() {
 		modelsBillingProfile.Name = source.BaseProfile.Name
 		modelsBillingProfile.Supplier = ToAPIBillingParty(source.BaseProfile.Supplier)
 		modelsBillingProfile.UpdatedAt = timeTimeToTimeTime(source.BaseProfile.UpdatedAt)
-		modelsBillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig)
+		modelsBillingWorkflow, err := ToAPIBillingWorkflow(source.BaseProfile.WorkflowConfig, context)
 		if err != nil {
 			return modelsBillingProfile, err
 		}
@@ -157,12 +157,12 @@ func init() {
 		}
 		return modelsBillingProfileAppReferences
 	}
-	ToAPIBillingProfiles = func(source []billing.Profile) ([]models.BillingProfile, error) {
+	ToAPIBillingProfiles = func(source []billing.Profile, context TaxCodes) ([]models.BillingProfile, error) {
 		var modelsBillingProfileList []models.BillingProfile
 		if source != nil {
 			modelsBillingProfileList = make([]models.BillingProfile, len(source))
 			for i := 0; i < len(source); i++ {
-				modelsBillingProfile, err := ToAPIBillingProfile(source[i])
+				modelsBillingProfile, err := ToAPIBillingProfile(source[i], context)
 				if err != nil {
 					return nil, err
 				}

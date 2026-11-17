@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -62,6 +63,7 @@ type handler struct {
 	featureSwitches  config.BillingFeatureSwitchesConfiguration
 	credits          config.CreditsConfiguration
 	featureGate      *featuregate.FeatureGateChecker
+	taxCodeResolver  productcatalog.TransactionalTaxCodeResolver
 	options          []httptransport.HandlerOption
 }
 
@@ -84,6 +86,7 @@ func New(
 	chargeService billingcharges.ChargeService,
 	credits config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
+	taxCodeResolver productcatalog.TransactionalTaxCodeResolver,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
@@ -96,5 +99,6 @@ func New(
 		featureSwitches:  featureSwitches,
 		credits:          credits,
 		featureGate:      featureGate,
+		taxCodeResolver:  taxCodeResolver,
 	}
 }

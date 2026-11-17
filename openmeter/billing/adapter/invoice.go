@@ -49,7 +49,7 @@ func (a *adapter) GetStandardInvoiceById(ctx context.Context, in billing.GetStan
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
 				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
 			}).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode(in.Invoice.Namespace))
+			WithBillingWorkflowConfig(workflowConfigInNamespace(in.Invoice.Namespace))
 
 		if in.Expand.Has(billing.StandardInvoiceExpandLines) {
 			query = tx.expandInvoiceLineItems(query, in.Expand, in.Invoice.Namespace)
@@ -133,7 +133,7 @@ func (a *adapter) ListInvoices(ctx context.Context, input billing.ListInvoicesAd
 			WithBillingInvoiceValidationIssues(func(q *db.BillingInvoiceValidationIssueQuery) {
 				q.Where(billinginvoicevalidationissue.DeletedAtIsNil())
 			}).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode(input.Namespace)).
+			WithBillingWorkflowConfig(workflowConfigInNamespace(input.Namespace)).
 			Where(billinginvoice.Namespace(input.Namespace))
 
 		query = filter.ApplyToQuery(query, input.CustomerID, billinginvoice.FieldCustomerID)
@@ -437,7 +437,7 @@ func (a *adapter) UpdateStandardInvoice(ctx context.Context, in billing.UpdateSt
 		existingInvoice, err := tx.db.BillingInvoice.Query().
 			Where(billinginvoice.ID(in.ID)).
 			Where(billinginvoice.Namespace(in.Namespace)).
-			WithBillingWorkflowConfig(workflowConfigWithTaxCode(in.Namespace)).
+			WithBillingWorkflowConfig(workflowConfigInNamespace(in.Namespace)).
 			Only(ctx)
 		if err != nil {
 			return in, err

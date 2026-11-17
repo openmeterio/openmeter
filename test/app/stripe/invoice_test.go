@@ -1457,7 +1457,7 @@ func (s *StripeInvoiceTestSuite) TestDeletedAppFailsAdvancementButAllowsInvoiceD
 		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Tax.GetID())
 		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Invoicing.GetID())
 		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Payment.GetID())
-		_, err = billinghttpdriver.MapStandardInvoiceToAPI(refetched)
+		_, err = billinghttpdriver.MapStandardInvoiceToAPI(refetched, nil)
 		s.Require().NoError(err)
 	})
 

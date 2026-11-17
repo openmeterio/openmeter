@@ -43,6 +43,7 @@ import (
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
@@ -150,6 +151,7 @@ func newBillingService(
 	fsConfig config.BillingFeatureSwitchesConfiguration,
 	tracer trace.Tracer,
 	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 ) (billing.Service, error) {
 	service, err := billingservice.New(billingservice.Config{
 		Adapter:                    billingAdapter,
@@ -158,6 +160,7 @@ func newBillingService(
 		AppService:                 appService,
 		CustomerService:            customerService,
 		TaxCodeService:             taxCodeService,
+		TaxCodeResolver:            taxCodeResolver,
 		FeatureMeterResolver:       featureMeterResolver,
 		Logger:                     logger,
 		Publisher:                  eventPublisher,
@@ -192,6 +195,7 @@ func NewBillingRegistry(
 	creditsConfig config.CreditsConfiguration,
 	tracer trace.Tracer,
 	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	currencyResolver currencies.CurrencyResolver,
 	currenciesService currencies.Service,
 	locker *lockr.Locker,
@@ -242,6 +246,7 @@ func NewBillingRegistry(
 		fsConfig,
 		tracer,
 		taxCodeService,
+		taxCodeResolver,
 	)
 	if err != nil {
 		return BillingRegistry{}, err

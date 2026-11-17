@@ -258,18 +258,8 @@ func (s *Service) calculateGatheringInvoiceAsStandardInvoice(ctx context.Context
 	out.QuantitySnapshotedAt = lo.ToPtr(now)
 	out.Lines = billing.NewStandardInvoiceLines(inScopeLines)
 
-	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
-		Namespace: invoice.Namespace,
-		Invoice:   out,
-		ReadOnly:  true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("resolving tax codes: %w", err)
-	}
-
-	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{
-		TaxCodes: taxCodes,
-	}); err != nil {
+	// No tax inputs: tax config is only snapshotted into lines of standard invoices, never gathering.
+	if err := s.invoiceCalculator.CalculateGatheringInvoiceWithLiveData(out, invoicecalc.StandardInvoiceCalculatorDependencies{}); err != nil {
 		return nil, fmt.Errorf("calculating invoice: %w", err)
 	}
 
@@ -911,7 +901,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 		}
 	}
 
-	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
+	calculatorDeps, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: input.Namespace,
 		Invoice:   &invoice,
 		ReadOnly:  true,
@@ -950,9 +940,7 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	}
 
 	// Owners supply calculated lines; the invoice calculator derives aggregate fields.
-	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		TaxCodes: taxCodes,
-	}); err != nil {
+	if err := s.invoiceCalculator.Calculate(&invoice, calculatorDeps); err != nil {
 		return billing.StandardInvoice{}, err
 	}
 

@@ -115,6 +115,52 @@ func TestTaxCodeConfigToTaxConfig(t *testing.T) {
 	})
 }
 
+func TestTaxCodeConfigToLegacyTaxConfig(t *testing.T) {
+	mapped := &taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-mapped"},
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"}},
+	}
+	unmapped := &taxcode.TaxCode{NamespacedID: models.NamespacedID{Namespace: "ns", ID: "tc-unmapped"}}
+	taxCodes := map[string]*taxcode.TaxCode{mapped.ID: mapped, unmapped.ID: unmapped}
+
+	tests := []struct {
+		name string
+		cfg  TaxCodeConfig
+		want TaxConfig
+	}{
+		{
+			name: "stripe code comes from the tax code's mapping",
+			cfg:  TaxCodeConfig{Behavior: lo.ToPtr(InclusiveTaxBehavior), TaxCodeID: mapped.ID},
+			want: TaxConfig{
+				Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+				Stripe:    &StripeTaxConfig{Code: "txcd_10000000"},
+				TaxCodeID: lo.ToPtr(mapped.ID),
+			},
+		},
+		{
+			name: "tax code without a Stripe mapping",
+			cfg:  TaxCodeConfig{TaxCodeID: unmapped.ID},
+			want: TaxConfig{TaxCodeID: lo.ToPtr(unmapped.ID)},
+		},
+		{
+			name: "tax code not among the resolved ones",
+			cfg:  TaxCodeConfig{TaxCodeID: "tc-missing"},
+			want: TaxConfig{TaxCodeID: lo.ToPtr("tc-missing")},
+		},
+		{
+			name: "behavior only",
+			cfg:  TaxCodeConfig{Behavior: lo.ToPtr(ExclusiveTaxBehavior)},
+			want: TaxConfig{Behavior: lo.ToPtr(ExclusiveTaxBehavior)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.cfg.ToLegacyTaxConfig(taxCodes))
+		})
+	}
+}
+
 func TestTaxCodeConfigFrom(t *testing.T) {
 	t.Run("nil", func(t *testing.T) {
 		assert.Equal(t, TaxCodeConfig{}, TaxCodeConfigFrom(nil))

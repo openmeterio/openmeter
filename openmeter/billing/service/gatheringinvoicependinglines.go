@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -752,10 +751,6 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 		return nil, fmt.Errorf("generating invoice number: %w", err)
 	}
 
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, in.Customer.Namespace, profile.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig); err != nil {
-		return nil, fmt.Errorf("resolving default tax code: %w", err)
-	}
-
 	// let's create the invoice
 	invoice, err := s.adapter.CreateInvoice(ctx, billing.CreateInvoiceAdapterInput{
 		Namespace: in.Customer.Namespace,
@@ -1003,7 +998,7 @@ func (s *Service) invokeOnStandardInvoiceCreated(ctx context.Context, invoice bi
 }
 
 func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billing.StandardInvoice) (billing.StandardInvoice, error) {
-	taxCodes, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
+	calculatorDeps, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: invoice.Namespace,
 		Invoice:   &invoice,
 		// At this point the invoice is still mutable, so we can properly resolve/backfill the tax codes.
@@ -1013,9 +1008,7 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
 	}
 
-	if err := s.invoiceCalculator.Calculate(&invoice, invoicecalc.StandardInvoiceCalculatorDependencies{
-		TaxCodes: taxCodes,
-	}); err != nil {
+	if err := s.invoiceCalculator.Calculate(&invoice, calculatorDeps); err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("recalculating target invoice: %w", err)
 	}
 

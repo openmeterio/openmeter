@@ -102,9 +102,9 @@ func (s *TaxCodePersistenceTestSuite) TestChargeTaxCodeDefaultPriority() {
 						},
 					})
 					if testCase.withProfileTaxCode {
-						s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-							Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-							Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+						s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+							Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+							TaxCodeID: profileTaxCode.ID,
 						})
 					}
 
@@ -184,8 +184,8 @@ func (s *TaxCodePersistenceTestSuite) TestChargeTaxCodeDefaultsAreCustomerScoped
 					{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
 				},
 			})
-			s.SeedProfileDefaultTaxConfigViaAdapter(ctx, firstProfile.ProfileID(), &productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(firstTaxCode.ID),
+			s.SeedProfileDefaultTaxConfigViaAdapter(ctx, firstProfile.ProfileID(), &productcatalog.TaxCodeConfig{
+				TaxCodeID: firstTaxCode.ID,
 			})
 			secondProfileInput := billingtest.MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 			secondProfileInput.Namespace = ns
@@ -193,8 +193,8 @@ func (s *TaxCodePersistenceTestSuite) TestChargeTaxCodeDefaultsAreCustomerScoped
 			secondProfileInput.Name = "Second customer profile"
 			secondProfile, err := s.BillingService.CreateProfile(ctx, secondProfileInput)
 			s.Require().NoError(err)
-			s.SeedProfileDefaultTaxConfigViaAdapter(ctx, secondProfile.ProfileID(), &productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(secondTaxCode.ID),
+			s.SeedProfileDefaultTaxConfigViaAdapter(ctx, secondProfile.ProfileID(), &productcatalog.TaxCodeConfig{
+				TaxCodeID: secondTaxCode.ID,
 			})
 			firstCustomer := s.CreateTestCustomer(ns, "first-subject")
 			secondCustomer := s.CreateTestCustomer(ns, "second-subject")

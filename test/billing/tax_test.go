@@ -11,10 +11,14 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
+	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
+	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	billinginvoicelinedb "github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -43,19 +47,18 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
+	profileTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: profileTaxCode.ID,
 	})
 
 	s.Run("Profile default tax config is inclusive in billing profile", func() {
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.InclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe)
-		s.Equal("txcd_10000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(&productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			TaxCodeID: profileTaxCode.ID,
+		}, draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 	})
 
 	s.Run("Selected profile supplies customer tax settings independently of the default", func() {
@@ -74,9 +77,10 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		selectedInput.Default = false
 		selectedProfile, err := s.BillingService.CreateProfile(ctx, selectedInput)
 		s.Require().NoError(err)
-		s.SeedProfileDefaultTaxConfigViaAdapter(ctx, selectedProfile.ProfileID(), &productcatalog.TaxConfig{
-			Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-			Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+		selectedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
+		s.SeedProfileDefaultTaxConfigViaAdapter(ctx, selectedProfile.ProfileID(), &productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: selectedTaxCode.ID,
 		})
 		_, err = s.BillingService.SetCustomerBillingProfile(ctx, billing.SetCustomerBillingProfileInput{
 			Customer:  cust.GetID(),
@@ -91,14 +95,15 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 			},
 		})
 		s.NoError(err)
-		s.NotNil(customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig.Stripe.Code)
+
+		wantDefault := &productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: selectedTaxCode.ID,
+		}
+		s.Equal(wantDefault, customerOverride.EffectiveProfile.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
 		draftInvoice := s.generateDraftInvoice(ctx, cust)
-		s.NotNil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
-		s.Equal(productcatalog.ExclusiveTaxBehavior, *draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_20000000", draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(wantDefault, draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 	})
 
 	s.Run("Profile default tax config is not set, invoice inherits it, but can be updated", func() {
@@ -123,26 +128,268 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.Nil(draftInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 		s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
+		// An unknown Tax Code is rejected.
+		_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      draftInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
+					TaxCodeID: ulid.Make().String(),
+				}
+
+				return nil
+			},
+		})
+		s.ErrorIs(err, billing.ErrTaxCodeNotFound)
+
 		// let's update the invoice
+		editedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_30000000")
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice:      draftInvoice.GetInvoiceID(),
 			ChangeSource: billing.ChangeSourceAPIRequest,
 			EditFn: func(invoice *billing.StandardInvoice) error {
-				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxConfig{
-					Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-					Stripe: &productcatalog.StripeTaxConfig{
-						Code: "txcd_30000000",
-					},
+				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{
+					Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+					TaxCodeID: editedTaxCode.ID,
 				}
 
 				return nil
 			},
 		})
 		s.NoError(err)
-		s.NotNil(updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal(productcatalog.InclusiveTaxBehavior, *updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Behavior)
-		s.Equal("txcd_30000000", updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig.Stripe.Code)
+		s.Equal(&productcatalog.TaxCodeConfig{
+			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+			TaxCodeID: editedTaxCode.ID,
+		}, updatedInvoice.Workflow.Config.Invoicing.DefaultTaxConfig)
 	})
+}
+
+func (s *InvoicingTaxTestSuite) TestInvoiceDefaultTaxCodeFrozenOnStripeRemap() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-default-remap")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: taxCode.ID,
+	})
+
+	wantDefault := &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
+		TaxCodeID: taxCode.ID,
+	}
+
+	var invoice billing.StandardInvoice
+
+	s.Run("given: an invoice created from a profile whose default references the tax code", func() {
+		invoice = s.generateDraftInvoice(ctx, cust)
+
+		s.Equal(wantDefault, invoice.Workflow.Config.Invoicing.DefaultTaxConfig)
+
+		// Lines inheriting the default still get its Stripe code, Tax Code ID and Tax Code.
+		lines := invoice.Lines.OrEmpty()
+		s.Require().Len(lines, 1)
+		s.Require().NotNil(lines[0].TaxConfig)
+		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, lines[0].TaxConfig.Stripe)
+		s.Equal(lo.ToPtr(taxCode.ID), lines[0].TaxConfig.TaxCodeID)
+		s.Equal(lo.ToPtr(productcatalog.InclusiveTaxBehavior), lines[0].TaxConfig.Behavior)
+		s.Require().NotNil(lines[0].TaxConfig.TaxCode)
+		s.Equal(taxCode.ID, lines[0].TaxConfig.TaxCode.ID)
+	})
+
+	s.Run("when: the tax code is remapped to another Stripe code", func() {
+		_, err := s.TaxCodeEnv.Service.UpdateTaxCode(ctx, taxcode.UpdateTaxCodeInput{
+			NamespacedID: taxCode.NamespacedID,
+			Name:         taxCode.Name,
+			AppMappings: taxcode.TaxCodeAppMappings{
+				{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
+			},
+			// The test drives the update directly, not through the API, so the immutability
+			// guard doesn't apply.
+			AllowAppMappingOverride: true,
+		})
+		s.Require().NoError(err)
+	})
+
+	s.Run("then: the invoice default still references the same tax code", func() {
+		reread, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+		})
+		s.Require().NoError(err)
+		s.Equal(wantDefault, reread.Workflow.Config.Invoicing.DefaultTaxConfig)
+
+		// v1 shows the tax code's current mapping for the default.
+		taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, s.TaxCodeResolver, namespace, reread.Workflow.Config)
+		s.Require().NoError(err)
+
+		apiInvoice, err := billinghttpdriver.MapStandardInvoiceToAPI(reread, taxCodes)
+		s.Require().NoError(err)
+		s.Require().NotNil(apiInvoice.Workflow.Workflow.Invoicing)
+		s.Equal(&apiv1models.TaxConfig{
+			Behavior:  lo.ToPtr(apiv1models.TaxBehaviorInclusive),
+			Stripe:    &apiv1models.StripeTaxConfig{Code: "txcd_20000000"},
+			TaxCodeId: lo.ToPtr(taxCode.ID),
+		}, apiInvoice.Workflow.Workflow.Invoicing.DefaultTaxConfig)
+	})
+}
+
+// A deleted profile default is inherited by the invoices created from it. Calculation stamps the
+// deleted Tax Code itself onto the lines by ID: it must not look the default up by its Stripe
+// mapping, which would create a new Tax Code and attach it to lines pointing at the deleted one.
+func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-default-deleted")
+
+	// given: a profile default whose tax code was deleted afterwards, and no live tax code with
+	// its Stripe mapping
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	deleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	taxCodesBefore := s.countTaxCodes(ctx, namespace)
+
+	var invoice billing.StandardInvoice
+
+	s.Run("when: an invoice is created from the profile", func() {
+		invoice = s.generateDraftInvoice(ctx, cust)
+	})
+
+	s.Run("then: the invoice inherits the deleted default and its lines reference it", func() {
+		s.Equal(deleted.ID, invoice.Workflow.Config.Invoicing.DefaultTaxCodeID())
+		s.requireLinesReferenceTaxCode(invoice, deleted.ID)
+
+		lines := invoice.Lines.OrEmpty()
+		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, lines[0].TaxConfig.Stripe)
+
+		s.Equal(taxCodesBefore, s.countTaxCodes(ctx, namespace), "calculation must not create a tax code")
+	})
+
+	s.Run("then: the reloaded invoice and the stored rows reference the deleted tax code", func() {
+		reloaded, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+			Invoice: invoice.GetInvoiceID(),
+			Expand:  billing.StandardInvoiceExpandAll,
+		})
+		s.Require().NoError(err)
+		s.requireLinesReferenceTaxCode(reloaded, deleted.ID)
+		s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
+	})
+
+	// A system edit recalculates without the API edit diff, which still rejects lines holding a
+	// deleted Tax Code (ticket 08 owns that rule).
+	s.Run("when: the invoice is recalculated without touching the default", func() {
+		edited, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceSystem,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Description = lo.ToPtr("recalculated")
+
+				return nil
+			},
+		})
+
+		// then: the inherited deleted default passes and recalculation creates no tax code either
+		s.Require().NoError(err)
+		s.requireLinesReferenceTaxCode(edited, deleted.ID)
+		s.requirePersistedLinesReferenceTaxCode(ctx, edited, deleted.ID)
+		s.Equal(taxCodesBefore, s.countTaxCodes(ctx, namespace), "recalculation must not create a tax code")
+	})
+
+	s.Run("when: an edit sets the default to another deleted tax code", func() {
+		otherDeleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
+		s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: otherDeleted.NamespacedID}))
+
+		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      invoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Workflow.Config.Invoicing.DefaultTaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: otherDeleted.ID}
+
+				return nil
+			},
+		})
+
+		// then: the authored deleted reference is rejected
+		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+	})
+}
+
+// After the 2026-06 dedupe, a deleted Tax Code can share its Stripe mapping with a live one.
+// Lines inheriting the deleted default must keep the deleted Tax Code, not get the live one.
+func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsNotSwappedForLiveMapping() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-default-deleted-remapped")
+
+	// given: a deleted profile default and a live tax code with the same Stripe mapping
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	deleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	live := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.Require().NotEqual(deleted.ID, live.ID)
+
+	// when: an invoice is created from the profile
+	invoice := s.generateDraftInvoice(ctx, cust)
+
+	// then: its lines keep the deleted tax code, also in the stored snapshot
+	s.requireLinesReferenceTaxCode(invoice, deleted.ID)
+	s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
+}
+
+// requireLinesReferenceTaxCode requires every line to point at the Tax Code by ID and carry that
+// same Tax Code, the rule the adapter applies on read.
+func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.StandardInvoice, taxCodeID string) {
+	s.T().Helper()
+
+	lines := invoice.Lines.OrEmpty()
+	s.Require().NotEmpty(lines)
+
+	for _, line := range lines {
+		s.Require().NotNil(line.TaxConfig)
+		s.Equal(lo.ToPtr(taxCodeID), line.TaxConfig.TaxCodeID)
+		s.Require().NotNil(line.TaxConfig.TaxCode)
+		s.Equal(taxCodeID, line.TaxConfig.TaxCode.ID)
+	}
+}
+
+// requirePersistedLinesReferenceTaxCode checks the stored rows directly: the service returns lines
+// re-read through the adapter, which drops a mismatching Tax Code, so only the row shows what
+// calculation wrote.
+func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx context.Context, invoice billing.StandardInvoice, taxCodeID string) {
+	s.T().Helper()
+
+	for _, line := range invoice.Lines.OrEmpty() {
+		dbLine, err := s.DBClient.BillingInvoiceLine.Query().
+			Where(billinginvoicelinedb.ID(line.ID)).
+			Only(ctx)
+		s.Require().NoError(err)
+
+		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxCodeID)
+		s.Require().NotNil(dbLine.TaxConfig)
+		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxConfig.TaxCodeID)
+		s.Require().NotNil(dbLine.TaxConfig.TaxCode)
+		s.Equal(taxCodeID, dbLine.TaxConfig.TaxCode.ID)
+	}
+}
+
+// countTaxCodes counts the namespace's Tax Codes, deleted ones included.
+func (s *InvoicingTaxTestSuite) countTaxCodes(ctx context.Context, namespace string) int {
+	s.T().Helper()
+
+	count, err := s.DBClient.TaxCode.Query().Where(taxcodedb.Namespace(namespace)).Count(ctx)
+	s.Require().NoError(err)
+
+	return count
 }
 
 func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {

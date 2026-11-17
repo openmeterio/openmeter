@@ -10,12 +10,15 @@ import (
 	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *customer.Customer, profile billing.Profile) (apiv1models.Invoice, error) {
+// MapGatheringInvoiceToAPI maps a gathering invoice, showing the profile's workflow. taxCodes must
+// hold the profile's default Tax Code (see ResolveWorkflowTaxCodes) for stripe.code to show.
+func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *customer.Customer, profile billing.Profile, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	var err error
 
 	invoiceCustomer := billing.InvoiceCustomer{
@@ -61,7 +64,7 @@ func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *custom
 		Type:          apiv1models.InvoiceType(billing.StandardInvoiceStatusCategoryGathering),
 	}
 
-	workflowConfig, err := billingconvert.ToAPIBillingWorkflow(profile.WorkflowConfig)
+	workflowConfig, err := billingconvert.ToAPIBillingWorkflow(profile.WorkflowConfig, taxCodes)
 	if err != nil {
 		return apiv1models.Invoice{}, fmt.Errorf("failed to map workflow config to API: %w", err)
 	}

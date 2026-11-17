@@ -498,7 +498,7 @@ func TestV3NotificationTypeCompatibility(t *testing.T) {
 
 	resolveNamespace := func(context.Context) (string, error) { return namespace, nil }
 	events := eventhandler.New(resolveNamespace, env.service).ListNotificationEvents()
-	rules := rulehandler.New(resolveNamespace, env.service, nil).ListNotificationRules()
+	rules := rulehandler.New(resolveNamespace, env.service, nil, nil).ListNotificationRules()
 
 	for _, resource := range []struct {
 		name    string

@@ -71,6 +71,13 @@ func (t TaxCodes) Get(stripeCode string) (*taxcode.TaxCode, bool) {
 
 type StandardInvoiceCalculatorDependencies struct {
 	TaxCodes TaxCodes
+	// DefaultTaxConfig is the invoice's default tax config in the legacy line shape, with the Stripe
+	// code taken from the referenced Tax Code's mapping. The invoice itself only keeps the Tax Code
+	// ID, but lines still identify their tax code by Stripe code.
+	DefaultTaxConfig *billing.TaxConfig
+	// DefaultTaxCode is the default's Tax Code, loaded by ID and possibly deleted. It stays out of
+	// TaxCodes: looking it up by Stripe code could return another Tax Code with the same mapping.
+	DefaultTaxCode *taxcode.TaxCode
 }
 
 type GatheringInvoiceCalculatorDependencies struct {

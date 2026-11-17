@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -25,6 +24,11 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 		ExecuteTriggerWithIncludeDeletedLines(input.IncludeDeletedLines),
 		ExecuteTriggerWithAllowInStates(billing.StandardInvoiceStatusDraftUpdating),
 		ExecuteTriggerWithEditCallback(func(ctx context.Context, sm *InvoiceStateMachine) error {
+			// Capture the default's Tax Code ID before EditFn runs: the invoice clone shares the
+			// DefaultTaxConfig pointer with the live invoice, so an in-place edit would otherwise
+			// slip past the changed-ID check below.
+			originalTaxCodeID := sm.Invoice.Workflow.Config.Invoicing.DefaultTaxCodeID()
+
 			originalInvoice, err := sm.Invoice.Clone()
 			if err != nil {
 				return fmt.Errorf("cloning invoice before edit: %w", err)
@@ -34,11 +38,11 @@ func (s *Service) UpdateStandardInvoice(ctx context.Context, input billing.Updat
 				return fmt.Errorf("editing invoice: %w", err)
 			}
 
-			originalTaxConfig := originalInvoice.Workflow.Config.Invoicing.DefaultTaxConfig
-			editedTaxConfig := sm.Invoice.Workflow.Config.Invoicing.DefaultTaxConfig
-			if !originalTaxConfig.Equal(editedTaxConfig) {
-				if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Invoice.Namespace, editedTaxConfig); err != nil {
-					return fmt.Errorf("resolving edited invoice default tax config: %w", err)
+			// The original default was copied from the billing profile and isn't re-checked (its Tax
+			// Code may have been deleted since); only a newly referenced one needs checking.
+			if editedTaxCodeID := sm.Invoice.Workflow.Config.Invoicing.DefaultTaxCodeID(); editedTaxCodeID != originalTaxCodeID {
+				if err := billing.ValidateTaxCodeID(ctx, s.taxCodeResolver, input.Invoice.Namespace, editedTaxCodeID); err != nil {
+					return fmt.Errorf("validating edited invoice default tax code: %w", err)
 				}
 			}
 

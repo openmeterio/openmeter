@@ -75,6 +75,10 @@ var (
 	ErrInvoiceLineZeroAmountDeleteInstead          = NewValidationError("invoice_line_zero_amount_delete_instead", "invoice line amount cannot be updated to zero, please delete the line instead")
 	ErrInvoiceLineZeroAmountCreate                 = NewValidationError("invoice_line_zero_amount_create", "creating zero amount flat fee invoice lines is not supported")
 	ErrInvoiceLineUnsupportedSettlementMode        = NewValidationError("invoice_line_unsupported_settlement_mode", "invoice line settlement mode is not supported")
+
+	// Shared by every billing surface that takes a Tax Code ID (invoice default, lines, charges).
+	ErrTaxCodeNotFound = NewValidationError("billing_tax_code_not_found", "tax code not found")
+	ErrTaxCodeDeleted  = NewValidationError("billing_tax_code_deleted", "tax code deleted")
 )
 
 const (

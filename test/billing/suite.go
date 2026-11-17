@@ -48,6 +48,7 @@ import (
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -92,6 +93,9 @@ type BaseSuite struct {
 	SandboxApp *appsandbox.MockableFactory
 
 	TaxCodeEnv *taxcodetestutils.TestEnv
+	// TaxCodeResolver is the production resolver v1 handlers get; the billing service only uses
+	// its read side.
+	TaxCodeResolver productcatalog.TransactionalTaxCodeResolver
 }
 
 func (s *BaseSuite) RequireRun(name string, subtest func()) {
@@ -254,6 +258,10 @@ func (s *BaseSuite) setupSuite() {
 	require.NoError(t, err)
 	s.LegacyBillingLineEngine = legacyBillingLineEngine
 
+	taxCodeResolver, err := taxcoderesolver.NewTransactional(s.TaxCodeEnv.Service, s.TaxCodeEnv.Adapter)
+	require.NoError(t, err)
+	s.TaxCodeResolver = taxCodeResolver
+
 	billingService, err := billingservice.New(billingservice.Config{
 		Adapter:                 billingAdapter,
 		SequenceService:         billingSequenceService,
@@ -265,6 +273,7 @@ func (s *BaseSuite) setupSuite() {
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
 		TaxCodeService:          s.TaxCodeEnv.Service,
+		TaxCodeResolver:         taxCodeResolver,
 	})
 	require.NoError(t, err)
 
@@ -655,18 +664,14 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 
 // SeedProfileDefaultTaxConfigViaAdapter seeds a stored DefaultTaxConfig on an existing
 // billing profile directly through the billing adapter, bypassing the service-level tax
-// code deprecation gate (InvoicingConfig.EnforceTaxCodeDeprecation). This simulates legacy
-// rows that were created before tax codes on billing profiles were deprecated.
+// code deprecation gate. This simulates legacy rows that were created before tax codes on
+// billing profiles were deprecated.
 //
-// The tax config is resolved in place exactly like the pre-deprecation service path
-// (productcatalog.ResolveTaxConfig cross-populates TaxCodeID and Stripe.Code), then
-// persisted via the adapter so the JSON column, tax_code_id FK and tax_behavior columns
+// It's persisted via the adapter so the JSON column, tax_code_id FK and tax_behavior columns
 // are written by the production adapter code path. Returns the re-read profile so tests
-// can assert on the stored state including read-time backfill.
-func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, profileID billing.ProfileID, taxConfig *productcatalog.TaxConfig) *billing.AdapterGetProfileResponse {
+// can assert on the stored state.
+func (s *BaseSuite) SeedProfileDefaultTaxConfigViaAdapter(ctx context.Context, profileID billing.ProfileID, taxConfig *productcatalog.TaxCodeConfig) *billing.AdapterGetProfileResponse {
 	s.T().Helper()
-
-	s.Require().NoError(productcatalog.ResolveTaxConfig(ctx, s.TaxCodeEnv.Service, profileID.Namespace, taxConfig))
 
 	adapterProfile, err := s.BillingAdapter.GetProfile(ctx, billing.GetProfileInput{Profile: profileID})
 	s.Require().NoError(err)

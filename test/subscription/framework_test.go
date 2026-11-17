@@ -160,6 +160,7 @@ func setup(t *testing.T, config setupConfig) testDeps {
 		Publisher:               publisher,
 		AdvancementStrategy:     billing.ForegroundAdvancementStrategy,
 		TaxCodeService:          deps.TaxCodeEnv.Service,
+		TaxCodeResolver:         deps.TaxCodeResolver,
 	})
 	require.NoError(t, err)
 

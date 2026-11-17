@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -40,6 +41,7 @@ type Application struct {
 	Notification            notification.Service
 	RuntimeMetricsCollector common.RuntimeMetricsCollector
 	StreamingConnector      streaming.Connector
+	TaxCodeResolver         productcatalog.TaxCodeResolver
 	TelemetryServer         common.TelemetryServer
 }
 
@@ -59,6 +61,8 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		common.NotificationServiceProvisionTopics,
 		common.ProgressManager,
 		common.Streaming,
+		common.TaxCode,
+		common.NewTaxCodeResolver,
 		common.NewSvixAPIClient,
 		common.Telemetry,
 		common.TelemetryLoggerNoAdditionalMiddlewares,
