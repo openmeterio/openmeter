@@ -32,7 +32,7 @@ type SubscriptionSyncStateV2 struct {
 	// LastSuccessState holds the value of the "last_success_state" field.
 	LastSuccessState subscriptionsync.SyncStateV2State `json:"last_success_state,omitempty"`
 	// LastSuccessAt holds the value of the "last_success_at" field.
-	LastSuccessAt time.Time `json:"last_success_at,omitempty"`
+	LastSuccessAt *time.Time `json:"last_success_at,omitempty"`
 	// LastSyncedSubsRevision holds the value of the "last_synced_subs_revision" field.
 	LastSyncedSubsRevision string `json:"last_synced_subs_revision,omitempty"`
 	// CurrentSubsRevision holds the value of the "current_subs_revision" field.
@@ -134,7 +134,8 @@ func (_m *SubscriptionSyncStateV2) assignValues(columns []string, values []any) 
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field last_success_at", values[i])
 			} else if value.Valid {
-				_m.LastSuccessAt = value.Time
+				_m.LastSuccessAt = new(time.Time)
+				*_m.LastSuccessAt = value.Time
 			}
 		case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -209,8 +210,10 @@ func (_m *SubscriptionSyncStateV2) String() string {
 	builder.WriteString("last_success_state=")
 	builder.WriteString(fmt.Sprintf("%v", _m.LastSuccessState))
 	builder.WriteString(", ")
-	builder.WriteString("last_success_at=")
-	builder.WriteString(_m.LastSuccessAt.Format(time.ANSIC))
+	if v := _m.LastSuccessAt; v != nil {
+		builder.WriteString("last_success_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("last_synced_subs_revision=")
 	builder.WriteString(_m.LastSyncedSubsRevision)

@@ -436,6 +436,16 @@ func LastSuccessAtLTE(v time.Time) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldLTE(FieldLastSuccessAt, v))
 }
 
+// LastSuccessAtIsNil applies the IsNil predicate on the "last_success_at" field.
+func LastSuccessAtIsNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldIsNull(FieldLastSuccessAt))
+}
+
+// LastSuccessAtNotNil applies the NotNil predicate on the "last_success_at" field.
+func LastSuccessAtNotNil() predicate.SubscriptionSyncStateV2 {
+	return predicate.SubscriptionSyncStateV2(sql.FieldNotNull(FieldLastSuccessAt))
+}
+
 // LastSyncedSubsRevisionEQ applies the EQ predicate on the "last_synced_subs_revision" field.
 func LastSyncedSubsRevisionEQ(v string) predicate.SubscriptionSyncStateV2 {
 	return predicate.SubscriptionSyncStateV2(sql.FieldEQ(FieldLastSyncedSubsRevision, v))

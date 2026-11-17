@@ -91,6 +91,14 @@ func (_c *SubscriptionSyncStateV2Create) SetLastSuccessAt(v time.Time) *Subscrip
 	return _c
 }
 
+// SetNillableLastSuccessAt sets the "last_success_at" field if the given value is not nil.
+func (_c *SubscriptionSyncStateV2Create) SetNillableLastSuccessAt(v *time.Time) *SubscriptionSyncStateV2Create {
+	if v != nil {
+		_c.SetLastSuccessAt(*v)
+	}
+	return _c
+}
+
 // SetLastSyncedSubsRevision sets the "last_synced_subs_revision" field.
 func (_c *SubscriptionSyncStateV2Create) SetLastSyncedSubsRevision(v string) *SubscriptionSyncStateV2Create {
 	_c.mutation.SetLastSyncedSubsRevision(v)
@@ -203,9 +211,6 @@ func (_c *SubscriptionSyncStateV2Create) check() error {
 			return &ValidationError{Name: "last_success_state", err: fmt.Errorf(`db: validator failed for field "SubscriptionSyncStateV2.last_success_state": %w`, err)}
 		}
 	}
-	if _, ok := _c.mutation.LastSuccessAt(); !ok {
-		return &ValidationError{Name: "last_success_at", err: errors.New(`db: missing required field "SubscriptionSyncStateV2.last_success_at"`)}
-	}
 	if _, ok := _c.mutation.LastSyncedSubsRevision(); !ok {
 		return &ValidationError{Name: "last_synced_subs_revision", err: errors.New(`db: missing required field "SubscriptionSyncStateV2.last_synced_subs_revision"`)}
 	}
@@ -283,7 +288,7 @@ func (_c *SubscriptionSyncStateV2Create) createSpec() (*SubscriptionSyncStateV2,
 	}
 	if value, ok := _c.mutation.LastSuccessAt(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSuccessAt, field.TypeTime, value)
-		_node.LastSuccessAt = value
+		_node.LastSuccessAt = &value
 	}
 	if value, ok := _c.mutation.LastSyncedSubsRevision(); ok {
 		_spec.SetField(subscriptionsyncstatev2.FieldLastSyncedSubsRevision, field.TypeString, value)
@@ -413,6 +418,12 @@ func (u *SubscriptionSyncStateV2Upsert) SetLastSuccessAt(v time.Time) *Subscript
 // UpdateLastSuccessAt sets the "last_success_at" field to the value that was provided on create.
 func (u *SubscriptionSyncStateV2Upsert) UpdateLastSuccessAt() *SubscriptionSyncStateV2Upsert {
 	u.SetExcluded(subscriptionsyncstatev2.FieldLastSuccessAt)
+	return u
+}
+
+// ClearLastSuccessAt clears the value of the "last_success_at" field.
+func (u *SubscriptionSyncStateV2Upsert) ClearLastSuccessAt() *SubscriptionSyncStateV2Upsert {
+	u.SetNull(subscriptionsyncstatev2.FieldLastSuccessAt)
 	return u
 }
 
@@ -557,6 +568,13 @@ func (u *SubscriptionSyncStateV2UpsertOne) SetLastSuccessAt(v time.Time) *Subscr
 func (u *SubscriptionSyncStateV2UpsertOne) UpdateLastSuccessAt() *SubscriptionSyncStateV2UpsertOne {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
 		s.UpdateLastSuccessAt()
+	})
+}
+
+// ClearLastSuccessAt clears the value of the "last_success_at" field.
+func (u *SubscriptionSyncStateV2UpsertOne) ClearLastSuccessAt() *SubscriptionSyncStateV2UpsertOne {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.ClearLastSuccessAt()
 	})
 }
 
@@ -872,6 +890,13 @@ func (u *SubscriptionSyncStateV2UpsertBulk) SetLastSuccessAt(v time.Time) *Subsc
 func (u *SubscriptionSyncStateV2UpsertBulk) UpdateLastSuccessAt() *SubscriptionSyncStateV2UpsertBulk {
 	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
 		s.UpdateLastSuccessAt()
+	})
+}
+
+// ClearLastSuccessAt clears the value of the "last_success_at" field.
+func (u *SubscriptionSyncStateV2UpsertBulk) ClearLastSuccessAt() *SubscriptionSyncStateV2UpsertBulk {
+	return u.Update(func(s *SubscriptionSyncStateV2Upsert) {
+		s.ClearLastSuccessAt()
 	})
 }
 

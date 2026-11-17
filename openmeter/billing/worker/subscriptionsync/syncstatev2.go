@@ -12,12 +12,16 @@ import (
 
 type SyncStateV2Adapter interface {
 	GetSyncStatesV2(context.Context, GetSyncStatesV2Input) ([]SyncStateV2Managed, error)
+	MarkSubscriptionChangedV2(context.Context, models.NamespacedID) error
 	RecordSyncResultV2(context.Context, RecordSyncResultV2Input) error
 }
 
 type SyncStateV2State string
 
 const (
+	// SyncStateV2StateNew means that no v2 sync result has been recorded yet,
+	// even when the initialized current and last synced revisions are equal.
+	SyncStateV2StateNew SyncStateV2State = "new"
 	// SyncStateV2StateSubscriptionDeleted records successful reconciliation against
 	// an empty billing target because the subscription has a non-nil DeletedAt.
 	SyncStateV2StateSubscriptionDeleted SyncStateV2State = "subscription_deleted"
@@ -35,6 +39,7 @@ const (
 
 func (SyncStateV2State) Values() []string {
 	return []string{
+		string(SyncStateV2StateNew),
 		string(SyncStateV2StateSubscriptionDeleted),
 		string(SyncStateV2StateCustomerDeletedBefore),
 		string(SyncStateV2StateEnded),
@@ -50,13 +55,14 @@ func (s SyncStateV2State) Validate() error {
 	return nil
 }
 
-// SyncStateV2 keeps the last completed sync outcome, including intentional age
-// skips, and the subscription revisions needed to detect subsequent edits.
+// SyncStateV2 keeps subscription changes and the last completed sync outcome,
+// including intentional age skips. New rows have no completed outcome yet.
 type SyncStateV2 struct {
 	SubscriptionID   models.NamespacedID
 	LastSuccessState SyncStateV2State
-	LastSuccessAt    time.Time
-	// LastSyncedSubsRevision is the current revision observed before the recorded sync outcome.
+	// LastSuccessAt is nil until a v2 sync result has been recorded.
+	LastSuccessAt *time.Time
+	// LastSyncedSubsRevision is initialized on new rows and acknowledged by recorded sync results.
 	LastSyncedSubsRevision string
 	// CurrentSubsRevision may change while sync is running; recording its result must not overwrite it.
 	CurrentSubsRevision string
@@ -101,13 +107,24 @@ var _ models.Validator = RecordSyncResultV2Input{}
 
 func (i SyncStateV2) Validate() error {
 	var errs []error
-	if err := (RecordSyncResultV2Input{
-		SubscriptionID:         i.SubscriptionID,
-		LastSuccessState:       i.LastSuccessState,
-		LastSuccessAt:          i.LastSuccessAt,
-		LastSyncedSubsRevision: i.LastSyncedSubsRevision,
-	}).Validate(); err != nil {
-		errs = append(errs, err)
+	if err := i.SubscriptionID.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("subscription ID: %w", err))
+	}
+
+	if err := i.LastSuccessState.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("last success state: %w", err))
+	}
+
+	if i.LastSuccessState == SyncStateV2StateNew {
+		if i.LastSuccessAt != nil {
+			errs = append(errs, errors.New("new sync state must not have a last success at"))
+		}
+	} else if i.LastSuccessAt == nil || i.LastSuccessAt.IsZero() {
+		errs = append(errs, errors.New("last success at is required for a recorded sync result"))
+	}
+
+	if i.LastSyncedSubsRevision == "" {
+		errs = append(errs, errors.New("last synced subscription revision is required"))
 	}
 
 	if i.CurrentSubsRevision == "" {
@@ -125,6 +142,10 @@ func (i RecordSyncResultV2Input) Validate() error {
 
 	if err := i.LastSuccessState.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("last success state: %w", err))
+	}
+
+	if i.LastSuccessState == SyncStateV2StateNew {
+		errs = append(errs, errors.New("new sync state must be initialized by a subscription change"))
 	}
 
 	if i.LastSuccessAt.IsZero() {

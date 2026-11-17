@@ -160,8 +160,9 @@ generated horizon. Errors remain retryable through the event handler or
 periodic reconciler. Dry-run builds the same plan but only logs it and does not
 write artifacts or sync state.
 
-The separate v2 sync-state table stores completed sync outcomes and their time:
+The v2 sync-state table keeps the last recorded outcome and subscription revisions:
 
+- `new`: no v2 outcome has been recorded; `last_success_at` is NULL.
 - `subscription_deleted`: an empty billing target was reconciled for a deleted subscription.
 - `customer_deleted_before`: an empty target was reconciled because the customer was deleted at or before subscription start.
 - `ended`: normal billing reconciliation succeeded after `ActiveTo`, with a requested horizon covering that end.
@@ -175,15 +176,25 @@ the v2 outcome without loading the subscription view or billing artifacts.
 Exactly 30 days old remains eligible for normal reconciliation.
 
 Sync writes reconciliation outcomes in the same transaction as billing changes
-and legacy scheduling, even when the plan was empty. A missing v2 row means no
-outcome has been recorded. Dry runs and failed syncs do not record outcomes.
+and legacy scheduling, even when the plan was empty. Both a missing row and
+`new` mean no v2 outcome has been recorded. Other states require a non-NULL
+`last_success_at`. Dry runs and failed syncs do not record outcomes.
+
+Subscription create, update, cancel, continue, and delete hooks mark changes in
+the subscription command's transaction. If no v2 row exists, the hook inserts
+`new` with no success timestamp and initializes both revisions to the same ULID.
+Equal revisions on a `new` row do not mean it was reconciled. For an existing row,
+the hook advances only `current_subs_revision` and `updated_at`, preserving the
+previous outcome, success timestamp, and last synced revision. A failed marker
+write rolls back the subscription command. Annotation-only writes do not mark
+changes because root annotations do not affect subscription billing.
 
 Each sync reads v2 state after acquiring the customer billing lock and before
 reading the subscription view. `current_subs_revision` identifies the subscription
 revision to reconcile; `last_synced_subs_revision` records the revision observed
 at the start of the recorded sync outcome, including intentional age skips.
-Both revisions are required on every v2 row. Sync generates a ULID when there is
-no v2 row, and recording the outcome inserts that same value into both columns.
+Both revisions are required on every v2 row. For subscriptions without a v2 row,
+sync generates a ULID and recording the outcome inserts it into both columns.
 On conflict, it updates only the last synced revision; the current revision is
 never overwritten by sync. Syncs without a cleanup, ended, or age-skip outcome
 leave v2 unchanged. Revisions do not yet change periodic scheduling or suppress

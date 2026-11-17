@@ -224,7 +224,7 @@ func TestMapToSubscriptionWithSyncStateLoadsV2OnlyForDeletedSubscriptions(t *tes
 		SyncStateV2: subscriptionsync.SyncStateV2{
 			SubscriptionID:   deletedID,
 			LastSuccessState: subscriptionsync.SyncStateV2StateSubscriptionDeleted,
-			LastSuccessAt:    now,
+			LastSuccessAt:    lo.ToPtr(now),
 		},
 		NamespacedID: models.NamespacedID{Namespace: "namespace", ID: "state-row-id"},
 		ManagedModel: models.ManagedModel{CreatedAt: now, UpdatedAt: now},

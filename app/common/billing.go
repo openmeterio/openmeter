@@ -32,6 +32,7 @@ import (
 	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	subscriptionsyncadapter "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/adapter"
+	subscriptionsynchooks "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/hooks"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 	subscriptionsyncservice "github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
@@ -314,7 +315,19 @@ func NewBillingRegistry(
 
 	customerService.RegisterRequestValidator(validator)
 
-	// Subscription validate
+	// Subscription hooks
+
+	syncHook, err := subscriptionsynchooks.New(subscriptionsynchooks.Config{
+		Adapter: subscriptionSyncAdapter,
+		Logger:  logger,
+	})
+	if err != nil {
+		return BillingRegistry{}, err
+	}
+
+	if err := subscriptionServices.Service.RegisterHook(syncHook); err != nil {
+		return BillingRegistry{}, fmt.Errorf("registering subscription sync hook: %w", err)
+	}
 
 	subscriptionValidator, err := billingsubscription.NewValidator(billingRegistry.Billing)
 	if err != nil {
