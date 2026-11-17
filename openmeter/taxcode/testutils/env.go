@@ -74,6 +74,21 @@ func (e *TestEnv) CreateTaxCode(t *testing.T, namespace string, opts ...taxcode.
 	return tc
 }
 
+// GetOrCreateByAppMapping returns (creating if necessary) the namespace's tax code mapped to
+// appType/code, mirroring how v1 handlers resolve a legacy stripe.code.
+func (e *TestEnv) GetOrCreateByAppMapping(t *testing.T, namespace string, appType app.AppType, code string) taxcode.TaxCode {
+	t.Helper()
+
+	tc, err := e.Service.GetOrCreateByAppMapping(t.Context(), taxcode.GetOrCreateByAppMappingInput{
+		Namespace: namespace,
+		AppType:   appType,
+		TaxCode:   code,
+	})
+	require.NoError(t, err)
+
+	return tc
+}
+
 // ProvisionDefaultTaxCodesInput overrides the app mappings ProvisionDefaultTaxCodes puts on the
 // invoicing/credit-grant tax codes. Nil fields keep the built-in defaults.
 type ProvisionDefaultTaxCodesInput struct {

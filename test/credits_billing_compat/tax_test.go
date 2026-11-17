@@ -46,7 +46,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	profileTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	profileTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 		TaxCodeID: profileTaxCode.ID,
@@ -76,7 +76,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		selectedInput.Default = false
 		selectedProfile, err := s.BillingService.CreateProfile(ctx, selectedInput)
 		s.Require().NoError(err)
-		selectedTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_20000000")
+		selectedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
 		s.SeedProfileDefaultTaxConfigViaAdapter(ctx, selectedProfile.ProfileID(), &productcatalog.TaxCodeConfig{
 			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			TaxCodeID: selectedTaxCode.ID,
@@ -128,7 +128,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 		// let's update the invoice
-		editedTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_30000000")
+		editedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_30000000")
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice:      draftInvoice.GetInvoiceID(),
 			ChangeSource: billing.ChangeSourceAPIRequest,

@@ -84,7 +84,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileCreateWithTaxCodeRejected() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+	tc := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000")
 
 	input := MinimalCreateProfileInputTemplate(sandboxApp.GetID())
 	input.Namespace = ns
@@ -109,7 +109,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateAddTaxCodeRejected() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+	tc := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 
@@ -133,8 +133,8 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateChangeTaxCodeRejected() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	stored := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
-	other := s.TaxCodeForStripeCode(ctx, ns, "txcd_20000000")
+	stored := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000")
+	other := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_20000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
@@ -162,7 +162,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateEchoesDeletedTaxCode() {
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	// Deleting a tax code checks it isn't an organization default, which needs the defaults set.
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
-	stored := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+	stored := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
@@ -197,7 +197,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateClearsTaxCodeFK() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+	tc := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
@@ -225,7 +225,7 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateToNilClearsBothColumns() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+	tc := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
@@ -257,7 +257,7 @@ func (s *TaxCodeDualWriteTestSuite) TestWorkflowConfigWritesMinimalJSONCopy() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
-	tc := s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000")
+	tc := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000")
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
@@ -341,7 +341,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
+		TaxCodeID: s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000").ID,
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 
@@ -387,7 +387,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
-		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
+		TaxCodeID: s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000").ID,
 	})
 	cust := s.CreateTestCustomer(ns, "test")
 
@@ -441,7 +441,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 	// Seed a profile with the Stripe code via the adapter to materialize the TaxCode entity.
 	profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
 	seeded := s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
-		TaxCodeID: s.TaxCodeForStripeCode(ctx, ns, "txcd_10000000").ID,
+		TaxCodeID: s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_10000000").ID,
 	})
 
 	existingID := lo.EmptyableToPtr(seeded.WorkflowConfig.Invoicing.DefaultTaxCodeID())

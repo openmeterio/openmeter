@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 
 	apiv1models "github.com/openmeterio/openmeter/api/models"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -22,7 +23,7 @@ func (s *ProfileTaxConfigTestSuite) TestInvoiceListResolvesTaxCodesOnce() {
 
 	// given: a customer with a standard invoice and a gathering invoice, on a profile whose
 	// default references a tax code
-	taxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_10000000")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
 	s.seedLegacyProfile(taxCode.ID)
 	cust := s.CreateTestCustomer(s.namespace, "test")
 

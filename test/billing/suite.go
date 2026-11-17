@@ -55,7 +55,6 @@ import (
 	subjectadapter "github.com/openmeterio/openmeter/openmeter/subject/adapter"
 	subjectservice "github.com/openmeterio/openmeter/openmeter/subject/service"
 	subjecthooks "github.com/openmeterio/openmeter/openmeter/subject/service/hooks"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -661,21 +660,6 @@ func (s *BaseSuite) ProvisionBillingProfile(ctx context.Context, ns string, appI
 	s.NoError(err)
 
 	return profile
-}
-
-// TaxCodeForStripeCode returns the namespace's Tax Code mapped to stripeCode, creating it if
-// needed, the way v1 handlers resolve a legacy stripe.code.
-func (s *BaseSuite) TaxCodeForStripeCode(ctx context.Context, namespace string, stripeCode string) taxcode.TaxCode {
-	s.T().Helper()
-
-	tc, err := s.TaxCodeEnv.Service.GetOrCreateByAppMapping(ctx, taxcode.GetOrCreateByAppMappingInput{
-		Namespace: namespace,
-		AppType:   app.AppTypeStripe,
-		TaxCode:   stripeCode,
-	})
-	s.Require().NoError(err)
-
-	return tc
 }
 
 // SeedProfileDefaultTaxConfigViaAdapter seeds a stored DefaultTaxConfig on an existing

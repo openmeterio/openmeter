@@ -140,7 +140,7 @@ func (s *ProfileTaxConfigTestSuite) seedLegacyProfile(taxCodeID string) *billing
 
 func (s *ProfileTaxConfigTestSuite) TestUpdateDeprecationGateAndResolution() {
 	// given: a legacy profile whose default references a tax code mapped to txcd_10000000
-	taxCode := s.TaxCodeForStripeCode(s.T().Context(), s.namespace, "txcd_10000000")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
 	profile := s.seedLegacyProfile(taxCode.ID)
 	taxCodes := s.taxCodeCount()
 
@@ -218,7 +218,7 @@ func (s *ProfileTaxConfigTestSuite) TestStripeOnlyEchoKeepsDeletedStoredTaxCode(
 
 	// given: a legacy profile whose default tax code was deleted afterwards
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), s.namespace)
-	taxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_10000000")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
 	profile := s.seedLegacyProfile(taxCode.ID)
 	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: taxCode.NamespacedID}))
 	taxCodes := s.taxCodeCount()
@@ -269,7 +269,7 @@ func (s *ProfileTaxConfigTestSuite) TestFailedUpdateLeavesNoTaxCode() {
 	ctx := s.T().Context()
 
 	// given: a legacy default profile
-	taxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_10000000")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
 	profile := s.seedLegacyProfile(taxCode.ID)
 	taxCodes := s.taxCodeCount()
 
@@ -352,7 +352,7 @@ func (s *ProfileTaxConfigTestSuite) TestListsResolveTaxCodesOnce() {
 
 	// given: two profiles with defaults referencing different tax codes, and a customer on each
 	first := s.ProvisionBillingProfile(ctx, s.namespace, s.appID)
-	firstTaxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_10000000")
+	firstTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, first.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: firstTaxCode.ID})
 
 	secondInput := billingtest.MinimalCreateProfileInputTemplate(s.appID)
@@ -360,7 +360,7 @@ func (s *ProfileTaxConfigTestSuite) TestListsResolveTaxCodesOnce() {
 	secondInput.Default = false
 	second, err := s.BillingService.CreateProfile(ctx, secondInput)
 	s.Require().NoError(err)
-	secondTaxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_20000000")
+	secondTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_20000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, second.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: secondTaxCode.ID})
 
 	s.CreateTestCustomer(s.namespace, "first")

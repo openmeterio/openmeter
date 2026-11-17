@@ -110,7 +110,7 @@ func (s *HandlerTaxConfigTestSuite) TestCreateRejectsTaxCode() {
 	}
 
 	// given: a tax code that exists in the namespace
-	taxCode := s.TaxCodeForStripeCode(s.T().Context(), s.namespace, "txcd_10000000")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
 	taxCodes := s.taxCodeCount()
 
 	s.Run("deprecated stripe code", func() {
@@ -139,8 +139,8 @@ func (s *HandlerTaxConfigTestSuite) TestUpdateGateAndResolution() {
 	ctx := s.T().Context()
 
 	// given: a legacy profile whose default references a tax code mapped to txcd_10000000
-	taxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_10000000")
-	other := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_20000000")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
+	other := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_20000000")
 	profile := s.ProvisionBillingProfile(ctx, s.namespace, s.appID)
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
@@ -223,7 +223,7 @@ func (s *HandlerTaxConfigTestSuite) TestListResolvesTaxCodesOnce() {
 
 	// given: two profiles whose defaults reference different tax codes
 	first := s.ProvisionBillingProfile(ctx, s.namespace, s.appID)
-	firstTaxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_10000000")
+	firstTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_10000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, first.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: firstTaxCode.ID})
 
 	secondInput := billingtest.MinimalCreateProfileInputTemplate(s.appID)
@@ -231,7 +231,7 @@ func (s *HandlerTaxConfigTestSuite) TestListResolvesTaxCodesOnce() {
 	secondInput.Default = false
 	second, err := s.BillingService.CreateProfile(ctx, secondInput)
 	s.Require().NoError(err)
-	secondTaxCode := s.TaxCodeForStripeCode(ctx, s.namespace, "txcd_20000000")
+	secondTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_20000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, second.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: secondTaxCode.ID})
 
 	wantStripeCodes := map[string]string{

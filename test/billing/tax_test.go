@@ -47,7 +47,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 
 	// The tax code is seeded via the adapter to simulate a legacy row predating the deprecation gate.
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	profileTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	profileTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 		TaxCodeID: profileTaxCode.ID,
@@ -77,7 +77,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		selectedInput.Default = false
 		selectedProfile, err := s.BillingService.CreateProfile(ctx, selectedInput)
 		s.Require().NoError(err)
-		selectedTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_20000000")
+		selectedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
 		s.SeedProfileDefaultTaxConfigViaAdapter(ctx, selectedProfile.ProfileID(), &productcatalog.TaxCodeConfig{
 			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 			TaxCodeID: selectedTaxCode.ID,
@@ -143,7 +143,7 @@ func (s *InvoicingTaxTestSuite) TestDefaultTaxConfigProfileSnapshotting() {
 		s.ErrorIs(err, billing.ErrTaxCodeNotFound)
 
 		// let's update the invoice
-		editedTaxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_30000000")
+		editedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_30000000")
 		updatedInvoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 			Invoice:      draftInvoice.GetInvoiceID(),
 			ChangeSource: billing.ChangeSourceAPIRequest,
@@ -171,7 +171,7 @@ func (s *InvoicingTaxTestSuite) TestInvoiceDefaultTaxCodeFrozenOnStripeRemap() {
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	cust := s.CreateTestCustomer(namespace, "test")
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	taxCode := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 		TaxCodeID: taxCode.ID,
@@ -249,7 +249,7 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	deleted := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	deleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
 	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
 
@@ -302,7 +302,7 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 	})
 
 	s.Run("when: an edit sets the default to another deleted tax code", func() {
-		otherDeleted := s.TaxCodeForStripeCode(ctx, namespace, "txcd_20000000")
+		otherDeleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
 		s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: otherDeleted.NamespacedID}))
 
 		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
@@ -331,11 +331,11 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsNotSwappedForLiveMapp
 	cust := s.CreateTestCustomer(namespace, "test")
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
 	profile := s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
-	deleted := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	deleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
 	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
 
-	live := s.TaxCodeForStripeCode(ctx, namespace, "txcd_10000000")
+	live := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 	s.Require().NotEqual(deleted.ID, live.ID)
 
 	// when: an invoice is created from the profile
