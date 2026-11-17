@@ -11,7 +11,7 @@ import (
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -65,7 +65,7 @@ func (h *handler) CreateBillingProfile() CreateBillingProfileHandler {
 
 				// Nothing is stored yet, so the gate rejects any tax code and nothing gets
 				// resolved or created; only behavior can get through.
-				defaultTaxConfig, err := billinghttpdriver.ResolveProfileDefaultTaxConfig(ctx, resolver, input.Namespace, request.DefaultTaxConfig, nil)
+				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, input.Namespace, request.DefaultTaxConfig, nil)
 				if err != nil {
 					return err
 				}

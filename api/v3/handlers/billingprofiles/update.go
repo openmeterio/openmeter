@@ -11,7 +11,7 @@ import (
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	billinghttpdriver "github.com/openmeterio/openmeter/openmeter/billing/httpdriver"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -79,18 +79,13 @@ func (h *handler) UpdateBillingProfile() UpdateBillingProfileHandler {
 					return err
 				}
 
-				// The gate compares against the stored default the way responses show it.
-				var storedDefaultTaxConfig *productcatalog.TaxConfig
-				if cfg := stored.WorkflowConfig.Invoicing.DefaultTaxConfig; cfg != nil {
-					storedTaxCodes, err := h.taxCodesForProfiles(ctx, request.Namespace, *stored)
-					if err != nil {
-						return err
-					}
+			// The gate compares against the stored default the way responses show it.
+			storedDefaultTaxConfig, err := billingconvert.LegacyProfileDefaultTaxConfig(ctx, h.taxCodeResolver, request.Namespace, stored.WorkflowConfig)
+			if err != nil {
+				return err
+			}
 
-					storedDefaultTaxConfig = lo.ToPtr(cfg.ToLegacyTaxConfig(storedTaxCodes))
-				}
-
-				defaultTaxConfig, err := billinghttpdriver.ResolveProfileDefaultTaxConfig(ctx, resolver, request.Namespace, request.DefaultTaxConfig, storedDefaultTaxConfig)
+			defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, request.Namespace, request.DefaultTaxConfig, storedDefaultTaxConfig)
 				if err != nil {
 					return err
 				}

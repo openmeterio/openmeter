@@ -413,7 +413,7 @@ func fromAPIBillingWorkflow(workflow apiv3models.BillingWorkflow, defaultSubscri
 			SubscriptionEndProrationMode: subscriptionEndProrationMode,
 			EmptyInvoiceMode:             billing.EmptyInvoiceMode(lo.FromPtr(workflow.Invoicing.EmptyInvoiceMode)),
 			// The default tax config is mapped by the handlers (see
-			// billinghttpdriver.ResolveProfileDefaultTaxConfig): it may need the stored profile
+			// billingconvert.ResolveProfileDefaultTaxConfig): it may need the stored profile
 			// and resolving a deprecated Stripe code.
 		},
 		Payment: billing.PaymentConfig{

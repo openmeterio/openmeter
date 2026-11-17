@@ -1,4 +1,4 @@
-package httpdriver
+package apiconvert
 
 import (
 	"context"
@@ -84,7 +84,9 @@ func TestResolveProfileDefaultTaxConfig(t *testing.T) {
 	})
 
 	t.Run("a stripe-only echo with no stored ID falls back to the resolver", func(t *testing.T) {
-		// when: the stored default has a stripe code but no tax code ID
+		// when: the stored default has a stripe code but no tax code ID.
+		// Production can't produce this state (the stored shape always carries the ID), but
+		// FromAPITaxConfig is the live path for plans and add-ons: this pins its fallback.
 		resolver := &recordingBackfillResolver{taxCodes: map[string]*taxcode.TaxCode{"txcd_10000000": storedTaxCode}}
 		cfg, err := ResolveProfileDefaultTaxConfig(t.Context(), resolver, namespace, &productcatalog.TaxConfig{
 			Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
