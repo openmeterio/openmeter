@@ -125,7 +125,7 @@ services:
       retries: 30
 
   svix:
-    image: svix/svix-server:v1.101@sha256:7ba594c766c882dea9c868cd38957755b1d5c8bc5020f81cf5521ba5ab5adc11
+    image: svix/svix-server:v1.105.0@sha256:f6f562e4a5da5203ed7e974ff40f1764411f71c72b9bbe42101d809eddf7fee0
     environment:
       WAIT_FOR: "true" # We want to wait for the default services
       SVIX_REDIS_DSN: "redis://redis:6379"

@@ -202,7 +202,7 @@ jobs:
 | svix.replicaCount | int | `1` | Number of replicas (pods) to launch. |
 | svix.image.repository | string | `"docker.io/svix/svix-server"` | Name of the image repository to pull the container image from. |
 | svix.image.pullPolicy | string | `"IfNotPresent"` | [Image pull policy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) for updating already existing images on a node. |
-| svix.image.tag | string | `"v1.37"` | Image tag to use |
+| svix.image.tag | string | `"v1.105.0"` | Image tag to use |
 | svix.service.type | string | `"ClusterIP"` | Kubernetes [service type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | svix.service.port | int | `80` | Service port. |
 | svix.resources | object | The chart-wide `resources` value. | Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the Svix component. See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#resources) for details. |
