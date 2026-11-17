@@ -10,13 +10,24 @@ The existing product balance APIs and notification worker continue to use their 
 | Caller needs | Operation | What happens |
 | --- | --- | --- |
 | The last stored value | `Get(key)` | Reads state even if demand is dirty or expired. A missing row returns a not-calculated error. A stored zero is a successful result. |
-| A one-time calculation | `Calculate(key)` | Runs the domain calculator once and returns the stored result without starting change tracking. |
-| A current value on demand | `EnsureFresh(target, …)`, then `Get(key)` | Tracks changes between requests. Reuses a clean result within the caller’s age limit or waits for a recalculation. |
-| Background updates | `Activate(target, …)` | Enables background refresh. A worker calculates the initial balance and refreshes it after tracked changes. Activation can return before the first result is ready. |
-| To stop tracking a key | `Deactivate(target)` | Stops background refresh and change tracking for the key. The last stored value stays readable. |
+| A one-time calculation, with its result | `Calculate(key)` | Runs the domain calculator once and returns the stored result without starting change tracking. |
+| Queue a one-time calculation | `RequestCalculation(key)` | Returns after Kafka accepts the request. The worker can still fail or retry. |
+| Queue a freshness check | `RequestRefresh(key, freshness)` | Returns after Kafka accepts the request. The worker may reuse clean state. The event carries durations in whole seconds. |
+| A current value on demand | `EnsureFresh(key, freshness)`, then `Get(key)` | Tracks changes between requests. Reuses a clean result within the caller’s age limit or waits for a recalculation. |
+| Background updates | `Activate(key, interval)` | Enables background refresh. A worker calculates the initial balance and refreshes it after tracked changes. Activation can return before the first result is ready. |
+| To stop tracking a key | `Deactivate(key)` | Stops background refresh and change tracking for the key. The last stored value stays readable. |
 
-Use the typed accessors on `rte.Service` for `Get` and `Calculate`. For the other operations,
-construct a target with `rte.NewCalculationTarget(key)` and pass it to `rte.DemandService`.
+Trusted callers use [`rte.Client`](client.go) after authorizing the namespace and key.
+`Get`, `Activate`, and `Deactivate` use PostgreSQL. `RequestCalculation` and
+`RequestRefresh` publish to the system event topic. Submission can succeed while the
+worker is offline. Publish after commit when the request depends on a caller’s write.
+Retrying after a lost acknowledgement can submit work twice.
+
+Only a process that already hosts the engine can construct an in-process `rte.SyncClient`
+for `Calculate` and `EnsureFresh`. Both clients expose `CreditBalances()` and
+`MeteredEntitlements()`. The shadow worker replays sampled reads locally. Billing decisions
+that require the caller’s transaction use the underlying domain services directly.
+
 Each `EnsureFresh` call extends change tracking for at least `PullTTL`. If tracking expires and
 background refresh is off, the next `EnsureFresh` recalculates to cover any missed changes.
 `MaxAge` limits how old a completed calculation the caller accepts. Zero accepts any age

@@ -5,11 +5,16 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"go.opentelemetry.io/otel/metric/noop"
 
+	"github.com/openmeterio/openmeter/app/common"
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/rte"
+	"github.com/openmeterio/openmeter/openmeter/rte/client"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	creditstest "github.com/openmeterio/openmeter/test/credits"
@@ -105,10 +110,27 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 	clock.FreezeTime(now.Add(time.Second))
 	defer clock.UnFreeze()
 
-	refreshed, err := reader.CreditBalances().Calculate(ctx, key)
+	demand, err := common.NewRTEDemandService(
+		s.DBClient, reader, testutils.NewDiscardLogger(s.T()), noop.NewMeterProvider().Meter("test"),
+		config.RTEConfiguration{CalculationTimeout: 30 * time.Second},
+	)
+	s.Require().NoError(err)
+	syncClient, err := client.NewSync(reader, demand)
+	s.Require().NoError(err)
+	refreshed, err := syncClient.CreditBalances().Calculate(ctx, key)
 	s.Require().NoError(err)
 	s.True(refreshed.CalculatedAt.After(stored.CalculatedAt))
 	s.Equal(float64(125), refreshed.Value.Booked.InexactFloat64())
 	s.Equal(float64(125), refreshed.Value.Spendable.InexactFloat64())
 	s.Equal(float64(125), refreshed.Value.Live.InexactFloat64())
+
+	// A synchronous pull establishes tracking and leaves the result immediately readable.
+	clock.UnFreeze()
+	clock.FreezeTime(now.Add(2 * time.Second))
+	defer clock.UnFreeze()
+	s.Require().NoError(syncClient.CreditBalances().EnsureFresh(ctx, key, rte.FreshnessPolicy{TrackForSeconds: 60}))
+	fresh, err := reader.CreditBalances().Get(ctx, key)
+	s.Require().NoError(err)
+	s.True(fresh.CalculatedAt.After(refreshed.CalculatedAt))
+	s.Equal(refreshed.Value, fresh.Value)
 }

@@ -42,7 +42,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	progressadapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/rte"
-	rteadapter "github.com/openmeterio/openmeter/openmeter/rte/adapter"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	rtemetered "github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
 	"github.com/openmeterio/openmeter/openmeter/rte/shadow"
@@ -57,8 +56,7 @@ import (
 	creditstest "github.com/openmeterio/openmeter/test/credits"
 )
 
-// The child is the production executable, with real Kafka and ClickHouse. Only
-// service-backed fixture creation and stored-state reads run in the test process.
+// The test drives the production worker through its client and the real source event topics.
 type RTELiveProcessSuite struct {
 	creditstest.BaseSuite
 }
@@ -78,15 +76,10 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 	live := s.startLiveProcess()
 	defer live.stop()
 	logger := testutils.NewDiscardLogger(t)
-	creditStore, err := rteadapter.NewCreditBalanceStore(rteadapter.Config{Client: s.DBClient, Logger: logger})
+	client, err := common.NewRTEClient(live.conf.RTE, live.conf.Events, s.DBClient, live.publisher, logger)
 	s.Require().NoError(err)
-	meteredStore, err := rteadapter.NewMeteredEntitlementBalanceStore(rteadapter.Config{Client: s.DBClient, Logger: logger})
-	s.Require().NoError(err)
-	engine, err := common.NewRTEService(s.DBClient, s.CustomerBalanceSvc, s.Entitlements,
-		logger, config.CreditsConfiguration{Enabled: true}, eventbus.NewMock(t), noop.NewMeterProvider().Meter("test"))
-	s.Require().NoError(err)
-	demand, err := common.NewRTEDemandService(s.DBClient, engine, logger, noop.NewMeterProvider().Meter("test"), config.RTEConfiguration{CalculationTimeout: 30 * time.Second})
-	s.Require().NoError(err)
+	credits := client.CreditBalances()
+	metered := client.MeteredEntitlements()
 
 	// Given active credit and metered demand backed by real customer, grant,
 	// charge and ledger services. Event times are in completed minute windows.
@@ -126,10 +119,8 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 	currency := currencies.NewCurrencyReference(creditstest.USD)
 	creditKey := creditbalance.Key{CustomerID: cust.GetID(), Currency: currency}
 	meteredKey := rtemetered.Key{EntitlementID: models.NamespacedID{Namespace: ns, ID: ent.ID}}
-	creditTarget, err := rte.NewCalculationTarget(creditKey)
-	s.Require().NoError(err)
-	meteredTarget, err := rte.NewCalculationTarget(meteredKey)
-	s.Require().NoError(err)
+	_, err = credits.Get(ctx, creditKey)
+	s.Require().True(models.IsGenericNotFoundError(err))
 
 	postingLedger := s.Ledger
 	fund := func(amount int64) {
@@ -205,15 +196,15 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 			return true
 		}, 15*time.Second, 100*time.Millisecond)
 	})
-	s.Require().NoError(demand.Activate(ctx, rte.ActivateDemandInput{Target: creditTarget}))
-	s.Require().NoError(demand.Activate(ctx, rte.ActivateDemandInput{Target: meteredTarget}))
+	s.Require().NoError(credits.Activate(ctx, creditKey, 0))
+	s.Require().NoError(metered.Activate(ctx, meteredKey, 0))
 
 	var creditState rte.State[creditbalance.Balance]
 	var meteredState rte.State[rtemetered.Balance]
 	s.Require().Eventually(func() bool {
 		var creditErr, meteredErr error
-		creditState, creditErr = creditStore.Get(ctx, creditKey)
-		meteredState, meteredErr = meteredStore.Get(ctx, meteredKey)
+		creditState, creditErr = credits.Get(ctx, creditKey)
+		meteredState, meteredErr = metered.Get(ctx, meteredKey)
 
 		return creditErr == nil && meteredErr == nil && creditState.Value.Live.InexactFloat64() == 100 && meteredState.Value.Balance == 100
 	}, 20*time.Second, 50*time.Millisecond, "child must calculate both activated keys; log: %s", live.logPath)
@@ -222,15 +213,12 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		baselineMetered := meteredState.CalculatedAt
 		baselineCredit := creditState.CalculatedAt
 		before := live.metrics(t)
-		request, err := rte.NewCalculationRequestedEvent(creditKey)
-		s.Require().NoError(err)
-		request.Freshness = &rte.FreshnessPolicy{TrackForSeconds: 60, MaxAgeSeconds: 30}
-		s.Require().NoError(live.bus.Publish(ctx, request))
+		s.Require().NoError(credits.RequestRefresh(ctx, creditKey, rte.FreshnessPolicy{TrackForSeconds: 60, MaxAgeSeconds: 30}))
 		s.Require().Eventually(func() bool {
-			return metricCount(live.metrics(t), "rte_demand_operations_total", "operation=\"pull\"", "outcome=\"cache_hit\"") >
-				metricCount(before, "rte_demand_operations_total", "operation=\"pull\"", "outcome=\"cache_hit\"")
+			return metricCount(live.metrics(t), "rte_demand_operations_total", `operation="pull"`, `outcome="cache_hit"`) >
+				metricCount(before, "rte_demand_operations_total", `operation="pull"`, `outcome="cache_hit"`)
 		}, 10*time.Second, 50*time.Millisecond)
-		stored, err := creditStore.Get(ctx, creditKey)
+		stored, err := credits.Get(ctx, creditKey)
 		s.Require().NoError(err)
 		s.Equal(baselineCredit, stored.CalculatedAt)
 
@@ -239,12 +227,12 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		fund(25)
 		s.Require().Eventually(func() bool {
 			var err error
-			creditState, err = creditStore.Get(ctx, creditKey)
+			creditState, err = credits.Get(ctx, creditKey)
 
 			return err == nil && creditState.Value.Live.InexactFloat64() == 125
 		}, 15*time.Second, 50*time.Millisecond)
 		s.True(creditState.CalculatedAt.After(baselineCredit))
-		storedMetered, err := meteredStore.Get(ctx, meteredKey)
+		storedMetered, err := metered.Get(ctx, meteredKey)
 		s.Require().NoError(err)
 		s.Equal(baselineMetered, storedMetered.CalculatedAt)
 		s.Greater(metricCount(live.metrics(t), "rte_rating_lookups_total", "outcome=\"hit\""), float64(0))
@@ -256,8 +244,8 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 				return
 			}
 
-			lastCredit, creditErr := creditStore.Get(ctx, creditKey)
-			lastMetered, meteredErr := meteredStore.Get(ctx, meteredKey)
+			lastCredit, creditErr := credits.Get(ctx, creditKey)
+			lastMetered, meteredErr := metered.Get(ctx, meteredKey)
 			s.T().Logf("last credit: booked=%s live=%s err=%v; metered: balance=%g usage=%g err=%v",
 				lastCredit.Value.Booked, lastCredit.Value.Live, creditErr, lastMetered.Value.Balance, lastMetered.Value.UsageInPeriod, meteredErr)
 			for _, line := range strings.Split(live.metrics(t), "\n") {
@@ -303,8 +291,8 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		s.Require().NoError(live.publisher.Publish(live.conf.Events.IngestEvents.Topic, msg))
 		s.Require().Eventually(func() bool {
 			var creditErr, meteredErr error
-			creditState, creditErr = creditStore.Get(ctx, creditKey)
-			meteredState, meteredErr = meteredStore.Get(ctx, meteredKey)
+			creditState, creditErr = credits.Get(ctx, creditKey)
+			meteredState, meteredErr = metered.Get(ctx, meteredKey)
 
 			return creditErr == nil && meteredErr == nil && creditState.Value.Live.InexactFloat64() == 100 &&
 				meteredState.Value.Balance == 75 && meteredState.Value.UsageInPeriod == 25
@@ -321,9 +309,9 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 			return metricCount(live.metrics(t), "rte_demand_operations_total", "operation=\"invalidate\"", "outcome=\"duplicate\"") >
 				metricCount(before, "rte_demand_operations_total", "operation=\"invalidate\"", "outcome=\"duplicate\"")
 		}, 10*time.Second, 50*time.Millisecond)
-		currentCredit, err := creditStore.Get(ctx, creditKey)
+		currentCredit, err := credits.Get(ctx, creditKey)
 		s.Require().NoError(err)
-		currentMetered, err := meteredStore.Get(ctx, meteredKey)
+		currentMetered, err := metered.Get(ctx, meteredKey)
 		s.Require().NoError(err)
 		s.Equal(creditState, currentCredit)
 		s.Equal(meteredState, currentMetered)
@@ -335,6 +323,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 			metricCount(after, "rte_rating_lookups_total", "outcome=\"hit\""),
 			metricCount(after, "rte_rating_lookups_total", "outcome=\"miss\""))
 	})
+
 }
 
 var liveProcessHTTPClient = &http.Client{Timeout: 2 * time.Second}
