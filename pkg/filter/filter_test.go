@@ -2447,6 +2447,32 @@ func TestFilterTime_IsEmpty(t *testing.T) {
 	}
 }
 
+func TestNewULIDEq(t *testing.T) {
+	first, second := ulid.Make().String(), ulid.Make().String()
+
+	single := filter.NewULIDEq(first)
+	assert.Equal(t, &first, single.Eq)
+	assert.Nil(t, single.In)
+
+	multiple := filter.NewULIDEq(first, second)
+	assert.Nil(t, multiple.Eq)
+	assert.Equal(t, &[]string{first, second}, multiple.In)
+
+	empty := filter.NewULIDEq()
+	assert.False(t, empty.IsEmpty())
+	selector := newSelectBuilder()
+	empty.Select("id")(selector)
+	query, args := selector.Query()
+	assert.Contains(t, query, "WHERE FALSE")
+	assert.Empty(t, args)
+
+	builder := sqlbuilder.Select("*").From("test_table")
+	builder.Where(empty.SelectWhereExpr("id", builder))
+	query, args = builder.Build()
+	assert.Contains(t, query, "WHERE 0 = 1")
+	assert.Empty(t, args)
+}
+
 func TestFilterULID_Validate(t *testing.T) {
 	tests := []struct {
 		name   string

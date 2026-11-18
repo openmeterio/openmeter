@@ -275,5 +275,12 @@ func TestV3CustomerChargeUsageBasedRealizations(t *testing.T) {
 		// - the listed copy carries the same realization shape as the create
 		//   response - this is the converter path under test
 		assertOutstandingRealization(t, listed.Realizations, listed.ServicePeriod)
+
+		fetched, err := c.Charges.Get(t.Context(), chargeID, v3sdk.GetChargeParams{})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, fetched)
+		charge, err := fetched.AsChargeUsageBased()
+		require.NoError(t, err)
+		assert.Equal(t, listed, charge)
 	})
 }

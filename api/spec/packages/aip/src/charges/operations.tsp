@@ -28,6 +28,28 @@ model ListChargesParamsFilter {
 
 interface ChargesOperations {
   /**
+   * Get a flat fee or usage-based charge by ID.
+   *
+   * Deleted charges are returned with their status and realization history.
+   */
+  @extension(Shared.UnstableExtension, true)
+  @get
+  @operationId("get-charge")
+  @summary("Get charge")
+  get(
+    @path chargeId: Shared.ULID,
+
+    /**
+     * Expand related entities, realization details, or real-time usage.
+     */
+    @query(#{ explode: false })
+    expand?: Customers.ChargesExpand[],
+  ):
+    | Shared.GetResponse<Customers.Charge>
+    | Common.NotFound
+    | Common.ErrorResponses;
+
+  /**
    * List charges.
    *
    * Returns the charges of every customer that are represented as either flat fee or

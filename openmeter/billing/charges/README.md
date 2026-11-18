@@ -38,6 +38,9 @@ projection. The type-specific detailed status is the lifecycle state.
 - Billing owns invoice aggregates, invoice creation, collection, and invoice
   lifecycle. Charge line engines translate charge state into billing lines and
   feed billing events back into the owning charge state machine.
+- The v3 charge lookup returns the same flat-fee and usage-based charge view
+  as the list. Deleted charges remain readable by ID with their realization
+  history so invoice references can still be followed.
 - Customer charge feature expansion is best-effort. Missing feature references
   retain their ID or key fallback, and a feature remains expandable when only
   its required meter is unavailable; catalog service failures still abort the

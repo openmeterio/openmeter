@@ -164,6 +164,9 @@ func (f FilterString) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder)
 
 		return q.IsNull(field)
 	case f.In != nil:
+		if len(*f.In) == 0 {
+			return q.In(field)
+		}
 		return q.In(field, *f.In)
 	case f.Nin != nil:
 		return q.NotIn(field, *f.Nin)
@@ -1042,6 +1045,15 @@ type FilterULID struct {
 	FilterString
 	And *[]FilterULID `json:"$and,omitempty"`
 	Or  *[]FilterULID `json:"$or,omitempty"`
+}
+
+// NewULIDEq matches one ID with equality or a set of IDs with membership.
+// An empty set matches no IDs.
+func NewULIDEq(ids ...string) *FilterULID {
+	if len(ids) == 1 {
+		return &FilterULID{FilterString: FilterString{Eq: lo.ToPtr(ids[0])}}
+	}
+	return &FilterULID{FilterString: FilterString{In: lo.ToPtr(slices.Clone(ids))}}
 }
 
 // Validate validates the filter.

@@ -3,8 +3,10 @@
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
 import { paginatePages } from '../lib/paginate.js'
-import { listCharges } from '../funcs/charges.js'
+import { getCharge, listCharges } from '../funcs/charges.js'
 import type {
+  GetChargeRequest,
+  GetChargeResponse,
   ListChargesRequest,
   ListChargesResponse,
 } from '../models/operations/charges.js'
@@ -12,6 +14,22 @@ import type { Charge } from '../models/types.js'
 
 export class Charges {
   constructor(private readonly _client: Client) {}
+
+  /**
+   * Get charge
+   *
+   * Get a flat fee or usage-based charge by ID.
+   *
+   * Deleted charges are returned with their status and realization history.
+   *
+   * GET /openmeter/charges/{chargeId}
+   */
+  async get(
+    request: GetChargeRequest,
+    options?: RequestOptions,
+  ): Promise<GetChargeResponse> {
+    return unwrap(await getCharge(this._client, request, options))
+  }
 
   /**
    * List charges

@@ -113,6 +113,25 @@ func TestV3ListCharges(t *testing.T) {
 		assertOutstandingRealization(t, flatFee.Realizations, flatFee.ServicePeriod)
 	})
 
+	t.Run("get flat fee charge matches its expanded list item", func(t *testing.T) {
+		expands := []v3sdk.ChargesExpand{v3sdk.ChargesExpandCustomer, v3sdk.ChargesExpandRealizationTotals}
+		result, err := c.Charges.Get(t.Context(), first.chargeID, v3sdk.GetChargeParams{Expand: expands})
+		c.requireStatus(http.StatusOK, err)
+		require.NotNil(t, result)
+		charge, err := result.AsChargeFlatFee()
+		require.NoError(t, err)
+
+		list, err := c.Charges.List(t.Context(), v3sdk.ListChargesParams{
+			Filter: &v3sdk.ListChargesFilter{CustomerID: &v3sdk.StringExactFilter{Eq: &first.customer.ID}},
+			Expand: expands,
+		})
+		c.requireStatus(http.StatusOK, err)
+		require.Len(t, list.Data, 1)
+		listed, err := list.Data[0].AsChargeFlatFee()
+		require.NoError(t, err)
+		assert.Equal(t, listed, charge)
+	})
+
 	t.Run("filter by customer_id oeq spans both customers", func(t *testing.T) {
 		list, err := c.Charges.List(t.Context(), v3sdk.ListChargesParams{
 			Filter: &v3sdk.ListChargesFilter{

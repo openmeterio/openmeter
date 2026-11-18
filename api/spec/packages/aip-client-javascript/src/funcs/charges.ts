@@ -4,12 +4,72 @@ import { type Client, http } from '../core.js'
 import { type Result, type RequestOptions } from '../lib/types.js'
 import { request } from '../lib/request.js'
 import { toURLSearchParams, encodeSort } from '../lib/encodings.js'
-import { toWire, fromWire, assertValid, toSnakeCase } from '../lib/wire.js'
+import {
+  toWire,
+  toPathWire,
+  fromWire,
+  assertValid,
+  toSnakeCase,
+} from '../lib/wire.js'
 import * as schemas from '../models/schemas.js'
 import type {
+  GetChargeRequest,
+  GetChargeResponse,
   ListChargesRequest,
   ListChargesResponse,
 } from '../models/operations/charges.js'
+
+/**
+ * Get charge
+ *
+ * Get a flat fee or usage-based charge by ID.
+ *
+ * Deleted charges are returned with their status and realization history.
+ *
+ * GET /openmeter/charges/{chargeId}
+ */
+export function getCharge(
+  client: Client,
+  req: GetChargeRequest,
+  options?: RequestOptions,
+): Promise<Result<GetChargeResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      chargeId: req.chargeId,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(pathParamsInput, schemas.getChargePathParams)
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(schemas.getChargePathParamsWire, pathParams)
+    }
+    const path = `openmeter/charges/${(() => {
+      if (pathParams.chargeId === undefined) {
+        throw new Error('missing path parameter: chargeId')
+      }
+      return encodeURIComponent(String(pathParams.chargeId))
+    })()}`
+    const query = toWire(
+      {
+        expand: req.expand,
+      },
+      schemas.getChargeQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(schemas.getChargeQueryParamsWire, query)
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get(path, { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getChargeResponseWire, data)
+        }
+        return fromWire(data, schemas.getChargeResponse)
+      })
+  })
+}
 
 /**
  * List charges

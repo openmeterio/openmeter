@@ -1114,6 +1114,7 @@ type ListAppCatalogParams = models.ListAppCatalogParams
 type ListAppsParams = models.ListAppsParams
 type ListInvoicesParams = models.ListInvoicesParams
 type ListChargesParams = models.ListChargesParams
+type GetChargeParams = models.GetChargeParams
 type ListCurrenciesParams = models.ListCurrenciesParams
 type ListCostBasesParams = models.ListCostBasesParams
 type ListCustomersParams = models.ListCustomersParams

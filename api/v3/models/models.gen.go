@@ -14891,6 +14891,12 @@ type ListChargesParams struct {
 	Expand *[]BillingChargesExpand `form:"expand,omitempty" json:"expand,omitempty"`
 }
 
+// GetChargeParams defines parameters for GetCharge.
+type GetChargeParams struct {
+	// Expand Expand related entities, realization details, or real-time usage.
+	Expand *[]BillingChargesExpand `form:"expand,omitempty" json:"expand,omitempty"`
+}
+
 // ListCurrenciesParams defines parameters for ListCurrencies.
 type ListCurrenciesParams struct {
 	// Page Determines which page of the collection to retrieve.

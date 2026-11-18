@@ -917,6 +917,48 @@ paths:
       tags:
         - OpenMeter Billing Settings
       x-unstable: true
+  /openmeter/charges/{chargeId}:
+    get:
+      operationId: get-charge
+      summary: Get charge
+      description: |-
+        Get a flat fee or usage-based charge by ID.
+
+        Deleted charges are returned with their status and realization history.
+      parameters:
+        - name: chargeId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ULID'
+        - name: expand
+          in: query
+          required: false
+          description: Expand related entities, realization details, or real-time usage.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/BillingChargesExpand'
+          explode: false
+          style: form
+      responses:
+        '200':
+          description: Charge response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingCharge'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Billing Settings
+      x-unstable: true
   /openmeter/currencies:
     get:
       operationId: list-currencies

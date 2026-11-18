@@ -267,6 +267,7 @@ The full call path, HTTP route, and a short description are listed below.
 
 | Method | HTTP | Description |
 | --- | --- | --- |
+| `om.Charges.Get` | `GET /openmeter/charges/{chargeId}` | Get a flat fee or usage-based charge by ID. Deleted charges are returned with their status and realization history. |
 | `om.Charges.List` | `GET /openmeter/charges` | List charges. Returns the charges of every customer that are represented as either flat fee or usage-based charges. |
 
 ### Tax

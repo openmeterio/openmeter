@@ -1003,6 +1003,34 @@ func TestListChargesRoute(t *testing.T) {
 
 		require.Equal(t, http.StatusBadRequest, w.Code)
 	})
+
+}
+
+func TestGetChargeRoute(t *testing.T) {
+	testServer, _ := getTestServer(t, func(c *router.Config) {
+		c.ChargeService = &NoopChargeService{}
+	})
+	const chargeID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	const path = "/api/v3/openmeter/charges/"
+
+	tests := []struct {
+		name   string
+		path   string
+		status int
+	}{
+		{"missing charge", path + chargeID + "?expand=customer,realization.totals", http.StatusNotFound},
+		{"invalid charge ID", path + "not-a-ulid", http.StatusNotFound},
+		{"invalid expand", path + chargeID + "?expand=unknown", http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			w := httptest.NewRecorder()
+			testServer.ServeHTTP(w, req)
+			require.Equal(t, tt.status, w.Code, w.Body.String())
+		})
+	}
 }
 
 // NoopChargeService is a no-op implementation of billingcharges.Service for testing.
@@ -1050,6 +1078,10 @@ func (n NoopChargeService) HandleCreditPurchaseExternalPaymentStateTransition(_ 
 
 func (n NoopChargeService) CreateCustomerCharge(_ context.Context, _ billingcharges.CreateCustomerChargeInput) (billingcharges.CustomerCharge, error) {
 	return billingcharges.CustomerCharge{}, nil
+}
+
+func (n NoopChargeService) GetCustomerCharge(_ context.Context, input billingcharges.GetByIDInput) (billingcharges.CustomerCharge, error) {
+	return billingcharges.CustomerCharge{}, models.NewGenericNotFoundError(fmt.Errorf("charge %s not found", input.ChargeID.ID))
 }
 
 func (n NoopChargeService) DeleteCustomerCharge(_ context.Context, _ billingcharges.DeleteCustomerChargeInput) error {

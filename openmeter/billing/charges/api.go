@@ -18,9 +18,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-// CustomerChargeAPIService is the API-facing facade for customer-scoped charge operations.
+// CustomerChargeAPIService serves the customer charge representation used by the API.
 type CustomerChargeAPIService interface {
 	CreateCustomerCharge(ctx context.Context, input CreateCustomerChargeInput) (CustomerCharge, error)
+	GetCustomerCharge(ctx context.Context, input GetByIDInput) (CustomerCharge, error)
 	DeleteCustomerCharge(ctx context.Context, input DeleteCustomerChargeInput) error
 	SetCustomerChargeOverride(ctx context.Context, input SetCustomerChargeOverrideInput) (Charge, error)
 	ClearCustomerChargeOverride(ctx context.Context, input ClearCustomerChargeOverrideInput) (Charge, error)
