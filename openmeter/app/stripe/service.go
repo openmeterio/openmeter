@@ -45,6 +45,12 @@ type CustomerService interface {
 type BillingService interface {
 	GetSupplierContact(ctx context.Context, input GetSupplierContactInput) (billing.SupplierContact, error)
 
+	// GetLatestInvoiceGeneration returns how many times the Stripe invoice of the invoice had to be given up,
+	// 0 when it never was. The generation is part of the Stripe invoice create idempotency key.
+	GetLatestInvoiceGeneration(ctx context.Context, invoiceID billing.InvoiceID) (int, error)
+	// IncrementInvoiceGeneration makes the next Stripe invoice create request use a new idempotency key.
+	IncrementInvoiceGeneration(ctx context.Context, invoiceID billing.InvoiceID) error
+
 	// Invoice webhook handlers
 	HandleInvoiceStateTransition(ctx context.Context, input HandleInvoiceStateTransitionInput) error
 	HandleInvoiceSentEvent(ctx context.Context, input HandleInvoiceSentEventInput) error

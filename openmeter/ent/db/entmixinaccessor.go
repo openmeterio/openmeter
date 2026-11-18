@@ -224,6 +224,26 @@ func (e *AppStripeCustomer) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *AppStripeInvoiceGeneration) GetID() string {
+	return e.ID
+}
+
+func (e *AppStripeInvoiceGeneration) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *AppStripeInvoiceGeneration) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *AppStripeInvoiceGeneration) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *AppStripeInvoiceGeneration) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *BalanceSnapshot) GetNamespace() string {
 	return e.Namespace
 }

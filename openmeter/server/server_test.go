@@ -1652,6 +1652,14 @@ func (n NoopAppStripeService) GetSupplierContact(ctx context.Context, input apps
 	return billing.SupplierContact{}, nil
 }
 
+func (n NoopAppStripeService) GetLatestInvoiceGeneration(ctx context.Context, invoiceID billing.InvoiceID) (int, error) {
+	return 0, nil
+}
+
+func (n NoopAppStripeService) IncrementInvoiceGeneration(ctx context.Context, invoiceID billing.InvoiceID) error {
+	return nil
+}
+
 func (n NoopAppStripeService) GetMaskedSecretAPIKey(ctx context.Context, secretAPIKeyID secretentity.SecretID) (string, error) {
 	return "", nil
 }

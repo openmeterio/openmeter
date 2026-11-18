@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicegeneration"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -448,6 +449,43 @@ func init() {
 	appstripecustomerDescStripeCustomerID := appstripecustomerFields[2].Descriptor()
 	// appstripecustomer.StripeCustomerIDValidator is a validator for the "stripe_customer_id" field. It is called by the builders before save.
 	appstripecustomer.StripeCustomerIDValidator = appstripecustomerDescStripeCustomerID.Validators[0].(func(string) error)
+	appstripeinvoicegenerationMixin := schema.AppStripeInvoiceGeneration{}.Mixin()
+	appstripeinvoicegenerationMixinFields0 := appstripeinvoicegenerationMixin[0].Fields()
+	_ = appstripeinvoicegenerationMixinFields0
+	appstripeinvoicegenerationMixinFields1 := appstripeinvoicegenerationMixin[1].Fields()
+	_ = appstripeinvoicegenerationMixinFields1
+	appstripeinvoicegenerationMixinFields2 := appstripeinvoicegenerationMixin[2].Fields()
+	_ = appstripeinvoicegenerationMixinFields2
+	appstripeinvoicegenerationFields := schema.AppStripeInvoiceGeneration{}.Fields()
+	_ = appstripeinvoicegenerationFields
+	// appstripeinvoicegenerationDescNamespace is the schema descriptor for namespace field.
+	appstripeinvoicegenerationDescNamespace := appstripeinvoicegenerationMixinFields1[0].Descriptor()
+	// appstripeinvoicegeneration.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	appstripeinvoicegeneration.NamespaceValidator = appstripeinvoicegenerationDescNamespace.Validators[0].(func(string) error)
+	// appstripeinvoicegenerationDescCreatedAt is the schema descriptor for created_at field.
+	appstripeinvoicegenerationDescCreatedAt := appstripeinvoicegenerationMixinFields2[0].Descriptor()
+	// appstripeinvoicegeneration.DefaultCreatedAt holds the default value on creation for the created_at field.
+	appstripeinvoicegeneration.DefaultCreatedAt = appstripeinvoicegenerationDescCreatedAt.Default.(func() time.Time)
+	// appstripeinvoicegenerationDescUpdatedAt is the schema descriptor for updated_at field.
+	appstripeinvoicegenerationDescUpdatedAt := appstripeinvoicegenerationMixinFields2[1].Descriptor()
+	// appstripeinvoicegeneration.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	appstripeinvoicegeneration.DefaultUpdatedAt = appstripeinvoicegenerationDescUpdatedAt.Default.(func() time.Time)
+	// appstripeinvoicegeneration.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	appstripeinvoicegeneration.UpdateDefaultUpdatedAt = appstripeinvoicegenerationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// appstripeinvoicegenerationDescInvoiceID is the schema descriptor for invoice_id field.
+	appstripeinvoicegenerationDescInvoiceID := appstripeinvoicegenerationFields[0].Descriptor()
+	// appstripeinvoicegeneration.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
+	appstripeinvoicegeneration.InvoiceIDValidator = appstripeinvoicegenerationDescInvoiceID.Validators[0].(func(string) error)
+	// appstripeinvoicegenerationDescGeneration is the schema descriptor for generation field.
+	appstripeinvoicegenerationDescGeneration := appstripeinvoicegenerationFields[1].Descriptor()
+	// appstripeinvoicegeneration.DefaultGeneration holds the default value on creation for the generation field.
+	appstripeinvoicegeneration.DefaultGeneration = appstripeinvoicegenerationDescGeneration.Default.(int)
+	// appstripeinvoicegeneration.GenerationValidator is a validator for the "generation" field. It is called by the builders before save.
+	appstripeinvoicegeneration.GenerationValidator = appstripeinvoicegenerationDescGeneration.Validators[0].(func(int) error)
+	// appstripeinvoicegenerationDescID is the schema descriptor for id field.
+	appstripeinvoicegenerationDescID := appstripeinvoicegenerationMixinFields0[0].Descriptor()
+	// appstripeinvoicegeneration.DefaultID holds the default value on creation for the id field.
+	appstripeinvoicegeneration.DefaultID = appstripeinvoicegenerationDescID.Default.(func() string)
 	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
 	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
 	_ = balancesnapshotMixinFields0

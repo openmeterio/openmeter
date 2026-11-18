@@ -105,6 +105,18 @@ func (f AppStripeCustomerFunc) Mutate(ctx context.Context, m db.Mutation) (db.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppStripeCustomerMutation", m)
 }
 
+// The AppStripeInvoiceGenerationFunc type is an adapter to allow the use of ordinary
+// function as AppStripeInvoiceGeneration mutator.
+type AppStripeInvoiceGenerationFunc func(context.Context, *db.AppStripeInvoiceGenerationMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AppStripeInvoiceGenerationFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.AppStripeInvoiceGenerationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.AppStripeInvoiceGenerationMutation", m)
+}
+
 // The BalanceSnapshotFunc type is an adapter to allow the use of ordinary
 // function as BalanceSnapshot mutator.
 type BalanceSnapshotFunc func(context.Context, *db.BalanceSnapshotMutation) (db.Value, error)

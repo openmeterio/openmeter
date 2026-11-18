@@ -37,6 +37,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appcustominvoicingcustomer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripe"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripecustomer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/appstripeinvoicegeneration"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomerlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingcustomeroverride"
@@ -149,6 +150,7 @@ const (
 	TypeAppCustomer                                      = "AppCustomer"
 	TypeAppStripe                                        = "AppStripe"
 	TypeAppStripeCustomer                                = "AppStripeCustomer"
+	TypeAppStripeInvoiceGeneration                       = "AppStripeInvoiceGeneration"
 	TypeBalanceSnapshot                                  = "BalanceSnapshot"
 	TypeBillingCustomerLock                              = "BillingCustomerLock"
 	TypeBillingCustomerOverride                          = "BillingCustomerOverride"
@@ -9519,6 +9521,666 @@ func (m *AppStripeCustomerMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown AppStripeCustomer edge %s", name)
+}
+
+// AppStripeInvoiceGenerationMutation represents an operation that mutates the AppStripeInvoiceGeneration nodes in the graph.
+type AppStripeInvoiceGenerationMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *string
+	namespace     *string
+	created_at    *time.Time
+	updated_at    *time.Time
+	deleted_at    *time.Time
+	invoice_id    *string
+	generation    *int
+	addgeneration *int
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*AppStripeInvoiceGeneration, error)
+	predicates    []predicate.AppStripeInvoiceGeneration
+}
+
+var _ ent.Mutation = (*AppStripeInvoiceGenerationMutation)(nil)
+
+// appstripeinvoicegenerationOption allows management of the mutation configuration using functional options.
+type appstripeinvoicegenerationOption func(*AppStripeInvoiceGenerationMutation)
+
+// newAppStripeInvoiceGenerationMutation creates new mutation for the AppStripeInvoiceGeneration entity.
+func newAppStripeInvoiceGenerationMutation(c config, op Op, opts ...appstripeinvoicegenerationOption) *AppStripeInvoiceGenerationMutation {
+	m := &AppStripeInvoiceGenerationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAppStripeInvoiceGeneration,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAppStripeInvoiceGenerationID sets the ID field of the mutation.
+func withAppStripeInvoiceGenerationID(id string) appstripeinvoicegenerationOption {
+	return func(m *AppStripeInvoiceGenerationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AppStripeInvoiceGeneration
+		)
+		m.oldValue = func(ctx context.Context) (*AppStripeInvoiceGeneration, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AppStripeInvoiceGeneration.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAppStripeInvoiceGeneration sets the old AppStripeInvoiceGeneration of the mutation.
+func withAppStripeInvoiceGeneration(node *AppStripeInvoiceGeneration) appstripeinvoicegenerationOption {
+	return func(m *AppStripeInvoiceGenerationMutation) {
+		m.oldValue = func(context.Context) (*AppStripeInvoiceGeneration, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AppStripeInvoiceGenerationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AppStripeInvoiceGenerationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AppStripeInvoiceGeneration entities.
+func (m *AppStripeInvoiceGenerationMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AppStripeInvoiceGenerationMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AppStripeInvoiceGenerationMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AppStripeInvoiceGeneration.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *AppStripeInvoiceGenerationMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *AppStripeInvoiceGenerationMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the AppStripeInvoiceGeneration entity.
+// If the AppStripeInvoiceGeneration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceGenerationMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *AppStripeInvoiceGenerationMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AppStripeInvoiceGenerationMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AppStripeInvoiceGenerationMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AppStripeInvoiceGeneration entity.
+// If the AppStripeInvoiceGeneration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceGenerationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AppStripeInvoiceGenerationMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AppStripeInvoiceGenerationMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AppStripeInvoiceGenerationMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AppStripeInvoiceGeneration entity.
+// If the AppStripeInvoiceGeneration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceGenerationMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AppStripeInvoiceGenerationMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *AppStripeInvoiceGenerationMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *AppStripeInvoiceGenerationMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the AppStripeInvoiceGeneration entity.
+// If the AppStripeInvoiceGeneration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceGenerationMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *AppStripeInvoiceGenerationMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[appstripeinvoicegeneration.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[appstripeinvoicegeneration.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *AppStripeInvoiceGenerationMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, appstripeinvoicegeneration.FieldDeletedAt)
+}
+
+// SetInvoiceID sets the "invoice_id" field.
+func (m *AppStripeInvoiceGenerationMutation) SetInvoiceID(s string) {
+	m.invoice_id = &s
+}
+
+// InvoiceID returns the value of the "invoice_id" field in the mutation.
+func (m *AppStripeInvoiceGenerationMutation) InvoiceID() (r string, exists bool) {
+	v := m.invoice_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoiceID returns the old "invoice_id" field's value of the AppStripeInvoiceGeneration entity.
+// If the AppStripeInvoiceGeneration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceGenerationMutation) OldInvoiceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoiceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoiceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoiceID: %w", err)
+	}
+	return oldValue.InvoiceID, nil
+}
+
+// ResetInvoiceID resets all changes to the "invoice_id" field.
+func (m *AppStripeInvoiceGenerationMutation) ResetInvoiceID() {
+	m.invoice_id = nil
+}
+
+// SetGeneration sets the "generation" field.
+func (m *AppStripeInvoiceGenerationMutation) SetGeneration(i int) {
+	m.generation = &i
+	m.addgeneration = nil
+}
+
+// Generation returns the value of the "generation" field in the mutation.
+func (m *AppStripeInvoiceGenerationMutation) Generation() (r int, exists bool) {
+	v := m.generation
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGeneration returns the old "generation" field's value of the AppStripeInvoiceGeneration entity.
+// If the AppStripeInvoiceGeneration object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AppStripeInvoiceGenerationMutation) OldGeneration(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGeneration is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGeneration requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGeneration: %w", err)
+	}
+	return oldValue.Generation, nil
+}
+
+// AddGeneration adds i to the "generation" field.
+func (m *AppStripeInvoiceGenerationMutation) AddGeneration(i int) {
+	if m.addgeneration != nil {
+		*m.addgeneration += i
+	} else {
+		m.addgeneration = &i
+	}
+}
+
+// AddedGeneration returns the value that was added to the "generation" field in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) AddedGeneration() (r int, exists bool) {
+	v := m.addgeneration
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGeneration resets all changes to the "generation" field.
+func (m *AppStripeInvoiceGenerationMutation) ResetGeneration() {
+	m.generation = nil
+	m.addgeneration = nil
+}
+
+// Where appends a list predicates to the AppStripeInvoiceGenerationMutation builder.
+func (m *AppStripeInvoiceGenerationMutation) Where(ps ...predicate.AppStripeInvoiceGeneration) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AppStripeInvoiceGenerationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AppStripeInvoiceGenerationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AppStripeInvoiceGeneration, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AppStripeInvoiceGenerationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AppStripeInvoiceGenerationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AppStripeInvoiceGeneration).
+func (m *AppStripeInvoiceGenerationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AppStripeInvoiceGenerationMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.namespace != nil {
+		fields = append(fields, appstripeinvoicegeneration.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, appstripeinvoicegeneration.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, appstripeinvoicegeneration.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, appstripeinvoicegeneration.FieldDeletedAt)
+	}
+	if m.invoice_id != nil {
+		fields = append(fields, appstripeinvoicegeneration.FieldInvoiceID)
+	}
+	if m.generation != nil {
+		fields = append(fields, appstripeinvoicegeneration.FieldGeneration)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AppStripeInvoiceGenerationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case appstripeinvoicegeneration.FieldNamespace:
+		return m.Namespace()
+	case appstripeinvoicegeneration.FieldCreatedAt:
+		return m.CreatedAt()
+	case appstripeinvoicegeneration.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case appstripeinvoicegeneration.FieldDeletedAt:
+		return m.DeletedAt()
+	case appstripeinvoicegeneration.FieldInvoiceID:
+		return m.InvoiceID()
+	case appstripeinvoicegeneration.FieldGeneration:
+		return m.Generation()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AppStripeInvoiceGenerationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case appstripeinvoicegeneration.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case appstripeinvoicegeneration.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case appstripeinvoicegeneration.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case appstripeinvoicegeneration.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case appstripeinvoicegeneration.FieldInvoiceID:
+		return m.OldInvoiceID(ctx)
+	case appstripeinvoicegeneration.FieldGeneration:
+		return m.OldGeneration(ctx)
+	}
+	return nil, fmt.Errorf("unknown AppStripeInvoiceGeneration field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppStripeInvoiceGenerationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case appstripeinvoicegeneration.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case appstripeinvoicegeneration.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case appstripeinvoicegeneration.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case appstripeinvoicegeneration.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case appstripeinvoicegeneration.FieldInvoiceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoiceID(v)
+		return nil
+	case appstripeinvoicegeneration.FieldGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGeneration(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceGeneration field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AppStripeInvoiceGenerationMutation) AddedFields() []string {
+	var fields []string
+	if m.addgeneration != nil {
+		fields = append(fields, appstripeinvoicegeneration.FieldGeneration)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AppStripeInvoiceGenerationMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case appstripeinvoicegeneration.FieldGeneration:
+		return m.AddedGeneration()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AppStripeInvoiceGenerationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case appstripeinvoicegeneration.FieldGeneration:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGeneration(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceGeneration numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AppStripeInvoiceGenerationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(appstripeinvoicegeneration.FieldDeletedAt) {
+		fields = append(fields, appstripeinvoicegeneration.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AppStripeInvoiceGenerationMutation) ClearField(name string) error {
+	switch name {
+	case appstripeinvoicegeneration.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceGeneration nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AppStripeInvoiceGenerationMutation) ResetField(name string) error {
+	switch name {
+	case appstripeinvoicegeneration.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case appstripeinvoicegeneration.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case appstripeinvoicegeneration.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case appstripeinvoicegeneration.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case appstripeinvoicegeneration.FieldInvoiceID:
+		m.ResetInvoiceID()
+		return nil
+	case appstripeinvoicegeneration.FieldGeneration:
+		m.ResetGeneration()
+		return nil
+	}
+	return fmt.Errorf("unknown AppStripeInvoiceGeneration field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AppStripeInvoiceGenerationMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AppStripeInvoiceGenerationMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown AppStripeInvoiceGeneration unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AppStripeInvoiceGenerationMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown AppStripeInvoiceGeneration edge %s", name)
 }
 
 // BalanceSnapshotMutation represents an operation that mutates the BalanceSnapshot nodes in the graph.

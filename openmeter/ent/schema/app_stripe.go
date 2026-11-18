@@ -128,3 +128,33 @@ func (AppStripeCustomer) Edges() []ent.Edge {
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
+
+// AppStripeInvoiceGeneration counts how many times the Stripe invoice of an OpenMeter invoice had to be
+// given up. The generation is part of the idempotency key of the Stripe invoice create request, so
+// a new generation makes Stripe create a new invoice instead of replaying a stored response.
+type AppStripeInvoiceGeneration struct {
+	ent.Schema
+}
+
+func (AppStripeInvoiceGeneration) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (AppStripeInvoiceGeneration) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("invoice_id").NotEmpty().Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
+		field.Int("generation").Default(0).NonNegative(),
+	}
+}
+
+func (AppStripeInvoiceGeneration) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "invoice_id").Unique(),
+	}
+}

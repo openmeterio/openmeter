@@ -498,6 +498,20 @@ func (u *AppStripeCustomerUpdateOne) SetOrClearStripeDefaultPaymentMethodID(valu
 	return u.SetStripeDefaultPaymentMethodID(*value)
 }
 
+func (u *AppStripeInvoiceGenerationUpdate) SetOrClearDeletedAt(value *time.Time) *AppStripeInvoiceGenerationUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *AppStripeInvoiceGenerationUpdateOne) SetOrClearDeletedAt(value *time.Time) *AppStripeInvoiceGenerationUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *BalanceSnapshotUpdate) SetOrClearDeletedAt(value *time.Time) *BalanceSnapshotUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
