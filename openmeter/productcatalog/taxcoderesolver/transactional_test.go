@@ -160,6 +160,58 @@ func TestTransactionalTaxCodeResolver(t *testing.T) {
 		assert.True(t, taxcode.IsTaxCodeNotFoundError(err), "expected tax code not found error, got: %v", err)
 	})
 
+	t.Run("GetByStripeCodeReturnsKnownTaxCode", func(t *testing.T) {
+		// given: a tax code mapped to the stripe code
+		namespace := testutils.NameGenerator.Generate().Key
+		existing := env.CreateTaxCode(t, namespace, taxcode.CreateTaxCodeInput{
+			AppMappings: taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_50000000"}},
+		})
+
+		// when: getting the stripe code through the transactional resolver
+		got, err := txResolver.GetByStripeCode(t.Context(), productcatalog.GetTaxCodeByStripeCodeInput{
+			Namespace:  namespace,
+			StripeCode: "txcd_50000000",
+		})
+
+		// then: the existing tax code is returned
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		assert.Equal(t, existing.ID, got.ID)
+	})
+
+	t.Run("GetByStripeCodeUnknownStripeCodeCreatesNothing", func(t *testing.T) {
+		// given: no tax code mapped to the stripe code
+		namespace := testutils.NameGenerator.Generate().Key
+
+		// when: getting the stripe code through the transactional resolver
+		got, err := txResolver.GetByStripeCode(t.Context(), productcatalog.GetTaxCodeByStripeCodeInput{
+			Namespace:  namespace,
+			StripeCode: "txcd_60000000",
+		})
+
+		// then: the lookup fails as not found and no tax code was created
+		require.Error(t, err)
+		assert.Nil(t, got)
+		assert.True(t, taxcode.IsTaxCodeNotFoundError(err), "expected tax code not found error, got: %v", err)
+
+		_, err = getByStripeCode(t, namespace, "txcd_60000000")
+		assert.True(t, taxcode.IsTaxCodeNotFoundError(err), "expected tax code not found error, got: %v", err)
+	})
+
+	t.Run("GetByStripeCodeInvalidInput", func(t *testing.T) {
+		for name, input := range map[string]productcatalog.GetTaxCodeByStripeCodeInput{
+			"missing namespace":   {StripeCode: "txcd_10000000"},
+			"missing stripe code": {Namespace: testutils.NameGenerator.Generate().Key},
+		} {
+			t.Run(name, func(t *testing.T) {
+				_, err := txResolver.GetByStripeCode(t.Context(), input)
+
+				require.Error(t, err)
+				assert.True(t, models.IsGenericValidationError(err), "expected validation error, got: %v", err)
+			})
+		}
+	})
+
 	t.Run("InvalidInput", func(t *testing.T) {
 		for name, input := range map[string]productcatalog.ResolveOrBackfillTaxCodeInput{
 			"missing namespace":   {StripeCode: "txcd_10000000"},

@@ -55,7 +55,11 @@ func (h *InvoiceEventHandler) Handle(ctx context.Context, event billing.EventSta
 		return nil
 	}
 
-	taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, h.TaxCodeResolver, event.Invoice.Namespace, event.Invoice.Workflow.Config)
+	taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, h.TaxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:     event.Invoice.Namespace,
+		Workflows:     []billing.WorkflowConfig{event.Invoice.Workflow.Config},
+		StandardLines: event.Invoice.Lines.OrEmpty(),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to resolve tax codes for event invoice: %w", err)
 	}

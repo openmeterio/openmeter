@@ -39,6 +39,10 @@ type TransactionalTaxCodeResolver interface {
 	// codes nothing references. Reads through this resolver with fn's ctx see the codes created
 	// in it.
 	WithResolver(ctx context.Context, fn func(ctx context.Context, resolver TaxCodeBackfillResolver) error) error
+
+	// GetByStripeCode returns the live Tax Code mapped to the Stripe code. It never creates one.
+	// Unknown codes return a not-found error. Only v1 handlers need this, while v1 accepts stripe.code.
+	GetByStripeCode(ctx context.Context, input GetTaxCodeByStripeCodeInput) (*taxcode.TaxCode, error)
 }
 
 // TaxCodeBackfillResolver resolves legacy Stripe codes to Tax Codes, creating missing ones. It's
@@ -57,6 +61,27 @@ type ResolveOrBackfillTaxCodeInput struct {
 }
 
 func (i ResolveOrBackfillTaxCodeInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.StripeCode == "" {
+		errs = append(errs, errors.New("stripe code is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+var _ models.Validator = (*GetTaxCodeByStripeCodeInput)(nil)
+
+type GetTaxCodeByStripeCodeInput struct {
+	Namespace  string
+	StripeCode string
+}
+
+func (i GetTaxCodeByStripeCodeInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {

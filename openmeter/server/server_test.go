@@ -2388,6 +2388,10 @@ func (n NoopTaxCodeResolver) ResolveOrBackfillTaxCode(ctx context.Context, input
 	return &taxcode.TaxCode{}, nil
 }
 
+func (n NoopTaxCodeResolver) GetByStripeCode(ctx context.Context, input productcatalog.GetTaxCodeByStripeCodeInput) (*taxcode.TaxCode, error) {
+	return &taxcode.TaxCode{}, nil
+}
+
 type noopNamespacedTaxCodeResolver struct {
 	namespace string
 }

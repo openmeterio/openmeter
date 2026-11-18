@@ -86,47 +86,81 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 			}, nil
 		},
 		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {
-			res, err := h.createPendingInvoiceLines(ctx, request)
+			var (
+				resp       CreatePendingLineResponse
+				res        *billing.CreatePendingInvoiceLinesResult
+				customerID = request.Customer
+			)
+
+			// The service call and the response mapping share one transaction: the stripe.code
+			// each line sends is resolved to a Tax Code (creating missing ones) that commits or
+			// rolls back with the lines.
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				for i := range request.Lines {
+					resolved, err := resolveLineTaxConfig(ctx, resolver, request.Customer.Namespace, request.Lines[i].TaxConfig)
+					if err != nil {
+						return err
+					}
+
+					request.Lines[i].TaxConfig = resolved
+				}
+
+				var err error
+				res, err = h.createPendingInvoiceLines(ctx, request)
+				if err != nil {
+					return err
+				}
+
+				if res == nil {
+					return fmt.Errorf("create pending invoice lines result is nil")
+				}
+
+				// TODO: For the V3 api let's not return the invoice
+				mergedProfile, err := h.service.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
+					Customer: customerID,
+					Expand: billing.CustomerBillingProfileExpand{
+						Customer: true,
+						Apps:     true,
+					},
+				})
+				if err != nil {
+					return fmt.Errorf("failed to get customer override: %w", err)
+				}
+
+				taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, h.taxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+					Namespace:      request.Customer.Namespace,
+					Workflows:      []billing.WorkflowConfig{mergedProfile.EffectiveProfile.WorkflowConfig},
+					GatheringLines: res.Lines,
+				})
+				if err != nil {
+					return err
+				}
+
+				response := CreatePendingLineResponse{
+					IsInvoiceNew: res.IsInvoiceNew,
+				}
+
+				response.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.EffectiveProfile, taxCodes)
+				if err != nil {
+					return fmt.Errorf("failed to map invoice: %w", err)
+				}
+
+				response.Lines, err = slicesx.MapWithErr(res.Lines, func(line billing.GatheringLine) (apiv1models.InvoiceLine, error) {
+					return mapGatheringInvoiceLineToAPI(line, taxCodes)
+				})
+				if err != nil {
+					return fmt.Errorf("failed to map lines: %w", err)
+				}
+
+				resp = response
+
+				return nil
+			})
 			if err != nil {
 				return CreatePendingLineResponse{}, fmt.Errorf("failed to create invoice lines: %w", err)
 			}
 
-			if res == nil {
-				return CreatePendingLineResponse{}, fmt.Errorf("create pending invoice lines result is nil")
-			}
-
-			out := CreatePendingLineResponse{
-				IsInvoiceNew: res.IsInvoiceNew,
-			}
-
-			// TODO: For the V3 api let's not return the invoice
-			mergedProfile, err := h.service.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
-				Customer: request.Customer,
-				Expand: billing.CustomerBillingProfileExpand{
-					Customer: true,
-					Apps:     true,
-				},
-			})
-			if err != nil {
-				return CreatePendingLineResponse{}, fmt.Errorf("failed to get customer override: %w", err)
-			}
-
-			taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, request.Customer.Namespace, mergedProfile.EffectiveProfile.WorkflowConfig)
-			if err != nil {
-				return CreatePendingLineResponse{}, err
-			}
-
-			out.Invoice, err = MapGatheringInvoiceToAPI(res.Invoice, mergedProfile.Customer, mergedProfile.EffectiveProfile, taxCodes)
-			if err != nil {
-				return CreatePendingLineResponse{}, fmt.Errorf("failed to map invoice: %w", err)
-			}
-
-			out.Lines, err = slicesx.MapWithErr(res.Lines, mapGatheringInvoiceLineToAPI)
-			if err != nil {
-				return CreatePendingLineResponse{}, fmt.Errorf("failed to map lines: %w", err)
-			}
-
-			return out, nil
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreatePendingLineResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -168,45 +202,6 @@ func (h *handler) shouldCreatePendingLinesWithCharges(namespace string) (bool, e
 	}
 
 	return h.featureGate.Enabled(namespace, h.featureGate.Flags.Credits())
-}
-
-func mapCreateLineToEntity(line apiv1models.InvoicePendingLineCreate, ns string) (*billing.StandardLine, error) {
-	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
-		RateCard:   line.RateCard,
-		Price:      line.Price,
-		TaxConfig:  line.TaxConfig,
-		FeatureKey: line.FeatureKey,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to map usage based line: %w", err)
-	}
-
-	return &billing.StandardLine{
-		StandardLineBase: billing.StandardLineBase{
-			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
-				Namespace:   ns,
-				Name:        line.Name,
-				Description: line.Description,
-			}),
-
-			Metadata:  lo.FromPtrOr(line.Metadata, map[string]string{}),
-			ManagedBy: billing.ManuallyManagedLine,
-			Engine:    billing.LineEngineTypeInvoice,
-
-			Period: timeutil.ClosedPeriod{
-				From: line.Period.From,
-				To:   line.Period.To,
-			},
-
-			InvoiceAt:         line.InvoiceAt,
-			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
-			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
-		},
-		UsageBased: &billing.UsageBasedLine{
-			Price:      rateCardParsed.Price,
-			FeatureKey: rateCardParsed.FeatureKey,
-		},
-	}, nil
 }
 
 func mapCreateGatheringLineToEntity(line apiv1models.InvoicePendingLineCreate, ns string) (billing.GatheringLine, error) {
@@ -324,7 +319,7 @@ func mapSimulationLineToEntity(line apiv1models.InvoiceSimulationLine) (*billing
 	}, nil
 }
 
-func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplaceUpdate, invoice *billing.StandardInvoice) (*billing.StandardLine, error) {
+func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplaceUpdate, invoice *billing.StandardInvoice, resolvedTaxConfig *productcatalog.TaxConfig) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -333,6 +328,13 @@ func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplac
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map usage based line: %w", err)
+	}
+
+	// The handler resolved the request's tax config before the service call; nil keeps the
+	// line without a tax config, which the invoice's default fills in at calculation time.
+	taxConfig := resolvedTaxConfig
+	if taxConfig == nil {
+		taxConfig = rateCardParsed.TaxConfig
 	}
 
 	return &billing.StandardLine{
@@ -354,7 +356,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplac
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
-			TaxConfig:         billing.FromProductCatalog(rateCardParsed.TaxConfig),
+			TaxConfig:         billing.FromProductCatalog(taxConfig),
 			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -366,7 +368,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplac
 	}, nil
 }
 
-func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplaceUpdate, invoice *billing.GatheringInvoice) (billing.GatheringLine, error) {
+func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplaceUpdate, invoice *billing.GatheringInvoice, resolvedTaxConfig *productcatalog.TaxConfig) (billing.GatheringLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -381,6 +383,13 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineRepla
 		return billing.GatheringLine{}, billing.ValidationError{
 			Err: fmt.Errorf("price is required for usage based lines"),
 		}
+	}
+
+	// The handler resolved the request's tax config before the service call; nil keeps the
+	// line without a tax config, which the invoice's default fills in at calculation time.
+	taxConfig := resolvedTaxConfig
+	if taxConfig == nil {
+		taxConfig = rateCardParsed.TaxConfig
 	}
 
 	return billing.GatheringLine{
@@ -402,7 +411,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineRepla
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
-			TaxConfig:         rateCardParsed.TaxConfig,
+			TaxConfig:         taxConfig,
 			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 			Price:             lo.FromPtr(rateCardParsed.Price),
 			FeatureKey:        rateCardParsed.FeatureKey,
@@ -410,7 +419,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineRepla
 	}, nil
 }
 
-func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line apiv1models.InvoiceLineReplaceUpdate) (*billing.StandardLine, error) {
+func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLine, line apiv1models.InvoiceLineReplaceUpdate, resolvedTaxConfig *productcatalog.TaxConfig) (*billing.StandardLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -431,7 +440,14 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	existing.TaxConfig = billing.FromProductCatalog(rateCardParsed.TaxConfig)
+	// The handler resolved the request's tax config before the service call; nil keeps the
+	// line without a tax config, which the invoice's default fills in at calculation time.
+	taxConfig := resolvedTaxConfig
+	if taxConfig == nil {
+		taxConfig = rateCardParsed.TaxConfig
+	}
+
+	existing.TaxConfig = billing.FromProductCatalog(taxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(rateCardParsed.Discounts)
@@ -439,7 +455,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	return existing, nil
 }
 
-func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line apiv1models.InvoiceLineReplaceUpdate) (billing.GatheringLine, error) {
+func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLine, line apiv1models.InvoiceLineReplaceUpdate, resolvedTaxConfig *productcatalog.TaxConfig) (billing.GatheringLine, error) {
 	rateCardParsed, err := mapAndValidateInvoiceLineRateCardDeprecatedFields(invoiceLineRateCardItems{
 		RateCard:   line.RateCard,
 		Price:      line.Price,
@@ -466,7 +482,14 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	existing.ServicePeriod.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	existing.TaxConfig = rateCardParsed.TaxConfig
+	// The handler resolved the request's tax config before the service call; nil keeps the
+	// line without a tax config, which the invoice's default fills in at calculation time.
+	taxConfig := resolvedTaxConfig
+	if taxConfig == nil {
+		taxConfig = rateCardParsed.TaxConfig
+	}
+
+	existing.TaxConfig = taxConfig
 	existing.Price = lo.FromPtr(rateCardParsed.Price)
 	existing.FeatureKey = rateCardParsed.FeatureKey
 	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(rateCardParsed.Discounts)
@@ -474,7 +497,12 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	return existing, nil
 }
 
-func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *billing.StandardInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate) (billing.StandardInvoiceLines, error) {
+func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *billing.StandardInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate, resolved []resolvedLineTaxConfig) (billing.StandardInvoiceLines, error) {
+	resolvedTaxConfigs, err := taxConfigsForRequestLines(resolved, updatedLines)
+	if err != nil {
+		return billing.StandardInvoiceLines{}, err
+	}
+
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) string {
 		return line.ID
 	})
@@ -483,7 +511,7 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *b
 
 	out := make([]*billing.StandardLine, 0, len(updatedLines))
 
-	for _, line := range updatedLines {
+	for i, line := range updatedLines {
 		id := lo.FromPtr(line.Id)
 
 		existingLine, existingLineFound := linesByID[id]
@@ -491,9 +519,9 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *b
 		if id == "" || !existingLineFound {
 			// We allow injecting fake IDs for new lines, so that discounts can reference those,
 			// but we are not persisting them to the database
-			newLine, err := standardLineFromInvoiceLineReplaceUpdate(line, invoice)
-			if err != nil {
-				return billing.StandardInvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
+			newLine, mergeErr := standardLineFromInvoiceLineReplaceUpdate(line, invoice, resolvedTaxConfigs[i])
+			if mergeErr != nil {
+				return billing.StandardInvoiceLines{}, fmt.Errorf("failed to create new line: %w", mergeErr)
 			}
 
 			out = append(out, newLine)
@@ -502,9 +530,9 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *b
 		}
 
 		foundLines.Add(id)
-		mergedLine, err := mergeStandardLineFromInvoiceLineReplaceUpdate(existingLine, line)
-		if err != nil {
-			return billing.StandardInvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
+		mergedLine, mergeErr := mergeStandardLineFromInvoiceLineReplaceUpdate(existingLine, line, resolvedTaxConfigs[i])
+		if mergeErr != nil {
+			return billing.StandardInvoiceLines{}, fmt.Errorf("failed to merge line: %w", mergeErr)
 		}
 
 		out = append(out, mergedLine)
@@ -522,7 +550,12 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *b
 	return billing.NewStandardInvoiceLines(out), nil
 }
 
-func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice *billing.GatheringInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate) (billing.GatheringInvoiceLines, error) {
+func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice *billing.GatheringInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate, resolved []resolvedLineTaxConfig) (billing.GatheringInvoiceLines, error) {
+	resolvedTaxConfigs, err := taxConfigsForRequestLines(resolved, updatedLines)
+	if err != nil {
+		return billing.GatheringInvoiceLines{}, err
+	}
+
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) string {
 		return line.ID
 	})
@@ -531,7 +564,7 @@ func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice
 
 	out := make([]billing.GatheringLine, 0, len(updatedLines))
 
-	for _, line := range updatedLines {
+	for i, line := range updatedLines {
 		id := lo.FromPtr(line.Id)
 
 		existingLine, existingLineFound := linesByID[id]
@@ -539,9 +572,9 @@ func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice
 		if id == "" || !existingLineFound {
 			// We allow injecting fake IDs for new lines, so that discounts can reference those,
 			// but we are not persisting them to the database
-			newLine, err := gatheringLineFromInvoiceLineReplaceUpdate(line, invoice)
-			if err != nil {
-				return billing.GatheringInvoiceLines{}, fmt.Errorf("failed to create new line: %w", err)
+			newLine, mergeErr := gatheringLineFromInvoiceLineReplaceUpdate(line, invoice, resolvedTaxConfigs[i])
+			if mergeErr != nil {
+				return billing.GatheringInvoiceLines{}, fmt.Errorf("failed to create new line: %w", mergeErr)
 			}
 
 			out = append(out, newLine)
@@ -550,9 +583,9 @@ func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice
 		}
 
 		foundLines.Add(id)
-		mergedLine, err := mergeGatheringLineFromInvoiceLineReplaceUpdate(existingLine, line)
-		if err != nil {
-			return billing.GatheringInvoiceLines{}, fmt.Errorf("failed to merge line: %w", err)
+		mergedLine, mergeErr := mergeGatheringLineFromInvoiceLineReplaceUpdate(existingLine, line, resolvedTaxConfigs[i])
+		if mergeErr != nil {
+			return billing.GatheringInvoiceLines{}, fmt.Errorf("failed to merge line: %w", mergeErr)
 		}
 
 		out = append(out, mergedLine)

@@ -26,9 +26,7 @@ func NewTransactional(service taxcode.Service, txCreator transaction.Creator) (p
 	return &transactionalResolver{
 		TaxCodeResolver: readResolver,
 		txCreator:       txCreator,
-		backfillResolver: &backfillResolver{
-			service: service,
-		},
+		service:         service,
 	}, nil
 }
 
@@ -37,14 +35,33 @@ var _ productcatalog.TransactionalTaxCodeResolver = (*transactionalResolver)(nil
 type transactionalResolver struct {
 	productcatalog.TaxCodeResolver
 
-	txCreator        transaction.Creator
-	backfillResolver *backfillResolver
+	txCreator transaction.Creator
+	service   taxcode.Service
 }
 
 func (r *transactionalResolver) WithResolver(ctx context.Context, fn func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error) error {
 	return transaction.RunWithNoValue(ctx, r.txCreator, func(ctx context.Context) error {
-		return fn(ctx, r.backfillResolver)
+		return fn(ctx, &backfillResolver{service: r.service})
 	})
+}
+
+// GetByStripeCode reads the Tax Code mapped to the Stripe code without creating one, so
+// read-only callers like simulate can't leave rows behind.
+func (r *transactionalResolver) GetByStripeCode(ctx context.Context, input productcatalog.GetTaxCodeByStripeCodeInput) (*taxcode.TaxCode, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	tc, err := r.service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: input.Namespace,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   input.StripeCode,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting tax code for stripe code %s: %w", input.StripeCode, err)
+	}
+
+	return &tc, nil
 }
 
 var _ productcatalog.TaxCodeBackfillResolver = (*backfillResolver)(nil)
