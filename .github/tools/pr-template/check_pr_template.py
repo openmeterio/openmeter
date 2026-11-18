@@ -44,7 +44,6 @@ def check_section(body: str, heading: str) -> None:
     if section is None:
         fail(f"Missing required section: {heading} (## {heading})")
 
-    assert section is not None
     if not section:
         fail(f"Empty required section: {heading}")
 
