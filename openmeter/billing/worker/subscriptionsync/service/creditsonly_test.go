@@ -88,18 +88,6 @@ type expectedUsageBasedCharge struct {
 	Price                   productcatalog.Price
 }
 
-func (e expectedUsageBasedCharge) Indexes(indexes ...int) expectedUsageBasedCharge {
-	return expectedUsageBasedCharge{
-		ChildUniqueReferenceIDs: lo.Map(indexes, func(index int, _ int) string { return e.ChildUniqueReferenceIDs[index] }),
-		ServicePeriods:          lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.ServicePeriods[index] }),
-		FullServicePeriods:      lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.FullServicePeriods[index] }),
-		BillingPeriods:          lo.Map(indexes, func(index int, _ int) timeutil.ClosedPeriod { return e.BillingPeriods[index] }),
-		InvoiceAt:               lo.Map(indexes, func(index int, _ int) time.Time { return e.InvoiceAt[index] }),
-		FeatureKey:              e.FeatureKey,
-		Price:                   e.Price,
-	}
-}
-
 func TestCreditsOnlySubscriptionHandlerScenarios(t *testing.T) {
 	suite.Run(t, new(CreditsOnlySubscriptionHandlerTestSuite))
 }
@@ -1323,7 +1311,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedProvi
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-02-01T00:00:00Z")
 
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -1435,7 +1423,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedCance
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	syncUntil := s.mustParseTime("2024-03-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-01-15T00:00:00Z")
 	cancelAt := startAt
 
 	clock.SetTime(setupAt)
@@ -1557,7 +1545,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	periodEnd := s.mustParseTime("2024-03-01T00:00:00Z")
+	syncUntil := s.mustParseTime("2024-01-15T00:00:00Z")
 	cancelAt := s.mustParseTime("2024-02-15T00:00:00Z")
 	clock.SetTime(setupAt)
 	defer clock.ResetTime()
@@ -1606,7 +1594,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 			},
 		}, startAt)
 
-		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, periodEnd))
+		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
 			Namespace:       s.Namespace,
 			SubscriptionIDs: []string{subscriptionView.Subscription.ID},
@@ -1695,7 +1683,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
-	initialSyncUntil := s.mustParseTime("2024-04-01T00:00:00Z")
+	initialSyncUntil := s.mustParseTime("2024-02-20T00:00:00Z")
 	cancelAt := s.mustParseTime("2024-02-16T00:00:00Z")
 
 	clock.SetTime(setupAt)
@@ -1888,6 +1876,198 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedMidPe
 	})
 }
 
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedChargeProvisionedAheadIsActivatedByAdvance() {
+	ctx := s.testContext()
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	march := s.mustParseTime("2024-03-01T00:00:00Z")
+	april := s.mustParseTime("2024-04-01T00:00:00Z")
+
+	clock.FreezeTime(s.mustParseTime("2024-01-01T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromFloat(1),
+	})
+
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Usage Based",
+				Key:            "credits-only-usage-based",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+
+	// Given a sync in mid-February: February's charge is created inside its service
+	// period, March's a month before its service period starts.
+	clock.FreezeTime(s.mustParseTime("2024-02-15T00:00:00Z"))
+	defer clock.UnFreeze()
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, clock.Now()))
+
+	periods := []timeutil.ClosedPeriod{{From: startAt, To: march}, {From: march, To: april}}
+	provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, []expectedUsageBasedCharge{{
+		ChildUniqueReferenceIDs: recurringLineMatcher{
+			PhaseKey:  "first-phase",
+			ItemKey:   s.APIRequestsTotalFeature.Key,
+			PeriodMax: 1,
+		}.ChildIDs(subscriptionView.Subscription.ID),
+		ServicePeriods:     periods,
+		FullServicePeriods: periods,
+		BillingPeriods:     periods,
+		InvoiceAt:          []time.Time{march, april},
+		FeatureKey:         s.APIRequestsTotalFeature.Key,
+		Price:              *unitPrice,
+	}})
+	s.Require().Len(provisionedCharges, 2)
+	februaryCharge, marchCharge := provisionedCharges[0], provisionedCharges[1]
+	s.Equal(usagebased.StatusActive, februaryCharge.Status)
+	s.Equal(usagebased.StatusCreated, marchCharge.Status)
+	// The advance worker finds customers through advance_after. March's charge has
+	// none, so it relies on another charge of the customer coming due.
+	s.Nil(marchCharge.State.AdvanceAfter)
+
+	// February has usage, so its charge can be realized once the month is over.
+	s.MockStreamingConnector.AddSimpleEvent(s.APIRequestsTotalFeature.Key, 3, startAt.Add(24*time.Hour))
+
+	// When March starts and only the advance worker runs, with no further subscription sync.
+	clock.FreezeTime(march.Add(time.Hour))
+	defer clock.UnFreeze()
+	customersToAdvance, err := s.Charges.ListCustomersToAdvance(ctx, charges.ListCustomersToAdvanceInput{
+		Namespaces:      []string{s.Namespace},
+		AdvanceAfterLTE: clock.Now(),
+	})
+	s.Require().NoError(err)
+	s.Require().Contains(customersToAdvance.Items, s.Customer.GetID(), "February's charge is due, which gets the customer picked up")
+	_, err = s.Charges.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: s.Customer.GetID()})
+	s.Require().NoError(err)
+
+	// Then March's charge is active inside its own service period.
+	activatedChargeRes, err := s.Charges.GetByID(ctx, charges.GetByIDInput{
+		ChargeID: chargesmeta.ChargeID{Namespace: s.Namespace, ID: marchCharge.ID},
+	})
+	s.Require().NoError(err)
+	activatedCharge, err := activatedChargeRes.AsUsageBasedCharge()
+	s.Require().NoError(err)
+	s.Equal(usagebased.StatusActive, activatedCharge.Status)
+}
+
+func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedChargeProvisionedBeforeStartIsActivatedByNextSync() {
+	ctx := s.testContext()
+	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
+	march := s.mustParseTime("2024-03-01T00:00:00Z")
+	april := s.mustParseTime("2024-04-01T00:00:00Z")
+
+	clock.FreezeTime(s.mustParseTime("2024-01-15T00:00:00Z"))
+	defer clock.UnFreeze()
+
+	unitPrice := productcatalog.NewPriceFrom(productcatalog.UnitPrice{
+		Amount: alpacadecimal.NewFromFloat(1),
+	})
+
+	subscriptionView := s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.Namespace,
+		},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Credits Only Usage Based",
+				Key:            "credits-only-usage-based",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(currencyx.Code(currency.USD)),
+				SettlementMode: productcatalog.CreditOnlySettlementMode,
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+			Phases: []productcatalog.Phase{
+				{
+					PhaseMeta: s.phaseMeta("first-phase", ""),
+					RateCards: productcatalog.RateCards{
+						&productcatalog.UsageBasedRateCard{
+							RateCardMeta: productcatalog.RateCardMeta{
+								Name:    s.APIRequestsTotalFeature.Key,
+								Key:     s.APIRequestsTotalFeature.Key,
+								Feature: productcatalog.NewFeatureReference(lo.ToPtr(s.APIRequestsTotalFeature.ID), lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+								Price:   unitPrice,
+							},
+							BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+						},
+					},
+				},
+			},
+		},
+	}, startAt)
+
+	// Given a sync before the subscription starts: only February's charge exists,
+	// and nothing is scheduled to advance it.
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, clock.Now()))
+
+	periods := []timeutil.ClosedPeriod{{From: startAt, To: march}, {From: march, To: april}}
+	childIDs := recurringLineMatcher{
+		PhaseKey:  "first-phase",
+		ItemKey:   s.APIRequestsTotalFeature.Key,
+		PeriodMax: 1,
+	}.ChildIDs(subscriptionView.Subscription.ID)
+	provisionedCharges := s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, []expectedUsageBasedCharge{{
+		ChildUniqueReferenceIDs: childIDs[:1],
+		ServicePeriods:          periods[:1],
+		FullServicePeriods:      periods[:1],
+		BillingPeriods:          periods[:1],
+		InvoiceAt:               []time.Time{march},
+		FeatureKey:              s.APIRequestsTotalFeature.Key,
+		Price:                   *unitPrice,
+	}})
+	s.Require().Len(provisionedCharges, 1)
+	s.Equal(usagebased.StatusCreated, provisionedCharges[0].Status)
+	s.Nil(provisionedCharges[0].State.AdvanceAfter)
+
+	// When February starts, the advance worker has no reason to visit the customer.
+	clock.FreezeTime(startAt.Add(time.Hour))
+	defer clock.UnFreeze()
+	customersToAdvance, err := s.Charges.ListCustomersToAdvance(ctx, charges.ListCustomersToAdvanceInput{
+		Namespaces:      []string{s.Namespace},
+		AdvanceAfterLTE: clock.Now(),
+	})
+	s.Require().NoError(err)
+	s.NotContains(customersToAdvance.Items, s.Customer.GetID())
+
+	// Then the next subscription sync activates February's charge while provisioning March's.
+	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, clock.Now()))
+	provisionedCharges = s.expectCreditsOnlyUsageBasedCharges(ctx, subscriptionView.Subscription.ID, []expectedUsageBasedCharge{{
+		ChildUniqueReferenceIDs: childIDs,
+		ServicePeriods:          periods,
+		FullServicePeriods:      periods,
+		BillingPeriods:          periods,
+		InvoiceAt:               []time.Time{march, april},
+		FeatureKey:              s.APIRequestsTotalFeature.Key,
+		Price:                   *unitPrice,
+	}})
+	s.Require().Len(provisionedCharges, 2)
+	s.Equal(usagebased.StatusActive, provisionedCharges[0].Status)
+	s.Equal(usagebased.StatusCreated, provisionedCharges[1].Status)
+}
+
 func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioning() {
 	// Given:
 	// - a subscription is created with credits_only settlement
@@ -1898,9 +2078,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 	// - the charge is provisioned for the next two billing cycles
 	//
 	// Then:
-	// - three charges are created with matching properties and child unique reference IDs
-	// - the flat fee produces two in-advance charges, while the usage-based item produces one
-	//   in-arrears charge at this sync horizon
+	// - four charges are created with matching properties and child unique reference IDs
+	// - the flat fee produces two in-advance charges and the usage-based item two in-arrears
+	//   charges: both items cover the current and the next billing cycle
 	ctx := s.testContext()
 	setupAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	startAt := s.mustParseTime("2024-02-01T00:00:00Z")
@@ -1985,7 +2165,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 	}
 
 	expectedUsageBasedCharges := []expectedUsageBasedCharge{
-		(expectedUsageBasedCharge{
+		{
 			ChildUniqueReferenceIDs: recurringLineMatcher{
 				PhaseKey:  "first-phase",
 				ItemKey:   s.APIRequestsTotalFeature.Key,
@@ -1999,7 +2179,7 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyMixedProvisioni
 			InvoiceAt:          usageBasedInvoiceAt,
 			FeatureKey:         s.APIRequestsTotalFeature.Key,
 			Price:              *unitPrice,
-		}).Indexes(0),
+		},
 	}
 
 	s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))

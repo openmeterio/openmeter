@@ -233,7 +233,7 @@ func TestSubscriptionCustomCurrencyPlanChangeReconcilesCancellation(t *testing.T
 	ctx := t.Context()
 	require.NoError(t, f.subscriptionSyncService.SyncByID(ctx, f.view.Subscription.NamespacedID, time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)))
 	ids := listSubscriptionChargeIDs(t, f.testDeps, f.view.Subscription.ID)
-	require.Len(t, ids, 2)
+	require.Len(t, ids, 3)
 	clock.FreezeTime(f.view.Subscription.ActiveFrom)
 	_, err := f.chargesService.AdvanceCharges(ctx, charges.AdvanceChargesInput{Customer: f.view.Customer.GetID()})
 	require.NoError(t, err)
@@ -295,7 +295,8 @@ func TestSubscriptionCustomCurrencyStaleCancellation(t *testing.T) {
 		cancelMonth     time.Month
 		expectedCharges int
 	}{
-		{name: "continued", expectedCharges: 4},
+		// The sync at the start of May also provisions June's fee.
+		{name: "continued", expectedCharges: 5},
 		{name: "canceled again later", cancelMonth: time.April, expectedCharges: 3},
 		{name: "canceled again for the same date", cancelMonth: time.February, expectedCharges: 1},
 	} {

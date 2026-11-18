@@ -247,6 +247,20 @@ func (s *SuiteBase) getGatheringLineByChildID(invoice billing.GatheringInvoice, 
 	return nil
 }
 
+// mustGetGatheringLineByServicePeriodFrom returns the line whose service period starts at from.
+// Sync keeps the following billing period provisioned too, so tests pick a line by its period
+// instead of its position.
+func (s *SuiteBase) mustGetGatheringLineByServicePeriodFrom(lines []billing.GatheringLine, from time.Time) billing.GatheringLine {
+	s.T().Helper()
+
+	line, found := lo.Find(lines, func(line billing.GatheringLine) bool {
+		return line.ServicePeriod.From.Equal(from)
+	})
+	s.Require().Truef(found, "no gathering line starts at %s", from)
+
+	return line
+}
+
 func (s *SuiteBase) getStandardLineByChildID(invoice billing.StandardInvoice, childID string) *billing.StandardLine {
 	s.T().Helper()
 
@@ -382,9 +396,12 @@ func (s *SuiteBase) expectLines(invoice billing.GenericInvoiceReader, subscripti
 }
 
 type expectedCharge struct {
-	Matcher            lineMatcher
-	Type               chargesmeta.ChargeType
+	Matcher lineMatcher
+	Type    chargesmeta.ChargeType
+	// Status applies to every charge of the expectation. Set Statuses instead, one per
+	// period, when they differ: for example an active current period and a created next one.
 	Status             string
+	Statuses           []string
 	Price              *productcatalog.Price
 	Periods            []timeutil.ClosedPeriod
 	FullServicePeriods []timeutil.ClosedPeriod
@@ -392,6 +409,14 @@ type expectedCharge struct {
 	InvoiceAt          []*time.Time
 	GatheringLines     []expectedChargeGatheringLine
 	Realizations       []expectedChargeRealization
+}
+
+func (e expectedCharge) statusAt(idx int) string {
+	if len(e.Statuses) > 0 {
+		return e.Statuses[idx]
+	}
+
+	return e.Status
 }
 
 type expectedChargeGatheringLine struct {
@@ -465,7 +490,16 @@ func (s *SuiteBase) assertCharges(ctx context.Context, subsView subscription.Sub
 
 		childIDs := expectedCharge.Matcher.ChildIDs(subscriptionID.ID)
 		s.Require().NotEmpty(expectedCharge.Type, "expected charge type")
-		s.Require().NotEmpty(expectedCharge.Status, "expected charge status")
+		if len(expectedCharge.Statuses) > 0 && expectedCharge.Status != "" {
+			s.FailNow("expected charge sets both status and statuses", "matcher: %+v", expectedCharge.Matcher)
+		}
+
+		if len(expectedCharge.Statuses) > 0 {
+			s.Require().Len(expectedCharge.Statuses, len(childIDs), "expected charge statuses")
+		} else {
+			s.Require().NotEmpty(expectedCharge.Status, "expected charge status")
+		}
+
 		s.Require().Len(expectedCharge.Periods, len(childIDs), "expected charge periods")
 		if len(expectedCharge.InvoiceAt) > 0 {
 			s.Require().Len(expectedCharge.InvoiceAt, len(childIDs), "expected charge invoice at")
@@ -511,7 +545,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		baseIntent := usageBasedCharge.Intent.GetBaseIntent()
 		subscription := usageBasedCharge.Intent.GetSubscription()
 
-		s.Equal(expectedCharge.Status, string(usageBasedCharge.Status), "%s: status", childID)
+		s.Equal(expectedCharge.statusAt(idx), string(usageBasedCharge.Status), "%s: status", childID)
 		s.Equal(subsView.Subscription.SettlementMode, usageBasedCharge.Intent.GetSettlementMode(), "%s: settlement mode", childID)
 		s.Equal(s.Customer.ID, usageBasedCharge.Intent.GetCustomerID(), "%s: customer id", childID)
 		s.Equal(subsView.Subscription.InvoiceCurrency, usageBasedCharge.Intent.GetCurrency().GetCode(), "%s: currency", childID)
@@ -552,7 +586,7 @@ func (s *SuiteBase) assertCharge(ctx context.Context, charge charges.Charge, sub
 		baseIntent := flatFeeCharge.Intent.GetBaseIntent()
 		subscription := flatFeeCharge.Intent.GetSubscription()
 
-		s.Equal(expectedCharge.Status, string(flatFeeCharge.Status), "%s: status", childID)
+		s.Equal(expectedCharge.statusAt(idx), string(flatFeeCharge.Status), "%s: status", childID)
 		s.Equal(subsView.Subscription.SettlementMode, flatFeeCharge.Intent.GetSettlementMode(), "%s: settlement mode", childID)
 		s.Equal(s.Customer.ID, flatFeeCharge.Intent.GetCustomerID(), "%s: customer id", childID)
 		s.Equal(subsView.Subscription.InvoiceCurrency, flatFeeCharge.Intent.GetCurrency().GetCode(), "%s: currency", childID)

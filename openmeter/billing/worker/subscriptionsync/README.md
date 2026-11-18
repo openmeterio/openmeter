@@ -42,10 +42,14 @@ lines.
 ## Target time model
 
 The target builder walks each phase and item version into service periods up to
-the requested horizon. The horizon normally expands to the end of the aligned
-billing period containing `asOf`; it is not simply a database query cutoff.
-A phase starting exactly at that horizon is included so its in-advance fees
-are provisioned when the phase starts.
+the requested horizon. `asOf` is not a cutoff: every sync provisions the aligned
+billing period containing `asOf` and the one after it, across a phase change if
+needed, so the following period's items, including usage billed in arrears,
+exist before it begins. Service starting at the end of that following period is
+left to the next sync, even an advance fee invoiceable at that boundary. Items
+billed in arrears whose service period ends later still wait until they are
+invoiceable. A subscription synced before its start, or before its first
+billable phase, gets only that first billing period.
 
 Each target item keeps three periods:
 
@@ -160,7 +164,7 @@ dates extend further. Full service periods remain unchanged for proration.
 
 Legacy sync state is written only after the plan has been applied. `HasBillables`
 prevents needless future scheduling; `NextSyncAfter` is the end of the
-generated horizon. Errors remain retryable through the event handler or
+billing period containing `asOf`. Errors remain retryable through the event handler or
 periodic reconciler. Dry-run builds the same plan but only logs it and does not
 write artifacts or sync state.
 
@@ -192,9 +196,9 @@ results clear a previous deadline. Sync records the result even when no billing
 patches were needed, and only after applying billing changes: removing the last
 billable item removes its pending artifacts before `no_billables` is recorded.
 
-Sync picks the deadline from the billing period that follows what it just
-generated. This is the period at the generation limit; at a billing boundary
-that is the period starting there.
+Sync picks the deadline from the last billing period it provisioned. This is the
+period starting at the generation limit, which is normally the end of the billing
+period containing `asOf`.
 
 - If that period reaches the effective billing end (the earlier of `ActiveTo` and
   customer deletion), or generation already covers that end, the deadline is

@@ -360,8 +360,9 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 						// final sync waits for the end itself.
 						result.NextReconciliationAt = billingEndsAt
 					} else {
-						// At a billing boundary this returns the following period. Do not advance
-						// by another cadence: an exact-start sync may only have generated through that start.
+						// The limit is normally the end of the billing period containing AsOf, so this
+						// returns the period after it: the last one provisioned. Do not advance by
+						// another cadence.
 						nextBillingPeriod, err := subsView.Spec.GetAlignedBillingPeriodAt(generatedUntil)
 						if err != nil {
 							return nil, fmt.Errorf("getting next billing period: %w", err)

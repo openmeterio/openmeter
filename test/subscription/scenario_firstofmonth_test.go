@@ -240,14 +240,26 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		lines, ok := linesByFeature[feats[0].Key]
 		require.True(t, ok)
 
-		// We expect a single in arrears line
-		require.Len(t, lines, 1)
+		// We expect three in arrears lines: the sync runs as of the start of July, so it covers
+		// the partial first month, July and the month after it
+		require.Len(t, lines, 3)
+
+		// Let's sort the lines by the period start ascending
+		slices.SortFunc(lines, func(i, j billing.GatheringLine) int {
+			return i.ServicePeriod.From.Compare(j.ServicePeriod.From)
+		})
 
 		line := lines[0]
 
 		require.Equal(t, startOfSub, line.ServicePeriod.From)
 		require.Equal(t, endOfMonth, line.ServicePeriod.To)
 		require.Equal(t, endOfMonth, line.InvoiceAt)
+
+		for idx, line := range lines[1:] {
+			require.Equal(t, endOfMonth.AddDate(0, idx, 0), line.ServicePeriod.From)
+			require.Equal(t, endOfMonth.AddDate(0, idx+1, 0), line.ServicePeriod.To)
+			require.Equal(t, endOfMonth.AddDate(0, idx+1, 0), line.InvoiceAt)
+		}
 	})
 
 	t.Run("lines for test-feature-2", func(t *testing.T) {
@@ -260,8 +272,8 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 			}
 		}
 
-		// We should have two lines, 1 for the current month and 1 for the next
-		require.Len(t, lines, 2)
+		// We should have three lines, 1 for the partial first month and 1 for each of the next two
+		require.Len(t, lines, 3)
 
 		// Let's sort by line.ChildUniqueReferenceID
 		slices.SortFunc(lines, func(i, j billing.GatheringLine) int {
@@ -277,14 +289,19 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		require.Equal(t, endOfMonth, line2.ServicePeriod.From)
 		require.Equal(t, endOfMonth.AddDate(0, 1, 0), line2.ServicePeriod.To)
 		require.Equal(t, endOfMonth, line2.InvoiceAt)
+
+		line3 := lines[2]
+		require.Equal(t, endOfMonth.AddDate(0, 1, 0), line3.ServicePeriod.From)
+		require.Equal(t, endOfMonth.AddDate(0, 2, 0), line3.ServicePeriod.To)
+		require.Equal(t, endOfMonth.AddDate(0, 1, 0), line3.InvoiceAt)
 	})
 
 	t.Run("lines for test-feature-3", func(t *testing.T) {
 		lines, ok := linesByFeature[feats[2].Key]
 		require.True(t, ok)
 
-		// We expect 16 lines (15 to 30)
-		require.Len(t, lines, 16)
+		// We expect 78 lines: 16 for June (15 to 30), 31 for July and 31 for August
+		require.Len(t, lines, 78)
 
 		// Let's sort the lines by the period start ascending
 		slices.SortFunc(lines, func(i, j billing.GatheringLine) int {
@@ -298,9 +315,12 @@ func TestBillingOnFirstOfMonth(t *testing.T) {
 		require.Equal(t, endOfMonth, line1.InvoiceAt)
 
 		for idx, line := range lines[1:] {
-			require.Equal(t, startOfDay.AddDate(0, 0, idx+1), line.ServicePeriod.From)
+			from := startOfDay.AddDate(0, 0, idx+1)
+
+			require.Equal(t, from, line.ServicePeriod.From)
 			require.Equal(t, startOfDay.AddDate(0, 0, idx+2), line.ServicePeriod.To)
-			require.Equal(t, endOfMonth, line.InvoiceAt)
+			// Each daily line is invoiced at the end of the month it falls in
+			require.Equal(t, time.Date(from.Year(), from.Month()+1, 1, 0, 0, 0, 0, from.Location()), line.InvoiceAt)
 		}
 	})
 }
