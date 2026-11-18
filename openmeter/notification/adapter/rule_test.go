@@ -332,9 +332,11 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 					_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_rules SET type = $1 WHERE id = $2", storedName, created.ID)
 					require.NoError(t, err)
 
-					var meta notification.RuleConfigMeta
-					require.NoError(t, json.Unmarshal([]byte(storedConfig), &meta))
-					assert.Equal(t, tt.eventType, meta.Type)
+					var storedFields map[string]json.RawMessage
+					require.NoError(t, json.Unmarshal([]byte(storedConfig), &storedFields))
+
+					assert.NotContains(t, storedFields, "type")
+					assert.NotContains(t, storedFields, "data")
 
 					fetched, err := env.adapter.GetRule(t.Context(), notification.GetRuleInput(created.NamespacedID))
 					require.NoError(t, err)
@@ -369,7 +371,7 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					// then: the update preserves the stored spelling and the legacy config
+					// then: the update preserves the stored spelling and the flat config
 					assert.Equal(t, created.ID, updated.ID)
 					assert.Equal(t, created.CreatedAt, updated.CreatedAt)
 					assert.Equal(t, tt.eventType, updated.Type)
@@ -457,7 +459,7 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 					entity, err := env.db.NotificationRule.Get(t.Context(), created.ID)
 					require.NoError(t, err)
 
-					assert.JSONEq(t, legacy, string(entity.Config))
+					assert.JSONEq(t, tt.payload, string(entity.Config))
 
 					_, err = env.sqlDB.ExecContext(t.Context(),
 						"UPDATE notification_rules SET config = $1 WHERE id = $2", format.data, created.ID)
@@ -496,13 +498,13 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					// then: writes remain readable by old backends
+					// then: updating either representation writes flat config
 					assert.Equal(t, created.Config, updated.Config)
 
 					entity, err = env.db.NotificationRule.Get(t.Context(), created.ID)
 					require.NoError(t, err)
 
-					assert.JSONEq(t, legacy, string(entity.Config))
+					assert.JSONEq(t, tt.payload, string(entity.Config))
 				})
 			}
 		})
@@ -569,47 +571,6 @@ func TestRuleConfigMappingPrecedence(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, []string{"legacy"}, config.EntitlementReset.Features)
-		})
-	}
-}
-
-func TestRuleConfigWriteValidation(t *testing.T) {
-	tests := []struct {
-		name   string
-		config notification.RuleConfig
-	}{
-		{
-			name: "missing invoice config",
-			config: notification.RuleConfig{
-				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceCreated},
-			},
-		},
-		{
-			name: "invalid threshold",
-			config: notification.RuleConfig{
-				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeBalanceThreshold},
-				BalanceThreshold: &notification.BalanceThresholdRuleConfig{
-					Thresholds: []notification.BalanceThreshold{
-						{Type: notification.BalanceThresholdTypeUsagePercentage, Value: -1},
-					},
-				},
-			},
-		},
-		{
-			name: "duplicate features",
-			config: notification.RuleConfig{
-				RuleConfigMeta:   notification.RuleConfigMeta{Type: notification.EventTypeEntitlementReset},
-				EntitlementReset: &notification.EntitlementResetRuleConfig{Features: []string{"feature-a", "feature-a"}},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			encoded, err := toDBRuleConfig(tt.config)
-			require.ErrorContains(t, err, "invalid rule config")
-
-			assert.Nil(t, encoded)
 		})
 	}
 }

@@ -94,12 +94,13 @@ stored_format() {
          FROM notification_events e JOIN notification_rules r ON r.id=e.rule_id
          JOIN notification_event_delivery_status s ON s.event_id=e.id
          JOIN notification_channels c ON c.id=s.channel_id WHERE e.id='$event'" >"$dir/stored.json"
-    jq -es --arg writer "$writer" --arg channel_type "$expected_channel_type" --slurpfile input "$dir/channel-input" 'length==1 and (.[0] |
+    jq -es --arg writer "$writer" --arg channel_type "$expected_channel_type" --slurpfile input "$dir/channel-input" --slurpfile rule_input "$dir/rule-input" 'length==1 and (.[0] |
         .channel==$channel_type and .config==($input[0] | if $writer=="old" then
             {type:"WEBHOOK",data:{url,customHeaders,signingSecret}}
         else {url,custom_headers:.customHeaders,signing_secret:.signingSecret} end) and
         .rule==(if $writer=="old" then "entitlements.reset" else "v1.entitlement.usage_period.reset" end) and
-        .ruleConfig.type=="entitlements.reset" and (.ruleConfig.data|type)=="object" and
+        .ruleConfig==({features:$rule_input[0].features} |
+            if $writer=="old" then {type:"entitlements.reset",data:.} else . end) and
         .event==.rule and .payload.type=="entitlements.reset" and .payload.version==1 and
         (.payload.entitlementReset|type)=="object" and .state==(if $writer=="old" then "PENDING" else "pending" end))' "$dir/stored.json" >/dev/null ||
         fail "$writer stored an incompatible representation"
@@ -173,6 +174,18 @@ sql "SELECT config FROM notification_channels WHERE id='$channel'" | jq -e --slu
     fail "Old update did not preserve the candidate webhook settings in its envelope"
 cross_read candidate candidate
 echo "Old server updated candidate Channel and preserved type, webhook settings and provider_data"
+
+rule=$(id_from "$artifacts/candidate/rule")
+jq '.name="updated by old"' "$artifacts/candidate/rule-input" >"$artifacts/old-rule-update"
+api old PUT "rules/$rule" --data-binary "@$artifacts/old-rule-update" >/dev/null
+sql "SELECT jsonb_build_object('type',type,'config',config) FROM notification_rules WHERE id='$rule'" |
+    jq -e --slurpfile input "$artifacts/old-rule-update" '
+        .type=="v1.entitlement.usage_period.reset" and
+        .config=={type:"entitlements.reset",data:{features:$input[0].features}}' >/dev/null ||
+    fail "Old update changed the candidate Rule type or config values"
+cross_read candidate candidate
+echo "Old server updated candidate Rule and restored its legacy config envelope"
+
 
 # Only one reconciler may deliver during each handoff.
 dc stop old

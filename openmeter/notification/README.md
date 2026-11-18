@@ -95,8 +95,10 @@ Ent exposes Rule config as `json.RawMessage`; the adapter decodes the legacy
 envelope first, then the unwrapped existing contract using the Rule's type.
 Flat configs reject unknown fields so malformed envelopes cannot become empty
 invoice configs. Reads do not rewrite rows or revalidate historical conditions.
-Writes retain the existing config validation and legacy envelope. Decode errors
-propagate through Rule reads and nested Event reads.
+Create and update validate configs in the service and write the type-specific
+object directly. Invoice configs are `{}`. The beta.237 reader accepts both
+representations during rollout and rollback. Decode errors propagate through
+Rule reads and nested Event reads.
 
 ## Event storage compatibility
 

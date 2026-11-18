@@ -87,3 +87,111 @@ func TestCreateRule_InvalidType(t *testing.T) {
 		})
 	}
 }
+
+func TestRuleConfigWriteValidation(t *testing.T) {
+	env := newServiceTestEnv(t)
+	tests := []struct {
+		name   string
+		config notification.RuleConfig
+	}{
+		{
+			name: "missing invoice config",
+			config: notification.RuleConfig{
+				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceCreated},
+			},
+		},
+		{
+			name: "invalid threshold",
+			config: notification.RuleConfig{
+				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeBalanceThreshold},
+				BalanceThreshold: &notification.BalanceThresholdRuleConfig{
+					Thresholds: []notification.BalanceThreshold{
+						{Type: notification.BalanceThresholdTypeUsagePercentage, Value: -1},
+					},
+				},
+			},
+		},
+		{
+			name: "duplicate features",
+			config: notification.RuleConfig{
+				RuleConfigMeta:   notification.RuleConfigMeta{Type: notification.EventTypeEntitlementReset},
+				EntitlementReset: &notification.EntitlementResetRuleConfig{Features: []string{"feature-a", "feature-a"}},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a valid persisted rule and an invalid configuration for its type
+			namespace := ulid.Make().String()
+			channel := seedChannel(t, env, namespace, clock.Now(), "validation")
+			validConfig := notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: tt.config.Type}}
+			switch tt.config.Type {
+			case notification.EventTypeInvoiceCreated:
+				validConfig.Invoice = &notification.InvoiceRuleConfig{}
+			case notification.EventTypeBalanceThreshold:
+				validConfig.BalanceThreshold = &notification.BalanceThresholdRuleConfig{
+					Thresholds: []notification.BalanceThreshold{
+						{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50},
+					},
+				}
+			case notification.EventTypeEntitlementReset:
+				validConfig.EntitlementReset = &notification.EntitlementResetRuleConfig{}
+			}
+
+			created, err := env.adapter.CreateRule(t.Context(), notification.CreateRuleInput{
+				NamespacedModel: models.NamespacedModel{Namespace: namespace},
+				Name:            "original",
+				Type:            tt.config.Type,
+				Config:          validConfig,
+				Channels:        []string{channel.ID},
+			})
+			require.NoError(t, err)
+
+			before, err := env.service.GetRule(t.Context(), notification.GetRuleInput(created.NamespacedID))
+			require.NoError(t, err)
+
+			for _, operation := range []string{"create", "update"} {
+				t.Run(operation, func(t *testing.T) {
+					// when: the service receives the invalid config
+					var result *notification.Rule
+					var err error
+
+					switch operation {
+					case "create":
+						result, err = env.service.CreateRule(t.Context(), notification.CreateRuleInput{
+							NamespacedModel: models.NamespacedModel{Namespace: namespace},
+							Name:            "invalid",
+							Type:            tt.config.Type,
+							Config:          tt.config,
+							Channels:        []string{channel.ID},
+						})
+					case "update":
+						result, err = env.service.UpdateRule(t.Context(), notification.UpdateRuleInput{
+							NamespacedID: created.NamespacedID,
+							Name:         "invalid",
+							Type:         tt.config.Type,
+							Config:       tt.config,
+							Channels:     []string{channel.ID},
+						})
+					}
+
+					require.Error(t, err)
+
+					assert.True(t, models.IsGenericValidationError(err))
+					assert.Nil(t, result)
+
+					// then: the existing rule survives and no additional rule is persisted
+					after, err := env.service.GetRule(t.Context(), notification.GetRuleInput(created.NamespacedID))
+					require.NoError(t, err)
+
+					count, err := env.db.NotificationRule.Query().Where(ruledb.Namespace(namespace)).Count(t.Context())
+					require.NoError(t, err)
+
+					assert.Equal(t, before, after)
+					assert.Equal(t, 1, count)
+				})
+			}
+		})
+	}
+}
