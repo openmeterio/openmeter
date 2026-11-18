@@ -143,33 +143,57 @@ func TestCreateInvoiceIdempotencyKey(t *testing.T) {
 }
 
 func TestGetInvoiceNotFound(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte(`{"error":{"type":"invalid_request_error","code":"resource_missing","message":"No such invoice: 'in_123'"}}`))
-	}))
-	defer server.Close()
-
-	backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
-		URL:               lo.ToPtr(server.URL),
-		MaxNetworkRetries: lo.ToPtr(int64(0)),
-	})
-
-	api := &stripeapi.API{}
-	api.Init("sk_test_123", &stripe.Backends{API: backend, Connect: backend, Uploads: backend})
-
-	stripeClient := &stripeAppClient{
-		appID:  app.AppID{Namespace: "ns", ID: "app"},
-		client: api,
-		logger: slog.New(slog.DiscardHandler),
+	tests := []struct {
+		name         string
+		status       int
+		responseBody string
+		wantNotFound bool
+	}{
+		{
+			name:         "no such invoice",
+			status:       http.StatusNotFound,
+			responseBody: `{"error":{"type":"invalid_request_error","code":"resource_missing","message":"No such invoice: 'in_123'"}}`,
+			wantNotFound: true,
+		},
+		{
+			// Says nothing about the invoice, so it must not read as a missing one.
+			name:         "stripe is unavailable",
+			status:       http.StatusServiceUnavailable,
+			responseBody: `{"error":{"type":"api_error","message":"Service unavailable"}}`,
+		},
 	}
 
-	_, err := stripeClient.GetInvoice(t.Context(), GetInvoiceInput{StripeInvoiceID: "in_123"})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(tt.responseBody))
+			}))
+			defer server.Close()
 
-	require.True(t, IsStripeInvoiceNotFoundError(err))
+			backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
+				URL:               lo.ToPtr(server.URL),
+				MaxNetworkRetries: lo.ToPtr(int64(0)),
+			})
 
-	var providerErr *app.AppProviderError
-	require.ErrorAs(t, err, &providerErr)
+			api := &stripeapi.API{}
+			api.Init("sk_test_123", &stripe.Backends{API: backend, Connect: backend, Uploads: backend})
+
+			stripeClient := &stripeAppClient{
+				appID:  app.AppID{Namespace: "ns", ID: "app"},
+				client: api,
+				logger: slog.New(slog.DiscardHandler),
+			}
+
+			_, err := stripeClient.GetInvoice(t.Context(), GetInvoiceInput{StripeInvoiceID: "in_123"})
+
+			require.Equal(t, tt.wantNotFound, IsStripeInvoiceNotFoundError(err))
+
+			var providerErr *app.AppProviderError
+			require.ErrorAs(t, err, &providerErr)
+		})
+	}
 }
 
 func TestCreateInvoiceRejected(t *testing.T) {
