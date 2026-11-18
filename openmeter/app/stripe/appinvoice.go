@@ -311,10 +311,15 @@ func (a appOperations) createStripeInvoice(
 
 		stripeInvoice, err := stripeClient.CreateInvoice(ctx, input)
 		if err != nil {
-			return nil, errors.Join(
-				fmt.Errorf("failed to create invoice in stripe: %w", err),
-				a.StripeAppService.IncrementInvoiceGeneration(ctx, invoiceID),
-			)
+			err = fmt.Errorf("failed to create invoice in stripe: %w", err)
+
+			// An error Stripe answered with is replayed for the key, so the key is given up. Without
+			// an answer the invoice may exist in Stripe, and only the same key gives it back.
+			if stripeclient.IsStripeInvoiceCreateRejectedError(err) {
+				err = errors.Join(err, a.StripeAppService.IncrementInvoiceGeneration(ctx, invoiceID))
+			}
+
+			return nil, err
 		}
 
 		_, getErr = stripeClient.GetInvoice(ctx, stripeclient.GetInvoiceInput{

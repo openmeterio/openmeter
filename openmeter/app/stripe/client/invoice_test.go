@@ -171,3 +171,61 @@ func TestGetInvoiceNotFound(t *testing.T) {
 	var providerErr *app.AppProviderError
 	require.ErrorAs(t, err, &providerErr)
 }
+
+func TestCreateInvoiceRejected(t *testing.T) {
+	tests := []struct {
+		name         string
+		answer       bool
+		wantRejected bool
+	}{
+		{
+			name:         "stripe answers with an error",
+			answer:       true,
+			wantRejected: true,
+		},
+		{
+			name: "no answer arrives",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusTooManyRequests)
+				_, _ = w.Write([]byte(`{"error":{"type":"invalid_request_error","code":"rate_limit","message":"Too many requests"}}`))
+			}))
+			defer server.Close()
+
+			if !tt.answer {
+				server.Close()
+			}
+
+			backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
+				URL:               lo.ToPtr(server.URL),
+				MaxNetworkRetries: lo.ToPtr(int64(0)),
+			})
+
+			api := &stripeapi.API{}
+			api.Init("sk_test_123", &stripe.Backends{API: backend, Connect: backend, Uploads: backend})
+
+			stripeClient := &stripeAppClient{
+				appID:  app.AppID{Namespace: "ns", ID: "app"},
+				client: api,
+				logger: slog.New(slog.DiscardHandler),
+			}
+
+			_, err := stripeClient.CreateInvoice(t.Context(), CreateInvoiceInput{
+				AppID:            app.AppID{Namespace: "ns", ID: "app"},
+				CustomerID:       customer.CustomerID{Namespace: "ns", ID: "cus"},
+				InvoiceID:        "inv_123",
+				CollectionMethod: billing.CollectionMethodChargeAutomatically,
+				Currency:         "USD",
+				StripeCustomerID: "cus_123",
+			})
+
+			require.Error(t, err)
+			require.Equal(t, tt.wantRejected, IsStripeInvoiceCreateRejectedError(err))
+		})
+	}
+}

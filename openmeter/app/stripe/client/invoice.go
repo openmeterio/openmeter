@@ -61,6 +61,10 @@ func (c *stripeAppClient) CreateInvoice(ctx context.Context, input CreateInvoice
 
 	invoice, err := c.client.Invoices.New(params)
 	if err != nil {
+		if _, ok := err.(*stripe.Error); ok {
+			return nil, NewStripeInvoiceCreateRejectedError(c.providerError(err))
+		}
+
 		return nil, c.providerError(err)
 	}
 

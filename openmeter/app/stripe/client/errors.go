@@ -130,3 +130,36 @@ func (e *StripeInvoiceNotFoundError) Error() string {
 func (e *StripeInvoiceNotFoundError) Unwrap() error {
 	return e.err
 }
+
+// StripeInvoiceCreateRejectedError
+var _ models.GenericError = (*StripeInvoiceCreateRejectedError)(nil)
+
+func NewStripeInvoiceCreateRejectedError(err error) *StripeInvoiceCreateRejectedError {
+	return &StripeInvoiceCreateRejectedError{
+		err: err,
+	}
+}
+
+func IsStripeInvoiceCreateRejectedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *StripeInvoiceCreateRejectedError
+
+	return errors.As(err, &e)
+}
+
+// StripeInvoiceCreateRejectedError says Stripe answered the create request with an error. Stripe
+// replays that answer for the idempotency key, unlike a request whose answer never arrived.
+type StripeInvoiceCreateRejectedError struct {
+	err error
+}
+
+func (e *StripeInvoiceCreateRejectedError) Error() string {
+	return e.err.Error()
+}
+
+func (e *StripeInvoiceCreateRejectedError) Unwrap() error {
+	return e.err
+}

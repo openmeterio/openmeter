@@ -29,6 +29,9 @@ type idempotentStripeInvoices struct {
 	// failNext makes the next request of a client method fail. A failed create is stored for its
 	// key like any other response.
 	failNext map[string]error
+	// lostCreateResponse makes the next create request fail on its way back: Stripe stores the
+	// response for the key, the caller only gets this error.
+	lostCreateResponse error
 }
 
 type stripeCreateResponse struct {
@@ -64,6 +67,12 @@ func (f *idempotentStripeInvoices) create(key string) (*stripe.Invoice, error) {
 		}
 
 		f.responseByKey[key] = response
+	}
+
+	if err := f.lostCreateResponse; err != nil {
+		f.lostCreateResponse = nil
+
+		return nil, err
 	}
 
 	return response.invoice, response.err
@@ -244,7 +253,7 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterFail
 	stripeInvoices := s.stubIdempotentStripeInvoices()
 
 	// given: Stripe rejects the first create request, and would keep answering its key the same way
-	stripeInvoices.failNext["CreateInvoice"] = errors.New("rate limited")
+	stripeInvoices.failNext["CreateInvoice"] = stripeclient.NewStripeInvoiceCreateRejectedError(errors.New("rate limited"))
 
 	// when: the draft is synced to Stripe
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -332,6 +341,59 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterFaile
 	s.Equal(stripeInvoices.createKeys[0], stripeInvoices.createKeys[1])
 	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	s.Equal("in_1", invoice.ExternalIDs.Invoicing)
+}
+
+func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterLostCreateResponse() {
+	ctx := s.T().Context()
+	namespace := "ns-invoice-idempotency-lost-create-response"
+	period := emptyInvoiceModeServicePeriod()
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	cust := s.setupEmptyInvoiceModeCustomer(ctx, namespace, billing.EmptyInvoiceModeCreate)
+	defer s.StripeAppClient.Restore()
+
+	stripeInvoices := s.stubIdempotentStripeInvoices()
+
+	// given: Stripe creates the invoice, but its answer never arrives
+	stripeInvoices.lostCreateResponse = errors.New("connection reset")
+
+	// when: the draft is synced to Stripe
+	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+			emptyInvoiceModeFlatFeeLine(namespace, period, 10),
+		}),
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
+
+	// then: the sync fails without giving up the Stripe invoice
+	s.Require().Equal(billing.StandardInvoiceStatusDraftSyncFailed, invoice.Status)
+	s.Require().Len(stripeInvoices.createKeys, 1)
+
+	generation, err := s.AppStripeService.GetLatestInvoiceGeneration(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Require().Equal(0, generation)
+
+	// when: the sync is retried
+	invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+
+	// then: the same key gives back the invoice created the first time
+	s.Require().Len(stripeInvoices.createKeys, 2)
+	s.Equal(stripeInvoices.createKeys[0], stripeInvoices.createKeys[1])
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Equal("in_1", invoice.ExternalIDs.Invoicing)
+	s.Equal(1, stripeInvoices.created)
 }
 
 func (s *StripeInvoiceTestSuite) TestInvoiceGenerationIncrementsAfterFailedDelete() {
