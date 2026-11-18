@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,11 +36,25 @@ type SimpleEvent struct {
 type MockStreamingConnector struct {
 	rows   map[string][]meter.MeterQueryRow
 	events map[string][]SimpleEvent
+
+	meterQueriesMu sync.Mutex
+	meterQueries   []streaming.QueryParams
 }
 
 func (m *MockStreamingConnector) Reset() {
 	m.rows = map[string][]meter.MeterQueryRow{}
 	m.events = map[string][]SimpleEvent{}
+
+	m.meterQueriesMu.Lock()
+	defer m.meterQueriesMu.Unlock()
+	m.meterQueries = nil
+}
+
+func (m *MockStreamingConnector) MeterQueries() []streaming.QueryParams {
+	m.meterQueriesMu.Lock()
+	defer m.meterQueriesMu.Unlock()
+
+	return slices.Clone(m.meterQueries)
 }
 
 type AddOption func(event *SimpleEvent)
@@ -108,6 +123,10 @@ func (m *MockStreamingConnector) ListEventsV2(ctx context.Context, params stream
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
 func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	m.meterQueriesMu.Lock()
+	m.meterQueries = append(m.meterQueries, params)
+	m.meterQueriesMu.Unlock()
+
 	rows := []meter.MeterQueryRow{}
 	_, rowOk := m.rows[mm.Key]
 

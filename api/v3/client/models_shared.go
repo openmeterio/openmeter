@@ -996,9 +996,11 @@ type ChargeUsageBasedSystemIntent struct {
 //
 // Values:
 //
-// - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the
-// `totals.realtime` fields, and fills the `outstanding` realization's `usage`
-// with the not-yet-booked remainder of the live read.
+// - `real_time_usage`: Sets `usage` and `totals.realtime` for active usage-based
+// charges and created usage-based charges whose effective service period
+// contains the current time (inclusive start, exclusive end). Deleted charges
+// are skipped. When present, the `outstanding` realization's `usage` shows
+// the unbooked remainder of the live read.
 // - `customer`: The complete customer entity of the charge.
 // - `feature`: The complete feature entity of the charge.
 // - `subscription`: The complete subscription of the charge, when present.

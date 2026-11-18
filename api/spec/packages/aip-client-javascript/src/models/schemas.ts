@@ -701,7 +701,7 @@ export const chargesExpand = z
   ])
 
   .describe(
-    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the `totals.realtime` fields, and fills the `outstanding` realization's `usage` with the not-yet-booked remainder of the live read. - `customer`: The complete customer entity of the charge. - `feature`: The complete feature entity of the charge. - `subscription`: The complete subscription of the charge, when present. - `realization.invoice`: The invoice header of each realization (the invoice entity without its `lines` and `customer` snapshot), in place of the ID reference. - `realization.totals`: The `totals` of each realization run, including credit allocations. - `realization.detailed_lines`: The `detailed_lines` of each realization run.",
+    "Expands for customer charges. Values: - `real_time_usage`: Sets `usage` and `totals.realtime` for active usage-based charges and created usage-based charges whose effective service period contains the current time (inclusive start, exclusive end). Deleted charges are skipped. When present, the `outstanding` realization's `usage` shows the unbooked remainder of the live read. - `customer`: The complete customer entity of the charge. - `feature`: The complete feature entity of the charge. - `subscription`: The complete subscription of the charge, when present. - `realization.invoice`: The invoice header of each realization (the invoice entity without its `lines` and `customer` snapshot), in place of the ID reference. - `realization.totals`: The `totals` of each realization run, including credit allocations. - `realization.detailed_lines`: The `detailed_lines` of each realization run.",
   )
 
 export const lifecycleController = z
@@ -11411,7 +11411,7 @@ export const listCustomerChargesQueryParams = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Set `usage` and `totals.realtime` for active usage-based charges and created usage-based charges whose effective service period contains the current time (inclusive start, exclusive end). Deleted charges are skipped. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
@@ -11764,7 +11764,7 @@ export const listChargesQueryParams = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Set `usage` and `totals.realtime` for active usage-based charges and created usage-based charges whose effective service period contains the current time (inclusive start, exclusive end). Deleted charges are skipped. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
@@ -13002,7 +13002,7 @@ export const chargesExpandWire = z
   ])
 
   .describe(
-    "Expands for customer charges. Values: - `real_time_usage`: The charge's real-time usage; it sets the `usage` and the `totals.realtime` fields, and fills the `outstanding` realization's `usage` with the not-yet-booked remainder of the live read. - `customer`: The complete customer entity of the charge. - `feature`: The complete feature entity of the charge. - `subscription`: The complete subscription of the charge, when present. - `realization.invoice`: The invoice header of each realization (the invoice entity without its `lines` and `customer` snapshot), in place of the ID reference. - `realization.totals`: The `totals` of each realization run, including credit allocations. - `realization.detailed_lines`: The `detailed_lines` of each realization run.",
+    "Expands for customer charges. Values: - `real_time_usage`: Sets `usage` and `totals.realtime` for active usage-based charges and created usage-based charges whose effective service period contains the current time (inclusive start, exclusive end). Deleted charges are skipped. When present, the `outstanding` realization's `usage` shows the unbooked remainder of the live read. - `customer`: The complete customer entity of the charge. - `feature`: The complete feature entity of the charge. - `subscription`: The complete subscription of the charge, when present. - `realization.invoice`: The invoice header of each realization (the invoice entity without its `lines` and `customer` snapshot), in place of the ID reference. - `realization.totals`: The `totals` of each realization run, including credit allocations. - `realization.detailed_lines`: The `detailed_lines` of each realization run.",
   )
 
 export const lifecycleControllerWire = z
@@ -23872,7 +23872,7 @@ export const listCustomerChargesQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Set `usage` and `totals.realtime` for active usage-based charges and created usage-based charges whose effective service period contains the current time (inclusive start, exclusive end). Deleted charges are skipped. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
@@ -24263,7 +24263,7 @@ export const listChargesQueryParamsWire = z.object({
     .optional()
 
     .describe(
-      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Expand the charge's real-time usage; it sets the `usage` and the `totals.realtime` fields. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
+      "Expand full objects for referenced entities. Supported values are: - `real_time_usage`: Set `usage` and `totals.realtime` for active usage-based charges and created usage-based charges whose effective service period contains the current time (inclusive start, exclusive end). Deleted charges are skipped. - `customer`: Expand the charge's customer to the complete entity. - `feature`: Expand the charge's feature to the complete entity. - `subscription`: Expand the charge's subscription to the complete entity. - `realization.invoice`: Expand each realization's invoice to the complete entity. - `realization.totals`: Expand each realization run's `totals`. - `realization.detailed_lines`: Expand each realization run's `detailed_lines`.",
     ),
 })
 
