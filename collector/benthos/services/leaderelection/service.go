@@ -10,6 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	coordinationv1client "k8s.io/client-go/kubernetes/typed/coordination/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // import kubernetes auth plugins
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -26,6 +27,7 @@ const (
 
 type Config struct {
 	Enabled                 bool
+	StartDelay              time.Duration
 	LeaseLockNamespace      string
 	LeaseLockName           string
 	LeaseDuration           time.Duration
@@ -49,10 +51,8 @@ type Service struct {
 // TODO: add metrics to leader election
 
 func NewService(res *service.Resources, cfg Config) (*Service, error) {
-	logger := res.Logger().With("component", "leader election")
-
 	// Route client-go (klog) logs through Benthos service logger.
-	logging.SetupKlog(logger)
+	logging.SetupKlog(res.Logger().With("component", "leader election"))
 
 	kubeconfig, err := config.GetConfig()
 	if err != nil {
@@ -64,12 +64,18 @@ func NewService(res *service.Resources, cfg Config) (*Service, error) {
 		return nil, err
 	}
 
+	return newService(res, cfg, client.CoordinationV1()), nil
+}
+
+func newService(res *service.Resources, cfg Config, client coordinationv1client.LeasesGetter) *Service {
+	logger := res.Logger().With("component", "leader election")
+
 	lock := &resourcelock.LeaseLock{
 		LeaseMeta: metav1.ObjectMeta{
 			Namespace: cfg.LeaseLockNamespace,
 			Name:      cfg.LeaseLockName,
 		},
-		Client:     client.CoordinationV1(),
+		Client:     client,
 		LockConfig: resourcelock.ResourceLockConfig{Identity: cfg.Identity},
 	}
 
@@ -110,7 +116,7 @@ func NewService(res *service.Resources, cfg Config) (*Service, error) {
 		resources:            res,
 		leaderElectionConfig: leaderElectionConfig,
 		healthzAdaptor:       healthzAdaptor,
-	}, nil
+	}
 }
 
 func (s *Service) Start(ctx context.Context) error {
@@ -131,6 +137,18 @@ func (s *Service) Start(ctx context.Context) error {
 
 	go func() {
 		defer s.Stop(ctx)
+
+		// A replica that just started knows nothing of the time before its
+		// start, so leave the lease to one that is already running.
+		if s.config.StartDelay > 0 {
+			s.logger.Infof("taking part in the leader election in %s", s.config.StartDelay)
+
+			select {
+			case <-time.After(s.config.StartDelay):
+			case <-ctx.Done():
+				return
+			}
+		}
 
 		for {
 			lec := *s.leaderElectionConfig
@@ -185,6 +203,7 @@ func GetLeaderElectionCLIOpts(ctx context.Context) []service.CLIOptFunc {
 			func(ctx *cli.Context) error {
 				leaderElectionConfig = Config{
 					Enabled:                 ctx.Bool(leaderElectionEnabledFlag),
+					StartDelay:              ctx.Duration(leaseStartDelayFlag),
 					LeaseLockNamespace:      ctx.String(leaseLockNamespaceFlag),
 					LeaseLockName:           ctx.String(leaseLockNameFlag),
 					LeaseDuration:           ctx.Duration(leaseDurationFlag),

@@ -104,6 +104,8 @@ Create args for the deployment
 ["-c", "/etc/benthos/presets/http-server/config.yaml"]
 {{- else if eq .Values.preset "kubernetes-pod-exec-time" -}}
 ["-c", "/etc/benthos/presets/kubernetes-pod-exec-time/config.yaml"]
+{{- else if eq .Values.preset "kubernetes-pod-exec-time-exact" -}}
+["-c", "/etc/benthos/presets/kubernetes-pod-exec-time-exact/config.yaml"]
 {{- else }}
 {{- fail (printf "Invalid example '%s" .Values.preset) }}
 {{- end }}
