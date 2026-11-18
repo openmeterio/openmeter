@@ -139,6 +139,13 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create billing service: %w", err)
 	}
 
+	// Tax code resolver for the stripe app's invoicing lookups
+	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, entClient, logger)
+	taxCodeResolver, err := taxcoderesolver.New(taxCodeEnv.Service)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tax code resolver: %w", err)
+	}
+
 	webhookURLGenerator, err := appstripeservice.NewBaseURLWebhookURLGenerator("http://localhost:8888")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook url generator: %w", err)
@@ -163,6 +170,7 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		SecretService:       secretService,
 		Logger:              logger,
 		BillingService:      billingService,
+		TaxCodeResolver:     taxCodeResolver,
 		Publisher:           publisher,
 		WebhookURLGenerator: webhookURLGenerator,
 	})
