@@ -22,116 +22,128 @@ import (
 // request is answered with the response stored for its idempotency key, even when the invoice in
 // that response has been deleted since.
 type idempotentStripeInvoices struct {
-	createdByKey  map[string]*stripe.Invoice
+	responseByKey map[string]stripeCreateResponse
+	created       int
 	deleted       map[string]bool
 	createKeys    []string
-	createFailure error
-	getFailure    error
-	deleteFailure error
+	// failNext makes the next request of a client method fail. A failed create is stored for its
+	// key like any other response.
+	failNext map[string]error
+}
+
+type stripeCreateResponse struct {
+	invoice *stripe.Invoice
+	err     error
+}
+
+var errNoSuchStripeInvoice = errors.New("no such invoice")
+
+func (f *idempotentStripeInvoices) takeFailure(method string) error {
+	err := f.failNext[method]
+	delete(f.failNext, method)
+
+	return err
+}
+
+func (f *idempotentStripeInvoices) create(key string) (*stripe.Invoice, error) {
+	f.createKeys = append(f.createKeys, key)
+
+	response, stored := f.responseByKey[key]
+	if !stored {
+		response.err = f.takeFailure("CreateInvoice")
+
+		if response.err == nil {
+			f.created++
+			response.invoice = &stripe.Invoice{
+				ID:       fmt.Sprintf("in_%d", f.created),
+				Status:   stripe.InvoiceStatusDraft,
+				Customer: &stripe.Customer{ID: defaultStripeCustomerID},
+				Currency: "USD",
+				Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
+			}
+		}
+
+		f.responseByKey[key] = response
+	}
+
+	return response.invoice, response.err
+}
+
+func (f *idempotentStripeInvoices) get(stripeInvoiceID string) (*stripe.Invoice, error) {
+	if err := f.takeFailure("GetInvoice"); err != nil {
+		return nil, err
+	}
+
+	if f.deleted[stripeInvoiceID] {
+		return nil, stripeclient.NewStripeInvoiceNotFoundError(errNoSuchStripeInvoice)
+	}
+
+	return &stripe.Invoice{ID: stripeInvoiceID, Status: stripe.InvoiceStatusDraft}, nil
+}
+
+func (f *idempotentStripeInvoices) delete(stripeInvoiceID string) error {
+	if err := f.takeFailure("DeleteInvoice"); err != nil {
+		return err
+	}
+
+	f.deleted[stripeInvoiceID] = true
+
+	return nil
+}
+
+func (f *idempotentStripeInvoices) addLines(input stripeclient.AddInvoiceLinesInput) ([]stripeclient.StripeInvoiceItemWithLineID, error) {
+	if f.deleted[input.StripeInvoiceID] {
+		return nil, errNoSuchStripeInvoice
+	}
+
+	return lo.Map(input.Lines, func(line *stripe.InvoiceItemParams, idx int) stripeclient.StripeInvoiceItemWithLineID {
+		return stripeclient.StripeInvoiceItemWithLineID{
+			InvoiceItem: &stripe.InvoiceItem{
+				ID:       fmt.Sprintf("ii_%s_%d", input.StripeInvoiceID, idx),
+				Metadata: line.Metadata,
+			},
+			LineID: fmt.Sprintf("il_%s_%d", input.StripeInvoiceID, idx),
+		}
+	}), nil
+}
+
+// respondWith lets a stubbed call compute its return values from the arguments it was called with.
+func respondWith(call *mock.Call, respond func(mock.Arguments) mock.Arguments) {
+	call.Run(func(args mock.Arguments) {
+		call.ReturnArguments = respond(args)
+	})
 }
 
 func (s *StripeInvoiceTestSuite) stubIdempotentStripeInvoices() *idempotentStripeInvoices {
 	fake := &idempotentStripeInvoices{
-		createdByKey: map[string]*stripe.Invoice{},
-		deleted:      map[string]bool{},
+		responseByKey: map[string]stripeCreateResponse{},
+		deleted:       map[string]bool{},
+		failNext:      map[string]error{},
 	}
-
-	errNoSuchInvoice := errors.New("no such invoice")
 
 	s.StripeAppClient.On("CreateInvoice", mock.Anything).Unset()
 
-	var createInvoice *mock.Call
-	createInvoice = s.StripeAppClient.
-		On("CreateInvoice", mock.Anything).
-		Run(func(args mock.Arguments) {
-			key := args.Get(0).(stripeclient.CreateInvoiceInput).IdempotencyKey()
-			fake.createKeys = append(fake.createKeys, key)
+	respondWith(s.StripeAppClient.On("CreateInvoice", mock.Anything), func(args mock.Arguments) mock.Arguments {
+		invoice, err := fake.create(args.Get(0).(stripeclient.CreateInvoiceInput).IdempotencyKey())
 
-			if fake.createFailure != nil {
-				createInvoice.ReturnArguments = mock.Arguments{(*stripe.Invoice)(nil), fake.createFailure}
-				fake.createFailure = nil
+		return mock.Arguments{invoice, err}
+	})
 
-				return
-			}
+	respondWith(s.StripeAppClient.On("GetInvoice", mock.Anything), func(args mock.Arguments) mock.Arguments {
+		invoice, err := fake.get(args.Get(0).(stripeclient.GetInvoiceInput).StripeInvoiceID)
 
-			if _, found := fake.createdByKey[key]; !found {
-				fake.createdByKey[key] = &stripe.Invoice{
-					ID:       fmt.Sprintf("in_%d", len(fake.createdByKey)+1),
-					Status:   stripe.InvoiceStatusDraft,
-					Customer: &stripe.Customer{ID: defaultStripeCustomerID},
-					Currency: "USD",
-					Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
-				}
-			}
+		return mock.Arguments{invoice, err}
+	})
 
-			createInvoice.ReturnArguments = mock.Arguments{fake.createdByKey[key], nil}
-		})
+	respondWith(s.StripeAppClient.On("DeleteInvoice", mock.Anything), func(args mock.Arguments) mock.Arguments {
+		return mock.Arguments{fake.delete(args.Get(0).(stripeclient.DeleteInvoiceInput).StripeInvoiceID)}
+	})
 
-	var getInvoice *mock.Call
-	getInvoice = s.StripeAppClient.
-		On("GetInvoice", mock.Anything).
-		Run(func(args mock.Arguments) {
-			stripeInvoiceID := args.Get(0).(stripeclient.GetInvoiceInput).StripeInvoiceID
+	respondWith(s.StripeAppClient.On("AddInvoiceLines", mock.Anything), func(args mock.Arguments) mock.Arguments {
+		lines, err := fake.addLines(args.Get(0).(stripeclient.AddInvoiceLinesInput))
 
-			if fake.getFailure != nil {
-				getInvoice.ReturnArguments = mock.Arguments{(*stripe.Invoice)(nil), fake.getFailure}
-				fake.getFailure = nil
-
-				return
-			}
-
-			invoice, found := lo.Find(lo.Values(fake.createdByKey), func(invoice *stripe.Invoice) bool {
-				return invoice.ID == stripeInvoiceID
-			})
-			if !found || fake.deleted[stripeInvoiceID] {
-				getInvoice.ReturnArguments = mock.Arguments{(*stripe.Invoice)(nil), stripeclient.NewStripeInvoiceNotFoundError(errNoSuchInvoice)}
-
-				return
-			}
-
-			getInvoice.ReturnArguments = mock.Arguments{invoice, nil}
-		})
-
-	var deleteInvoice *mock.Call
-	deleteInvoice = s.StripeAppClient.
-		On("DeleteInvoice", mock.Anything).
-		Run(func(args mock.Arguments) {
-			if fake.deleteFailure != nil {
-				deleteInvoice.ReturnArguments = mock.Arguments{fake.deleteFailure}
-				fake.deleteFailure = nil
-
-				return
-			}
-
-			fake.deleted[args.Get(0).(stripeclient.DeleteInvoiceInput).StripeInvoiceID] = true
-			deleteInvoice.ReturnArguments = mock.Arguments{nil}
-		})
-
-	var addInvoiceLines *mock.Call
-	addInvoiceLines = s.StripeAppClient.
-		On("AddInvoiceLines", mock.Anything).
-		Run(func(args mock.Arguments) {
-			input := args.Get(0).(stripeclient.AddInvoiceLinesInput)
-
-			if fake.deleted[input.StripeInvoiceID] {
-				addInvoiceLines.ReturnArguments = mock.Arguments{[]stripeclient.StripeInvoiceItemWithLineID(nil), errNoSuchInvoice}
-
-				return
-			}
-
-			addInvoiceLines.ReturnArguments = mock.Arguments{
-				lo.Map(input.Lines, func(line *stripe.InvoiceItemParams, idx int) stripeclient.StripeInvoiceItemWithLineID {
-					return stripeclient.StripeInvoiceItemWithLineID{
-						InvoiceItem: &stripe.InvoiceItem{
-							ID:       fmt.Sprintf("ii_%s_%d", input.StripeInvoiceID, idx),
-							Metadata: line.Metadata,
-						},
-						LineID: fmt.Sprintf("il_%s_%d", input.StripeInvoiceID, idx),
-					}
-				}),
-				nil,
-			}
-		})
+		return mock.Arguments{lines, err}
+	})
 
 	return fake
 }
@@ -232,7 +244,7 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterFail
 	stripeInvoices := s.stubIdempotentStripeInvoices()
 
 	// given: Stripe rejects the first create request, and would keep answering its key the same way
-	stripeInvoices.createFailure = errors.New("rate limited")
+	stripeInvoices.failNext["CreateInvoice"] = errors.New("rate limited")
 
 	// when: the draft is synced to Stripe
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -284,7 +296,7 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterFaile
 	stripeInvoices := s.stubIdempotentStripeInvoices()
 
 	// given: Stripe creates the invoice, but reading it back fails without saying it is gone
-	stripeInvoices.getFailure = errors.New("stripe is unavailable")
+	stripeInvoices.failNext["GetInvoice"] = errors.New("stripe is unavailable")
 
 	// when: the draft is synced to Stripe
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -340,7 +352,7 @@ func (s *StripeInvoiceTestSuite) TestInvoiceGenerationIncrementsAfterFailedDelet
 	s.Require().Equal("in_1", invoice.ExternalIDs.Invoicing)
 
 	// when: the flat fee is removed, but Stripe fails to delete the invoice
-	stripeInvoices.deleteFailure = errors.New("stripe is unavailable")
+	stripeInvoices.failNext["DeleteInvoice"] = errors.New("stripe is unavailable")
 
 	invoice, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:      invoice.GetInvoiceID(),
