@@ -142,11 +142,11 @@ func TestCreateInvoiceIdempotencyKey(t *testing.T) {
 	}
 }
 
-func TestGetInvoiceRateLimited(t *testing.T) {
+func TestGetInvoiceNotFound(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusTooManyRequests)
-		_, _ = w.Write([]byte(`{"error":{"type":"invalid_request_error","code":"rate_limit","message":"Too many requests"}}`))
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"error":{"type":"invalid_request_error","code":"resource_missing","message":"No such invoice: 'in_123'"}}`))
 	}))
 	defer server.Close()
 
@@ -166,7 +166,7 @@ func TestGetInvoiceRateLimited(t *testing.T) {
 
 	_, err := stripeClient.GetInvoice(t.Context(), GetInvoiceInput{StripeInvoiceID: "in_123"})
 
-	require.True(t, IsStripeRateLimitedError(err))
+	require.True(t, IsStripeInvoiceNotFoundError(err))
 
 	var providerErr *app.AppProviderError
 	require.ErrorAs(t, err, &providerErr)

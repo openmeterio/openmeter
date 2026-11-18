@@ -338,10 +338,10 @@ func (a appOperations) createStripeInvoice(
 
 // givesUpCreatedStripeInvoice decides whether a failed read of a just created Stripe invoice means
 // the invoice is gone, so the create has to be repeated with a new idempotency key.
-// A rate limited read says nothing about the invoice: the key is kept, and the next sync gets the
+// Any other failure says nothing about the invoice: the key is kept, and the next sync gets the
 // same Stripe invoice back instead of leaving it behind for a second one.
 func givesUpCreatedStripeInvoice(err error) bool {
-	return !stripeclient.IsStripeRateLimitedError(err)
+	return stripeclient.IsStripeInvoiceNotFoundError(err)
 }
 
 // updateInvoice update the invoice for the app

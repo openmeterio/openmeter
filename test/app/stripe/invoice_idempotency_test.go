@@ -84,7 +84,7 @@ func (s *StripeInvoiceTestSuite) stubIdempotentStripeInvoices() *idempotentStrip
 				return invoice.ID == stripeInvoiceID
 			})
 			if !found || fake.deleted[stripeInvoiceID] {
-				getInvoice.ReturnArguments = mock.Arguments{(*stripe.Invoice)(nil), errNoSuchInvoice}
+				getInvoice.ReturnArguments = mock.Arguments{(*stripe.Invoice)(nil), stripeclient.NewStripeInvoiceNotFoundError(errNoSuchInvoice)}
 
 				return
 			}
@@ -270,9 +270,9 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterFail
 	s.Equal("in_1", invoice.ExternalIDs.Invoicing)
 }
 
-func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterRateLimitedRead() {
+func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterFailedRead() {
 	ctx := s.T().Context()
-	namespace := "ns-invoice-idempotency-rate-limited-read"
+	namespace := "ns-invoice-idempotency-failed-read"
 	period := emptyInvoiceModeServicePeriod()
 
 	clock.FreezeTime(period.To.Add(time.Minute))
@@ -283,8 +283,8 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterRateL
 
 	stripeInvoices := s.stubIdempotentStripeInvoices()
 
-	// given: Stripe creates the invoice, but rate limits reading it back
-	stripeInvoices.getFailure = stripeclient.NewStripeRateLimitedError(errors.New("rate limited"))
+	// given: Stripe creates the invoice, but reading it back fails without saying it is gone
+	stripeInvoices.getFailure = errors.New("stripe is unavailable")
 
 	// when: the draft is synced to Stripe
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{

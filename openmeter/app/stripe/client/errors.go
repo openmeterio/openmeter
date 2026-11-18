@@ -100,35 +100,33 @@ func (e StripeInvoiceCustomerTaxLocationInvalidError) Unwrap() error {
 	return e.err
 }
 
-// StripeRateLimitedError
-var _ models.GenericError = (*StripeRateLimitedError)(nil)
+// StripeInvoiceNotFoundError
+var _ models.GenericError = (*StripeInvoiceNotFoundError)(nil)
 
-func NewStripeRateLimitedError(err error) *StripeRateLimitedError {
-	return &StripeRateLimitedError{
+func NewStripeInvoiceNotFoundError(err error) *StripeInvoiceNotFoundError {
+	return &StripeInvoiceNotFoundError{
 		err: err,
 	}
 }
 
-func IsStripeRateLimitedError(err error) bool {
+func IsStripeInvoiceNotFoundError(err error) bool {
 	if err == nil {
 		return false
 	}
 
-	var e *StripeRateLimitedError
+	var e *StripeInvoiceNotFoundError
 
 	return errors.As(err, &e)
 }
 
-// StripeRateLimitedError says Stripe refused the request before running it, so the request changed
-// nothing in Stripe and tells nothing about the object it was about.
-type StripeRateLimitedError struct {
+type StripeInvoiceNotFoundError struct {
 	err error
 }
 
-func (e *StripeRateLimitedError) Error() string {
+func (e *StripeInvoiceNotFoundError) Error() string {
 	return e.err.Error()
 }
 
-func (e *StripeRateLimitedError) Unwrap() error {
+func (e *StripeInvoiceNotFoundError) Unwrap() error {
 	return e.err
 }

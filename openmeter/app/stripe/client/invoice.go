@@ -142,6 +142,10 @@ func (c *stripeAppClient) GetInvoice(ctx context.Context, input GetInvoiceInput)
 
 	invoice, err := c.client.Invoices.Get(input.StripeInvoiceID, nil)
 	if err != nil {
+		if stripeErr, ok := err.(*stripe.Error); ok && stripeErr.HTTPStatusCode == http.StatusNotFound {
+			return nil, NewStripeInvoiceNotFoundError(c.providerError(err))
+		}
+
 		return nil, c.providerError(err)
 	}
 
