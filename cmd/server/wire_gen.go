@@ -470,7 +470,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, secretserviceService, billingRegistry, eventbusPublisher)
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, secretserviceService, billingRegistry, taxCodeResolver, eventbusPublisher)
 	if err != nil {
 		cleanup8()
 		cleanup7()
