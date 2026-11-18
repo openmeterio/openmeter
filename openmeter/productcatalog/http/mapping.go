@@ -813,40 +813,13 @@ func (e *TaxCodeResolutionError) Unwrap() error {
 // FromAPITaxConfig turns v1 tax config input into a Tax Code reference. taxCodeId wins when set
 // and is passed through unchecked: services validate Tax Code references. Otherwise a stripe.code
 // is resolved to a Tax Code, creating one if the namespace doesn't have it yet.
-//
-// stripe.code is format-checked even when taxCodeId wins, because the API always rejected
-// malformed codes with a 400.
 func FromAPITaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, in apiv1models.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
-	stripeCode := lo.FromPtr(in.Stripe).Code
-
-	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {
-		return nil, models.ErrorWithFieldPrefix(
-			models.NewFieldSelectorGroup(
-				models.NewFieldSelector("taxConfig"),
-				models.NewFieldSelector("stripe"),
-				models.NewFieldSelector("code"),
-			),
-			err,
-		)
+	out, stripeCode, err := ParseAPITaxConfig(in)
+	if err != nil {
+		return nil, err
 	}
 
-	// An explicit empty ID was always rejected; don't let it fall through to the Stripe code.
-	if in.TaxCodeId != nil && *in.TaxCodeId == "" {
-		return nil, models.ErrorWithFieldPrefix(
-			models.NewFieldSelectorGroup(
-				models.NewFieldSelector("taxConfig"),
-				models.NewFieldSelector("taxCodeId"),
-			),
-			models.NewGenericValidationError(errors.New("tax code id must not be empty")),
-		)
-	}
-
-	out := productcatalog.TaxCodeConfig{
-		Behavior:  (*productcatalog.TaxBehavior)(in.Behavior),
-		TaxCodeID: lo.FromPtr(in.TaxCodeId),
-	}
-
-	if out.TaxCodeID == "" && stripeCode != "" {
+	if stripeCode != "" {
 		if resolver == nil {
 			return nil, &TaxCodeResolutionError{Err: errors.New("tax code resolver is required to resolve stripe tax codes")}
 		}
@@ -867,6 +840,49 @@ func FromAPITaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfi
 	}
 
 	return lo.ToPtr(out.Clone()), nil
+}
+
+// ParseAPITaxConfig validates v1 tax config input without any lookups. It returns the Tax Code
+// reference and the stripe.code still to resolve, which is empty when taxCodeId wins or no code
+// was sent.
+//
+// stripe.code is format-checked even when taxCodeId wins, because the API always rejected
+// malformed codes with a 400.
+func ParseAPITaxConfig(in apiv1models.TaxConfig) (productcatalog.TaxCodeConfig, string, error) {
+	stripeCode := lo.FromPtr(in.Stripe).Code
+
+	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {
+		return productcatalog.TaxCodeConfig{}, "", models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(
+				models.NewFieldSelector("taxConfig"),
+				models.NewFieldSelector("stripe"),
+				models.NewFieldSelector("code"),
+			),
+			err,
+		)
+	}
+
+	// An explicit empty ID was always rejected; don't let it fall through to the Stripe code.
+	if in.TaxCodeId != nil && *in.TaxCodeId == "" {
+		return productcatalog.TaxCodeConfig{}, "", models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(
+				models.NewFieldSelector("taxConfig"),
+				models.NewFieldSelector("taxCodeId"),
+			),
+			models.NewGenericValidationError(errors.New("tax code id must not be empty")),
+		)
+	}
+
+	out := productcatalog.TaxCodeConfig{
+		Behavior:  (*productcatalog.TaxBehavior)(in.Behavior),
+		TaxCodeID: lo.FromPtr(in.TaxCodeId),
+	}
+
+	if out.TaxCodeID != "" {
+		return out, "", nil
+	}
+
+	return out, stripeCode, nil
 }
 
 func FromMetadata(metadata models.Metadata) *apiv1models.Metadata {
