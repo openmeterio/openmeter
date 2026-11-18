@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingworkercollect "github.com/openmeterio/openmeter/openmeter/billing/worker/collect"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -1026,5 +1028,111 @@ func (s *CollectionTestSuite) TestCollectionFlowWithUBPEditingExtendingCollectio
 		s.Equal(float64(4), invoice.Totals.Amount.InexactFloat64())
 		s.NotEqual(previousSnapshot, *invoice.QuantitySnapshotedAt)
 		s.True(!invoice.QuantitySnapshotedAt.Before(newLinePeriod.To), "quantity should be snapshoted after the new line period")
+	})
+}
+
+type recalculationCountingGatheringInvoiceService struct {
+	billing.GatheringInvoiceService
+
+	recalculations int
+}
+
+func (s *recalculationCountingGatheringInvoiceService) RecalculateGatheringInvoices(ctx context.Context, input billing.RecalculateGatheringInvoicesInput) error {
+	s.recalculations++
+
+	return s.GatheringInvoiceService.RecalculateGatheringInvoices(ctx, input)
+}
+
+func (s *CollectionTestSuite) TestCollectorRecalculatesOnlyWhenGatheringInvoiceIsDue() {
+	namespace := "ns-collector-stale-trigger"
+	ctx := s.T().Context()
+
+	res := s.setupNS(ctx, namespace)
+	defer res.Cleanup()
+
+	customerID := res.customer.GetID()
+
+	gatheringInvoices := &recalculationCountingGatheringInvoiceService{GatheringInvoiceService: s.BillingService}
+	collector, err := billingworkercollect.NewInvoiceCollector(billingworkercollect.Config{
+		GatheringInvoiceService: gatheringInvoices,
+		BillingService:          s.BillingService,
+		Logger:                  slog.New(slog.DiscardHandler),
+	})
+	s.Require().NoError(err)
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2025-01-02T00:00:00Z")),
+	}
+	asOf := servicePeriod.To.Add(time.Minute)
+
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	newLine := func(period timeutil.ClosedPeriod) billing.GatheringLine {
+		return billing.GatheringLine{
+			GatheringLineBase: billing.GatheringLineBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{Name: "UBP - unit"}),
+				ServicePeriod:   period,
+				InvoiceAt:       period.To,
+				ManagedBy:       billing.ManuallyManagedLine,
+				FeatureKey:      res.Feature.Key,
+				Price:           lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromFloat(1)})),
+			},
+		}
+	}
+
+	s.MockStreamingConnector.AddSimpleEvent(res.Feature.Key, 1, servicePeriod.From.Add(time.Hour))
+	defer s.MockStreamingConnector.Reset()
+
+	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: customerID,
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{newLine(servicePeriod)}),
+	})
+	s.Require().NoError(err)
+
+	clock.FreezeTime(asOf)
+
+	s.RequireRun("stale trigger after a successful collection", func() {
+		// given: the customer's pending lines were collected
+		invoices, err := collector.CollectCustomerInvoice(ctx, billingworkercollect.CollectCustomerInvoiceInput{CustomerID: customerID, AsOf: asOf})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+
+		// when: a duplicate trigger for the same AsOf arrives
+		invoices, err = collector.CollectCustomerInvoice(ctx, billingworkercollect.CollectCustomerInvoiceInput{CustomerID: customerID, AsOf: asOf})
+
+		// then: it is a no-op without recalculation
+		s.Require().NoError(err)
+		s.Empty(invoices)
+		s.Zero(gatheringInvoices.recalculations)
+	})
+
+	s.RequireRun("gathering invoice due without billable lines", func() {
+		// given: a gathering invoice whose collection_at claims it is due, while its only line is not yet billable
+		futurePeriod := timeutil.ClosedPeriod{From: asOf, To: asOf.Add(48 * time.Hour)}
+		pending, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+			Customer: customerID,
+			Currency: currencyx.FiatCode(currency.USD),
+			Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{newLine(futurePeriod)}),
+		})
+		s.Require().NoError(err)
+
+		err = s.DBClient.BillingInvoice.UpdateOneID(pending.Invoice.ID).SetCollectionAt(asOf).Exec(ctx)
+		s.Require().NoError(err)
+
+		// when: collection runs
+		invoices, err := collector.CollectCustomerInvoice(ctx, billingworkercollect.CollectCustomerInvoiceInput{CustomerID: customerID, AsOf: asOf})
+
+		// then: the gathering invoice is recalculated and collection_at points at the line again
+		s.Require().NoError(err)
+		s.Empty(invoices)
+		s.Equal(1, gatheringInvoices.recalculations)
+
+		gatheringInvoice, err := s.BillingService.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{Invoice: pending.Invoice.GetInvoiceID()})
+		s.Require().NoError(err)
+		s.Require().NotNil(gatheringInvoice.NextCollectionAt)
+		s.Equal(futurePeriod.To, gatheringInvoice.NextCollectionAt.UTC())
 	})
 }
