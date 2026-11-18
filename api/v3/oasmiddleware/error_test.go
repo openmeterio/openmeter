@@ -1,6 +1,7 @@
 package oasmiddleware_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -83,4 +84,26 @@ func TestToAipError_NumericBoundsInsideParameter(t *testing.T) {
 			Minimum: lo.ToPtr(1),
 		},
 	}, invalidParams)
+}
+
+func TestToAipError_BoundOutsideIntRangeIsOmitted(t *testing.T) {
+	// given: a schema maximum of 2^63, which does not fit in an int
+	schema := openapi3.NewObjectSchema().
+		WithProperty("size", openapi3.NewFloat64Schema().WithMax(math.Exp2(63)))
+	schemaErr := schema.VisitJSON(map[string]any{"size": math.Exp2(64)}, openapi3.MultiErrors())
+	require.IsType(t, openapi3.MultiError{}, schemaErr)
+
+	// when: the validator reports the parameter failure
+	invalidParams := oasmiddleware.ToAipError(openapi3.MultiError{
+		&openapi3filter.RequestError{
+			Parameter: &openapi3.Parameter{Name: "page", In: openapi3.ParameterInQuery},
+			Err:       schemaErr,
+		},
+	})
+
+	// then: the rule is reported without a wrapped-around limit
+	require.Len(t, invalidParams, 1)
+	require.Equal(t, "page[size]", invalidParams[0].Field)
+	require.Equal(t, "max", invalidParams[0].Rule)
+	require.Nil(t, invalidParams[0].Maximum)
 }

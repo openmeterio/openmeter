@@ -248,7 +248,9 @@ func schemaBound(schema *openapi3.Schema, keyword string) *int {
 		return nil
 	}
 
-	if bound != math.Trunc(bound) || bound > math.MaxInt || bound < math.MinInt {
+	// float64(math.MaxInt) rounds up to 2^63, so compare against -MinInt, which
+	// is exactly 2^63, to keep out-of-range bounds away from the int conversion.
+	if bound != math.Trunc(bound) || bound >= -float64(math.MinInt) || bound < math.MinInt {
 		return nil
 	}
 
