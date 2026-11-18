@@ -15,6 +15,8 @@ model CursorPaginationQueryPage {
   /**
    * The number of items to include per page.
    */
+  @minValue(1)
+  @maxValue(1000)
   size?: integer;
 
   /**
@@ -51,11 +53,14 @@ model PagePaginationQuery {
     /**
      * The number of items to include per page.
      */
+    @minValue(1)
+    @maxValue(1000)
     size?: integer;
 
     /**
      * The page number.
      */
+    @minValue(1)
     number?: integer;
   };
 }

@@ -5352,9 +5352,12 @@ components:
         properties:
           size:
             type: integer
+            minimum: 1
+            maximum: 1000
             description: The number of items to include per page.
           number:
             type: integer
+            minimum: 1
             description: The page number.
         additionalProperties: false
       style: deepObject
@@ -20295,6 +20298,8 @@ components:
       properties:
         size:
           type: integer
+          minimum: 1
+          maximum: 1000
           description: The number of items to include per page.
         after:
           type: string

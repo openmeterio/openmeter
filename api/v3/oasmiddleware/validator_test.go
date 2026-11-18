@@ -131,3 +131,53 @@ func TestValidateResponse_RouteFilterSkipsValidation(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code, "client response should still be served")
 	assert.Equal(t, `{}`, rec.Body.String(), "client response body should still be served")
 }
+
+// TestValidateRequest_PaginationBounds proves that the request validator enforces
+// the page bounds declared in the spec, so list handlers only see valid pages.
+func TestValidateRequest_PaginationBounds(t *testing.T) {
+	swagger, err := apiv3.GetSpec()
+	require.NoError(t, err)
+
+	router, err := oasmiddleware.NewValidationRouter(t.Context(), swagger, &oasmiddleware.ValidationRouterOpts{
+		DeleteServers: true,
+	})
+	require.NoError(t, err)
+
+	for _, tc := range []struct {
+		method string
+		target string
+		valid  bool
+	}{
+		{method: http.MethodGet, target: "/openmeter/customers?page[size]=1000&page[number]=1", valid: true},
+		{method: http.MethodGet, target: "/openmeter/customers?page[size]=1001"},
+		{method: http.MethodGet, target: "/openmeter/customers?page[size]=0"},
+		{method: http.MethodGet, target: "/openmeter/customers?page[number]=0"},
+		{method: http.MethodGet, target: "/openmeter/customers?page[size]=9223372036854775807"},
+		{method: http.MethodGet, target: "/openmeter/events?page[size]=1000", valid: true},
+		{method: http.MethodGet, target: "/openmeter/events?page[size]=1001"},
+	} {
+		t.Run(tc.method+" "+tc.target, func(t *testing.T) {
+			var gotErr error
+			mw := oasmiddleware.ValidateRequest(router, oasmiddleware.ValidateRequestOption{
+				RouteNotFoundHook: func(err error, w http.ResponseWriter, r *http.Request) bool {
+					t.Fatalf("route not found: %v", err)
+					return true
+				},
+				RouteValidationErrorHook: func(err error, w http.ResponseWriter, r *http.Request) bool {
+					gotErr = err
+					return true
+				},
+			})
+
+			mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})).
+				ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(tc.method, tc.target, nil))
+
+			if !tc.valid {
+				require.ErrorContains(t, gotErr, `parameter "page"`)
+				return
+			}
+
+			require.NoError(t, gotErr)
+		})
+	}
+}
