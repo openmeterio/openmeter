@@ -24,7 +24,7 @@ import (
 type idempotentStripeInvoices struct {
 	responseByKey map[string]stripeCreateResponse
 	created       int
-	deleted       map[string]bool
+	live          map[string]bool
 	createKeys    []string
 	// failNext makes the next request of a client method fail. A failed create is stored for its
 	// key like any other response.
@@ -64,6 +64,7 @@ func (f *idempotentStripeInvoices) create(key string) (*stripe.Invoice, error) {
 				Currency: "USD",
 				Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
 			}
+			f.live[response.invoice.ID] = true
 		}
 
 		f.responseByKey[key] = response
@@ -83,7 +84,7 @@ func (f *idempotentStripeInvoices) get(stripeInvoiceID string) (*stripe.Invoice,
 		return nil, err
 	}
 
-	if f.deleted[stripeInvoiceID] {
+	if !f.live[stripeInvoiceID] {
 		return nil, stripeclient.NewStripeInvoiceNotFoundError(errNoSuchStripeInvoice)
 	}
 
@@ -95,13 +96,13 @@ func (f *idempotentStripeInvoices) delete(stripeInvoiceID string) error {
 		return err
 	}
 
-	f.deleted[stripeInvoiceID] = true
+	delete(f.live, stripeInvoiceID)
 
 	return nil
 }
 
 func (f *idempotentStripeInvoices) addLines(input stripeclient.AddInvoiceLinesInput) ([]stripeclient.StripeInvoiceItemWithLineID, error) {
-	if f.deleted[input.StripeInvoiceID] {
+	if !f.live[input.StripeInvoiceID] {
 		return nil, errNoSuchStripeInvoice
 	}
 
@@ -126,7 +127,7 @@ func respondWith(call *mock.Call, respond func(mock.Arguments) mock.Arguments) {
 func (s *StripeInvoiceTestSuite) stubIdempotentStripeInvoices() *idempotentStripeInvoices {
 	fake := &idempotentStripeInvoices{
 		responseByKey: map[string]stripeCreateResponse{},
-		deleted:       map[string]bool{},
+		live:          map[string]bool{},
 		failNext:      map[string]error{},
 	}
 
@@ -198,7 +199,7 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterStri
 		},
 	})
 	s.Require().NoError(err)
-	s.Require().True(stripeInvoices.deleted["in_1"])
+	s.Require().False(stripeInvoices.live["in_1"])
 	s.Require().Empty(invoice.ExternalIDs.Invoicing)
 
 	// when: a later edit adds a $20 fee, so the invoice has to be created in Stripe again
