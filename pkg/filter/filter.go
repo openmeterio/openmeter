@@ -1058,6 +1058,19 @@ func NewULIDEq(ids ...string) *FilterULID {
 	return &FilterULID{FilterString: FilterString{In: lo.ToPtr(slices.Clone(ids))}}
 }
 
+// NewULIDIn matches any of the given ULIDs. It uses Eq for one value and In
+// for multiple values. With no values it returns nil so callers can omit the filter.
+func NewULIDIn(values ...string) *FilterULID {
+	switch len(values) {
+	case 0:
+		return nil
+	case 1:
+		return &FilterULID{FilterString: FilterString{Eq: lo.ToPtr(values[0])}}
+	default:
+		return &FilterULID{FilterString: FilterString{In: lo.ToPtr(slices.Clone(values))}}
+	}
+}
+
 // Validate validates the filter.
 func (f FilterULID) Validate() error {
 	return models.NewNillableGenericValidationError(f.validateWithComplexity(math.MaxInt))

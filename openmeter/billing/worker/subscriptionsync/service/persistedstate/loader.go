@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -150,8 +151,8 @@ func (l Loader) loadChargesForSubscription(ctx context.Context, subs subscriptio
 	}
 
 	listedCharges, err := l.chargeService.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       subs.Namespace,
-		SubscriptionIDs: []string{subs.ID},
+		Namespace:      subs.Namespace,
+		SubscriptionID: filter.NewULIDIn(subs.ID),
 		// Subscription sync reconciles subscription-owned source state, so API
 		// override deletion must not hide a charge whose base intent is still live.
 		DeletedAtFilter: charges.ListChargesDeletedAtFilterBaseIntent,

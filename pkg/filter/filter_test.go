@@ -2473,6 +2473,15 @@ func TestNewULIDEq(t *testing.T) {
 	assert.Empty(t, args)
 }
 
+func TestNewULIDIn(t *testing.T) {
+	first := ulid.Make().String()
+	second := ulid.Make().String()
+
+	assert.Nil(t, filter.NewULIDIn())
+	assert.Equal(t, &filter.FilterULID{FilterString: filter.FilterString{Eq: &first}}, filter.NewULIDIn(first))
+	assert.Equal(t, &filter.FilterULID{FilterString: filter.FilterString{In: &[]string{first, second}}}, filter.NewULIDIn(first, second))
+}
+
 func TestFilterULID_Validate(t *testing.T) {
 	tests := []struct {
 		name   string

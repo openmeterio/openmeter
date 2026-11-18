@@ -42,6 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -459,9 +460,9 @@ func (s *SuiteBase) assertCharges(ctx context.Context, subsView subscription.Sub
 	subscriptionID := subsView.Subscription.NamespacedID
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       subscriptionID.Namespace,
-		SubscriptionIDs: []string{subscriptionID.ID},
-		IncludeDeleted:  true,
+		Namespace:      subscriptionID.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID.ID),
+		IncludeDeleted: true,
 		Expands: chargesmeta.Expands{
 			chargesmeta.ExpandRealizations,
 			chargesmeta.ExpandDeletedRealizations,

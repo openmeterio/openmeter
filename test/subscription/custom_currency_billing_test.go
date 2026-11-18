@@ -27,6 +27,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -99,10 +100,10 @@ func TestSubscriptionCustomCurrencyGatheringInvoiceLivePreviewOmitsUsageBasedLin
 	require.NoError(t, deps.subscriptionSyncService.SyncByID(t.Context(), view.Subscription.NamespacedID, invoiceAt))
 
 	chargeListInput := charges.ListChargesInput{
-		Page:            pagination.Page{PageNumber: 1, PageSize: 100},
-		Namespace:       namespace,
-		SubscriptionIDs: []string{createdSubscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		Page:           pagination.Page{PageNumber: 1, PageSize: 100},
+		Namespace:      namespace,
+		SubscriptionID: filter.NewULIDIn(createdSubscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 	}
 	chargePage, err := deps.chargesService.ListCharges(t.Context(), chargeListInput)
 	require.NoError(t, err)
@@ -703,10 +704,10 @@ func listSubscriptionChargeIDs(t *testing.T, deps testDeps, subscriptionID strin
 	t.Helper()
 
 	result, err := deps.chargesService.ListCharges(t.Context(), charges.ListChargesInput{
-		Page:            pagination.Page{PageNumber: 1, PageSize: 100},
-		Namespace:       "test-namespace",
-		SubscriptionIDs: []string{subscriptionID},
-		OrderBy:         "id",
+		Page:           pagination.Page{PageNumber: 1, PageSize: 100},
+		Namespace:      "test-namespace",
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		OrderBy:        "id",
 	})
 	require.NoError(t, err)
 
@@ -731,10 +732,10 @@ func assertSubscriptionChargeCurrenciesAndCostBasis(
 	t.Helper()
 
 	result, err := deps.chargesService.ListCharges(t.Context(), charges.ListChargesInput{
-		Page:            pagination.Page{PageNumber: 1, PageSize: 100},
-		Namespace:       "test-namespace",
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		Page:           pagination.Page{PageNumber: 1, PageSize: 100},
+		Namespace:      "test-namespace",
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, result.Items)

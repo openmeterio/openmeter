@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -23,6 +24,7 @@ import (
 	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -72,7 +74,7 @@ func (s *ListCustomersToAdvanceSuite) createCustomer(namespace string) string {
 	c, err := s.dbClient.Customer.Create().
 		SetNamespace(namespace).
 		SetName("test-customer").
-		Save(context.Background())
+		Save(s.T().Context())
 	s.Require().NoError(err)
 
 	return c.ID
@@ -82,6 +84,17 @@ func (s *ListCustomersToAdvanceSuite) createCustomer(namespace string) string {
 func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID string, status meta.ChargeStatus, advanceAfter *time.Time) string {
 	s.T().Helper()
 
+	charge, err := s.newFlatFeeCharge(namespace, customerID, status).
+		SetNillableAdvanceAfter(advanceAfter).
+		Save(s.T().Context())
+	s.Require().NoError(err)
+
+	return charge.ID
+}
+
+func (s *ListCustomersToAdvanceSuite) newFlatFeeCharge(namespace, customerID string, status meta.ChargeStatus) *db.ChargeFlatFeeCreate {
+	s.T().Helper()
+
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	taxCodeID, ok := s.taxCodeIDByNamespace[namespace]
 	if !ok {
@@ -89,7 +102,7 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 		s.taxCodeIDByNamespace[namespace] = taxCodeID
 	}
 
-	create := s.dbClient.ChargeFlatFee.Create().
+	return s.dbClient.ChargeFlatFee.Create().
 		SetNamespace(namespace).
 		SetCustomerID(customerID).
 		SetStatus(status).
@@ -110,15 +123,6 @@ func (s *ListCustomersToAdvanceSuite) insertFlatFeeCharge(namespace, customerID 
 		SetBillingPeriodTo(now.Add(time.Hour)).
 		SetFullServicePeriodFrom(now).
 		SetFullServicePeriodTo(now.Add(time.Hour))
-
-	if advanceAfter != nil {
-		create = create.SetAdvanceAfter(*advanceAfter)
-	}
-
-	charge, err := create.Save(context.Background())
-	s.Require().NoError(err)
-
-	return charge.ID
 }
 
 func (s *ListCustomersToAdvanceSuite) TestListChargesDeletedAtFilter() {
@@ -334,6 +338,99 @@ func (s *ListCustomersToAdvanceSuite) TestListNonFinalCustomerCharges() {
 	for _, item := range result.Items {
 		s.Equal(ns, item.ID.Namespace)
 		s.Equal(customerID, item.CustomerID)
+	}
+}
+
+func (s *ListCustomersToAdvanceSuite) TestListChargesSubscriptionIDFilter() {
+	ctx := s.T().Context()
+	ns := "test-list-charges-subscription-id-filter"
+	activeFrom := time.Now().UTC().Truncate(time.Microsecond)
+
+	// Given two subscriptions for one customer and a manual charge for that customer.
+	customerID := s.createCustomer(ns)
+	var subscriptionIDs, chargeIDs []string
+	for range 2 {
+		subscription, err := s.dbClient.Subscription.Create().
+			SetNamespace(ns).
+			SetCustomerID(customerID).
+			SetInvoiceCurrency(currencyx.Code("USD")).
+			SetBillingAnchor(activeFrom).
+			SetBillingCadence(datetime.ISODurationString("P1M")).
+			SetActiveFrom(activeFrom).
+			Save(ctx)
+		s.Require().NoError(err)
+
+		charge, err := s.newFlatFeeCharge(ns, customerID, meta.ChargeStatusActive).
+			SetSubscriptionID(subscription.ID).
+			Save(ctx)
+		s.Require().NoError(err)
+
+		subscriptionIDs = append(subscriptionIDs, subscription.ID)
+		chargeIDs = append(chargeIDs, charge.ID)
+	}
+	manualCharge, err := s.newFlatFeeCharge(ns, customerID, meta.ChargeStatusActive).
+		SetManagedBy(billing.ManuallyManagedLine).
+		Save(ctx)
+	s.Require().NoError(err)
+
+	unknownID := "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+	for _, tt := range []struct {
+		name      string
+		filter    *filter.FilterULID
+		page      pagination.Page
+		wantIDs   []string
+		wantTotal int
+	}{
+		{name: "unfiltered", wantIDs: []string{chargeIDs[0], chargeIDs[1], manualCharge.ID}, wantTotal: 3},
+		{
+			name:      "eq",
+			filter:    filter.NewULIDIn(subscriptionIDs[0]),
+			wantIDs:   chargeIDs[:1],
+			wantTotal: 1,
+		},
+		{
+			name:      "oeq",
+			filter:    filter.NewULIDIn(subscriptionIDs...),
+			wantIDs:   chargeIDs,
+			wantTotal: 2,
+		},
+		{
+			name:      "neq excludes the manual charge",
+			filter:    &filter.FilterULID{FilterString: filter.FilterString{Ne: &subscriptionIDs[0]}},
+			wantIDs:   chargeIDs[1:],
+			wantTotal: 1,
+		},
+		{
+			name:   "unknown subscription",
+			filter: filter.NewULIDIn(unknownID),
+		},
+		{
+			name:      "pagination counts only matches",
+			filter:    filter.NewULIDIn(subscriptionIDs...),
+			page:      pagination.Page{PageNumber: 2, PageSize: 1},
+			wantIDs:   []string{slices.Max(chargeIDs)},
+			wantTotal: 2,
+		},
+	} {
+		s.Run(tt.name, func() {
+			// When listing charges within the customer and subscription filters.
+			result, err := s.adapter.ListCharges(s.T().Context(), charges.ListChargesInput{
+				Namespace:      ns,
+				CustomerIDs:    []string{customerID},
+				SubscriptionID: tt.filter,
+				Page:           tt.page,
+				OrderBy:        "id",
+			})
+			s.Require().NoError(err)
+
+			// Then only the requested charges contribute to the page and total.
+			var ids []string
+			for _, item := range result.Items {
+				ids = append(ids, item.ID.ID)
+			}
+			s.ElementsMatch(tt.wantIDs, ids)
+			s.Equal(tt.wantTotal, result.TotalCount)
+		})
 	}
 }
 

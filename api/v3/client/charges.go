@@ -55,6 +55,9 @@ type ListChargesFilter struct {
 	ServicePeriodTo *DateTimeFilter
 	// Filter charges by the ID of their customer.
 	CustomerID *StringExactFilter
+	// Filter charges by the ID of their subscription. Only charges linked to a
+	// subscription can match, including when using `neq`.
+	SubscriptionID *StringExactFilter
 }
 
 type ListChargesParams struct {
@@ -78,6 +81,7 @@ func (p ListChargesParams) values() url.Values {
 		addDateTimeFilter(q, "filter[service_period_from]", p.Filter.ServicePeriodFrom)
 		addDateTimeFilter(q, "filter[service_period_to]", p.Filter.ServicePeriodTo)
 		addStringExactFilter(q, "filter[customer_id]", p.Filter.CustomerID)
+		addStringExactFilter(q, "filter[subscription_id]", p.Filter.SubscriptionID)
 	}
 
 	if len(p.Expand) > 0 {

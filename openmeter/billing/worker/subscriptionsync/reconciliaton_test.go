@@ -401,10 +401,10 @@ func (s *ReconciliationTestSuite) TestCustomerDeletedBeforeCleanup() {
 
 			if s.UseCharges && !tc.noBillables && !tc.skipInitialSync {
 				chargeList, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-					Namespace:       s.Namespace,
-					SubscriptionIDs: []string{subscriptionID.ID},
-					IncludeDeleted:  true,
-					Status:          &filter.FilterString{Eq: lo.ToPtr(string(chargesmeta.ChargeStatusDeleted))},
+					Namespace:      s.Namespace,
+					SubscriptionID: filter.NewULIDIn(subscriptionID.ID),
+					IncludeDeleted: true,
+					Status:         &filter.FilterString{Eq: lo.ToPtr(string(chargesmeta.ChargeStatusDeleted))},
 				})
 				s.Require().NoError(err)
 				s.Require().Len(chargeList.Items, initialLineCount)

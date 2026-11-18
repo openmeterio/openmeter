@@ -164,8 +164,8 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 
 				s.Require().NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, start.Add(time.Minute)))
 				chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-					Namespace:       subsView.Subscription.Namespace,
-					SubscriptionIDs: []string{subsView.Subscription.ID},
+					Namespace:      subsView.Subscription.Namespace,
+					SubscriptionID: filter.NewULIDIn(subsView.Subscription.ID),
 				})
 				s.Require().NoError(err)
 
@@ -249,8 +249,8 @@ func (s *CreditThenInvoiceTestSuite) TestCancellationReconcilesPeriodsByServiceD
 
 				// And no charge is left for the next billing period, which starts after the cancellation.
 				remainingCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-					Namespace:       subsView.Subscription.Namespace,
-					SubscriptionIDs: []string{subsView.Subscription.ID},
+					Namespace:      subsView.Subscription.Namespace,
+					SubscriptionID: filter.NewULIDIn(subsView.Subscription.ID),
 				})
 				s.Require().NoError(err)
 				s.Len(remainingCharges.Items, 1)
@@ -547,10 +547,10 @@ func (s *CreditThenInvoiceTestSuite) assertPaidCancellationHistory(subscriptionI
 	s.T().Helper()
 	ctx := s.T().Context()
 	activeCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Page:            pagination.Page{PageSize: 20, PageNumber: 1},
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Page:           pagination.Page{PageSize: 20, PageNumber: 1},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.Require().NoError(err)
 	s.Require().Len(activeCharges.Items, len(paid), "no extra collectible historical or future charges")
@@ -710,10 +710,10 @@ func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWith
 		originalAmount = paidInvoice.Lines.OrEmpty()[0].Totals.Total
 
 		allCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Page:            pagination.Page{PageNumber: 1, PageSize: 20},
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{subscriptionID.ID},
-			IncludeDeleted:  true,
+			Page:           pagination.Page{PageNumber: 1, PageSize: 20},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(subscriptionID.ID),
+			IncludeDeleted: true,
 		})
 		s.Require().NoError(err)
 		for _, charge := range allCharges.Items {
@@ -771,10 +771,10 @@ func (s *CreditThenInvoiceTestSuite) TestChargeReplacementRejectsPaidFlatFeeWith
 		s.Equal(alpacadecimal.NewFromInt(30), flatFee.Intent.GetBaseIntent().AmountBeforeProration)
 
 		allCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Page:            pagination.Page{PageNumber: 1, PageSize: 20},
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{subscriptionID.ID},
-			IncludeDeleted:  true,
+			Page:           pagination.Page{PageNumber: 1, PageSize: 20},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(subscriptionID.ID),
+			IncludeDeleted: true,
 		})
 		s.Require().NoError(err)
 		chargeIDsAfter := make([]string, 0, len(allCharges.Items))
