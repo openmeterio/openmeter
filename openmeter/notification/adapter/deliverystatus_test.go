@@ -89,7 +89,7 @@ func TestDeliveryStatusStateStorageCompatibility(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.state, updated.State)
-			assert.Equal(t, tt.name, storedState)
+			assert.Equal(t, strings.ToLower(tt.name), storedState)
 			assert.JSONEq(t, string(expectedAttempts), storedAttempts)
 
 			for _, stored := range []string{tt.name, strings.ToLower(tt.name)} {
@@ -137,121 +137,79 @@ func TestDeliveryStatusStateStorageCompatibility(t *testing.T) {
 }
 
 func TestDeliveryStatusStateDefault(t *testing.T) {
-	env := newEventTestEnv(t)
-	for _, writer := range []string{"Ent", "SQL"} {
-		t.Run(writer, func(t *testing.T) {
-			// given: normal Event creation still creates an uppercase PENDING delivery
-			namespace := ulid.Make().String()
-			channel := seedChannel(t, env, namespace)
-			rule := seedRule(t, env, namespace, notification.EventTypeBalanceThreshold, channel.ID)
-			event := seedEvent(t, env, namespace, rule, clock.Now(), nil)
-			require.Len(t, event.DeliveryStatus, 1)
-
-			assert.Equal(t, notification.EventDeliveryStatusStatePending, event.DeliveryStatus[0].State)
-
-			otherChannel := seedChannel(t, env, namespace)
-			id := ulid.Make().String()
-
-			// when: a writer omits state entirely, exercising both Ent and database defaults
-			switch writer {
-			case "Ent":
-				_, err := env.db.NotificationEventDeliveryStatus.Create().
-					SetID(id).
-					SetNamespace(namespace).
-					SetEventID(event.ID).
-					SetChannelID(otherChannel.ID).
-					AddEventIDs(event.ID).
-					Save(t.Context())
-				require.NoError(t, err)
-			case "SQL":
-				_, err := env.sqlDB.ExecContext(t.Context(),
-					`INSERT INTO notification_event_delivery_status (id, namespace, event_id, channel_id, created_at, updated_at)
-					VALUES ($1, $2, $3, $4, NOW(), NOW())`, id, namespace, event.ID, otherChannel.ID,
-				)
-				require.NoError(t, err)
-			}
-
-			// then: both paths retain the same uppercase default
-			var storedState string
-			err := env.sqlDB.QueryRowContext(t.Context(),
-				"SELECT state FROM notification_event_delivery_status WHERE id = $1", id,
-			).Scan(&storedState)
-			require.NoError(t, err)
-
-			fetched, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{
-				NamespacedID: models.NamespacedID{Namespace: namespace, ID: id},
-			})
-			require.NoError(t, err)
-
-			assert.Equal(t, "PENDING", storedState)
-			assert.Equal(t, notification.EventDeliveryStatusStatePending, fetched.State)
-		})
-	}
-}
-
-func TestDeliveryStatusStateValidation(t *testing.T) {
-	env := newEventTestEnv(t)
-	tests := []struct {
+	for _, schema := range []struct {
 		name  string
-		state notification.EventDeliveryStatusState
+		state testutils.PostgresDBState
 	}{
-		{name: "empty"},
-		{name: "unknown", state: "UNKNOWN"},
-		{name: "lowercase pending", state: "pending"},
-		{name: "lowercase sending", state: "sending"},
-		{name: "lowercase resending", state: "resending"},
-		{name: "lowercase success", state: "success"},
-		{name: "target succeeded", state: "succeeded"},
-		{name: "lowercase failed", state: "failed"},
-	}
+		{name: "Ent schema", state: testutils.PostgresDBStateEntMigrated},
+		{name: "SQL migrations", state: testutils.PostgresDBStateAtlasMigrated},
+	} {
+		t.Run(schema.name, func(t *testing.T) {
+			testdb := testutils.InitPostgresDB(t, schema.state)
+			t.Cleanup(func() { testdb.Close(t) })
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// given: an existing valid delivery with an unsupported replacement state
-			namespace := ulid.Make().String()
-			channel := seedChannel(t, env, namespace)
-			rule := seedRule(t, env, namespace, notification.EventTypeBalanceThreshold, channel.ID)
-			event := seedEvent(t, env, namespace, rule, clock.Now(), nil)
-			require.Len(t, event.DeliveryStatus, 1)
-
-			before, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{
-				NamespacedID: event.DeliveryStatus[0].NamespacedID,
+			dbClient := testdb.EntDriver.Client()
+			adapter, err := notificationadapter.New(notificationadapter.Config{
+				Client: dbClient,
+				Logger: testutils.NewDiscardLogger(t),
 			})
 			require.NoError(t, err)
 
-			// when: writing through Ent or the adapter without service validation
-			_, err = env.db.NotificationEventDeliveryStatus.Create().
-				SetNamespace(namespace).
-				SetEventID(event.ID).
-				SetChannelID(channel.ID).
-				SetState(tt.state).
-				Save(t.Context())
-			require.ErrorContains(t, err, "invalid event delivery status state")
+			env := &eventTestEnv{db: dbClient, sqlDB: testdb.PGDriver.DB(), adapter: adapter}
+			for _, writer := range []string{"Ent", "SQL"} {
+				t.Run(writer, func(t *testing.T) {
+					// given: normal Event creation stores pending and returns the public PENDING state
+					namespace := ulid.Make().String()
+					channel := seedChannel(t, env, namespace)
+					rule := seedRule(t, env, namespace, notification.EventTypeBalanceThreshold, channel.ID)
+					event := seedEvent(t, env, namespace, rule, clock.Now(), nil)
+					require.Len(t, event.DeliveryStatus, 1)
 
-			_, err = env.adapter.UpdateEventDeliveryStatus(t.Context(), notification.UpdateEventDeliveryStatusInput{
-				NamespacedID: before.NamespacedID,
-				State:        tt.state,
-				Reason:       "must not be persisted",
-			})
-			require.ErrorContains(t, err, "invalid event delivery status state")
+					assert.Equal(t, notification.EventDeliveryStatusStatePending, event.DeliveryStatus[0].State)
 
-			_, err = env.db.NotificationEventDeliveryStatus.Update().
-				Where(statusdb.ID(before.ID)).
-				SetState(tt.state).
-				Save(t.Context())
-			require.ErrorContains(t, err, "invalid event delivery status state")
+					createdRow, err := env.db.NotificationEventDeliveryStatus.Get(t.Context(), event.DeliveryStatus[0].ID)
+					require.NoError(t, err)
 
-			// then: validation prevents both an extra row and mutation of the existing one
-			count, err := env.db.NotificationEventDeliveryStatus.Query().Where(statusdb.Namespace(namespace)).Count(t.Context())
-			require.NoError(t, err)
+					assert.Equal(t, "pending", createdRow.State)
 
-			after, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{
-				NamespacedID: before.NamespacedID,
-			})
-			require.NoError(t, err)
+					otherChannel := seedChannel(t, env, namespace)
+					id := ulid.Make().String()
 
-			assert.Equal(t, 1, count)
-			assert.Equal(t, before, after)
+					// when: a writer omits state entirely, exercising both Ent and database defaults
+					switch writer {
+					case "Ent":
+						_, err := env.db.NotificationEventDeliveryStatus.Create().
+							SetID(id).
+							SetNamespace(namespace).
+							SetEventID(event.ID).
+							SetChannelID(otherChannel.ID).
+							AddEventIDs(event.ID).
+							Save(t.Context())
+						require.NoError(t, err)
+					case "SQL":
+						_, err := env.sqlDB.ExecContext(t.Context(),
+							`INSERT INTO notification_event_delivery_status (id, namespace, event_id, channel_id, created_at, updated_at)
+							VALUES ($1, $2, $3, $4, NOW(), NOW())`, id, namespace, event.ID, otherChannel.ID,
+						)
+						require.NoError(t, err)
+					}
+
+					// then: both paths use the lowercase storage default
+					var storedState string
+					err = env.sqlDB.QueryRowContext(t.Context(),
+						"SELECT state FROM notification_event_delivery_status WHERE id = $1", id,
+					).Scan(&storedState)
+					require.NoError(t, err)
+
+					fetched, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{
+						NamespacedID: models.NamespacedID{Namespace: namespace, ID: id},
+					})
+					require.NoError(t, err)
+
+					assert.Equal(t, "pending", storedState)
+					assert.Equal(t, notification.EventDeliveryStatusStatePending, fetched.State)
+				})
+			}
 		})
 	}
 }
@@ -954,7 +912,7 @@ func TestDeliveryStatusDispatchQueuedAtMigration(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Nil(t, row.DispatchQueuedAt)
-			assert.Equal(t, tt.state, row.State)
+			assert.Equal(t, string(tt.state), row.State)
 
 			if tt.nextAttempt == nil {
 				require.Nil(t, row.NextAttemptAt)
@@ -964,6 +922,83 @@ func TestDeliveryStatusDispatchQueuedAtMigration(t *testing.T) {
 			require.NotNil(t, row.NextAttemptAt)
 
 			assert.WithinDuration(t, *tt.nextAttempt, *row.NextAttemptAt, 0)
+		})
+	}
+}
+
+func TestDeliveryStatusStateDefaultMigration(t *testing.T) {
+	testdb := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
+	t.Cleanup(func() { testdb.Close(t) })
+
+	db := testdb.PGDriver.DB()
+	applyMigration := func(direction string) {
+		t.Helper()
+
+		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+			migrate.OMMigrationsConfig.FSPath,
+			"20261118161335_notification_delivery_state_lowercase."+direction+".sql",
+		))
+		require.NoError(t, err)
+
+		_, err = db.ExecContext(t.Context(), string(migration))
+		require.NoError(t, err)
+	}
+
+	// given: existing deliveries with legacy states and scheduled work
+	applyMigration("down")
+
+	snapshots := make(map[string]string)
+	for _, state := range []string{"PENDING", "SENDING", "RESENDING", "SUCCESS", "FAILED"} {
+		id := ulid.Make().String()
+		var snapshot string
+		err := db.QueryRowContext(t.Context(), `
+			INSERT INTO notification_event_delivery_status AS s
+				(id, namespace, event_id, channel_id, state, reason, next_attempt_at, attempts, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, 'preserve', '2026-11-18T12:00:00Z', '[]', now(), now())
+			RETURNING to_jsonb(s)::text`,
+			id, ulid.Make().String(), ulid.Make().String(), ulid.Make().String(), state).Scan(&snapshot)
+		require.NoError(t, err)
+
+		snapshots[id] = snapshot
+	}
+
+	for _, tt := range []struct {
+		name        string
+		direction   string
+		wantDefault string
+	}{
+		{name: "upgrade", direction: "up", wantDefault: "pending"},
+		{name: "rollback", direction: "down", wantDefault: "PENDING"},
+		{name: "upgrade again", direction: "up", wantDefault: "pending"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			// when: changing the default during deployment or rollback
+			applyMigration(tt.direction)
+
+			// then: existing rows retain all their data, including mixed state spellings
+			for id, before := range snapshots {
+				var after string
+				err := db.QueryRowContext(t.Context(),
+					"SELECT to_jsonb(s)::text FROM notification_event_delivery_status s WHERE id = $1", id).Scan(&after)
+				require.NoError(t, err)
+
+				assert.JSONEq(t, before, after)
+			}
+
+			// New SQL inserts use the current default when the state is omitted.
+			id := ulid.Make().String()
+			var state, snapshot string
+			err := db.QueryRowContext(t.Context(), `
+				INSERT INTO notification_event_delivery_status AS s
+					(id, namespace, event_id, channel_id, created_at, updated_at)
+				VALUES ($1, $2, $3, $4, now(), now())
+				RETURNING state, to_jsonb(s)::text`,
+				id, ulid.Make().String(), ulid.Make().String(), ulid.Make().String()).Scan(&state, &snapshot)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.wantDefault, state)
+
+			snapshots[id] = snapshot
 		})
 	}
 }

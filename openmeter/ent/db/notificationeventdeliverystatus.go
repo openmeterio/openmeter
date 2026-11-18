@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -34,7 +33,7 @@ type NotificationEventDeliveryStatus struct {
 	// ChannelID holds the value of the "channel_id" field.
 	ChannelID string `json:"channel_id,omitempty"`
 	// State holds the value of the "state" field.
-	State notification.EventDeliveryStatusState `json:"state,omitempty"`
+	State string `json:"state,omitempty"`
 	// Dispatch generation for V4; inactive during migration Phase 1.
 	DispatchGeneration int `json:"dispatch_generation,omitempty"`
 	// Time the current dispatch was queued. Includes time spent waiting for Channel synchronization.
@@ -151,7 +150,7 @@ func (_m *NotificationEventDeliveryStatus) assignValues(columns []string, values
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field state", values[i])
 			} else if value.Valid {
-				_m.State = notification.EventDeliveryStatusState(value.String)
+				_m.State = value.String
 			}
 		case notificationeventdeliverystatus.FieldDispatchGeneration:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -251,7 +250,7 @@ func (_m *NotificationEventDeliveryStatus) String() string {
 	builder.WriteString(_m.ChannelID)
 	builder.WriteString(", ")
 	builder.WriteString("state=")
-	builder.WriteString(fmt.Sprintf("%v", _m.State))
+	builder.WriteString(_m.State)
 	builder.WriteString(", ")
 	builder.WriteString("dispatch_generation=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DispatchGeneration))

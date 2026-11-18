@@ -268,7 +268,7 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 					SetNamespace(params.Namespace).
 					SetEventID(eventRow.ID).
 					SetChannelID(channel.ID).
-					SetState(notification.EventDeliveryStatusStatePending).
+					SetState(toDBDeliveryState(notification.EventDeliveryStatusStatePending)).
 					AddEvents(eventRow)
 
 				statusBulkQuery = append(statusBulkQuery, q)

@@ -110108,7 +110108,7 @@ type NotificationEventDeliveryStatusMutation struct {
 	updated_at             *time.Time
 	event_id               *string
 	channel_id             *string
-	state                  *notification.EventDeliveryStatusState
+	state                  *string
 	dispatch_generation    *int
 	adddispatch_generation *int
 	dispatch_queued_at     *time.Time
@@ -110459,12 +110459,12 @@ func (m *NotificationEventDeliveryStatusMutation) ResetChannelID() {
 }
 
 // SetState sets the "state" field.
-func (m *NotificationEventDeliveryStatusMutation) SetState(ndss notification.EventDeliveryStatusState) {
-	m.state = &ndss
+func (m *NotificationEventDeliveryStatusMutation) SetState(s string) {
+	m.state = &s
 }
 
 // State returns the value of the "state" field in the mutation.
-func (m *NotificationEventDeliveryStatusMutation) State() (r notification.EventDeliveryStatusState, exists bool) {
+func (m *NotificationEventDeliveryStatusMutation) State() (r string, exists bool) {
 	v := m.state
 	if v == nil {
 		return
@@ -110475,7 +110475,7 @@ func (m *NotificationEventDeliveryStatusMutation) State() (r notification.EventD
 // OldState returns the old "state" field's value of the NotificationEventDeliveryStatus entity.
 // If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventDeliveryStatusMutation) OldState(ctx context.Context) (v notification.EventDeliveryStatusState, err error) {
+func (m *NotificationEventDeliveryStatusMutation) OldState(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldState is only allowed on UpdateOne operations")
 	}
@@ -111044,7 +111044,7 @@ func (m *NotificationEventDeliveryStatusMutation) SetField(name string, value en
 		m.SetChannelID(v)
 		return nil
 	case notificationeventdeliverystatus.FieldState:
-		v, ok := value.(notification.EventDeliveryStatusState)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

@@ -121,9 +121,10 @@ separate from annotations. Current creation paths leave it unset, and existing
 operations preserve stored values. Existing provider identifiers remain
 authoritative; there are no dual writes, backfills, or API exposure yet.
 
-Delivery state uses an Ent string field with the existing
-`EventDeliveryStatusState` validation. Writes use uppercase and omitted states
-default to `PENDING`. The adapter reads either stored spelling as uppercase.
+Delivery state uses a plain Ent string field. The service validates states
+through `UpdateEventDeliveryStatusInput.Validate`. Creates and updates write
+lowercase states, including resend, and omitted states default to `pending`.
+The adapter reads either stored spelling as uppercase.
 Event and delivery filters match both spellings, including the poller's check
 for an active destination whose next attempt is due.
 

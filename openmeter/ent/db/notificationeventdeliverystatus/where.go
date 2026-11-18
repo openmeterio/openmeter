@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
 // ID filters vertices based on their ID field.
@@ -94,9 +93,8 @@ func ChannelID(v string) predicate.NotificationEventDeliveryStatus {
 }
 
 // State applies equality check predicate on the "state" field. It's identical to StateEQ.
-func State(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldState, vc))
+func State(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldState, v))
 }
 
 // DispatchGeneration applies equality check predicate on the "dispatch_generation" field. It's identical to DispatchGenerationEQ.
@@ -411,87 +409,68 @@ func ChannelIDContainsFold(v string) predicate.NotificationEventDeliveryStatus {
 }
 
 // StateEQ applies the EQ predicate on the "state" field.
-func StateEQ(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldState, vc))
+func StateEQ(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldState, v))
 }
 
 // StateNEQ applies the NEQ predicate on the "state" field.
-func StateNEQ(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldState, vc))
+func StateNEQ(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldState, v))
 }
 
 // StateIn applies the In predicate on the "state" field.
-func StateIn(vs ...notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldState, v...))
+func StateIn(vs ...string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldState, vs...))
 }
 
 // StateNotIn applies the NotIn predicate on the "state" field.
-func StateNotIn(vs ...notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldState, v...))
+func StateNotIn(vs ...string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldState, vs...))
 }
 
 // StateGT applies the GT predicate on the "state" field.
-func StateGT(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldState, vc))
+func StateGT(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldState, v))
 }
 
 // StateGTE applies the GTE predicate on the "state" field.
-func StateGTE(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldState, vc))
+func StateGTE(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldState, v))
 }
 
 // StateLT applies the LT predicate on the "state" field.
-func StateLT(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldState, vc))
+func StateLT(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldState, v))
 }
 
 // StateLTE applies the LTE predicate on the "state" field.
-func StateLTE(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldState, vc))
+func StateLTE(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldState, v))
 }
 
 // StateContains applies the Contains predicate on the "state" field.
-func StateContains(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldContains(FieldState, vc))
+func StateContains(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContains(FieldState, v))
 }
 
 // StateHasPrefix applies the HasPrefix predicate on the "state" field.
-func StateHasPrefix(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldHasPrefix(FieldState, vc))
+func StateHasPrefix(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasPrefix(FieldState, v))
 }
 
 // StateHasSuffix applies the HasSuffix predicate on the "state" field.
-func StateHasSuffix(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldHasSuffix(FieldState, vc))
+func StateHasSuffix(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasSuffix(FieldState, v))
 }
 
 // StateEqualFold applies the EqualFold predicate on the "state" field.
-func StateEqualFold(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldEqualFold(FieldState, vc))
+func StateEqualFold(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEqualFold(FieldState, v))
 }
 
 // StateContainsFold applies the ContainsFold predicate on the "state" field.
-func StateContainsFold(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
-	vc := string(v)
-	return predicate.NotificationEventDeliveryStatus(sql.FieldContainsFold(FieldState, vc))
+func StateContainsFold(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContainsFold(FieldState, v))
 }
 
 // DispatchGenerationEQ applies the EQ predicate on the "dispatch_generation" field.

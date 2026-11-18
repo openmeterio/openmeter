@@ -15,7 +15,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -80,13 +79,13 @@ func (_c *NotificationEventDeliveryStatusCreate) SetChannelID(v string) *Notific
 }
 
 // SetState sets the "state" field.
-func (_c *NotificationEventDeliveryStatusCreate) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
+func (_c *NotificationEventDeliveryStatusCreate) SetState(v string) *NotificationEventDeliveryStatusCreate {
 	_c.mutation.SetState(v)
 	return _c
 }
 
 // SetNillableState sets the "state" field if the given value is not nil.
-func (_c *NotificationEventDeliveryStatusCreate) SetNillableState(v *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
+func (_c *NotificationEventDeliveryStatusCreate) SetNillableState(v *string) *NotificationEventDeliveryStatusCreate {
 	if v != nil {
 		_c.SetState(*v)
 	}
@@ -281,11 +280,6 @@ func (_c *NotificationEventDeliveryStatusCreate) check() error {
 	}
 	if _, ok := _c.mutation.State(); !ok {
 		return &ValidationError{Name: "state", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.state"`)}
-	}
-	if v, ok := _c.mutation.State(); ok {
-		if err := notificationeventdeliverystatus.StateValidator(string(v)); err != nil {
-			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
-		}
 	}
 	if _, ok := _c.mutation.DispatchGeneration(); !ok {
 		return &ValidationError{Name: "dispatch_generation", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.dispatch_generation"`)}
@@ -493,7 +487,7 @@ func (u *NotificationEventDeliveryStatusUpsert) UpdateUpdatedAt() *NotificationE
 }
 
 // SetState sets the "state" field.
-func (u *NotificationEventDeliveryStatusUpsert) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpsert {
+func (u *NotificationEventDeliveryStatusUpsert) SetState(v string) *NotificationEventDeliveryStatusUpsert {
 	u.Set(notificationeventdeliverystatus.FieldState, v)
 	return u
 }
@@ -708,7 +702,7 @@ func (u *NotificationEventDeliveryStatusUpsertOne) UpdateUpdatedAt() *Notificati
 }
 
 // SetState sets the "state" field.
-func (u *NotificationEventDeliveryStatusUpsertOne) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpsertOne {
+func (u *NotificationEventDeliveryStatusUpsertOne) SetState(v string) *NotificationEventDeliveryStatusUpsertOne {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.SetState(v)
 	})
@@ -1113,7 +1107,7 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateUpdatedAt() *Notificat
 }
 
 // SetState sets the "state" field.
-func (u *NotificationEventDeliveryStatusUpsertBulk) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpsertBulk {
+func (u *NotificationEventDeliveryStatusUpsertBulk) SetState(v string) *NotificationEventDeliveryStatusUpsertBulk {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.SetState(v)
 	})

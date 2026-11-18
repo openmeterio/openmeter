@@ -1311,7 +1311,7 @@ func TestEventRuleSnapshotStorage(t *testing.T) {
 						SetNamespace(namespace).
 						SetEventID(entity.ID).
 						SetChannelID(channel.ID).
-						SetState(notification.EventDeliveryStatusStatePending).
+						SetState(string(notification.EventDeliveryStatusStatePending)).
 						AddEvents(entity).
 						Save(t.Context())
 					require.NoError(t, err)

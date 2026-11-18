@@ -177,7 +177,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) (*not
 		}
 	}
 
-	state, _ := deliveryStateSpellings(e.State)
+	state, _ := deliveryStateSpellings(notification.EventDeliveryStatusState(e.State))
 
 	return &notification.EventDeliveryStatus{
 		NamespacedID: models.NamespacedID{

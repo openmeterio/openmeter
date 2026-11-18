@@ -202,21 +202,34 @@ func TestResendEvent(t *testing.T) {
 		assert.True(t, models.IsGenericValidationError(err), "expected a validation error, got: %v", err)
 	})
 
-	t.Run("an eligible status moves to resending", func(t *testing.T) {
-		err := env.service.ResendEvent(t.Context(), notification.ResendEventInput{
-			NamespacedID: models.NamespacedID{Namespace: ns, ID: event.ID},
-		})
-		require.NoError(t, err)
+	for _, storedState := range []string{"FAILED", "failed"} {
+		t.Run("resend from "+storedState, func(t *testing.T) {
+			// given: the terminal state was written by either deployment version
+			_, err := env.db.ExecContext(t.Context(),
+				"UPDATE notification_event_delivery_status SET state = $1 WHERE id = $2", storedState, statuses.Items[0].ID)
+			require.NoError(t, err)
 
-		status, err := env.service.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{
-			NamespacedID: models.NamespacedID{Namespace: ns, ID: statuses.Items[0].ID},
-		})
-		require.NoError(t, err)
-		require.NotNil(t, status)
+			// when: resending through the service
+			err = env.service.ResendEvent(t.Context(), notification.ResendEventInput{
+				NamespacedID: models.NamespacedID{Namespace: ns, ID: event.ID},
+			})
+			require.NoError(t, err)
 
-		assert.Equal(t, notification.EventDeliveryStatusStateResending, status.State)
-		assert.Nil(t, status.NextAttempt, "resend must clear the scheduled next attempt")
-	})
+			status, err := env.service.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{
+				NamespacedID: models.NamespacedID{Namespace: ns, ID: statuses.Items[0].ID},
+			})
+			require.NoError(t, err)
+			require.NotNil(t, status)
+
+			assert.Equal(t, notification.EventDeliveryStatusStateResending, status.State)
+			assert.Nil(t, status.NextAttempt, "resend must clear the scheduled next attempt")
+
+			row, err := env.db.NotificationEventDeliveryStatus.Get(t.Context(), status.ID)
+			require.NoError(t, err)
+
+			assert.Equal(t, "resending", row.State)
+		})
+	}
 }
 
 func TestDispatchQueuedAtPreservation(t *testing.T) {
@@ -293,7 +306,7 @@ func TestDispatchQueuedAtPreservation(t *testing.T) {
 			row, err = deliveries.Get(t.Context(), id.ID)
 			require.NoError(t, err)
 
-			assert.Equal(t, notification.EventDeliveryStatusStateResending, row.State)
+			assert.Equal(t, "resending", row.State)
 			assert.Nil(t, row.NextAttemptAt)
 			assertDispatchQueuedAt(row.DispatchQueuedAt)
 		})

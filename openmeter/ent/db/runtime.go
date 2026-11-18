@@ -2849,9 +2849,7 @@ func init() {
 	// notificationeventdeliverystatusDescState is the schema descriptor for state field.
 	notificationeventdeliverystatusDescState := notificationeventdeliverystatusFields[4].Descriptor()
 	// notificationeventdeliverystatus.DefaultState holds the default value on creation for the state field.
-	notificationeventdeliverystatus.DefaultState = notification.EventDeliveryStatusState(notificationeventdeliverystatusDescState.Default.(string))
-	// notificationeventdeliverystatus.StateValidator is a validator for the "state" field. It is called by the builders before save.
-	notificationeventdeliverystatus.StateValidator = notificationeventdeliverystatusDescState.Validators[0].(func(string) error)
+	notificationeventdeliverystatus.DefaultState = notificationeventdeliverystatusDescState.Default.(string)
 	// notificationeventdeliverystatusDescDispatchGeneration is the schema descriptor for dispatch_generation field.
 	notificationeventdeliverystatusDescDispatchGeneration := notificationeventdeliverystatusFields[5].Descriptor()
 	// notificationeventdeliverystatus.DefaultDispatchGeneration holds the default value on creation for the dispatch_generation field.

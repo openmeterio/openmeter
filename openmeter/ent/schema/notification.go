@@ -259,13 +259,8 @@ func (NotificationEventDeliveryStatus) Fields() []ent.Field {
 		field.String("channel_id").
 			NotEmpty().
 			Immutable(),
-		// The generated GoType check only covers creates; retain update validation too.
 		field.String("state").
-			GoType(notification.EventDeliveryStatusState("")).
-			Validate(func(state string) error {
-				return notification.EventDeliveryStatusState(state).Validate()
-			}).
-			Default(string(notification.EventDeliveryStatusStatePending)),
+			Default("pending"),
 		// TODO(notification-v4): enable resend increments only after all writers
 		// can maintain this baseline; it does not reconstruct historical resends.
 		field.Int("dispatch_generation").

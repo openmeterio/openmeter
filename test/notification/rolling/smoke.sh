@@ -101,25 +101,29 @@ stored_format() {
         .rule==(if $writer=="old" then "entitlements.reset" else "v1.entitlement.usage_period.reset" end) and
         .ruleConfig.type=="entitlements.reset" and (.ruleConfig.data|type)=="object" and
         .event==.rule and .payload.type=="entitlements.reset" and .payload.version==1 and
-        (.payload.entitlementReset|type)=="object" and .state=="PENDING")' "$dir/stored.json" >/dev/null ||
+        (.payload.entitlementReset|type)=="object" and .state==(if $writer=="old" then "PENDING" else "pending" end))' "$dir/stored.json" >/dev/null ||
         fail "$writer stored an incompatible representation"
     echo "Verified $writer stored Channel, Rule, Event and pending delivery formats"
 }
 
 receipts() { dc exec -T receiver cat /tmp/receipts.ndjson; }
 await_delivery() {
-    local reader=$1 writer=$2 wanted=$3 previous=$4 dir="$artifacts/$2" event count deadline
+    local reader=$1 writer=$2 wanted=$3 previous=$4 dir="$artifacts/$2" event count deadline expected_state
+    expected_state=SUCCESS
+    [[ $reader != candidate ]] || expected_state=success
     event=$(id_from "$dir/event")
     deadline=$((SECONDS + 180))
     until (( SECONDS >= deadline )); do
         api "$reader" GET "events/$event" >"$dir/observed.json"
         count=$(sql "SELECT jsonb_array_length(attempts) FROM notification_event_delivery_status
-            WHERE event_id='$event' AND state='SUCCESS' AND jsonb_typeof(attempts)='array'")
+            WHERE event_id='$event' AND state IN ('SUCCESS', 'success') AND jsonb_typeof(attempts)='array'")
         if [[ $count =~ ^[0-9]+$ ]] && (( count > previous )) &&
             jq -e --argjson n "$count" '.deliveryStatus | length==1 and
                 (.[0] | .state=="SUCCESS" and (.attempts|length)==$n)' "$dir/observed.json" >/dev/null &&
             receipts | jq -se --arg path "/$writer" --argjson n "$wanted" --slurpfile e "$dir/event" '
                 map(select(.body.id==$e[0].id)) | length==$n and all(.path==$path and .body==$e[0].payload)' >/dev/null; then
+            [[ $(sql "SELECT state FROM notification_event_delivery_status WHERE event_id='$event'") == "$expected_state" ]] ||
+                fail "$reader wrote an unexpected delivery state"
             echo "$reader reconciled $writer Event: $count stored attempts, $wanted matching receipts"
             return
         fi
