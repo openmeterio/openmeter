@@ -259,14 +259,20 @@ func TestRuleInputConfigTypeValidation(t *testing.T) {
 				}
 
 				for _, operation := range []struct {
-					name  string
-					input models.Validator
+					name     string
+					validate func() error
 				}{
-					{name: "create", input: create},
-					{name: "update", input: update},
+					{name: "create", validate: create.Validate},
+					{name: "update", validate: update.Validate},
+					{
+						name: "custom validator",
+						validate: func() error {
+							return config.ValidateWith(notification.ValidateRuleConfigWithEventType(ruleConfig.Type))
+						},
+					},
 				} {
 					t.Run(operation.name, func(t *testing.T) {
-						err := operation.input.Validate()
+						err := operation.validate()
 						if ruleConfig.Type == config.Type || (ruleConfig.Invoice != nil && config.Invoice != nil) {
 							require.NoError(t, err)
 
