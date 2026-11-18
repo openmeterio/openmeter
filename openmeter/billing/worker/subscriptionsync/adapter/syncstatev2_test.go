@@ -432,3 +432,88 @@ func setupSyncStateV2PersistenceTest(t *testing.T, at time.Time) syncStateV2Pers
 		},
 	}
 }
+
+func TestActiveSyncStateV2Persistence(t *testing.T) {
+	at := time.Date(2026, 11, 16, 12, 0, 0, 0, time.UTC)
+
+	t.Run("active deadline survives subscription changes", func(t *testing.T) {
+		// Given an active result with a deadline provided in another time zone.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		input := f.input
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateActive
+		next := at.Add(24 * time.Hour).In(time.FixedZone("test", 2*60*60))
+		input.NextReconciliationAt = &next
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, lo.ToPtr(next.UTC()), states[0].NextReconciliationAt)
+		require.NoError(t, states[0].Validate())
+		before := states[0]
+
+		// When a subscription edit advances current, the previous deadline remains intact.
+		require.NoError(t, f.adapter.MarkSubscriptionChangedV2(ctx, input.SubscriptionID))
+		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, before.NextReconciliationAt, states[0].NextReconciliationAt)
+		require.Equal(t, before.LastSyncedSubsRevision, states[0].LastSyncedSubsRevision)
+		require.NotEqual(t, before.CurrentSubsRevision, states[0].CurrentSubsRevision)
+
+		// Then the next successful reconciliation replaces the deadline and acknowledges that edit.
+		input.LastSyncedSubsRevision = states[0].CurrentSubsRevision
+		input.NextReconciliationAt = lo.ToPtr(at.Add(48 * time.Hour))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
+		states, err = f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, input.NextReconciliationAt, states[0].NextReconciliationAt)
+		require.Equal(t, states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
+	})
+
+	t.Run("unscheduled result clears the active deadline", func(t *testing.T) {
+		// Given an active schedule, when a result with no further periodic reconciliation replaces it.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		input := f.input
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateActive
+		input.NextReconciliationAt = lo.ToPtr(at.Add(24 * time.Hour))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateEnded
+		input.NextReconciliationAt = nil
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
+
+		// Then the upsert must clear the nullable deadline on conflict.
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, subscriptionsync.SyncStateV2StateEnded, states[0].LastSuccessState)
+		require.Nil(t, states[0].NextReconciliationAt)
+	})
+
+	t.Run("PostgreSQL rejects an unscheduled active row", func(t *testing.T) {
+		// Given a write that bypasses the domain validator.
+		f := setupSyncStateV2PersistenceTest(t, at)
+		ctx := t.Context()
+		err := f.db.SubscriptionSyncStateV2.Create().
+			SetNamespace(f.input.SubscriptionID.Namespace).
+			SetSubscriptionID(f.input.SubscriptionID.ID).
+			SetLastSuccessState(subscriptionsync.SyncStateV2StateActive).
+			SetLastSuccessAt(at).
+			SetLastSyncedSubsRevision(f.input.LastSyncedSubsRevision).
+			SetCurrentSubsRevision(f.input.LastSyncedSubsRevision).Exec(ctx)
+
+		// Then the database also prevents silently losing active subscriptions from polling.
+		require.ErrorContains(t, err, "subscription_sync_v2_active_reconciliation_at")
+		input := f.input
+		input.LastSuccessState = subscriptionsync.SyncStateV2StateActive
+		input.NextReconciliationAt = lo.ToPtr(at.Add(time.Hour))
+		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
+		states, err := f.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{input.SubscriptionID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		err = f.db.SubscriptionSyncStateV2.UpdateOneID(states[0].ID).ClearNextReconciliationAt().Exec(ctx)
+		require.ErrorContains(t, err, "subscription_sync_v2_active_reconciliation_at")
+	})
+}

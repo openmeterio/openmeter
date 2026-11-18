@@ -6714,6 +6714,20 @@ func (u *SubscriptionSyncStateV2UpdateOne) SetOrClearLastSuccessAt(value *time.T
 	return u.SetLastSuccessAt(*value)
 }
 
+func (u *SubscriptionSyncStateV2Update) SetOrClearNextReconciliationAt(value *time.Time) *SubscriptionSyncStateV2Update {
+	if value == nil {
+		return u.ClearNextReconciliationAt()
+	}
+	return u.SetNextReconciliationAt(*value)
+}
+
+func (u *SubscriptionSyncStateV2UpdateOne) SetOrClearNextReconciliationAt(value *time.Time) *SubscriptionSyncStateV2UpdateOne {
+	if value == nil {
+		return u.ClearNextReconciliationAt()
+	}
+	return u.SetNextReconciliationAt(*value)
+}
+
 func (u *TaxCodeUpdate) SetOrClearMetadata(value *map[string]string) *TaxCodeUpdate {
 	if value == nil {
 		return u.ClearMetadata()

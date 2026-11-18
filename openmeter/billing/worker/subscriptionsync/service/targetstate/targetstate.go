@@ -26,6 +26,9 @@ import (
 type State struct {
 	Items                  []StateItem
 	MaxGenerationTimeLimit time.Time
+	// BillingEndsAt is the subscription end capped by customer deletion, when either is set.
+	// Sync uses the same end as billing generation to record completion and schedule reconciliation.
+	BillingEndsAt *time.Time
 }
 
 type BuildInput struct {
@@ -133,6 +136,8 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 		return State{
 			Items:                  items,
 			MaxGenerationTimeLimit: upcomingLinesResult.SubscriptionMaxGenerationTimeLimit,
+			// ActiveTo already includes the customer deletion cutoff when it ends billing earlier.
+			BillingEndsAt: subs.Spec.ActiveTo,
 		}, nil
 	})
 }
@@ -216,7 +221,9 @@ func (b Builder) collectUpcomingLines(ctx context.Context, subs subscription.Sub
 
 			inScopeLines = append(inScopeLines, items...)
 
-			if phaseEnd := iterator.PhaseEnd(); phaseEnd != nil && !phaseEnd.Before(asOf) {
+			// Include the next phase when it starts at the generation limit: its
+			// advance fees are due at that boundary and must already be provisioned.
+			if phaseEnd := iterator.PhaseEnd(); phaseEnd != nil && phaseEnd.After(generationLimit) {
 				break
 			}
 		}

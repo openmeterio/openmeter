@@ -381,6 +381,12 @@ func (it *PhaseIterator) generateForAlignedItemVersionPeriod(ctx context.Context
 			return empty, err
 		}
 
+		// Customer deletion can shorten the phase without changing the stored item dates.
+		// Cap the service end, but keep the full period for proration.
+		if phaseEnd := it.phaseCadence.ActiveTo; phaseEnd != nil && servicePeriod.To.After(*phaseEnd) {
+			servicePeriod.To = *phaseEnd
+		}
+
 		// Let's build the line
 		generatedItem := SubscriptionItemWithPeriods{
 			SubscriptionItemView: item,

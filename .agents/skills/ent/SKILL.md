@@ -15,6 +15,9 @@ Guidance for working with Ent in the OpenMeter codebase.
 
 After any schema change, regenerate with `make generate` before running tests.
 
+Database migration downgrades are best effort. Prioritize correctness and
+validation of forward migrations.
+
 ## Postgres Array Columns (`text[]`)
 
 - **Do NOT** use `field.Strings(...)` for Postgres array columns. Without an explicit schema type it creates `jsonb`, and with `SchemaType(map[string]string{dialect.Postgres: "text[]"})` it changes DDL without changing the runtime encode/decode path for `field.Strings`.

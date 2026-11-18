@@ -146,6 +146,7 @@ type Plan struct {
 	ChargePatches                      charges.ApplyPatchesInput
 	Invoices                           persistedstate.Invoices
 	SubscriptionMaxGenerationTimeLimit time.Time
+	BillingEndsAt                      *time.Time
 }
 
 func (p *Plan) IsEmpty() bool {
@@ -383,6 +384,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	if len(input.Target.Items) == 0 && len(input.Persisted.ByUniqueID) == 0 {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+			BillingEndsAt:                      input.Target.BillingEndsAt,
 		}, nil
 	}
 
@@ -414,6 +416,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 	if len(inScopeLines) == 0 && len(persisted.ByUniqueID) == 0 {
 		return &Plan{
 			SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+			BillingEndsAt:                      input.Target.BillingEndsAt,
 		}, nil
 	}
 
@@ -488,6 +491,7 @@ func (s *Service) Plan(ctx context.Context, input PlanInput) (*Plan, error) {
 		ChargePatches:                      chargePatches,
 		Invoices:                           input.Persisted.Invoices,
 		SubscriptionMaxGenerationTimeLimit: input.Target.MaxGenerationTimeLimit,
+		BillingEndsAt:                      input.Target.BillingEndsAt,
 	}, nil
 }
 

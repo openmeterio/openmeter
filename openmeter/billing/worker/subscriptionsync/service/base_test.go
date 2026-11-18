@@ -1274,3 +1274,14 @@ func (s *SuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput,
 
 	return subsView
 }
+
+func (s *SuiteBase) getSyncStateV2(subscriptionID models.NamespacedID) subscriptionsync.SyncStateV2Managed {
+	s.T().Helper()
+	states, err := s.Service.GetSyncStatesV2(s.T().Context(), subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	s.Require().NoError(err)
+	s.Require().Len(states, 1)
+	s.Equal(subscriptionID, states[0].SubscriptionID)
+	s.Require().NoError(states[0].Validate())
+
+	return states[0]
+}
