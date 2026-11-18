@@ -1407,3 +1407,129 @@ func TestChannelReconciliationMigration(t *testing.T) {
 		})
 	}
 }
+
+func TestChannelTypeNormalizationMigration(t *testing.T) {
+	env := newChannelTestEnv(t)
+	cases := []struct {
+		name       string
+		storedType string
+		wantType   string
+		disabled   bool
+		deleted    bool
+	}{
+		{name: "legacy active", storedType: "WEBHOOK", wantType: "webhook"},
+		{name: "legacy disabled", storedType: "WEBHOOK", wantType: "webhook", disabled: true},
+		{name: "legacy deleted", storedType: "WEBHOOK", wantType: "webhook", disabled: true, deleted: true},
+		{name: "canonical", storedType: "webhook", wantType: "webhook"},
+		{name: "unknown", storedType: "future_channel", wantType: "future_channel"},
+	}
+
+	// given: populated Channels in multiple namespaces, including inactive records
+	namespaces := []string{ulid.Make().String(), ulid.Make().String()}
+	const config = `{"type":"WEBHOOK","data":{"url":"https://example.com/hook","customHeaders":{"X-Test":"preserve"},"signingSecret":"whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"}}`
+	type channelSnapshot struct {
+		id        string
+		namespace string
+		wantType  string
+		before    string
+	}
+
+	var snapshots []channelSnapshot
+	expectedIDs := make(map[string][]string)
+	for _, namespace := range namespaces {
+		for _, tc := range cases {
+			id := ulid.Make().String()
+			var deletedAt *time.Time
+			if tc.deleted {
+				deletedAt = lo.ToPtr(time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC))
+			}
+
+			var before string
+			err := env.sqlDB.QueryRowContext(t.Context(), `
+				INSERT INTO notification_channels AS c
+					(id, namespace, name, type, disabled, config, created_at, updated_at, deleted_at,
+					 metadata, annotations, event_type_filter, provider_data, generation, reconcile_status, reconcile_next_at)
+				VALUES ($1, $2, $3, $4, $5, $6, '2026-01-01T00:00:00Z', '2026-01-01T12:00:00Z', $7,
+					 '{"team":"billing"}', '{"preserve":9007199254740993}', '["v1.billing.invoice.created"]',
+					 '{"svix.endpoint_id":"ep_preserve"}', 7, 'pending', '2026-01-03T00:00:00Z')
+				RETURNING (to_jsonb(c) - 'type')::text`,
+				id, namespace, tc.name, tc.storedType, tc.disabled, config, deletedAt).Scan(&before)
+			require.NoError(t, err)
+
+			snapshots = append(snapshots, channelSnapshot{
+				id:        id,
+				namespace: namespace,
+				wantType:  tc.wantType,
+				before:    before,
+			})
+
+			if tc.wantType == "webhook" && !tc.deleted {
+				expectedIDs[namespace] = append(expectedIDs[namespace], id)
+			}
+		}
+	}
+
+	for _, step := range []struct {
+		name        string
+		direction   string
+		wantChanges int64
+	}{
+		{name: "upgrade", direction: "up", wantChanges: 6},
+		{name: "repeat upgrade", direction: "up", wantChanges: 0},
+		{name: "no-op rollback", direction: "down", wantChanges: 0},
+		{name: "upgrade after rollback", direction: "up", wantChanges: 0},
+	} {
+		t.Run(step.name, func(t *testing.T) {
+			// when: applying the actual migration SQL, including repeated runs and rollback
+			migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+				migrate.OMMigrationsConfig.FSPath,
+				"20261118213749_notification_channel_type_normalization."+step.direction+".sql",
+			))
+			require.NoError(t, err)
+
+			result, err := env.sqlDB.ExecContext(t.Context(), string(migration))
+			require.NoError(t, err)
+
+			changed, err := result.RowsAffected()
+			require.NoError(t, err)
+
+			assert.Equal(t, step.wantChanges, changed)
+
+			// then: only the known legacy type changes; all other stored values survive exactly
+			for _, snapshot := range snapshots {
+				var storedType, after string
+				err := env.sqlDB.QueryRowContext(t.Context(), `
+					SELECT type, (to_jsonb(c) - 'type')::text FROM notification_channels c WHERE id = $1`,
+					snapshot.id).Scan(&storedType, &after)
+				require.NoError(t, err)
+
+				assert.Equal(t, snapshot.wantType, storedType)
+				assert.Equal(t, snapshot.before, after)
+
+				if snapshot.wantType == "webhook" {
+					channel, err := env.adapter.GetChannel(t.Context(), notification.GetChannelInput{
+						Namespace: snapshot.namespace,
+						ID:        snapshot.id,
+					})
+					require.NoError(t, err)
+
+					assert.Equal(t, notification.ChannelTypeWebhook, channel.Type)
+					assert.Equal(t, "https://example.com/hook", channel.Config.WebHook.URL)
+				}
+			}
+
+			for _, namespace := range namespaces {
+				channels, err := env.adapter.ListChannels(t.Context(), notification.ListChannelsInput{
+					Namespaces: []string{namespace},
+					Page:       pagination.NewPage(1, 20),
+					Type:       &filter.FilterString{Eq: lo.ToPtr("webhook")},
+				})
+				require.NoError(t, err)
+
+				ids := lo.Map(channels.Items, func(channel notification.Channel, _ int) string { return channel.ID })
+
+				assert.ElementsMatch(t, expectedIDs[namespace], ids)
+			}
+		})
+	}
+}
