@@ -1287,6 +1287,35 @@ export const addonStatus = z
     'The status of the add-on defined by the `effective_from` and `effective_to` properties. - `draft`: The add-on has not yet been published and can be edited. - `active`: The add-on is published and available for use. - `archived`: The add-on is no longer available for use.',
   )
 
+export const entitlementAccessQueryPage = z
+  .object({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(100)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+
+  .describe(
+    'Determines which page of the entitlement access query to retrieve. A page holds at most 100 customers.',
+  )
+
 export const entitlementAccessQueryRequestCustomers = z
   .object({
     keys: z
@@ -4351,6 +4380,15 @@ export const listCurrenciesParamsFilter = z
     code: stringFieldFilter.optional(),
   })
   .describe('Filter options for listing currencies.')
+
+export const entitlementAccessQueryPagination = z
+  .object({
+    page: entitlementAccessQueryPage.optional(),
+  })
+
+  .describe(
+    'Cursor pagination for the entitlement access query, with a smaller page size limit than the common one.',
+  )
 
 export const entitlementAccessQueryRequest = z
   .object({
@@ -12340,7 +12378,7 @@ export const updateOrganizationDefaultTaxCodesResponse =
   organizationDefaultTaxCodes
 
 export const queryEntitlementAccessQueryParams = z.object({
-  page: cursorPaginationQueryPage.optional(),
+  page: entitlementAccessQueryPage.optional(),
 })
 
 export const queryEntitlementAccessBody = entitlementAccessQueryRequest
@@ -13773,6 +13811,35 @@ export const addonStatusWire = z
 
   .describe(
     'The status of the add-on defined by the `effective_from` and `effective_to` properties. - `draft`: The add-on has not yet been published and can be edited. - `active`: The add-on is published and available for use. - `archived`: The add-on is no longer available for use.',
+  )
+
+export const entitlementAccessQueryPageWire = z
+  .strictObject({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(100)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+
+  .describe(
+    'Determines which page of the entitlement access query to retrieve. A page holds at most 100 customers.',
   )
 
 export const entitlementAccessQueryRequestCustomersWire = z
@@ -16831,6 +16898,15 @@ export const listCurrenciesParamsFilterWire = z
     code: stringFieldFilterWire.optional(),
   })
   .describe('Filter options for listing currencies.')
+
+export const entitlementAccessQueryPaginationWire = z
+  .strictObject({
+    page: entitlementAccessQueryPageWire.optional(),
+  })
+
+  .describe(
+    'Cursor pagination for the entitlement access query, with a smaller page size limit than the common one.',
+  )
 
 export const entitlementAccessQueryRequestWire = z
   .strictObject({
@@ -25068,7 +25144,7 @@ export const updateOrganizationDefaultTaxCodesResponseWire =
   organizationDefaultTaxCodesWire
 
 export const queryEntitlementAccessQueryParamsWire = z.object({
-  page: cursorPaginationQueryPageWire.optional(),
+  page: entitlementAccessQueryPageWire.optional(),
 })
 
 export const queryEntitlementAccessBodyWire = entitlementAccessQueryRequestWire

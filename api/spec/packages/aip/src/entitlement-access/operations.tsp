@@ -28,7 +28,27 @@ interface EntitlementAccessOperations {
   @summary("Query entitlement access")
   @extension(Shared.RPCEndpointExtension, true)
   query(
-    ...Common.CursorPaginationQuery,
+    ...EntitlementAccessQueryPagination,
     @body _: EntitlementAccessQueryRequest,
   ): EntitlementAccessQueryResponse | Common.ErrorResponses;
 }
+
+/**
+ * Cursor pagination for the entitlement access query, with a smaller page size
+ * limit than the common one.
+ */
+@friendlyName("EntitlementAccessQueryPagination")
+model EntitlementAccessQueryPagination {
+  /**
+   * Determines which page of the collection to retrieve.
+   */
+  @query(#{ explode: true, style: "deepObject" })
+  page?: EntitlementAccessQueryPage;
+}
+
+/**
+ * Determines which page of the entitlement access query to retrieve. A page holds
+ * at most 100 customers.
+ */
+@friendlyName("EntitlementAccessQueryPage")
+model EntitlementAccessQueryPage is Common.CursorPaginationQueryPage<100>;

@@ -440,6 +440,19 @@ export interface ProductCatalogValidationError {
   field: string
 }
 
+/**
+ * Determines which page of the entitlement access query to retrieve. A page holds
+ * at most 100 customers.
+ */
+export interface EntitlementAccessQueryPage {
+  /** The number of items to include per page. */
+  size?: number
+  /** Request the next page of data, starting with the item after this parameter. */
+  after?: string
+  /** Request the previous page of data, starting with the item before this parameter. */
+  before?: string
+}
+
 /** List of customer identifiers to evaluate access for. */
 export interface EntitlementAccessQueryRequestCustomers {
   /**
@@ -2801,6 +2814,15 @@ export interface WorkflowInvoicingSettings {
 export interface ListCurrenciesParamsFilter {
   type?: 'fiat' | 'custom'
   code?: StringFieldFilter
+}
+
+/**
+ * Cursor pagination for the entitlement access query, with a smaller page size
+ * limit than the common one.
+ */
+export interface EntitlementAccessQueryPagination {
+  /** Determines which page of the collection to retrieve. */
+  page?: EntitlementAccessQueryPage
 }
 
 /** Query to evaluate feature access for a list of customers. */

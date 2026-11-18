@@ -155,6 +155,8 @@ func TestValidateRequest_PaginationBounds(t *testing.T) {
 		{method: http.MethodGet, target: "/openmeter/customers?page[size]=9223372036854775807"},
 		{method: http.MethodGet, target: "/openmeter/events?page[size]=1000", valid: true},
 		{method: http.MethodGet, target: "/openmeter/events?page[size]=1001"},
+		// Entitlement access has a smaller limit than the common one.
+		{method: http.MethodPost, target: "/openmeter/entitlement-access/query?page[size]=101"},
 	} {
 		t.Run(tc.method+" "+tc.target, func(t *testing.T) {
 			var gotErr error

@@ -12283,6 +12283,19 @@ type EntitlementAccessQueryError struct {
 // EntitlementAccessQueryErrorCode Error code for an entitlement access query failure.
 type EntitlementAccessQueryErrorCode string
 
+// EntitlementAccessQueryPage Determines which page of the entitlement access query to retrieve. A page holds
+// at most 100 customers.
+type EntitlementAccessQueryPage struct {
+	// After Request the next page of data, starting with the item after this parameter.
+	After *string `json:"after,omitempty"`
+
+	// Before Request the previous page of data, starting with the item before this parameter.
+	Before *string `json:"before,omitempty"`
+
+	// Size The number of items to include per page.
+	Size *int `json:"size,omitempty"`
+}
+
 // EntitlementAccessQueryRequest Query to evaluate feature access for a list of customers.
 type EntitlementAccessQueryRequest struct {
 	Customer EntitlementAccessQueryRequestCustomers `json:"customer"`
@@ -14710,6 +14723,10 @@ type VoidCreditGrantRequest struct {
 // CursorPaginationQuery Determines which page of the collection to retrieve.
 type CursorPaginationQuery = CursorPaginationQueryPage
 
+// EntitlementAccessQueryPagination Determines which page of the entitlement access query to retrieve. A page holds
+// at most 100 customers.
+type EntitlementAccessQueryPagination = EntitlementAccessQueryPage
+
 // PagePaginationQuery defines model for PagePaginationQuery.
 type PagePaginationQuery struct {
 	// Number The page number.
@@ -15082,7 +15099,8 @@ type GetCustomerEntitlementValueParams struct {
 
 // QueryEntitlementAccessParams defines parameters for QueryEntitlementAccess.
 type QueryEntitlementAccessParams struct {
-	Page *CursorPaginationQuery `json:"page,omitempty"`
+	// Page Determines which page of the collection to retrieve.
+	Page *EntitlementAccessQueryPagination `json:"page,omitempty"`
 }
 
 // ListEntitlementsParams defines parameters for ListEntitlements.
