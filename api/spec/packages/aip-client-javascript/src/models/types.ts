@@ -9,8 +9,11 @@
  */
 export type Labels = Record<string, string>
 
-/** Determines which page of the collection to retrieve. */
-export interface CursorPaginationQueryPage {
+/**
+ * Determines which page of the metering event list to retrieve. A page holds at
+ * most 100 events.
+ */
+export interface ListEventsPage {
   /** The number of items to include per page. */
   size?: number
   /** Request the next page of data, starting with the item after this parameter. */
@@ -174,6 +177,16 @@ export interface VersionFilter {
   gte?: number
   /** Match this version and earlier versions. */
   lte?: number
+}
+
+/** Determines which page of the collection to retrieve. */
+export interface CursorPaginationQueryPage {
+  /** The number of items to include per page. */
+  size?: number
+  /** Request the next page of data, starting with the item after this parameter. */
+  after?: string
+  /** Request the previous page of data, starting with the item before this parameter. */
+  before?: string
 }
 
 /** Free price. */
@@ -1287,9 +1300,13 @@ export interface QueryFilterNumeric {
   or?: QueryFilterNumeric[]
 }
 
-/** Cursor page query. */
-export interface CursorPaginationQuery {
-  page?: CursorPaginationQueryPage
+/**
+ * Cursor pagination for the metering event list, with a smaller page size limit
+ * than the common one.
+ */
+export interface ListEventsPagination {
+  /** Determines which page of the collection to retrieve. */
+  page?: ListEventsPage
 }
 
 /** Filter options for listing meters. */
@@ -2509,6 +2526,11 @@ export interface VoidCreditGrantRequest {
    * payment later completes, the original invoiced amount may still be collected.
    */
   paymentAdjustment: 'none'
+}
+
+/** Cursor page query. */
+export interface CursorPaginationQuery {
+  page?: CursorPaginationQueryPage
 }
 
 /** The pro-rating configuration of a subscription. */

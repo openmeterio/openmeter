@@ -1,8 +1,10 @@
 package oasmiddleware_test
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/getkin/kin-openapi/routers"
@@ -143,9 +145,12 @@ func TestValidateRequest_PaginationBounds(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	const accessBody = `{"customer":{"keys":["customer-1"]}}`
+
 	for _, tc := range []struct {
 		method string
 		target string
+		body   string
 		valid  bool
 	}{
 		{method: http.MethodGet, target: "/openmeter/customers?page[size]=1000&page[number]=1", valid: true},
@@ -153,10 +158,14 @@ func TestValidateRequest_PaginationBounds(t *testing.T) {
 		{method: http.MethodGet, target: "/openmeter/customers?page[size]=0"},
 		{method: http.MethodGet, target: "/openmeter/customers?page[number]=0"},
 		{method: http.MethodGet, target: "/openmeter/customers?page[size]=9223372036854775807"},
-		{method: http.MethodGet, target: "/openmeter/events?page[size]=1000", valid: true},
-		{method: http.MethodGet, target: "/openmeter/events?page[size]=1001"},
-		// Entitlement access has a smaller limit than the common one.
-		{method: http.MethodPost, target: "/openmeter/entitlement-access/query?page[size]=101"},
+		// The events list and entitlement access have smaller limits than the
+		// common one.
+		{method: http.MethodGet, target: "/openmeter/events?page[size]=100", valid: true},
+		{method: http.MethodGet, target: "/openmeter/events?page[size]=101"},
+		{method: http.MethodGet, target: "/openmeter/events?page[size]=0"},
+		{method: http.MethodPost, target: "/openmeter/entitlement-access/query?page[size]=100", body: accessBody, valid: true},
+		{method: http.MethodPost, target: "/openmeter/entitlement-access/query?page[size]=101", body: accessBody},
+		{method: http.MethodPost, target: "/openmeter/entitlement-access/query?page[size]=0", body: accessBody},
 	} {
 		t.Run(tc.method+" "+tc.target, func(t *testing.T) {
 			var gotErr error
@@ -171,15 +180,29 @@ func TestValidateRequest_PaginationBounds(t *testing.T) {
 				},
 			})
 
-			mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})).
-				ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(tc.method, tc.target, nil))
+			var body io.Reader
+			if tc.body != "" {
+				body = strings.NewReader(tc.body)
+			}
+
+			req := httptest.NewRequest(tc.method, tc.target, body)
+			if tc.body != "" {
+				req.Header.Set("Content-Type", "application/json")
+			}
+
+			handlerCalled := false
+			mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { handlerCalled = true })).
+				ServeHTTP(httptest.NewRecorder(), req)
 
 			if !tc.valid {
 				require.ErrorContains(t, gotErr, `parameter "page"`)
+				require.False(t, handlerCalled, "the handler must not run for an invalid page")
+
 				return
 			}
 
 			require.NoError(t, gotErr)
+			require.True(t, handlerCalled, "the handler must run for a valid page")
 		})
 	}
 }

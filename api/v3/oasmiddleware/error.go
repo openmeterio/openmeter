@@ -3,6 +3,7 @@ package oasmiddleware
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -16,6 +17,8 @@ var oasRuleToAip = map[string]string{
 	"maxLength": "max_length",
 	"minItems":  "min_items",
 	"maxItems":  "max_items",
+	"minimum":   "min",
+	"maximum":   "max",
 }
 
 func ToAipError(me openapi3.MultiError) []apierrors.InvalidParameter {
@@ -74,7 +77,7 @@ func aipMapper(me openapi3.MultiError, parent *apierrors.InvalidParameter) []api
 
 					i.Reason = fmt.Sprintf("must be one of: [%s]", strings.Join(i.Choices, ","))
 				} else if err.SchemaField == "oneOf" {
-					ipErrs = append(ipErrs, collectFromSchemaError(err)...)
+					ipErrs = append(ipErrs, collectFromSchemaError(err, i)...)
 					continue
 				}
 			}
@@ -115,11 +118,18 @@ func allOfViolations(err error) []*openapi3.SchemaError {
 // collectFromSchemaError looks at schemaErr.Origin. If there are deeper
 // child errors (via unwrapOriginError), it returns those. Otherwise, it
 // returns a single InvalidParameter built from schemaErr itself.
-func collectFromSchemaError(se *openapi3.SchemaError) []apierrors.InvalidParameter {
-	childParams := unwrapOriginError(se)
+func collectFromSchemaError(se *openapi3.SchemaError, parent *apierrors.InvalidParameter) []apierrors.InvalidParameter {
+	childParams := unwrapOriginError(se, parent)
 	if len(childParams) == 0 {
+		var ip *apierrors.InvalidParameter
+		if parent != nil {
+			p := *parent
+			p.Reason = se.Reason
+			ip = &p
+		}
+
 		return []apierrors.InvalidParameter{
-			invalidParamFromSchemaError(se, nil),
+			invalidParamFromSchemaError(se, ip),
 		}
 	}
 
@@ -128,7 +138,7 @@ func collectFromSchemaError(se *openapi3.SchemaError) []apierrors.InvalidParamet
 
 // unwrapOriginError traverses schemaErr.Origin (which may be a wrapped multiErrorForOneOf)
 // and returns a flat slice of InvalidParameter entries for each underlying *SchemaError.
-func unwrapOriginError(schemaErr *openapi3.SchemaError) []apierrors.InvalidParameter {
+func unwrapOriginError(schemaErr *openapi3.SchemaError, parent *apierrors.InvalidParameter) []apierrors.InvalidParameter {
 	if schemaErr == nil || schemaErr.Origin == nil {
 		return nil
 	}
@@ -140,7 +150,7 @@ func unwrapOriginError(schemaErr *openapi3.SchemaError) []apierrors.InvalidParam
 		for _, subErr := range me {
 			var subSE *openapi3.SchemaError
 			if errors.As(subErr, &subSE) {
-				result = append(result, collectFromSchemaError(subSE)...)
+				result = append(result, collectFromSchemaError(subSE, parent)...)
 			}
 		}
 
@@ -150,7 +160,7 @@ func unwrapOriginError(schemaErr *openapi3.SchemaError) []apierrors.InvalidParam
 	// 2) If there are no multi-errors and Origin wraps another *SchemaError somewhere in its chain, dive into that.
 	var innerSE *openapi3.SchemaError
 	if errors.As(schemaErr.Origin, &innerSE) {
-		return collectFromSchemaError(innerSE)
+		return collectFromSchemaError(innerSE, parent)
 	}
 
 	// 3) If we reach here, Origin was neither a nested *SchemaError nor a MultiError.
@@ -176,9 +186,73 @@ func invalidParamFromSchemaError(
 		ip.Rule = schemaErr.SchemaField
 	}
 
+	switch schemaErr.SchemaField {
+	case "minimum", "minLength", "minItems":
+		ip.Minimum = schemaBound(schemaErr.Schema, schemaErr.SchemaField)
+	case "maximum", "maxLength", "maxItems":
+		ip.Maximum = schemaBound(schemaErr.Schema, schemaErr.SchemaField)
+	}
+
 	if path := schemaErr.JSONPointer(); len(path) > 0 {
-		ip.Field = strings.Join(path, ".")
+		// A query parameter error names the parameter as the client wrote it,
+		// so a deepObject property becomes page[size], not size.
+		if ip.Source == apierrors.InvalidParamSourceQuery && ip.Field != "" {
+			ip.Field += "[" + strings.Join(path, "][") + "]"
+		} else {
+			ip.Field = strings.Join(path, ".")
+		}
 	}
 
 	return *ip
+}
+
+// schemaBound returns the limit behind a failed min/max keyword, or nil when it
+// is not a whole number.
+func schemaBound(schema *openapi3.Schema, keyword string) *int {
+	if schema == nil {
+		return nil
+	}
+
+	var bound float64
+
+	switch keyword {
+	case "minimum":
+		if schema.Min == nil {
+			return nil
+		}
+
+		bound = *schema.Min
+	case "maximum":
+		if schema.Max == nil {
+			return nil
+		}
+
+		bound = *schema.Max
+	case "minLength":
+		bound = float64(schema.MinLength)
+	case "maxLength":
+		if schema.MaxLength == nil {
+			return nil
+		}
+
+		bound = float64(*schema.MaxLength)
+	case "minItems":
+		bound = float64(schema.MinItems)
+	case "maxItems":
+		if schema.MaxItems == nil {
+			return nil
+		}
+
+		bound = float64(*schema.MaxItems)
+	default:
+		return nil
+	}
+
+	if bound != math.Trunc(bound) || bound > math.MaxInt || bound < math.MinInt {
+		return nil
+	}
+
+	b := int(bound)
+
+	return &b
 }

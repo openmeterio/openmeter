@@ -68,7 +68,7 @@ export type * from './models/operations/notifications.js'
 
 export type {
   Labels,
-  CursorPaginationQueryPage,
+  ListEventsPage,
   SortQuery,
   IngestedEventValidationError,
   CursorMetaPage,
@@ -80,6 +80,7 @@ export type {
   CreateLabels,
   CreateVersionFilter,
   VersionFilter,
+  CursorPaginationQueryPage,
   PriceFree,
   RateCardStaticEntitlement,
   RateCardBooleanEntitlement,
@@ -171,7 +172,7 @@ export type {
   LlmCostModelPricing,
   FiatCurrencyAmount,
   QueryFilterNumeric,
-  CursorPaginationQuery,
+  ListEventsPagination,
   ListMetersParamsFilter,
   ListLlmCostPricesParamsFilter,
   LabelsFieldFilter,
@@ -253,6 +254,7 @@ export type {
   CreateCreditGrantPlanFilter,
   CreditGrantPlanFilter,
   ValidationIssue,
+  CursorPaginationQuery,
   SubscriptionProRatingConfig,
   RateCardProrationConfiguration,
   UnitConfig,

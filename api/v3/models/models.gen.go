@@ -13025,6 +13025,19 @@ type ListEntitlementsParamsFilter struct {
 	Type *StringFieldFilterExact `json:"type,omitempty"`
 }
 
+// ListEventsPage Determines which page of the metering event list to retrieve. A page holds at
+// most 100 events.
+type ListEventsPage struct {
+	// After Request the next page of data, starting with the item after this parameter.
+	After *string `json:"after,omitempty"`
+
+	// Before Request the previous page of data, starting with the item before this parameter.
+	Before *string `json:"before,omitempty"`
+
+	// Size The number of items to include per page.
+	Size *int `json:"size,omitempty"`
+}
+
 // ListEventsParamsFilter Filter options for listing ingested events.
 type ListEventsParamsFilter struct {
 	// CustomerId Filter events by the associated customer ID.
@@ -14727,6 +14740,10 @@ type CursorPaginationQuery = CursorPaginationQueryPage
 // at most 100 customers.
 type EntitlementAccessQueryPagination = EntitlementAccessQueryPage
 
+// ListEventsPagination Determines which page of the metering event list to retrieve. A page holds at
+// most 100 events.
+type ListEventsPagination = ListEventsPage
+
 // PagePaginationQuery defines model for PagePaginationQuery.
 type PagePaginationQuery struct {
 	// Number The page number.
@@ -15126,7 +15143,8 @@ type ListEntitlementsParams struct {
 
 // ListMeteringEventsParams defines parameters for ListMeteringEvents.
 type ListMeteringEventsParams struct {
-	Page *CursorPaginationQuery `json:"page,omitempty"`
+	// Page Determines which page of the collection to retrieve.
+	Page *ListEventsPagination `json:"page,omitempty"`
 
 	// Filter Filter events returned in the response.
 	//

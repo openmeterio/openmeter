@@ -33,13 +33,13 @@ export const numeric = z
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
   .describe('Numeric represents an arbitrary precision number.')
 
-export const cursorPaginationQueryPage = z
+export const listEventsPage = z
   .object({
     size: z
       .number()
       .int()
       .gte(1)
-      .lte(1000)
+      .lte(100)
       .optional()
       .describe('The number of items to include per page.'),
     after: z
@@ -57,7 +57,10 @@ export const cursorPaginationQueryPage = z
         'Request the previous page of data, starting with the item before this parameter.',
       ),
   })
-  .describe('Determines which page of the collection to retrieve.')
+
+  .describe(
+    'Determines which page of the metering event list to retrieve. A page holds at most 100 events.',
+  )
 
 export const stringFieldFilter = z
   .union([
@@ -683,6 +686,32 @@ export const creditGrantVoidPaymentAdjustment = z
   .describe(
     'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
   )
+
+export const cursorPaginationQueryPage = z
+  .object({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+  .describe('Determines which page of the collection to retrieve.')
 
 export const creditTransactionType = z
   .enum(['funded', 'consumed', 'correction', 'expired', 'voided'])
@@ -2784,11 +2813,14 @@ export const queryFilterNumeric = z
     'A query filter for a numeric attribute. Operators are mutually exclusive, only one operator is allowed at a time.',
   )
 
-export const cursorPaginationQuery = z
+export const listEventsPagination = z
   .object({
-    page: cursorPaginationQueryPage.optional(),
+    page: listEventsPage.optional(),
   })
-  .describe('Cursor page query.')
+
+  .describe(
+    'Cursor pagination for the metering event list, with a smaller page size limit than the common one.',
+  )
 
 export const listMetersParamsFilter = z
   .object({
@@ -4075,6 +4107,12 @@ export const voidCreditGrantRequest = z
       .default('none'),
   })
   .describe('Request body for voiding a credit grant.')
+
+export const cursorPaginationQuery = z
+  .object({
+    page: cursorPaginationQueryPage.optional(),
+  })
+  .describe('Cursor page query.')
 
 export const subscriptionProRatingConfig = z
   .object({
@@ -10944,7 +10982,7 @@ export const notificationEventPagePaginatedResponse = z
   .describe('Page paginated response.')
 
 export const listMeteringEventsQueryParams = z.object({
-  page: cursorPaginationQueryPage.optional(),
+  page: listEventsPage.optional(),
   filter: listEventsParamsFilter.optional(),
   sort: sortQuery.optional(),
 })
@@ -12565,13 +12603,13 @@ export const numericWire = z
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
   .describe('Numeric represents an arbitrary precision number.')
 
-export const cursorPaginationQueryPageWire = z
+export const listEventsPageWire = z
   .strictObject({
     size: z
       .number()
       .int()
       .gte(1)
-      .lte(1000)
+      .lte(100)
       .optional()
       .describe('The number of items to include per page.'),
     after: z
@@ -12589,7 +12627,10 @@ export const cursorPaginationQueryPageWire = z
         'Request the previous page of data, starting with the item before this parameter.',
       ),
   })
-  .describe('Determines which page of the collection to retrieve.')
+
+  .describe(
+    'Determines which page of the metering event list to retrieve. A page holds at most 100 events.',
+  )
 
 export const stringFieldFilterWire = z
   .union([
@@ -13215,6 +13256,32 @@ export const creditGrantVoidPaymentAdjustmentWire = z
   .describe(
     'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
   )
+
+export const cursorPaginationQueryPageWire = z
+  .strictObject({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+  .describe('Determines which page of the collection to retrieve.')
 
 export const creditTransactionTypeWire = z
   .enum(['funded', 'consumed', 'correction', 'expired', 'voided'])
@@ -15316,11 +15383,14 @@ export const queryFilterNumericWire = z
     'A query filter for a numeric attribute. Operators are mutually exclusive, only one operator is allowed at a time.',
   )
 
-export const cursorPaginationQueryWire = z
+export const listEventsPaginationWire = z
   .strictObject({
-    page: cursorPaginationQueryPageWire.optional(),
+    page: listEventsPageWire.optional(),
   })
-  .describe('Cursor page query.')
+
+  .describe(
+    'Cursor pagination for the metering event list, with a smaller page size limit than the common one.',
+  )
 
 export const listMetersParamsFilterWire = z
   .strictObject({
@@ -16598,6 +16668,12 @@ export const voidCreditGrantRequestWire = z
     payment_adjustment: creditGrantVoidPaymentAdjustmentWire.optional(),
   })
   .describe('Request body for voiding a credit grant.')
+
+export const cursorPaginationQueryWire = z
+  .strictObject({
+    page: cursorPaginationQueryPageWire.optional(),
+  })
+  .describe('Cursor page query.')
 
 export const subscriptionProRatingConfigWire = z
   .strictObject({
@@ -23575,7 +23651,7 @@ export const notificationEventPagePaginatedResponseWire = z
   .describe('Page paginated response.')
 
 export const listMeteringEventsQueryParamsWire = z.object({
-  page: cursorPaginationQueryPageWire.optional(),
+  page: listEventsPageWire.optional(),
   filter: listEventsParamsFilterWire.optional(),
   sort: z
     .string()

@@ -212,7 +212,7 @@ func TestV3PlanAddonAttachStatusMatrix(t *testing.T) {
 
 // Attach instance_type × max_quantity matrix.
 //
-// Exercises the TypeSpec schema binder (invalid_parameters[].rule="minimum")
+// Exercises the TypeSpec schema binder (invalid_parameters[].rule="min")
 // for max_quantity<1, which the API schema enforces before the handler runs.
 func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 	cases := []struct {
@@ -247,7 +247,7 @@ func TestV3PlanAddonInstanceTypeMaxQuantityMatrix(t *testing.T) {
 			instanceType:   v3sdk.AddonInstanceTypeMultiple,
 			maxQuantity:    lo.ToPtr(int64(0)),
 			expectedStatus: http.StatusBadRequest,
-			expectedRule:   "minimum",
+			expectedRule:   "min",
 		},
 	}
 

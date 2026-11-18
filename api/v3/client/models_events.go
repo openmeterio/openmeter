@@ -83,3 +83,14 @@ type IngestedEventValidationError struct {
 	// Additional attributes.
 	Attributes map[string]any `json:"attributes,omitempty"`
 }
+
+// Determines which page of the metering event list to retrieve. A page holds at
+// most 100 events.
+type ListEventsPage struct {
+	// The number of items to include per page.
+	Size *int64 `json:"size,omitempty"`
+	// Request the next page of data, starting with the item after this parameter.
+	After *string `json:"after,omitempty"`
+	// Request the previous page of data, starting with the item before this parameter.
+	Before *string `json:"before,omitempty"`
+}

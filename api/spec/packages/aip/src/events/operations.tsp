@@ -75,7 +75,7 @@ interface EventsOperations {
   @operationId("list-metering-events")
   @summary("List metering events")
   list(
-    ...Common.CursorPaginationQuery,
+    ...ListEventsPagination,
 
     /**
      * Filter events returned in the response.
@@ -131,3 +131,23 @@ interface EventsOperations {
     @body body: MeteringEvent | MeteringEvent[],
   ): IngestEventsResponse | Common.ErrorResponses;
 }
+
+/**
+ * Cursor pagination for the metering event list, with a smaller page size limit
+ * than the common one.
+ */
+@friendlyName("ListEventsPagination")
+model ListEventsPagination {
+  /**
+   * Determines which page of the collection to retrieve.
+   */
+  @query(#{ explode: true, style: "deepObject" })
+  page?: ListEventsPage;
+}
+
+/**
+ * Determines which page of the metering event list to retrieve. A page holds at
+ * most 100 events.
+ */
+@friendlyName("ListEventsPage")
+model ListEventsPage is Common.CursorPaginationQueryPage<100>;
