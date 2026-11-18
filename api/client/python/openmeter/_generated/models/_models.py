@@ -4000,6 +4000,21 @@ class CustomSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-sho
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the subscription start time will be used.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar billing_starts_at: When billing starts for the subscription. Nothing is billed for
+     service before this time, while access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full.
+    :vartype billing_starts_at: ~datetime.datetime
     """
 
     cost_basis_mode: Optional[Union[str, "_models.SubscriptionCostBasisMode"]] = rest_field(
@@ -4031,6 +4046,23 @@ class CustomSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-sho
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
+    billing_starts_at: Optional[datetime.datetime] = rest_field(
+        name="billingStartsAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
+    """When billing starts for the subscription. Nothing is billed for service before this time, while
+     access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+     
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+     
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full."""
 
     @overload
     def __init__(
@@ -4042,6 +4074,7 @@ class CustomSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-sho
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
+        billing_starts_at: Optional[datetime.datetime] = None,
     ) -> None: ...
 
     @overload
@@ -12353,6 +12386,21 @@ class PlanSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-shoul
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the subscription start time will be used.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar billing_starts_at: When billing starts for the subscription. Nothing is billed for
+     service before this time, while access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full.
+    :vartype billing_starts_at: ~datetime.datetime
     """
 
     alignment: Optional["_models.Alignment"] = rest_field(visibility=["read", "create", "update", "delete", "query"])
@@ -12400,6 +12448,23 @@ class PlanSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-shoul
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
+    billing_starts_at: Optional[datetime.datetime] = rest_field(
+        name="billingStartsAt", visibility=["read", "create", "update", "delete", "query"], format="rfc3339"
+    )
+    """When billing starts for the subscription. Nothing is billed for service before this time, while
+     access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+     
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+     
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full."""
 
     @overload
     def __init__(
@@ -12417,6 +12482,7 @@ class PlanSubscriptionCreate(_Model):  # pylint: disable=docstring-keyword-shoul
         customer_id: Optional[str] = None,
         customer_key: Optional[str] = None,
         billing_anchor: Optional[datetime.datetime] = None,
+        billing_starts_at: Optional[datetime.datetime] = None,
     ) -> None: ...
 
     @overload
@@ -14068,6 +14134,8 @@ class Subscription(_Model):  # pylint: disable=docstring-keyword-should-match-ke
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
     :ivar billing_anchor: Billing anchor. Required.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar billing_starts_at: Billing starts at.
+    :vartype billing_starts_at: ~datetime.datetime
     :ivar settlement_mode: Settlement mode. Required. Known values are: "credit_then_invoice" and
      "credit_only".
     :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
@@ -14120,6 +14188,10 @@ class Subscription(_Model):  # pylint: disable=docstring-keyword-should-match-ke
     """Pro-rating configuration."""
     billing_anchor: datetime.datetime = rest_field(name="billingAnchor", visibility=["read"], format="rfc3339")
     """Billing anchor. Required."""
+    billing_starts_at: Optional[datetime.datetime] = rest_field(
+        name="billingStartsAt", visibility=["read"], format="rfc3339"
+    )
+    """Billing starts at."""
     settlement_mode: Union[str, "_models.BillingSettlementMode"] = rest_field(
         name="settlementMode", visibility=["read"]
     )
@@ -14835,6 +14907,8 @@ class SubscriptionExpanded(_Model):  # pylint: disable=docstring-keyword-should-
     :vartype pro_rating_config: ~openmeter._generated.models.ProRatingConfig
     :ivar billing_anchor: Billing anchor. Required.
     :vartype billing_anchor: ~datetime.datetime
+    :ivar billing_starts_at: Billing starts at.
+    :vartype billing_starts_at: ~datetime.datetime
     :ivar settlement_mode: Settlement mode. Required. Known values are: "credit_then_invoice" and
      "credit_only".
     :vartype settlement_mode: str or ~openmeter.models.BillingSettlementMode
@@ -14889,6 +14963,10 @@ class SubscriptionExpanded(_Model):  # pylint: disable=docstring-keyword-should-
     """Pro-rating configuration."""
     billing_anchor: datetime.datetime = rest_field(name="billingAnchor", visibility=["read"], format="rfc3339")
     """Billing anchor. Required."""
+    billing_starts_at: Optional[datetime.datetime] = rest_field(
+        name="billingStartsAt", visibility=["read"], format="rfc3339"
+    )
+    """Billing starts at."""
     settlement_mode: Union[str, "_models.BillingSettlementMode"] = rest_field(
         name="settlementMode", visibility=["read"]
     )

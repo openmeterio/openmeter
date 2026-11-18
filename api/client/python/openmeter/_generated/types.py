@@ -1476,6 +1476,21 @@ class CustomSubscriptionCreate(TypedDict, total=False):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the subscription start time will be used.
     :vartype billing_anchor: str
+    :ivar billing_starts_at: When billing starts for the subscription. Nothing is billed for
+     service before this time, while access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full.
+    :vartype billing_starts_at: str
     """
 
     costBasisMode: Union[str, "SubscriptionCostBasisMode"]
@@ -1495,6 +1510,21 @@ class CustomSubscriptionCreate(TypedDict, total=False):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
+    billingStartsAt: str
+    """When billing starts for the subscription. Nothing is billed for service before this time, while
+     access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+     
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+     
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full."""
 
 
 class DiscountPercentage(TypedDict, total=False):
@@ -3558,6 +3588,21 @@ class PlanSubscriptionCreate(TypedDict, total=False):
      normalized according to the billing cadence to the nearest recurrence before start time. If not
      provided, the subscription start time will be used.
     :vartype billing_anchor: str
+    :ivar billing_starts_at: When billing starts for the subscription. Nothing is billed for
+     service before this time, while access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full.
+    :vartype billing_starts_at: str
     """
 
     alignment: "Alignment"
@@ -3591,6 +3636,21 @@ class PlanSubscriptionCreate(TypedDict, total=False):
     """The billing anchor of the subscription. The provided date will be normalized according to the
      billing cadence to the nearest recurrence before start time. If not provided, the subscription
      start time will be used."""
+    billingStartsAt: str
+    """When billing starts for the subscription. Nothing is billed for service before this time, while
+     access,
+     entitlements and metering start with the subscription. Use it when the time before was already
+     billed elsewhere,
+     for example when importing a subscription from another billing system.
+     
+     It cannot be before the start of the subscription and cannot be changed later. On subscriptions
+     billed through
+     invoice lines it must be the start of a billing period. If not provided, billing starts with
+     the subscription.
+     
+     When billing starts inside a billing period, we recommend enabling price pro-rating
+     (``prorate_prices``) on the
+     plan. Without it that billing period's flat fees are billed in full."""
 
 
 class PortalToken(TypedDict, total=False):

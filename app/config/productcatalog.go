@@ -15,4 +15,7 @@ func ConfigureProductCatalog(v *viper.Viper) {
 
 type SubscriptionConfiguration struct {
 	MultiSubscriptionNamespaces []string
+	// BillingStartsAtNamespaces lists the namespaces that can create subscriptions whose billing starts
+	// later than the subscription itself.
+	BillingStartsAtNamespaces []string
 }

@@ -39,6 +39,9 @@ type ServiceConfig struct {
 	Lockr              *lockr.Locker
 	FeatureFlags       ffx.Service
 	CostBasisService   currencies.CostBasisService
+	// ChargesConfig decides whether a subscription is billed through charges or legacy invoice lines.
+	// The zero value means legacy invoice lines.
+	ChargesConfig subscription.ChargesConfig
 
 	// Hooks
 	Hooks []subscription.SubscriptionCommandHook
@@ -51,6 +54,10 @@ func New(conf ServiceConfig) (subscription.Service, error) {
 
 	if conf.CostBasisService == nil {
 		return nil, errors.New("cost basis service is required")
+	}
+
+	if err := conf.ChargesConfig.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid charges config: %w", err)
 	}
 
 	svc := &service{

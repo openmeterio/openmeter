@@ -47,6 +47,8 @@ const (
 	FieldCostBasisMode = "cost_basis_mode"
 	// FieldBillingAnchor holds the string denoting the billing_anchor field in the database.
 	FieldBillingAnchor = "billing_anchor"
+	// FieldBillingStartsAt holds the string denoting the billing_starts_at field in the database.
+	FieldBillingStartsAt = "billing_starts_at"
 	// FieldBillingCadence holds the string denoting the billing_cadence field in the database.
 	FieldBillingCadence = "billing_cadence"
 	// FieldProRatingConfig holds the string denoting the pro_rating_config field in the database.
@@ -183,6 +185,7 @@ var Columns = []string{
 	FieldInvoiceCurrency,
 	FieldCostBasisMode,
 	FieldBillingAnchor,
+	FieldBillingStartsAt,
 	FieldBillingCadence,
 	FieldProRatingConfig,
 	FieldSettlementMode,
@@ -334,6 +337,11 @@ func ByCostBasisMode(opts ...sql.OrderTermOption) OrderOption {
 // ByBillingAnchor orders the results by the billing_anchor field.
 func ByBillingAnchor(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAnchor, opts...).ToFunc()
+}
+
+// ByBillingStartsAt orders the results by the billing_starts_at field.
+func ByBillingStartsAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBillingStartsAt, opts...).ToFunc()
 }
 
 // ByBillingCadence orders the results by the billing_cadence field.

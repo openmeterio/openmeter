@@ -129,6 +129,11 @@ func BillingAnchor(v time.Time) predicate.Subscription {
 	return predicate.Subscription(sql.FieldEQ(FieldBillingAnchor, v))
 }
 
+// BillingStartsAt applies equality check predicate on the "billing_starts_at" field. It's identical to BillingStartsAtEQ.
+func BillingStartsAt(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillingStartsAt, v))
+}
+
 // BillingCadence applies equality check predicate on the "billing_cadence" field. It's identical to BillingCadenceEQ.
 func BillingCadence(v datetime.ISODurationString) predicate.Subscription {
 	vc := string(v)
@@ -862,6 +867,56 @@ func BillingAnchorLT(v time.Time) predicate.Subscription {
 // BillingAnchorLTE applies the LTE predicate on the "billing_anchor" field.
 func BillingAnchorLTE(v time.Time) predicate.Subscription {
 	return predicate.Subscription(sql.FieldLTE(FieldBillingAnchor, v))
+}
+
+// BillingStartsAtEQ applies the EQ predicate on the "billing_starts_at" field.
+func BillingStartsAtEQ(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldEQ(FieldBillingStartsAt, v))
+}
+
+// BillingStartsAtNEQ applies the NEQ predicate on the "billing_starts_at" field.
+func BillingStartsAtNEQ(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNEQ(FieldBillingStartsAt, v))
+}
+
+// BillingStartsAtIn applies the In predicate on the "billing_starts_at" field.
+func BillingStartsAtIn(vs ...time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldIn(FieldBillingStartsAt, vs...))
+}
+
+// BillingStartsAtNotIn applies the NotIn predicate on the "billing_starts_at" field.
+func BillingStartsAtNotIn(vs ...time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotIn(FieldBillingStartsAt, vs...))
+}
+
+// BillingStartsAtGT applies the GT predicate on the "billing_starts_at" field.
+func BillingStartsAtGT(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGT(FieldBillingStartsAt, v))
+}
+
+// BillingStartsAtGTE applies the GTE predicate on the "billing_starts_at" field.
+func BillingStartsAtGTE(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldGTE(FieldBillingStartsAt, v))
+}
+
+// BillingStartsAtLT applies the LT predicate on the "billing_starts_at" field.
+func BillingStartsAtLT(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLT(FieldBillingStartsAt, v))
+}
+
+// BillingStartsAtLTE applies the LTE predicate on the "billing_starts_at" field.
+func BillingStartsAtLTE(v time.Time) predicate.Subscription {
+	return predicate.Subscription(sql.FieldLTE(FieldBillingStartsAt, v))
+}
+
+// BillingStartsAtIsNil applies the IsNil predicate on the "billing_starts_at" field.
+func BillingStartsAtIsNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldIsNull(FieldBillingStartsAt))
+}
+
+// BillingStartsAtNotNil applies the NotNil predicate on the "billing_starts_at" field.
+func BillingStartsAtNotNil() predicate.Subscription {
+	return predicate.Subscription(sql.FieldNotNull(FieldBillingStartsAt))
 }
 
 // BillingCadenceEQ applies the EQ predicate on the "billing_cadence" field.

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/samber/lo"
@@ -38,6 +39,41 @@ func (s *service) validateCreate(ctx context.Context, cust customer.Customer, sp
 		}
 	}
 
+	// 4. Let's make sure billing can start where the spec says
+	if err := s.validateBillingStartsAt(cust.Namespace, spec); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateBillingStartsAt checks that billing can skip everything before spec.BillingStartsAt.
+// Legacy invoice lines can only skip whole billing periods. Charges can also bill the rest of a period that
+// has already started. That period's flat fees are billed in full unless the subscription prorates prices;
+// we leave that choice to the caller.
+func (s *service) validateBillingStartsAt(namespace string, spec subscription.SubscriptionSpec) error {
+	if spec.BillingStartsAt == nil {
+		return nil
+	}
+
+	aligned, err := spec.IsBillingStartsAtAligned()
+	if err != nil {
+		return err
+	}
+
+	if aligned {
+		return nil
+	}
+
+	chargeBacked, err := s.ChargesConfig.IsChargeBacked(namespace, spec.SettlementMode)
+	if err != nil {
+		return fmt.Errorf("failed to check if subscription is billed through charges: %w", err)
+	}
+
+	if !chargeBacked {
+		return subscription.ErrSubscriptionBillingStartsAtNotAligned
+	}
+
 	return nil
 }
 
@@ -59,6 +95,10 @@ func (s *service) validateUpdate(ctx context.Context, currentView subscription.S
 			currentView.Subscription.InvoiceCurrency,
 			newSpec.InvoiceCurrency,
 		))
+	}
+
+	if !lo.FromPtr(currentView.Subscription.BillingStartsAt).Equal(lo.FromPtr(newSpec.BillingStartsAt)) {
+		return models.NewGenericValidationError(errors.New("cannot change when billing starts on an existing subscription"))
 	}
 
 	if currentView.Subscription.CostBasisMode.OrDefault() != newSpec.CostBasisMode.OrDefault() {

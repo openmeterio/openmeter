@@ -108,6 +108,19 @@ type BillingSubscription struct {
 	// - Subscription anniversary (day customer signed up)
 	// - Custom date (customer-specified day)
 	BillingAnchor time.Time `json:"billing_anchor"`
+	// When billing starts for the subscription. Nothing is billed for service before
+	// this time, while access, entitlements and metering start with the subscription.
+	// Use it when the time before was already billed elsewhere, for example when
+	// importing a subscription from another billing system.
+	//
+	// It cannot be before the start of the subscription and cannot be changed later.
+	// On subscriptions billed through invoice lines it must be the start of a billing
+	// period. If not provided, billing starts with the subscription.
+	//
+	// When billing starts inside a billing period, we recommend enabling price
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's
+	// flat fees are billed in full.
+	BillingStartsAt *time.Time `json:"billing_starts_at,omitempty"`
 	// The status of the subscription.
 	Status SubscriptionStatus `json:"status"`
 	// Settlement mode for billing.

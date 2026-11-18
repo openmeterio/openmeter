@@ -13,14 +13,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionservice "github.com/openmeterio/openmeter/openmeter/subscription/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/subscription/testutils"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
+	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -1482,4 +1487,142 @@ func TestBillingCadenceLegacyFeatureResolution(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestBillingStartsAtValidation(t *testing.T) {
+	// A monthly credit_then_invoice subscription imported on 2026-11-01, billed on the first of the month.
+	subscriptionStart := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	periodStart := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
+	insidePeriod := time.Date(2026, 12, 17, 0, 0, 0, 0, time.UTC)
+
+	creditsForEveryNamespace := featuregate.NewFeatureGateChecker(
+		featuregate.NewNoop(),
+		featuregate.Flags{},
+		map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true},
+	)
+
+	type testDeps struct {
+		subscriptiontestutils.SubscriptionDependencies
+		Service subscription.Service
+	}
+
+	// The shared harness bills through invoice lines, so the service under test is built here with its own charges config.
+	setup := func(t *testing.T, charges subscription.ChargesConfig) testDeps {
+		t.Helper()
+
+		db := subscriptiontestutils.SetupDBDeps(t)
+		t.Cleanup(func() { db.Cleanup(t) })
+
+		deps := subscriptiontestutils.NewService(t, db)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+		logger := testutils.NewLogger(t)
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{Logger: logger})
+		require.NoError(t, err)
+
+		repo := subscriptiontestutils.NewSubscriptionRepo(t, db)
+		service, err := subscriptionservice.New(subscriptionservice.ServiceConfig{
+			SubscriptionRepo:      repo,
+			SubscriptionPhaseRepo: subscriptiontestutils.NewSubscriptionPhaseRepo(t, db),
+			SubscriptionItemRepo:  deps.ItemRepo,
+			CustomerService:       deps.CustomerService,
+			FeatureService:        deps.FeatureConnector,
+			CurrencyResolver:      deps.CurrencyResolver,
+			EntitlementAdapter:    deps.EntitlementAdapter,
+			TransactionManager:    repo,
+			Publisher:             eventbus.NewMock(t),
+			Lockr:                 locker,
+			FeatureFlags:          ffx.NewTestContextService(ffx.AccessConfig{subscription.MultiSubscriptionEnabledFF: false}),
+			CostBasisService:      deps.CurrencyService,
+			ChargesConfig:         charges,
+		})
+		require.NoError(t, err)
+
+		return testDeps{SubscriptionDependencies: deps, Service: service}
+	}
+
+	specWithBillingStart := func(t *testing.T, deps testDeps, billingStartsAt time.Time) subscription.SubscriptionSpec {
+		t.Helper()
+
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		plan := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard1(subscriptiontestutils.ExampleTaxConfig(taxCode))).
+			Build())
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+			Name:            "Imported subscription",
+			CustomerId:      cust.ID,
+			InvoiceCurrency: plan.Currency().GetCode(),
+			ActiveFrom:      subscriptionStart,
+			BillingAnchor:   subscriptionStart,
+			BillingStartsAt: &billingStartsAt,
+		})
+		require.NoError(t, err)
+
+		return spec
+	}
+
+	t.Run("charges can start billing inside a billing period", func(t *testing.T) {
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t, subscription.ChargesConfig{Enabled: true, EnableCreditThenInvoice: true, FeatureGate: creditsForEveryNamespace})
+
+		created, err := deps.Service.Create(t.Context(), subscriptiontestutils.ExampleNamespace, specWithBillingStart(t, deps, insidePeriod))
+		require.NoError(t, err)
+		require.Equal(t, &insidePeriod, created.BillingStartsAt)
+	})
+
+	t.Run("charges can start billing inside a billing period without pro-rating", func(t *testing.T) {
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t, subscription.ChargesConfig{Enabled: true, EnableCreditThenInvoice: true, FeatureGate: creditsForEveryNamespace})
+
+		spec := specWithBillingStart(t, deps, insidePeriod)
+		spec.ProRatingConfig.Enabled = false
+
+		created, err := deps.Service.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+		require.Equal(t, &insidePeriod, created.BillingStartsAt)
+	})
+
+	t.Run("credit_then_invoice stays on invoice lines unless it is moved to charges", func(t *testing.T) {
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t, subscription.ChargesConfig{Enabled: true, FeatureGate: creditsForEveryNamespace})
+
+		_, err := deps.Service.Create(t.Context(), subscriptiontestutils.ExampleNamespace, specWithBillingStart(t, deps, insidePeriod))
+		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotAligned)
+	})
+
+	t.Run("an update cannot move the billing start", func(t *testing.T) {
+		// given a subscription whose billing starts on 2026-12-01
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t, subscription.ChargesConfig{})
+
+		spec := specWithBillingStart(t, deps, periodStart)
+		created, err := deps.Service.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+		require.NoError(t, err)
+
+		// when an update tries to start billing a month later, or to drop the billing start
+		later := periodStart.AddDate(0, 1, 0)
+		spec.BillingStartsAt = &later
+		_, moveErr := deps.Service.Update(t.Context(), created.NamespacedID, spec)
+
+		spec.BillingStartsAt = nil
+		_, dropErr := deps.Service.Update(t.Context(), created.NamespacedID, spec)
+
+		// then both are rejected and the subscription keeps its billing start
+		require.True(t, models.IsGenericValidationError(moveErr), "got: %v", moveErr)
+		require.True(t, models.IsGenericValidationError(dropErr), "got: %v", dropErr)
+
+		persisted, err := deps.Service.Get(t.Context(), created.NamespacedID)
+		require.NoError(t, err)
+		require.Equal(t, &periodStart, persisted.BillingStartsAt)
+	})
 }

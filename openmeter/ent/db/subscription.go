@@ -55,6 +55,8 @@ type Subscription struct {
 	CostBasisMode subscription.CostBasisMode `json:"cost_basis_mode,omitempty"`
 	// BillingAnchor holds the value of the "billing_anchor" field.
 	BillingAnchor time.Time `json:"billing_anchor,omitempty"`
+	// Nothing is billed for service before this time. Unset means billing starts with the subscription.
+	BillingStartsAt *time.Time `json:"billing_starts_at,omitempty"`
 	// The default billing cadence for subscriptions.
 	BillingCadence datetime.ISODurationString `json:"billing_cadence,omitempty"`
 	// Default pro-rating configuration for subscriptions.
@@ -221,7 +223,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanID, subscription.FieldCustomerID, subscription.FieldInvoiceCurrency, subscription.FieldCostBasisMode, subscription.FieldBillingCadence, subscription.FieldSettlementMode:
 			values[i] = new(sql.NullString)
-		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo, subscription.FieldBillingAnchor:
+		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo, subscription.FieldBillingAnchor, subscription.FieldBillingStartsAt:
 			values[i] = new(sql.NullTime)
 		case subscription.FieldProRatingConfig:
 			values[i] = subscription.ValueScanner.ProRatingConfig.ScanValue()
@@ -343,6 +345,13 @@ func (_m *Subscription) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field billing_anchor", values[i])
 			} else if value.Valid {
 				_m.BillingAnchor = value.Time
+			}
+		case subscription.FieldBillingStartsAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field billing_starts_at", values[i])
+			} else if value.Valid {
+				_m.BillingStartsAt = new(time.Time)
+				*_m.BillingStartsAt = value.Time
 			}
 		case subscription.FieldBillingCadence:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -510,6 +519,11 @@ func (_m *Subscription) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("billing_anchor=")
 	builder.WriteString(_m.BillingAnchor.Format(time.ANSIC))
+	builder.WriteString(", ")
+	if v := _m.BillingStartsAt; v != nil {
+		builder.WriteString("billing_starts_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("billing_cadence=")
 	builder.WriteString(fmt.Sprintf("%v", _m.BillingCadence))

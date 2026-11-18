@@ -90,6 +90,29 @@ are clipped to phase and subscription boundaries. The plan workflow defaults
 the anchor to `ActiveFrom`, but the stored anchor is an explicit subscription
 fact and must be carried through replacements and plan changes.
 
+`BillingStartsAt` is an optional time before which no service is billed. Access,
+entitlements and metering still start at `ActiveFrom`. It exists for
+subscriptions imported from another billing system, where the earlier time was
+already billed there.
+
+- It can only be set on create, by namespaces listed in
+  `productCatalog.subscription.billingStartsAtNamespaces`, and never changes
+  afterwards. Edits and in-place migrations keep it.
+- A plan change copies it to the replacement while it is not before the
+  replacement's start. After that there is nothing left to skip, so the
+  replacement has none.
+- It cannot be before `ActiveFrom`.
+- On legacy invoice lines billing can only skip whole billing periods, so it
+  must be a billing period boundary counted from `BillingAnchor`.
+- On charges it can be any time. With a value inside a billing period, that
+  period's flat fees are billed in full unless the subscription uses
+  `prorate_prices`. This is not enforced, only recommended in the API docs.
+
+`ChargesConfig` decides which of the two applies. It must stay in agreement
+with how subscription sync routes items to charges or invoice lines. The core
+service checks these rules on create; the anchor, cadence and
+`BillingStartsAt` cannot change afterwards.
+
 Subscription specs enforce the [product catalog rate-card minimum](../productcatalog/README.md), including for existing items. Existing subscriptions with legacy short cadences remain readable, including when item features are resolved. Cancellation permits those cadences when the spec has no other validation errors; unrelated updates remain blocked until the cadences are changed.
 
 `Timing` describes when a command should take effect. It contains exactly one

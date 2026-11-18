@@ -54,6 +54,7 @@ type CreateSubscriptionCustomerInput struct {
 	ActiveFrom      time.Time          `json:"activeFrom,omitempty"`
 	ActiveTo        *time.Time         `json:"activeTo,omitempty"`
 	BillingAnchor   time.Time          `json:"billingAnchor,omitempty"`
+	BillingStartsAt *time.Time         `json:"billingStartsAt,omitempty"`
 	Annotations     models.Annotations `json:"annotations"`
 }
 
@@ -104,6 +105,7 @@ func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubs
 		ProRatingConfig: s.ProRatingConfig,
 		SettlementMode:  s.SettlementMode,
 		BillingAnchor:   s.BillingAnchor,
+		BillingStartsAt: s.BillingStartsAt,
 		MetadataModel:   s.MetadataModel,
 		Annotations:     s.Annotations,
 		Name:            s.Name,
@@ -355,6 +357,10 @@ func (s *SubscriptionSpec) Validate() error {
 		errs = append(errs, ErrSubscriptionBillingAnchorIsRequired)
 	}
 
+	if s.BillingStartsAt != nil && s.BillingStartsAt.Before(s.ActiveFrom) {
+		errs = append(errs, ErrSubscriptionBillingStartsAtBeforeSubscriptionStart)
+	}
+
 	sortedPhases := s.GetSortedPhases()
 	for idx, phase := range sortedPhases {
 		// Let's validate that if there are phases with the same start time, they have sort hint present
@@ -479,6 +485,26 @@ func (s *SubscriptionSpec) ValidateAlignment() error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// IsBillingStartsAtAligned reports whether BillingStartsAt is a billing period boundary counted from the
+// billing anchor. A phase start that is off that grid does not count as a boundary.
+func (s *SubscriptionSpec) IsBillingStartsAtAligned() (bool, error) {
+	if s.BillingStartsAt == nil {
+		return true, nil
+	}
+
+	billingRecurrence, err := timeutil.NewRecurrenceFromISODuration(s.BillingCadence, s.BillingAnchor)
+	if err != nil {
+		return false, fmt.Errorf("failed to get billing recurrence: %w", err)
+	}
+
+	period, err := billingRecurrence.GetPeriodAt(*s.BillingStartsAt)
+	if err != nil {
+		return false, fmt.Errorf("failed to get billing period at %s: %w", s.BillingStartsAt, err)
+	}
+
+	return period.From.Equal(*s.BillingStartsAt), nil
 }
 
 var _ models.CadenceComparable = SubscriptionSpec{}

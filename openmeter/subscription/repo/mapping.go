@@ -88,6 +88,7 @@ func MapDBSubscription(sub *db.Subscription) (subscription.Subscription, error) 
 		ProRatingConfig: sub.ProRatingConfig,
 		SettlementMode:  sub.SettlementMode,
 		BillingAnchor:   sub.BillingAnchor.UTC(),
+		BillingStartsAt: convert.SafeToUTC(sub.BillingStartsAt),
 	}, nil
 }
 

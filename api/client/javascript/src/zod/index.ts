@@ -14610,6 +14610,12 @@ export const CreateSubscriptionBody = zod
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.',
           ),
+        billingStartsAt: zod.coerce
+          .date()
+          .optional()
+          .describe(
+            "When billing starts for the subscription. Nothing is billed for service before this time, while access,\nentitlements and metering start with the subscription. Use it when the time before was already billed elsewhere,\nfor example when importing a subscription from another billing system.\n\nIt cannot be before the start of the subscription and cannot be changed later. On subscriptions billed through\ninvoice lines it must be the start of a billing period. If not provided, billing starts with the subscription.\n\nWhen billing starts inside a billing period, we recommend enabling price pro-rating (`prorate_prices`) on the\nplan. Without it that billing period's flat fees are billed in full.",
+          ),
         costBasisMode: zod
           .enum(['dynamic', 'pinned'])
           .describe(
@@ -14710,6 +14716,12 @@ export const CreateSubscriptionBody = zod
           .optional()
           .describe(
             'The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.',
+          ),
+        billingStartsAt: zod.coerce
+          .date()
+          .optional()
+          .describe(
+            "When billing starts for the subscription. Nothing is billed for service before this time, while access,\nentitlements and metering start with the subscription. Use it when the time before was already billed elsewhere,\nfor example when importing a subscription from another billing system.\n\nIt cannot be before the start of the subscription and cannot be changed later. On subscriptions billed through\ninvoice lines it must be the start of a billing period. If not provided, billing starts with the subscription.\n\nWhen billing starts inside a billing period, we recommend enabling price pro-rating (`prorate_prices`) on the\nplan. Without it that billing period's flat fees are billed in full.",
           ),
         costBasisMode: zod
           .enum(['dynamic', 'pinned'])

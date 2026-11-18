@@ -2626,3 +2626,182 @@ func TestCreateFromPlanSnapshotsUnitConfig(t *testing.T) {
 	require.NotNil(t, got, "unit_config must survive subscription persistence; nil means it was dropped on write/read")
 	assert.True(t, got.Equal(unitConfig), "reloaded unit_config must equal the authored config, got %+v", got)
 }
+
+func TestBillingStartsAt(t *testing.T) {
+	// A monthly subscription imported on 2026-11-01, billed on the first of the month since 2026-01-01.
+	subscriptionStart := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	billingAnchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	nextPeriodStart := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
+
+	allowed := func(ctx context.Context) context.Context {
+		return ffx.SetAccessOnContext(ctx, ffx.AccessConfig{
+			subscription.MultiSubscriptionEnabledFF: false,
+			subscription.BillingStartsAtEnabledFF:   true,
+		})
+	}
+
+	type testDeps struct {
+		subscriptiontestutils.SubscriptionDependencies
+		Plan subscription.Plan
+	}
+
+	setup := func(t *testing.T) testDeps {
+		t.Helper()
+
+		dbDeps := subscriptiontestutils.SetupDBDeps(t)
+		t.Cleanup(func() { dbDeps.Cleanup(t) })
+
+		deps := subscriptiontestutils.NewService(t, dbDeps)
+		deps.FeatureConnector.CreateExampleFeatures(t, deps.ExampleMeterID)
+
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		taxConfig := subscriptiontestutils.ExampleTaxConfig(taxCode)
+
+		return testDeps{
+			SubscriptionDependencies: deps,
+			Plan: deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
+				AddPhase(nil, subscriptiontestutils.ExampleRateCard1(taxConfig)).
+				Build()),
+		}
+	}
+
+	create := func(ctx context.Context, deps testDeps, billingStartsAt time.Time) (subscription.SubscriptionView, error) {
+		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
+
+		return deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+				Timing: subscription.Timing{Custom: &subscriptionStart},
+				Name:   "Imported subscription",
+			},
+			Namespace:       subscriptiontestutils.ExampleNamespace,
+			CustomerID:      cust.ID,
+			BillingAnchor:   &billingAnchor,
+			BillingStartsAt: &billingStartsAt,
+		}, deps.Plan)
+	}
+
+	t.Run("is rejected for a namespace that is not on the allowlist", func(t *testing.T) {
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t)
+
+		_, err := create(t.Context(), deps, nextPeriodStart)
+		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotEnabled)
+	})
+
+	t.Run("is stored when it is the start of a billing period", func(t *testing.T) {
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t)
+
+		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		require.NoError(t, err)
+		require.Equal(t, &nextPeriodStart, created.Subscription.BillingStartsAt)
+		require.Equal(t, &nextPeriodStart, created.Spec.BillingStartsAt)
+
+		persisted, err := deps.SubscriptionService.GetView(t.Context(), created.Subscription.NamespacedID)
+		require.NoError(t, err)
+		require.Equal(t, &nextPeriodStart, persisted.Subscription.BillingStartsAt)
+	})
+
+	t.Run("is rejected inside a billing period on invoice lines", func(t *testing.T) {
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t)
+
+		_, err := create(allowed(t.Context()), deps, time.Date(2026, 12, 17, 0, 0, 0, 0, time.UTC))
+		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotAligned)
+	})
+
+	t.Run("is rejected before the subscription start", func(t *testing.T) {
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t)
+
+		_, err := create(allowed(t.Context()), deps, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
+		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtBeforeSubscriptionStart)
+	})
+
+	t.Run("is kept by a plan change made before billing starts", func(t *testing.T) {
+		// given a subscription whose billing starts on 2026-12-01
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t)
+
+		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		require.NoError(t, err)
+
+		// when the plan is changed on 2026-11-10 by a caller that could not set a billing start itself
+		clock.FreezeTime(time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC))
+		defer clock.UnFreeze()
+
+		_, next, err := deps.WorkflowService.ChangeToPlan(t.Context(), created.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+			Name:   "Changed subscription",
+		}, deps.Plan)
+		require.NoError(t, err)
+
+		// then the new subscription still starts billing on 2026-12-01
+		require.Equal(t, &nextPeriodStart, next.Subscription.BillingStartsAt)
+	})
+
+	t.Run("is dropped by a plan change made after billing started", func(t *testing.T) {
+		// given a subscription whose billing started on 2026-12-01
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t)
+
+		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		require.NoError(t, err)
+
+		// when the plan is changed on 2026-12-10
+		clock.FreezeTime(time.Date(2026, 12, 10, 0, 0, 0, 0, time.UTC))
+		defer clock.UnFreeze()
+
+		_, next, err := deps.WorkflowService.ChangeToPlan(t.Context(), created.Subscription.NamespacedID, subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+			Name:   "Changed subscription",
+		}, deps.Plan)
+		require.NoError(t, err)
+
+		// then the new subscription bills from its own start: there is nothing left to skip
+		require.Nil(t, next.Subscription.BillingStartsAt)
+	})
+
+	t.Run("is kept by an in place migration", func(t *testing.T) {
+		// given a subscription whose billing starts on 2026-12-01
+		clock.FreezeTime(subscriptionStart)
+		defer clock.UnFreeze()
+
+		deps := setup(t)
+
+		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		require.NoError(t, err)
+
+		// when it is migrated to the next version of its plan on 2026-11-10
+		clock.FreezeTime(time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC))
+		defer clock.UnFreeze()
+
+		taxCode := deps.TaxCodeEnv.CreateTaxCode(t, subscriptiontestutils.ExampleNamespace, subscriptiontestutils.GetExampleTaxCodeInput())
+		nextVersion := deps.PlanHelper.CreatePlan(t, subscriptiontestutils.BuildTestPlanInput(t).
+			AddPhase(nil, subscriptiontestutils.ExampleRateCard1(subscriptiontestutils.ExampleTaxConfig(taxCode)), subscriptiontestutils.ExampleRateCard2.Clone()).
+			Build())
+
+		_, migrated, err := deps.WorkflowService.MigrateToPlan(t.Context(), subscriptionworkflow.MigrateSubscriptionWorkflowInput{
+			SubscriptionID: created.Subscription.NamespacedID,
+			Plan:           nextVersion,
+			Timing:         subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+		})
+		require.NoError(t, err)
+
+		// then the same subscription still starts billing on 2026-12-01
+		require.Equal(t, created.Subscription.ID, migrated.Subscription.ID)
+		require.Equal(t, &nextPeriodStart, migrated.Subscription.BillingStartsAt)
+	})
+}

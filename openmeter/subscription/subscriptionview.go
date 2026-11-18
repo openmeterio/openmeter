@@ -301,6 +301,7 @@ func NewSubscriptionView(
 			Name:            sub.Name,
 			Description:     sub.Description,
 			BillingAnchor:   sub.BillingAnchor,
+			BillingStartsAt: sub.BillingStartsAt,
 		},
 		Phases: make(map[string]*SubscriptionPhaseSpec),
 	}

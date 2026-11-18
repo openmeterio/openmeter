@@ -119717,6 +119717,7 @@ type SubscriptionMutation struct {
 	invoice_currency                       *currencyx.Code
 	cost_basis_mode                        *subscription.CostBasisMode
 	billing_anchor                         *time.Time
+	billing_starts_at                      *time.Time
 	billing_cadence                        *datetime.ISODurationString
 	pro_rating_config                      *productcatalog.ProRatingConfig
 	settlement_mode                        *productcatalog.SettlementMode
@@ -120481,6 +120482,55 @@ func (m *SubscriptionMutation) ResetBillingAnchor() {
 	m.billing_anchor = nil
 }
 
+// SetBillingStartsAt sets the "billing_starts_at" field.
+func (m *SubscriptionMutation) SetBillingStartsAt(t time.Time) {
+	m.billing_starts_at = &t
+}
+
+// BillingStartsAt returns the value of the "billing_starts_at" field in the mutation.
+func (m *SubscriptionMutation) BillingStartsAt() (r time.Time, exists bool) {
+	v := m.billing_starts_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBillingStartsAt returns the old "billing_starts_at" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldBillingStartsAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBillingStartsAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBillingStartsAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBillingStartsAt: %w", err)
+	}
+	return oldValue.BillingStartsAt, nil
+}
+
+// ClearBillingStartsAt clears the value of the "billing_starts_at" field.
+func (m *SubscriptionMutation) ClearBillingStartsAt() {
+	m.billing_starts_at = nil
+	m.clearedFields[subscription.FieldBillingStartsAt] = struct{}{}
+}
+
+// BillingStartsAtCleared returns if the "billing_starts_at" field was cleared in this mutation.
+func (m *SubscriptionMutation) BillingStartsAtCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldBillingStartsAt]
+	return ok
+}
+
+// ResetBillingStartsAt resets all changes to the "billing_starts_at" field.
+func (m *SubscriptionMutation) ResetBillingStartsAt() {
+	m.billing_starts_at = nil
+	delete(m.clearedFields, subscription.FieldBillingStartsAt)
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (m *SubscriptionMutation) SetBillingCadence(dds datetime.ISODurationString) {
 	m.billing_cadence = &dds
@@ -121202,7 +121252,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 19)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -121247,6 +121297,9 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.billing_anchor != nil {
 		fields = append(fields, subscription.FieldBillingAnchor)
+	}
+	if m.billing_starts_at != nil {
+		fields = append(fields, subscription.FieldBillingStartsAt)
 	}
 	if m.billing_cadence != nil {
 		fields = append(fields, subscription.FieldBillingCadence)
@@ -121295,6 +121348,8 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.CostBasisMode()
 	case subscription.FieldBillingAnchor:
 		return m.BillingAnchor()
+	case subscription.FieldBillingStartsAt:
+		return m.BillingStartsAt()
 	case subscription.FieldBillingCadence:
 		return m.BillingCadence()
 	case subscription.FieldProRatingConfig:
@@ -121340,6 +121395,8 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldCostBasisMode(ctx)
 	case subscription.FieldBillingAnchor:
 		return m.OldBillingAnchor(ctx)
+	case subscription.FieldBillingStartsAt:
+		return m.OldBillingStartsAt(ctx)
 	case subscription.FieldBillingCadence:
 		return m.OldBillingCadence(ctx)
 	case subscription.FieldProRatingConfig:
@@ -121460,6 +121517,13 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetBillingAnchor(v)
 		return nil
+	case subscription.FieldBillingStartsAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBillingStartsAt(v)
+		return nil
 	case subscription.FieldBillingCadence:
 		v, ok := value.(datetime.ISODurationString)
 		if !ok {
@@ -121529,6 +121593,9 @@ func (m *SubscriptionMutation) ClearedFields() []string {
 	if m.FieldCleared(subscription.FieldPlanID) {
 		fields = append(fields, subscription.FieldPlanID)
 	}
+	if m.FieldCleared(subscription.FieldBillingStartsAt) {
+		fields = append(fields, subscription.FieldBillingStartsAt)
+	}
 	return fields
 }
 
@@ -121560,6 +121627,9 @@ func (m *SubscriptionMutation) ClearField(name string) error {
 		return nil
 	case subscription.FieldPlanID:
 		m.ClearPlanID()
+		return nil
+	case subscription.FieldBillingStartsAt:
+		m.ClearBillingStartsAt()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription nullable field %s", name)
@@ -121613,6 +121683,9 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldBillingAnchor:
 		m.ResetBillingAnchor()
+		return nil
+	case subscription.FieldBillingStartsAt:
+		m.ResetBillingStartsAt()
 		return nil
 	case subscription.FieldBillingCadence:
 		m.ResetBillingCadence()
