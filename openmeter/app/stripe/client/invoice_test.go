@@ -141,3 +141,33 @@ func TestCreateInvoiceIdempotencyKey(t *testing.T) {
 		})
 	}
 }
+
+func TestGetInvoiceRateLimited(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"error":{"type":"invalid_request_error","code":"rate_limit","message":"Too many requests"}}`))
+	}))
+	defer server.Close()
+
+	backend := stripe.GetBackendWithConfig(stripe.APIBackend, &stripe.BackendConfig{
+		URL:               lo.ToPtr(server.URL),
+		MaxNetworkRetries: lo.ToPtr(int64(0)),
+	})
+
+	api := &stripeapi.API{}
+	api.Init("sk_test_123", &stripe.Backends{API: backend, Connect: backend, Uploads: backend})
+
+	stripeClient := &stripeAppClient{
+		appID:  app.AppID{Namespace: "ns", ID: "app"},
+		client: api,
+		logger: slog.New(slog.DiscardHandler),
+	}
+
+	_, err := stripeClient.GetInvoice(t.Context(), GetInvoiceInput{StripeInvoiceID: "in_123"})
+
+	require.True(t, IsStripeRateLimitedError(err))
+
+	var providerErr *app.AppProviderError
+	require.ErrorAs(t, err, &providerErr)
+}

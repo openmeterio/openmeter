@@ -26,6 +26,7 @@ type idempotentStripeInvoices struct {
 	deleted       map[string]bool
 	createKeys    []string
 	createFailure error
+	getFailure    error
 	deleteFailure error
 }
 
@@ -71,6 +72,13 @@ func (s *StripeInvoiceTestSuite) stubIdempotentStripeInvoices() *idempotentStrip
 		On("GetInvoice", mock.Anything).
 		Run(func(args mock.Arguments) {
 			stripeInvoiceID := args.Get(0).(stripeclient.GetInvoiceInput).StripeInvoiceID
+
+			if fake.getFailure != nil {
+				getInvoice.ReturnArguments = mock.Arguments{(*stripe.Invoice)(nil), fake.getFailure}
+				fake.getFailure = nil
+
+				return
+			}
 
 			invoice, found := lo.Find(lo.Values(fake.createdByKey), func(invoice *stripe.Invoice) bool {
 				return invoice.ID == stripeInvoiceID
@@ -258,6 +266,58 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterFail
 	// then: the create request uses a new key and the invoice is synced
 	s.Require().Len(stripeInvoices.createKeys, 2)
 	s.NotEqual(stripeInvoices.createKeys[0], stripeInvoices.createKeys[1])
+	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
+	s.Equal("in_1", invoice.ExternalIDs.Invoicing)
+}
+
+func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterRateLimitedRead() {
+	ctx := s.T().Context()
+	namespace := "ns-invoice-idempotency-rate-limited-read"
+	period := emptyInvoiceModeServicePeriod()
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	cust := s.setupEmptyInvoiceModeCustomer(ctx, namespace, billing.EmptyInvoiceModeCreate)
+	defer s.StripeAppClient.Restore()
+
+	stripeInvoices := s.stubIdempotentStripeInvoices()
+
+	// given: Stripe creates the invoice, but rate limits reading it back
+	stripeInvoices.getFailure = stripeclient.NewStripeRateLimitedError(errors.New("rate limited"))
+
+	// when: the draft is synced to Stripe
+	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		Customer: cust.GetID(),
+		Currency: currencyx.FiatCode(currency.USD),
+		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
+			emptyInvoiceModeFlatFeeLine(namespace, period, 10),
+		}),
+	})
+	s.Require().NoError(err)
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
+
+	// then: the sync fails without giving up the Stripe invoice
+	s.Require().Equal(billing.StandardInvoiceStatusDraftSyncFailed, invoice.Status)
+	s.Require().Len(stripeInvoices.createKeys, 1)
+
+	generation, err := s.AppStripeService.GetLatestInvoiceGeneration(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Require().Equal(0, generation)
+
+	// when: the sync is retried
+	invoice, err = s.BillingService.RetryInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+
+	// then: the same key gives back the invoice created the first time
+	s.Require().Len(stripeInvoices.createKeys, 2)
+	s.Equal(stripeInvoices.createKeys[0], stripeInvoices.createKeys[1])
 	s.Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoice.Status)
 	s.Equal("in_1", invoice.ExternalIDs.Invoicing)
 }

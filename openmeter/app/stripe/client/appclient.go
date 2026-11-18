@@ -329,6 +329,12 @@ func (c *stripeAppClient) providerError(err error) error {
 				c.appID.Namespace,
 				errors.New(stripeErr.Msg),
 			)
+		case http.StatusTooManyRequests:
+			return NewStripeRateLimitedError(app.NewAppProviderError(
+				&c.appID,
+				c.appID.Namespace,
+				errors.New(stripeErr.Msg),
+			))
 		default:
 			return app.NewAppProviderError(
 				&c.appID,

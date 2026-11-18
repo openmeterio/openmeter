@@ -99,3 +99,36 @@ func (e StripeInvoiceCustomerTaxLocationInvalidError) Error() string {
 func (e StripeInvoiceCustomerTaxLocationInvalidError) Unwrap() error {
 	return e.err
 }
+
+// StripeRateLimitedError
+var _ models.GenericError = (*StripeRateLimitedError)(nil)
+
+func NewStripeRateLimitedError(err error) *StripeRateLimitedError {
+	return &StripeRateLimitedError{
+		err: err,
+	}
+}
+
+func IsStripeRateLimitedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	var e *StripeRateLimitedError
+
+	return errors.As(err, &e)
+}
+
+// StripeRateLimitedError says Stripe refused the request before running it, so the request changed
+// nothing in Stripe and tells nothing about the object it was about.
+type StripeRateLimitedError struct {
+	err error
+}
+
+func (e *StripeRateLimitedError) Error() string {
+	return e.err.Error()
+}
+
+func (e *StripeRateLimitedError) Unwrap() error {
+	return e.err
+}
