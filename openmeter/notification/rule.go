@@ -135,6 +135,23 @@ func (c RuleConfig) Validate() error {
 	}
 }
 
+// validateType prevents flat configs from being read as a different Rule's
+// configuration. Invoice created and updated share the same config contract.
+func (c RuleConfig) validateType(eventType EventType) error {
+	if c.Type == eventType {
+		return nil
+	}
+
+	switch eventType {
+	case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:
+		if c.Type == EventTypeInvoiceCreated || c.Type == EventTypeInvoiceUpdated {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("rule config type %q does not match rule type %q", c.Type, eventType)
+}
+
 var (
 	_ models.Validator                       = (*ListRulesInput)(nil)
 	_ models.CustomValidator[ListRulesInput] = (*ListRulesInput)(nil)
@@ -276,6 +293,10 @@ func (i CreateRuleInput) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if err := i.Config.validateType(i.Type); err != nil {
+		errs = append(errs, err)
+	}
+
 	if len(i.Channels) == 0 {
 		errs = append(errs, errors.New("at least one channel is required"))
 	}
@@ -335,6 +356,10 @@ func (i UpdateRuleInput) Validate() error {
 	}
 
 	if err := i.Config.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.Config.validateType(i.Type); err != nil {
 		errs = append(errs, err)
 	}
 

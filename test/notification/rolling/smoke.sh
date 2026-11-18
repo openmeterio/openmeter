@@ -149,6 +149,10 @@ pending=$(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notificat
 dc run --rm -T candidate-jobs >"$artifacts/candidate-migration.log" 2>&1
 upgraded=$(version)
 [[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded >= baseline )) || fail "Expected schema version at least $baseline, got $upgraded"
+# Explicit state writes cannot prove that the jobs image applied the new default.
+[[ $(sql "SELECT column_default FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='notification_event_delivery_status' AND column_name='state'") == "'pending'::character varying" ]] ||
+    fail "Candidate migration did not set the delivery state default to pending"
 [[ $(identity) == "$db" ]] || fail "Database changed during migration"
 [[ $(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'") == "$pending" ]] ||
     fail "Migration changed the in-flight delivery"

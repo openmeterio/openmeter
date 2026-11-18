@@ -91,17 +91,20 @@ func TestCreateRule_InvalidType(t *testing.T) {
 func TestRuleConfigWriteValidation(t *testing.T) {
 	env := newServiceTestEnv(t)
 	tests := []struct {
-		name   string
-		config notification.RuleConfig
+		name     string
+		ruleType notification.EventType
+		config   notification.RuleConfig
 	}{
 		{
-			name: "missing invoice config",
+			name:     "missing invoice config",
+			ruleType: notification.EventTypeInvoiceCreated,
 			config: notification.RuleConfig{
 				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceCreated},
 			},
 		},
 		{
-			name: "invalid threshold",
+			name:     "invalid threshold",
+			ruleType: notification.EventTypeBalanceThreshold,
 			config: notification.RuleConfig{
 				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeBalanceThreshold},
 				BalanceThreshold: &notification.BalanceThresholdRuleConfig{
@@ -112,10 +115,27 @@ func TestRuleConfigWriteValidation(t *testing.T) {
 			},
 		},
 		{
-			name: "duplicate features",
+			name:     "duplicate features",
+			ruleType: notification.EventTypeEntitlementReset,
 			config: notification.RuleConfig{
 				RuleConfigMeta:   notification.RuleConfigMeta{Type: notification.EventTypeEntitlementReset},
 				EntitlementReset: &notification.EntitlementResetRuleConfig{Features: []string{"feature-a", "feature-a"}},
+			},
+		},
+		{
+			name:     "reset config for balance threshold rule",
+			ruleType: notification.EventTypeBalanceThreshold,
+			config: notification.RuleConfig{
+				RuleConfigMeta:   notification.RuleConfigMeta{Type: notification.EventTypeEntitlementReset},
+				EntitlementReset: &notification.EntitlementResetRuleConfig{},
+			},
+		},
+		{
+			name:     "invoice config for reset rule",
+			ruleType: notification.EventTypeEntitlementReset,
+			config: notification.RuleConfig{
+				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceCreated},
+				Invoice:        &notification.InvoiceRuleConfig{},
 			},
 		},
 	}
@@ -125,8 +145,8 @@ func TestRuleConfigWriteValidation(t *testing.T) {
 			// given: a valid persisted rule and an invalid configuration for its type
 			namespace := ulid.Make().String()
 			channel := seedChannel(t, env, namespace, clock.Now(), "validation")
-			validConfig := notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: tt.config.Type}}
-			switch tt.config.Type {
+			validConfig := notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: tt.ruleType}}
+			switch tt.ruleType {
 			case notification.EventTypeInvoiceCreated:
 				validConfig.Invoice = &notification.InvoiceRuleConfig{}
 			case notification.EventTypeBalanceThreshold:
@@ -142,7 +162,7 @@ func TestRuleConfigWriteValidation(t *testing.T) {
 			created, err := env.adapter.CreateRule(t.Context(), notification.CreateRuleInput{
 				NamespacedModel: models.NamespacedModel{Namespace: namespace},
 				Name:            "original",
-				Type:            tt.config.Type,
+				Type:            tt.ruleType,
 				Config:          validConfig,
 				Channels:        []string{channel.ID},
 			})
@@ -162,7 +182,7 @@ func TestRuleConfigWriteValidation(t *testing.T) {
 						result, err = env.service.CreateRule(t.Context(), notification.CreateRuleInput{
 							NamespacedModel: models.NamespacedModel{Namespace: namespace},
 							Name:            "invalid",
-							Type:            tt.config.Type,
+							Type:            tt.ruleType,
 							Config:          tt.config,
 							Channels:        []string{channel.ID},
 						})
@@ -170,7 +190,7 @@ func TestRuleConfigWriteValidation(t *testing.T) {
 						result, err = env.service.UpdateRule(t.Context(), notification.UpdateRuleInput{
 							NamespacedID: created.NamespacedID,
 							Name:         "invalid",
-							Type:         tt.config.Type,
+							Type:         tt.ruleType,
 							Config:       tt.config,
 							Channels:     []string{channel.ID},
 						})
@@ -192,6 +212,133 @@ func TestRuleConfigWriteValidation(t *testing.T) {
 					assert.Equal(t, 1, count)
 				})
 			}
+		})
+	}
+}
+
+func TestRuleInputConfigTypeValidation(t *testing.T) {
+	configs := []notification.RuleConfig{
+		{
+			RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeBalanceThreshold},
+			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
+				Thresholds: []notification.BalanceThreshold{
+					{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50},
+				},
+			},
+		},
+		{
+			RuleConfigMeta:   notification.RuleConfigMeta{Type: notification.EventTypeEntitlementReset},
+			EntitlementReset: &notification.EntitlementResetRuleConfig{},
+		},
+		{
+			RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceCreated},
+			Invoice:        &notification.InvoiceRuleConfig{},
+		},
+		{
+			RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceUpdated},
+			Invoice:        &notification.InvoiceRuleConfig{},
+		},
+	}
+
+	for _, ruleConfig := range configs {
+		for _, config := range configs {
+			t.Run(string(ruleConfig.Type)+"/"+string(config.Type), func(t *testing.T) {
+				create := notification.CreateRuleInput{
+					NamespacedModel: models.NamespacedModel{Namespace: ulid.Make().String()},
+					Name:            "type compatibility",
+					Type:            ruleConfig.Type,
+					Config:          config,
+					Channels:        []string{ulid.Make().String()},
+				}
+				update := notification.UpdateRuleInput{
+					NamespacedID: models.NamespacedID{Namespace: create.Namespace, ID: ulid.Make().String()},
+					Name:         create.Name,
+					Type:         create.Type,
+					Config:       config,
+					Channels:     create.Channels,
+				}
+
+				for _, operation := range []struct {
+					name  string
+					input models.Validator
+				}{
+					{name: "create", input: create},
+					{name: "update", input: update},
+				} {
+					t.Run(operation.name, func(t *testing.T) {
+						err := operation.input.Validate()
+						if ruleConfig.Type == config.Type || (ruleConfig.Invoice != nil && config.Invoice != nil) {
+							require.NoError(t, err)
+
+							return
+						}
+
+						require.ErrorContains(t, err, "does not match rule type")
+
+						assert.True(t, models.IsGenericValidationError(err))
+					})
+				}
+			})
+		}
+	}
+}
+
+func TestRuleSharedInvoiceConfig(t *testing.T) {
+	env := newServiceTestEnv(t)
+	tests := []struct {
+		name       string
+		ruleType   notification.EventType
+		configType notification.EventType
+	}{
+		{
+			name:       "created rule with updated config",
+			ruleType:   notification.EventTypeInvoiceCreated,
+			configType: notification.EventTypeInvoiceUpdated,
+		},
+		{
+			name:       "updated rule with created config",
+			ruleType:   notification.EventTypeInvoiceUpdated,
+			configType: notification.EventTypeInvoiceCreated,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: the two invoice types share one configuration contract
+			namespace := ulid.Make().String()
+			channel := seedChannel(t, env, namespace, clock.Now(), "invoice")
+			config := notification.RuleConfig{
+				RuleConfigMeta: notification.RuleConfigMeta{Type: tt.configType},
+				Invoice:        &notification.InvoiceRuleConfig{},
+			}
+
+			created, err := env.adapter.CreateRule(t.Context(), notification.CreateRuleInput{
+				NamespacedModel: models.NamespacedModel{Namespace: namespace},
+				Name:            "created",
+				Type:            tt.ruleType,
+				Config:          config,
+				Channels:        []string{channel.ID},
+			})
+			require.NoError(t, err)
+
+			// when: updating with the other invoice type's config and unchanged channels
+			updated, err := env.service.UpdateRule(t.Context(), notification.UpdateRuleInput{
+				NamespacedID: created.NamespacedID,
+				Name:         "updated",
+				Type:         tt.ruleType,
+				Config:       config,
+				Channels:     []string{channel.ID},
+			})
+			require.NoError(t, err)
+
+			// then: the stored Rule keeps its type and can be read normally
+			stored, err := env.service.GetRule(t.Context(), notification.GetRuleInput(updated.NamespacedID))
+			require.NoError(t, err)
+
+			assert.Equal(t, "updated", stored.Name)
+			assert.Equal(t, tt.ruleType, stored.Type)
+			assert.Equal(t, tt.ruleType, stored.Config.Type)
+			assert.Equal(t, &notification.InvoiceRuleConfig{}, stored.Config.Invoice)
 		})
 	}
 }

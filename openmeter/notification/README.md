@@ -96,7 +96,8 @@ envelope first, then the unwrapped existing contract using the Rule's type.
 Flat configs reject unknown fields so malformed envelopes cannot become empty
 invoice configs. Reads do not rewrite rows or revalidate historical conditions.
 Create and update validate configs in the service and write the type-specific
-object directly. Invoice configs are `{}`. The beta.237 reader accepts both
+object directly. Rule and config types must match, except that the two invoice
+types share the same config contract. Invoice configs are `{}`. The beta.237 reader accepts both
 representations during rollout and rollback. Decode errors propagate through
 Rule reads and nested Event reads.
 
