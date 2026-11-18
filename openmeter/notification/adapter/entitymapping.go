@@ -208,7 +208,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) (*not
 // use versioned names. V1/V3 still need the public name mapping after cutover.
 var eventTypeNames = [...]struct {
 	legacy    notification.EventType
-	versioned notification.EventType
+	versioned string
 }{
 	{notification.EventTypeBalanceThreshold, "v1.entitlement.balance_threshold.triggered"},
 	{notification.EventTypeEntitlementReset, "v1.entitlement.usage_period.reset"},
@@ -216,14 +216,24 @@ var eventTypeNames = [...]struct {
 	{notification.EventTypeInvoiceUpdated, "v1.billing.invoice.updated"},
 }
 
-func fromDBEventType(value notification.EventType) notification.EventType {
+func fromDBEventType(value string) notification.EventType {
 	for _, names := range eventTypeNames {
 		if value == names.versioned {
 			return names.legacy
 		}
 	}
 
-	return value
+	return notification.EventType(value)
+}
+
+func toDBEventType(value notification.EventType) string {
+	for _, names := range eventTypeNames {
+		if value == names.legacy {
+			return names.versioned
+		}
+	}
+
+	return string(value)
 }
 
 func storedEventTypeNames(values ...string) []string {
@@ -233,7 +243,7 @@ func storedEventTypeNames(values ...string) []string {
 
 		for _, pair := range eventTypeNames {
 			if value == string(pair.legacy) {
-				names = append(names, string(pair.versioned))
+				names = append(names, pair.versioned)
 				break
 			}
 		}

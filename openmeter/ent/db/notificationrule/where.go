@@ -10,7 +10,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
 // ID filters vertices based on their ID field.
@@ -89,9 +88,8 @@ func DeletedAt(v time.Time) predicate.NotificationRule {
 }
 
 // Type applies equality check predicate on the "type" field. It's identical to TypeEQ.
-func Type(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldEQ(FieldType, vc))
+func Type(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldEQ(FieldType, v))
 }
 
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
@@ -326,87 +324,68 @@ func MetadataNotNil() predicate.NotificationRule {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldEQ(FieldType, vc))
+func TypeEQ(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldEQ(FieldType, v))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldNEQ(FieldType, vc))
+func TypeNEQ(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldNEQ(FieldType, v))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...notification.EventType) predicate.NotificationRule {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.NotificationRule(sql.FieldIn(FieldType, v...))
+func TypeIn(vs ...string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldIn(FieldType, vs...))
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...notification.EventType) predicate.NotificationRule {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.NotificationRule(sql.FieldNotIn(FieldType, v...))
+func TypeNotIn(vs ...string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldNotIn(FieldType, vs...))
 }
 
 // TypeGT applies the GT predicate on the "type" field.
-func TypeGT(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldGT(FieldType, vc))
+func TypeGT(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldGT(FieldType, v))
 }
 
 // TypeGTE applies the GTE predicate on the "type" field.
-func TypeGTE(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldGTE(FieldType, vc))
+func TypeGTE(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldGTE(FieldType, v))
 }
 
 // TypeLT applies the LT predicate on the "type" field.
-func TypeLT(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldLT(FieldType, vc))
+func TypeLT(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldLT(FieldType, v))
 }
 
 // TypeLTE applies the LTE predicate on the "type" field.
-func TypeLTE(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldLTE(FieldType, vc))
+func TypeLTE(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldLTE(FieldType, v))
 }
 
 // TypeContains applies the Contains predicate on the "type" field.
-func TypeContains(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldContains(FieldType, vc))
+func TypeContains(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldContains(FieldType, v))
 }
 
 // TypeHasPrefix applies the HasPrefix predicate on the "type" field.
-func TypeHasPrefix(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldHasPrefix(FieldType, vc))
+func TypeHasPrefix(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldHasPrefix(FieldType, v))
 }
 
 // TypeHasSuffix applies the HasSuffix predicate on the "type" field.
-func TypeHasSuffix(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldHasSuffix(FieldType, vc))
+func TypeHasSuffix(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldHasSuffix(FieldType, v))
 }
 
 // TypeEqualFold applies the EqualFold predicate on the "type" field.
-func TypeEqualFold(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldEqualFold(FieldType, vc))
+func TypeEqualFold(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldEqualFold(FieldType, v))
 }
 
 // TypeContainsFold applies the ContainsFold predicate on the "type" field.
-func TypeContainsFold(v notification.EventType) predicate.NotificationRule {
-	vc := string(v)
-	return predicate.NotificationRule(sql.FieldContainsFold(FieldType, vc))
+func TypeContainsFold(v string) predicate.NotificationRule {
+	return predicate.NotificationRule(sql.FieldContainsFold(FieldType, v))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

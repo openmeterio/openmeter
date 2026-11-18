@@ -98,8 +98,9 @@ stored_format() {
         .channel==$channel_type and .config==($input[0] | if $writer=="old" then
             {type:"WEBHOOK",data:{url,customHeaders,signingSecret}}
         else {url,custom_headers:.customHeaders,signing_secret:.signingSecret} end) and
-        .rule=="entitlements.reset" and .ruleConfig.type==.rule and (.ruleConfig.data|type)=="object" and
-        .event==.rule and .payload.type==.event and .payload.version==1 and
+        .rule==(if $writer=="old" then "entitlements.reset" else "v1.entitlement.usage_period.reset" end) and
+        .ruleConfig.type=="entitlements.reset" and (.ruleConfig.data|type)=="object" and
+        .event==.rule and .payload.type=="entitlements.reset" and .payload.version==1 and
         (.payload.entitlementReset|type)=="object" and .state=="PENDING")' "$dir/stored.json" >/dev/null ||
         fail "$writer stored an incompatible representation"
     echo "Verified $writer stored Channel, Rule, Event and pending delivery formats"

@@ -452,21 +452,18 @@ func TestV3NotificationTypeCompatibility(t *testing.T) {
 	// using the versioned type column and the original JSON discriminator.
 	var wantRules, wantEvents []item
 
-	for _, pair := range []struct {
-		legacy    notification.EventType
-		versioned string
-	}{
-		{notification.EventTypeInvoiceCreated, "v1.billing.invoice.created"},
-		{notification.EventTypeInvoiceUpdated, "v1.billing.invoice.updated"},
+	for _, eventType := range []notification.EventType{
+		notification.EventTypeInvoiceCreated,
+		notification.EventTypeInvoiceUpdated,
 	} {
 		for i := range 2 {
 			rule, err := env.adapter.CreateRule(ctx, notification.CreateRuleInput{
 				NamespacedModel: models.NamespacedModel{Namespace: namespace},
-				Type:            pair.legacy,
+				Type:            eventType,
 				Name:            ulid.Make().String(),
 				Channels:        []string{channel.ID},
 				Config: notification.RuleConfig{
-					RuleConfigMeta: notification.RuleConfigMeta{Type: pair.legacy},
+					RuleConfigMeta: notification.RuleConfigMeta{Type: eventType},
 					Invoice:        &notification.InvoiceRuleConfig{},
 				},
 			})
@@ -475,24 +472,24 @@ func TestV3NotificationTypeCompatibility(t *testing.T) {
 			event, err := env.adapter.CreateEvent(ctx, notification.CreateEventInput{
 				NamespacedModel: models.NamespacedModel{Namespace: namespace},
 				RuleID:          rule.ID,
-				Type:            pair.legacy,
+				Type:            eventType,
 				Payload: notification.EventPayload{
-					EventPayloadMeta: notification.EventPayloadMeta{Type: pair.legacy, Version: notification.EventPayloadVersionCurrent},
+					EventPayloadMeta: notification.EventPayloadMeta{Type: eventType, Version: notification.EventPayloadVersionCurrent},
 					Invoice:          &notification.InvoicePayload{},
 				},
 			})
 			require.NoError(t, err)
 
 			if i == 0 {
-				_, err = env.db.ExecContext(ctx, "UPDATE notification_rules SET type = $1 WHERE id = $2", pair.versioned, rule.ID)
+				_, err = env.db.ExecContext(ctx, "UPDATE notification_rules SET type = $1 WHERE id = $2", string(eventType), rule.ID)
 				require.NoError(t, err)
 
-				_, err = env.db.ExecContext(ctx, "UPDATE notification_events SET type = $1 WHERE id = $2", pair.versioned, event.ID)
+				_, err = env.db.ExecContext(ctx, "UPDATE notification_events SET type = $1 WHERE id = $2", string(eventType), event.ID)
 				require.NoError(t, err)
 			}
 
-			wantRules = append(wantRules, item{rule.ID, pair.legacy})
-			wantEvents = append(wantEvents, item{event.ID, pair.legacy})
+			wantRules = append(wantRules, item{rule.ID, eventType})
+			wantEvents = append(wantEvents, item{event.ID, eventType})
 		}
 	}
 
@@ -563,6 +560,52 @@ func TestV3NotificationTypeCompatibility(t *testing.T) {
 					}
 				})
 			}
+		})
+	}
+}
+
+func TestCreateEvent_InvalidType(t *testing.T) {
+	env := newServiceTestEnv(t)
+	tests := []struct {
+		name      string
+		eventType notification.EventType
+	}{
+		{name: "empty"},
+		{name: "unknown", eventType: "unknown.event"},
+		{name: "unknown versioned name", eventType: "v1.invoice.created"},
+		{name: "balance storage alias", eventType: "v1.entitlement.balance_threshold.triggered"},
+		{name: "reset storage alias", eventType: "v1.entitlement.usage_period.reset"},
+		{name: "invoice created storage alias", eventType: "v1.billing.invoice.created"},
+		{name: "invoice updated storage alias", eventType: "v1.billing.invoice.updated"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: valid dependencies and config with an unsupported public type
+			namespace := ulid.Make().String()
+			channel := seedChannel(t, env, namespace, clock.Now(), "validation")
+			rule := seedBalanceThresholdRule(t, env, namespace, channel.ID)
+
+			// when: creating through the service boundary
+			created, err := env.service.CreateEvent(t.Context(), notification.CreateEventInput{
+				NamespacedModel: models.NamespacedModel{Namespace: namespace},
+				Type:            tt.eventType,
+				RuleID:          rule.ID,
+				Payload: notification.EventPayload{
+					EventPayloadMeta: notification.EventPayloadMeta{Type: rule.Type, Version: notification.EventPayloadVersionCurrent},
+					BalanceThreshold: &notification.BalanceThresholdPayload{},
+				},
+			})
+			require.ErrorContains(t, err, "invalid notification event type")
+
+			assert.True(t, models.IsGenericValidationError(err))
+			assert.Nil(t, created)
+
+			// then: validation prevents persistence
+			count, err := env.db.NotificationEvent.Query().Where(eventdb.Namespace(namespace)).Count(t.Context())
+			require.NoError(t, err)
+
+			assert.Zero(t, count)
 		})
 	}
 }

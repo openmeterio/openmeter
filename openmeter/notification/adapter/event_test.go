@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"path"
+	"slices"
 	"testing"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	eventdb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -826,7 +826,7 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// given: a legacy rule and a different event type in the same namespace
+			// given: a rule and a different event type in the same namespace
 			namespace := ulid.Make().String()
 			channel := seedChannel(t, env, namespace)
 			rule := seedRule(t, env, namespace, tt.eventType, channel.ID)
@@ -868,101 +868,65 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			expectedPayload, err := json.Marshal(payload)
 			require.NoError(t, err)
 
-			// then: old readers still receive the same type and payload representation
-			assert.Equal(t, tt.name, storedType)
+			// then: storage uses the versioned name and the original payload representation
+			assert.Equal(t, tt.versioned, storedType)
 			assert.JSONEq(t, string(expectedPayload), storedPayload)
 
-			// when: both type columns have versioned names but the stored JSON is unchanged
-			_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_events SET type = $1 WHERE id = $2", tt.versioned, created.ID)
-			require.NoError(t, err)
+			for _, eventType := range []string{tt.name, tt.versioned} {
+				for _, ruleType := range []string{tt.name, tt.versioned} {
+					t.Run(eventType+"/"+ruleType, func(t *testing.T) {
+						// when: the Event and Rule have independently selected storage spellings
+						_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_events SET type = $1 WHERE id = $2", eventType, created.ID)
+						require.NoError(t, err)
 
-			_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_rules SET type = $1 WHERE id = $2", tt.versioned, rule.ID)
-			require.NoError(t, err)
+						_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_rules SET type = $1 WHERE id = $2", ruleType, rule.ID)
+						require.NoError(t, err)
 
-			fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: created.Namespace, ID: created.ID})
-			require.NoError(t, err)
-			require.NotNil(t, fetched)
+						fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: created.Namespace, ID: created.ID})
+						require.NoError(t, err)
+						require.NotNil(t, fetched)
 
-			listed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
-				Namespaces: []string{namespace},
-				Page:       pagination.NewPage(1, 20),
-				Type:       &filter.FilterString{Eq: &tt.name},
-			})
-			require.NoError(t, err)
-			require.Len(t, listed.Items, 1)
+						listed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+							Namespaces: []string{namespace},
+							Page:       pagination.NewPage(1, 20),
+							Type:       &filter.FilterString{Eq: &tt.name},
+						})
+						require.NoError(t, err)
+						require.Len(t, listed.Items, 1)
 
-			assert.Equal(t, created.ID, listed.Items[0].ID)
-			assert.Equal(t, tt.eventType, fetched.Type)
-			assert.Equal(t, tt.eventType, listed.Items[0].Type)
-			assert.Equal(t, rule.ID, fetched.Rule.ID)
-			assert.Equal(t, tt.eventType, fetched.Rule.Type)
-			assert.Equal(t, tt.eventType, fetched.Rule.Config.Type)
-			assert.Equal(t, created.CreatedAt.Truncate(time.Microsecond), fetched.CreatedAt)
-			assert.Equal(t, created.Payload, fetched.Payload)
-			assert.Equal(t, created.Payload, listed.Items[0].Payload)
+						assert.Equal(t, created.ID, listed.Items[0].ID)
+						assert.Equal(t, tt.eventType, fetched.Type)
+						assert.Equal(t, tt.eventType, listed.Items[0].Type)
+						assert.Equal(t, rule.ID, fetched.Rule.ID)
+						assert.Equal(t, tt.eventType, fetched.Rule.Type)
+						assert.Equal(t, tt.eventType, fetched.Rule.Config.Type)
+						assert.Equal(t, created.CreatedAt.Truncate(time.Microsecond), fetched.CreatedAt)
+						assert.Equal(t, created.Payload, fetched.Payload)
+						assert.Equal(t, created.Payload, listed.Items[0].Payload)
 
-			// Internal filters can combine exact and pattern comparisons on the public type.
-			mixed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
-				Namespaces: []string{namespace},
-				Type: &filter.FilterString{And: &[]filter.FilterString{
-					{Like: &tt.name},
-					{Ne: new(string(otherType))},
-				}},
-			})
-			require.NoError(t, err)
-			require.Len(t, mixed.Items, 1)
-			assert.Equal(t, created.ID, mixed.Items[0].ID)
+						// Internal filters can combine exact and pattern comparisons on the public type.
+						mixed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+							Namespaces: []string{namespace},
+							Type: &filter.FilterString{And: &[]filter.FilterString{
+								{Like: &tt.name},
+								{Ne: new(string(otherType))},
+							}},
+						})
+						require.NoError(t, err)
+						require.Len(t, mixed.Items, 1)
+						assert.Equal(t, created.ID, mixed.Items[0].ID)
 
-			var readType, readPayload string
-			err = env.sqlDB.QueryRowContext(t.Context(),
-				"SELECT type, payload FROM notification_events WHERE id = $1", created.ID,
-			).Scan(&readType, &readPayload)
-			require.NoError(t, err)
+						var readType, readPayload string
+						err = env.sqlDB.QueryRowContext(t.Context(),
+							"SELECT type, payload FROM notification_events WHERE id = $1", created.ID,
+						).Scan(&readType, &readPayload)
+						require.NoError(t, err)
 
-			assert.Equal(t, tt.versioned, readType)
-			assert.JSONEq(t, storedPayload, readPayload)
-		})
-	}
-}
-
-func TestEventTypeValidation(t *testing.T) {
-	env := newEventTestEnv(t)
-	tests := []struct {
-		name      string
-		eventType notification.EventType
-	}{
-		{name: "empty"},
-		{name: "unknown", eventType: "unknown.event"},
-		{name: "versioned types remain unsupported", eventType: "v1.invoice.created"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// given: an existing rule and payload, but an unsupported event type
-			namespace := ulid.Make().String()
-			channel := seedChannel(t, env, namespace)
-			rule := seedRule(t, env, namespace, notification.EventTypeBalanceThreshold, channel.ID)
-
-			// when: writing directly through the adapter without service validation
-			_, err := env.adapter.CreateEvent(t.Context(), notification.CreateEventInput{
-				NamespacedModel: models.NamespacedModel{Namespace: namespace},
-				Type:            tt.eventType,
-				RuleID:          rule.ID,
-				Payload: notification.EventPayload{
-					EventPayloadMeta: notification.EventPayloadMeta{
-						Type:    rule.Type,
-						Version: notification.EventPayloadVersionCurrent,
-					},
-					BalanceThreshold: &notification.BalanceThresholdPayload{},
-				},
-			})
-			require.ErrorContains(t, err, "invalid notification event type")
-
-			// then: the domain validator still prevents persistence
-			count, err := env.db.NotificationEvent.Query().Where(eventdb.Namespace(namespace)).Count(t.Context())
-			require.NoError(t, err)
-
-			assert.Zero(t, count)
+						assert.Equal(t, eventType, readType)
+						assert.JSONEq(t, storedPayload, readPayload)
+					})
+				}
+			}
 		})
 	}
 }
@@ -1228,7 +1192,7 @@ func TestEventRuleReferenceStorage(t *testing.T) {
 			// when: bypassing current creation paths to exercise the nullable column
 			withoutRule, err := dbClient.NotificationEvent.Create().
 				SetNamespace(namespace).
-				SetType(rule.Type).
+				SetType(string(rule.Type)).
 				SetPayload(payload).
 				Save(t.Context())
 			require.NoError(t, err)
@@ -1244,7 +1208,7 @@ func TestEventRuleReferenceStorage(t *testing.T) {
 
 			_, err = dbClient.NotificationEvent.Create().
 				SetNamespace(namespace).
-				SetType(rule.Type).
+				SetType(string(rule.Type)).
 				SetPayload(payload).
 				SetRuleID(ulid.Make().String()).
 				Save(t.Context())
@@ -1333,7 +1297,7 @@ func TestEventRuleSnapshotStorage(t *testing.T) {
 					// Seed through Ent because the current service/adapter inputs do not expose snapshots.
 					create := dbClient.NotificationEvent.Create().
 						SetNamespace(namespace).
-						SetType(rule.Type).
+						SetType(string(rule.Type)).
 						SetRuleID(rule.ID).
 						SetPayload(legacyRow.Payload)
 					if tt.snapshot != nil {
@@ -1563,6 +1527,91 @@ func TestEventProviderDataPreservation(t *testing.T) {
 					require.NoError(t, err)
 
 					assert.JSONEq(t, string(expected), raw.String)
+				})
+			}
+		})
+	}
+}
+
+func TestListEvents_MixedTypeSpellingsAcrossPages(t *testing.T) {
+	env := newEventTestEnv(t)
+	namespace := ulid.Make().String()
+	channel := seedChannel(t, env, namespace)
+
+	// given: two public types with both legacy and versioned rows
+	idsByType := make(map[string][]string)
+	var allIDs []string
+	for _, eventType := range []notification.EventType{notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated} {
+		var ids []string
+		for _, legacy := range []bool{true, false} {
+			rule := seedRule(t, env, namespace, eventType, channel.ID)
+			payload := notification.EventPayload{
+				EventPayloadMeta: notification.EventPayloadMeta{Type: eventType, Version: notification.EventPayloadVersionCurrent},
+			}
+			switch eventType {
+			case notification.EventTypeEntitlementReset:
+				payload.EntitlementReset = &notification.EntitlementResetPayload{}
+			case notification.EventTypeInvoiceCreated:
+				payload.Invoice = &notification.InvoicePayload{}
+			}
+
+			created, err := env.adapter.CreateEvent(t.Context(), notification.CreateEventInput{
+				NamespacedModel: models.NamespacedModel{Namespace: namespace},
+				Type:            eventType, RuleID: rule.ID, Payload: payload,
+			})
+			require.NoError(t, err)
+
+			if legacy {
+				_, err := env.sqlDB.ExecContext(t.Context(),
+					"UPDATE notification_events SET type = $1 WHERE id = $2", string(eventType), created.ID)
+				require.NoError(t, err)
+			}
+
+			ids = append(ids, created.ID)
+		}
+
+		slices.Sort(ids)
+		idsByType[string(eventType)] = ids
+		allIDs = append(allIDs, ids...)
+	}
+
+	tests := []struct {
+		name   string
+		filter *filter.FilterString
+		want   []string
+	}{
+		{name: "all", want: allIDs},
+		{name: "equal", filter: &filter.FilterString{Eq: new("invoice.created")}, want: idsByType["invoice.created"]},
+		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: idsByType["entitlements.reset"]},
+		{name: "in", filter: &filter.FilterString{In: &[]string{"invoice.created", "entitlements.reset"}}, want: allIDs},
+		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: idsByType["entitlements.reset"]},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
+				t.Run(string(order), func(t *testing.T) {
+					want := slices.Clone(tt.want)
+					if order == sortx.OrderDesc {
+						slices.Reverse(want)
+					}
+
+					// when: each page contains one row ordered by public type and ID
+					var got []string
+					for page := 1; page <= len(want)+1; page++ {
+						listed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+							Namespaces: []string{namespace},
+							Type:       tt.filter, OrderBy: notification.OrderByType, Order: order,
+							Page: pagination.NewPage(page, 1),
+						})
+						require.NoError(t, err)
+
+						for _, item := range listed.Items {
+							got = append(got, item.ID)
+						}
+					}
+
+					// then: pagination includes each matching row once, regardless of storage spelling
+					assert.Equal(t, want, got)
 				})
 			}
 		})

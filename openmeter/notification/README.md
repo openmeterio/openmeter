@@ -70,9 +70,10 @@ configs after all legacy writers and their in-flight transactions have drained.
 
 ## Rule and Event type storage compatibility
 
-During Phase 1, Rule and Event reads accept both names in each row below.
-Writes, V1/V3 responses, webhook messages, and JSON discriminators use the
-legacy name. A Rule update preserves the existing type column.
+Rule and Event creation writes the versioned names below. Reads accept both
+stored spellings and return the legacy names to the service and V1/V3 APIs.
+Webhook messages and JSON discriminators use the legacy names. Rule updates
+preserve the existing type column.
 
 | V1/V3 name | Versioned storage alias |
 | --- | --- |
@@ -84,8 +85,11 @@ legacy name. A Rule update preserves the existing type column.
 V3 Rule and Event filters accept legacy names. Exact comparisons match either
 stored spelling, and exclusions exclude both. Type sorting uses the V3 name
 and then the resource ID in the same direction before pagination. The aliases
-apply to type columns only. Switching writers and migrating payload or config
-contracts require a separate cutover after all readers are compatible.
+apply to type columns only. Ent stores plain strings. The service validates
+public names before the adapter maps them to storage. Roll out from beta.237,
+which reads both spellings. Historical-row backfills follow in Phase 3
+after all legacy writers have drained. Payload and config conversion are separate
+steps.
 
 Ent exposes Rule config as `json.RawMessage`; the adapter decodes the legacy
 envelope first, then the unwrapped existing contract using the Rule's type.

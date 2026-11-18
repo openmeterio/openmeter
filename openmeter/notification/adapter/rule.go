@@ -131,7 +131,7 @@ func (a *adapter) CreateRule(ctx context.Context, params notification.CreateRule
 		}
 
 		query := a.db.NotificationRule.Create().
-			SetType(params.Type).
+			SetType(toDBEventType(params.Type)).
 			SetName(params.Name).
 			SetNamespace(params.Namespace).
 			SetDisabled(params.Disabled).

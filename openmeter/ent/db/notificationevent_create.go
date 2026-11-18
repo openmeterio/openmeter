@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -55,7 +54,7 @@ func (_c *NotificationEventCreate) SetNillableCreatedAt(v *time.Time) *Notificat
 }
 
 // SetType sets the "type" field.
-func (_c *NotificationEventCreate) SetType(v notification.EventType) *NotificationEventCreate {
+func (_c *NotificationEventCreate) SetType(v string) *NotificationEventCreate {
 	_c.mutation.SetType(v)
 	return _c
 }
@@ -200,11 +199,6 @@ func (_c *NotificationEventCreate) check() error {
 	}
 	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "NotificationEvent.type"`)}
-	}
-	if v, ok := _c.mutation.GetType(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "NotificationEvent.type": %w`, err)}
-		}
 	}
 	if _, ok := _c.mutation.Payload(); !ok {
 		return &ValidationError{Name: "payload", err: errors.New(`db: missing required field "NotificationEvent.payload"`)}

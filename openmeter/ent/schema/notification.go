@@ -124,7 +124,6 @@ func (NotificationRule) Mixin() []ent.Mixin {
 func (NotificationRule) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("type").
-			GoType(notification.EventType("")).
 			Immutable().
 			Comment("The event type emitted by the Rule."),
 		field.String("name").
@@ -178,7 +177,6 @@ func (NotificationEvent) Fields() []ent.Field {
 			Default(clock.Now).
 			Immutable(),
 		field.String("type").
-			GoType(notification.EventType("")).
 			Immutable().
 			Comment("The notification event type."),
 		// TODO(notification-v4): current creation paths still require a Rule;
