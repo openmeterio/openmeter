@@ -60,6 +60,12 @@ func (s *Fixture) setupAppWithCustomer(ctx context.Context, namespace string) (a
 
 // Create a stripe app first
 func (s *Fixture) setupApp(ctx context.Context, namespace string) (app.App, error) {
+	return s.setupAppWithAPIKey(ctx, namespace, TestStripeAPIKey)
+}
+
+// setupAppWithAPIKey installs the app with the given secret key. Account lookup and webhook
+// registration stay mocked even for a real key, so no webhook endpoint is left behind in Stripe.
+func (s *Fixture) setupAppWithAPIKey(ctx context.Context, namespace string, apiKey string) (app.App, error) {
 	s.stripeClient.
 		On("GetAccount").
 		Return(stripeclient.StripeAccount{
@@ -81,7 +87,7 @@ func (s *Fixture) setupApp(ctx context.Context, namespace string) (app.App, erro
 			Type: app.AppTypeStripe,
 		},
 		Namespace: namespace,
-		APIKey:    lo.ToPtr(TestStripeAPIKey),
+		APIKey:    lo.ToPtr(apiKey),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("install stripe app failed: %w", err)
