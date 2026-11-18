@@ -32,17 +32,17 @@ payload compatibility and retention therefore matter for historical data.
 The service uses `webhook`; V1 HTTP uses `WEBHOOK`, while V3 uses `webhook`.
 The Ent field scanner reads either stored spelling as the lowercase domain value.
 New Channels store `webhook` in the type column. Updates preserve the stored
-type. Configuration writes retain the `{type, data}` envelope with its
-`WEBHOOK` discriminator. Channel type filters match
-both stored spellings using `in`/`nin`, including exclusions and nested `and`/`or`.
+type. Channel type filters match both stored spellings using `in`/`nin`,
+including exclusions and nested `and`/`or`.
 Type filters accept exact comparisons and existence checks; pattern and range
 operators are rejected. Other string filters retain their existing operators.
 
 Ent exposes Channel config as `json.RawMessage`. The adapter decodes it using
 the Channel's type, trying the legacy envelope first and falling back to flat
-config with `custom_headers` and `signing_secret` if envelope decoding fails. Create/update still write the legacy
-envelope and camelCase keys. Reads do not rewrite stored config or rotate secrets.
-Malformed configs propagate errors through Channel, Rule, and Event reads.
+config if envelope decoding fails. Create and update write flat webhook config
+with `url` and optional `custom_headers` and `signing_secret`. Reads preserve
+the stored config and signing secret. Malformed configs propagate errors
+through Channel, Rule, and Event reads.
 
 The nullable `event_type_filter` column is reserved for V4 routing. Current
 operations leave it unset on creation and preserve it on updates; Rule
@@ -63,9 +63,10 @@ are `unknown`, `pending`, `in_sync`, and `error`. Current updates and soft delet
 preserve these fields; they do not activate scheduling or change synchronous
 provider operations. Migration defaults do not establish provider synchronization.
 
-Roll out this writer from v1.0.0-beta.237, which reads both spellings and
-writes `WEBHOOK`. Backfill uppercase rows in a later release, after all
-uppercase writers and their in-flight transactions have drained.
+Roll out this writer from v1.0.0-beta.237, which reads both type spellings and both
+config shapes. During rollout or rollback, beta.237 can write an envelope
+when updating a Channel created by the new writer. Backfill legacy types and
+configs after all legacy writers and their in-flight transactions have drained.
 
 ## Rule and Event type storage compatibility
 

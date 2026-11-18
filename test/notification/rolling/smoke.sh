@@ -94,8 +94,10 @@ stored_format() {
          FROM notification_events e JOIN notification_rules r ON r.id=e.rule_id
          JOIN notification_event_delivery_status s ON s.event_id=e.id
          JOIN notification_channels c ON c.id=s.channel_id WHERE e.id='$event'" >"$dir/stored.json"
-    jq -es --arg channel_type "$expected_channel_type" --slurpfile input "$dir/channel-input" 'length==1 and (.[0] |
-        .channel==$channel_type and .config=={type:"WEBHOOK",data:($input[0] | {url,customHeaders,signingSecret})} and
+    jq -es --arg writer "$writer" --arg channel_type "$expected_channel_type" --slurpfile input "$dir/channel-input" 'length==1 and (.[0] |
+        .channel==$channel_type and .config==($input[0] | if $writer=="old" then
+            {type:"WEBHOOK",data:{url,customHeaders,signingSecret}}
+        else {url,custom_headers:.customHeaders,signing_secret:.signingSecret} end) and
         .rule=="entitlements.reset" and .ruleConfig.type==.rule and (.ruleConfig.data|type)=="object" and
         .event==.rule and .payload.type==.event and .payload.version==1 and
         (.payload.entitlementReset|type)=="object" and .state=="PENDING")' "$dir/stored.json" >/dev/null ||
@@ -161,7 +163,11 @@ jq '.name="updated by old"' "$artifacts/candidate/channel-input" >"$artifacts/ol
 api old PUT "channels/$channel" --data-binary "@$artifacts/old-update" >/dev/null
 [[ $(sql "SELECT name || '/' || type || '/' || (provider_data->>'smoke') FROM notification_channels WHERE id='$channel'") == 'updated by old/webhook/preserve' ]] ||
     fail "Old update changed the candidate Channel type or lost provider data"
-echo "Old server updated candidate Channel and preserved type and provider_data"
+sql "SELECT config FROM notification_channels WHERE id='$channel'" | jq -e --slurpfile input "$artifacts/old-update" '
+    .=={type:"WEBHOOK",data:($input[0] | {url,customHeaders,signingSecret})}' >/dev/null ||
+    fail "Old update did not preserve the candidate webhook settings in its envelope"
+cross_read candidate candidate
+echo "Old server updated candidate Channel and preserved type, webhook settings and provider_data"
 
 # Only one reconciler may deliver during each handoff.
 dc stop old
