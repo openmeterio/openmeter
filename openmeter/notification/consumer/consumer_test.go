@@ -7,9 +7,9 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/stretchr/testify/require"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -19,15 +19,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 )
 
-var _ = gochannel.NewGoChannel
-
 type stubNotificationService struct {
 	notification.Service
 }
 
 func TestNewRejectsMissingDependencies(t *testing.T) {
-	taxCodeResolver := struct{ productcatalog.TaxCodeResolver }{}
-
 	tests := []struct {
 		name  string
 		given func(o *Options)
@@ -62,15 +58,22 @@ func TestNewRejectsMissingDependencies(t *testing.T) {
 			error: "logger is required",
 		},
 		{
-			name: "valid options",
-			given: func(o *Options) {
-				inMemoryPubSub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NewSlogLogger(slog.New(slog.DiscardHandler)))
+			name:  "valid options",
+			given: func(o *Options) {},
+		},
+	}
 
-				o.SystemEventsTopic = "om.system.events"
-				o.Router = router.Options{
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			logger := slog.New(slog.DiscardHandler)
+			inMemoryPubSub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NewSlogLogger(logger))
+
+			opts := Options{
+				SystemEventsTopic: "om.system.events",
+				Router: router.Options{
 					Subscriber:  inMemoryPubSub,
 					Publisher:   inMemoryPubSub,
-					Logger:      slog.New(slog.DiscardHandler),
+					Logger:      logger,
 					MetricMeter: sdkmetric.NewMeterProvider().Meter("consumer_test"),
 					Tracer:      sdktrace.NewTracerProvider().Tracer("consumer_test"),
 					Config: config.ConsumerConfiguration{
@@ -86,18 +89,11 @@ func TestNewRejectsMissingDependencies(t *testing.T) {
 							Topic:   "test-dlq",
 						},
 					},
-				}
-				o.Marshaler = marshaler.New(watermillkafka.AddPartitionKeyFromSubject)
-				o.Notification = &stubNotificationService{}
-				o.TaxCodeResolver = taxCodeResolver
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			opts := Options{
-				Logger: slog.New(slog.DiscardHandler),
+				},
+				Marshaler:       marshaler.New(watermillkafka.AddPartitionKeyFromSubject),
+				Notification:    &stubNotificationService{},
+				TaxCodeResolver: struct{ productcatalog.TaxCodeResolver }{},
+				Logger:          logger,
 			}
 			test.given(&opts)
 
