@@ -66,6 +66,167 @@ func TestFlatFeeInvoiceAtUsesDefaultPaymentTerm(t *testing.T) {
 	}
 }
 
+func TestStartBillingAt(t *testing.T) {
+	day := func(year int, month time.Month, day int) time.Time {
+		return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+	}
+
+	period := func(from, to time.Time) timeutil.ClosedPeriod {
+		return timeutil.ClosedPeriod{From: from, To: to}
+	}
+
+	monthly := datetime.MustParseDuration(t, "P1M")
+
+	// A subscription billed monthly on the first of the month.
+	december := period(day(2026, time.December, 1), day(2027, time.January, 1))
+	insideDecember := day(2026, time.December, 17)
+
+	type expected struct {
+		billed        bool
+		servicePeriod timeutil.ClosedPeriod
+		billingPeriod timeutil.ClosedPeriod
+		invoiceAt     time.Time
+	}
+
+	for _, tc := range []struct {
+		name string
+		// rateCardCadence is nil for a one-time fee.
+		rateCardCadence   *datetime.ISODuration
+		servicePeriod     timeutil.ClosedPeriod
+		fullServicePeriod timeutil.ClosedPeriod
+		billingPeriod     timeutil.ClosedPeriod
+		billingStartsAt   time.Time
+		expected          expected
+	}{
+		{
+			name:              "service starting at the billing start is billed as is",
+			rateCardCadence:   &monthly,
+			servicePeriod:     december,
+			fullServicePeriod: december,
+			billingPeriod:     december,
+			billingStartsAt:   day(2026, time.December, 1),
+			expected:          expected{billed: true, servicePeriod: december, billingPeriod: december, invoiceAt: december.From},
+		},
+		{
+			name:              "service ending at the billing start is not billed",
+			rateCardCadence:   &monthly,
+			servicePeriod:     period(day(2026, time.November, 1), day(2026, time.December, 1)),
+			fullServicePeriod: period(day(2026, time.November, 1), day(2026, time.December, 1)),
+			billingPeriod:     period(day(2026, time.November, 1), day(2026, time.December, 1)),
+			billingStartsAt:   day(2026, time.December, 1),
+		},
+		{
+			name:              "service spanning the billing start is billed from there",
+			rateCardCadence:   &monthly,
+			servicePeriod:     december,
+			fullServicePeriod: december,
+			billingPeriod:     december,
+			billingStartsAt:   insideDecember,
+			expected: expected{
+				billed:        true,
+				servicePeriod: period(insideDecember, december.To),
+				billingPeriod: period(insideDecember, december.To),
+				invoiceAt:     insideDecember,
+			},
+		},
+		{
+			// A yearly fee on monthly billing: its own billing period is the month it started in.
+			name:              "a longer rate card cadence moves to the billing period of the billing start",
+			rateCardCadence:   lo.ToPtr(datetime.MustParseDuration(t, "P1Y")),
+			servicePeriod:     period(day(2026, time.November, 1), day(2027, time.January, 1)),
+			fullServicePeriod: period(day(2026, time.January, 1), day(2027, time.January, 1)),
+			billingPeriod:     period(day(2026, time.November, 1), day(2026, time.December, 1)),
+			billingStartsAt:   day(2026, time.December, 1),
+			expected: expected{
+				billed:        true,
+				servicePeriod: december,
+				billingPeriod: december,
+				invoiceAt:     december.From,
+			},
+		},
+		{
+			// A daily fee on monthly billing, in the month where billing starts.
+			name:              "later service in the first billing period is invoiced no earlier than the billing start",
+			rateCardCadence:   lo.ToPtr(datetime.MustParseDuration(t, "P1D")),
+			servicePeriod:     period(day(2026, time.December, 20), day(2026, time.December, 21)),
+			fullServicePeriod: period(day(2026, time.December, 20), day(2026, time.December, 21)),
+			billingPeriod:     december,
+			billingStartsAt:   insideDecember,
+			expected: expected{
+				billed:        true,
+				servicePeriod: period(day(2026, time.December, 20), day(2026, time.December, 21)),
+				billingPeriod: period(insideDecember, december.To),
+				invoiceAt:     insideDecember,
+			},
+		},
+		{
+			name:              "a one-time fee that started earlier is not billed",
+			servicePeriod:     period(day(2026, time.November, 1), day(2027, time.March, 1)),
+			fullServicePeriod: period(day(2026, time.November, 1), day(2027, time.March, 1)),
+			billingPeriod:     period(day(2026, time.November, 1), day(2026, time.December, 1)),
+			billingStartsAt:   day(2026, time.December, 1),
+		},
+		{
+			name:              "a one-time fee at the billing start is billed",
+			servicePeriod:     period(day(2026, time.December, 1), day(2026, time.December, 1)),
+			fullServicePeriod: period(day(2026, time.December, 1), day(2026, time.December, 1)),
+			billingPeriod:     december,
+			billingStartsAt:   day(2026, time.December, 1),
+			expected: expected{
+				billed:        true,
+				servicePeriod: period(day(2026, time.December, 1), day(2026, time.December, 1)),
+				billingPeriod: december,
+				invoiceAt:     december.From,
+			},
+		},
+		{
+			// Item periods have 1s resolution, so the billing start is compared at that resolution too.
+			name:              "a billing start with sub-second precision",
+			rateCardCadence:   &monthly,
+			servicePeriod:     december,
+			fullServicePeriod: december,
+			billingPeriod:     december,
+			billingStartsAt:   december.From.Add(500 * time.Millisecond),
+			expected:          expected{billed: true, servicePeriod: december, billingPeriod: december, invoiceAt: december.From},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			item := SubscriptionItemWithPeriods{
+				UniqueID:          "subID/phase/item/v[0]/period[1]",
+				PeriodIndex:       1,
+				ServicePeriod:     tc.servicePeriod,
+				FullServicePeriod: tc.fullServicePeriod,
+				BillingPeriod:     tc.billingPeriod,
+			}
+			item.Spec.RateCard = &productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount: alpacadecimal.NewFromInt(10), PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+				},
+				BillingCadence: tc.rateCardCadence,
+			}
+
+			got, billed := item.startBillingAt(tc.billingStartsAt, december)
+
+			require.Equal(t, tc.expected.billed, billed)
+			if !billed {
+				return
+			}
+
+			require.Equal(t, tc.expected.servicePeriod, got.ServicePeriod)
+			require.Equal(t, tc.expected.billingPeriod, got.BillingPeriod)
+			require.Equal(t, tc.expected.invoiceAt, got.GetInvoiceAt())
+
+			// The full service period is what proration is measured against, and the identity
+			// must stay stable across syncs.
+			require.Equal(t, tc.fullServicePeriod, got.FullServicePeriod)
+			require.Equal(t, item.UniqueID, got.UniqueID)
+			require.Equal(t, item.PeriodIndex, got.PeriodIndex)
+		})
+	}
+}
+
 type expectedIterations struct {
 	ServicePeriod     timeutil.ClosedPeriod
 	FullServicePeriod timeutil.ClosedPeriod

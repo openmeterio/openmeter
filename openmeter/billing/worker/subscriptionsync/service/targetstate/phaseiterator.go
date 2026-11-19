@@ -99,6 +99,42 @@ func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 	return lo.Latest(r.ServicePeriod.To, r.BillingPeriod.To)
 }
 
+// startBillingAt applies the subscription's billing start to the item. The service before
+// billingStartsAt was billed elsewhere, so the item is billed only from there on. It reports false
+// when nothing is left to bill.
+//
+// firstBillingPeriod is the billing period containing billingStartsAt. An item needs it only when
+// its service spans the billing start, which cannot happen once the subscription has ended by then.
+//
+// The period index and unique ID are kept: later syncs must find the same item under the same ID.
+func (r SubscriptionItemWithPeriods) startBillingAt(billingStartsAt time.Time, firstBillingPeriod timeutil.ClosedPeriod) (SubscriptionItemWithPeriods, bool) {
+	// Item periods are at meter resolution, see truncateItemsIfNeeded.
+	billingStartsAt = billingStartsAt.Truncate(streaming.MinimumWindowSizeDuration)
+
+	switch {
+	case !r.ServicePeriod.From.Before(billingStartsAt):
+		// The whole service is billed here.
+	case !r.ServicePeriod.To.After(billingStartsAt):
+		return r, false
+	case r.Spec.RateCard.GetBillingCadence() == nil:
+		// A one-time fee is charged for the moment the item starts, not for service over time,
+		// so there is no later part of it to bill.
+		return r, false
+	default:
+		// Bill the rest of the period. FullServicePeriod stays, so the price can be prorated.
+		r.ServicePeriod.From = billingStartsAt
+		r.BillingPeriod = firstBillingPeriod.Truncate(streaming.MinimumWindowSizeDuration)
+	}
+
+	// Billing cannot begin before the billing start. This also makes fees billed in advance
+	// invoice at the billing start instead of at the start of a period that began earlier.
+	if r.BillingPeriod.From.Before(billingStartsAt) {
+		r.BillingPeriod.From = billingStartsAt
+	}
+
+	return r, true
+}
+
 func NewPhaseIterator(logger *slog.Logger, tracer trace.Tracer, subs subscription.SubscriptionView, phaseKey string) (*PhaseIterator, error) {
 	phase, ok := subs.GetPhaseByKey(phaseKey)
 	if !ok {

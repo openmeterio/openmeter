@@ -102,8 +102,8 @@ already billed there.
   replacement's start. After that there is nothing left to skip, so the
   replacement has none.
 - It cannot be before `ActiveFrom`.
-- On legacy invoice lines billing can only skip whole billing periods, so it
-  must be a billing period boundary counted from `BillingAnchor`.
+- On legacy invoice lines it must be a billing period boundary counted from
+  `BillingAnchor`.
 - On charges it can be any time. With a value inside a billing period, that
   period's flat fees are billed in full unless the subscription uses
   `prorate_prices`. This is not enforced, only recommended in the API docs.
@@ -112,6 +112,9 @@ already billed there.
 with how subscription sync routes items to charges or invoice lines. The core
 service checks these rules on create; the anchor, cadence and
 `BillingStartsAt` cannot change afterwards.
+
+The subscription only stores the value. [Subscription sync](../billing/worker/subscriptionsync/README.md#target-time-model)
+applies it when it builds the billing target.
 
 Subscription specs enforce the [product catalog rate-card minimum](../productcatalog/README.md), including for existing items. Existing subscriptions with legacy short cadences remain readable, including when item features are resolved. Cancellation permits those cadences when the spec has no other validation errors; unrelated updates remain blocked until the cadences are changed.
 

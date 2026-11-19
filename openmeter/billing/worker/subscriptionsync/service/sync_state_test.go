@@ -15,11 +15,13 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
+	chargesmeta "github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -155,7 +157,15 @@ func (s *SyncStateTestSuite) useNewCustomer() {
 func (s *SyncStateTestSuite) createSyncStateSubscription(start time.Time, phases ...productcatalog.Phase) subscription.SubscriptionView {
 	s.T().Helper()
 
-	return s.createSubscriptionFromPlanAt(plan.CreatePlanInput{
+	return s.createSyncStateSubscriptionWithBillingStart(start, nil, phases...)
+}
+
+// createSyncStateSubscriptionWithBillingStart creates the suite's monthly billed subscription.
+// When billingStartsAt is set, the service before it is not billed.
+func (s *SyncStateTestSuite) createSyncStateSubscriptionWithBillingStart(start time.Time, billingStartsAt *time.Time, phases ...productcatalog.Phase) subscription.SubscriptionView {
+	s.T().Helper()
+
+	return s.createSubscriptionFromPlanWithInput(plan.CreatePlanInput{
 		NamespacedModel: models.NamespacedModel{Namespace: s.Namespace},
 		Plan: productcatalog.Plan{
 			PlanMeta: productcatalog.PlanMeta{
@@ -165,10 +175,20 @@ func (s *SyncStateTestSuite) createSyncStateSubscription(start time.Time, phases
 				Currency:       currencies.NewCurrencyReference(currencyx.Code("USD")),
 				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
 				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
 			},
 			Phases: phases,
 		},
-	}, start)
+	}, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Custom: &start},
+			Name:   "subs-1",
+		},
+		BillingStartsAt: billingStartsAt,
+	})
 }
 
 func (s *SyncStateTestSuite) paidMonthlyPhase() productcatalog.Phase {
@@ -386,6 +406,256 @@ func (s *SyncStateTestSuite) TestFutureStartProgression() {
 	secondPeriod := timeutil.ClosedPeriod{From: january, To: february}
 	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{firstPeriod, secondPeriod})
 	s.requireActiveDeadline(view.Subscription.NamespacedID, secondPeriod)
+}
+
+func (s *SyncStateTestSuite) TestBillingStartProgression() {
+	s.forEachBackend(func() {
+		// Given a monthly in-advance fee from November 1, billed elsewhere until February 1.
+		ctx := s.T().Context()
+		start := s.mustParseTime("2026-11-01T00:00:00Z")
+		billingStartsAt := s.mustParseTime("2027-02-01T00:00:00Z")
+		clock.FreezeTime(start)
+		defer clock.UnFreeze()
+		s.useNewCustomer()
+		view := s.createSyncStateSubscriptionWithBillingStart(start, &billingStartsAt, s.paidMonthlyPhase())
+
+		february := timeutil.ClosedPeriod{From: billingStartsAt, To: s.mustParseTime("2027-03-01T00:00:00Z")}
+		march := timeutil.ClosedPeriod{From: february.To, To: s.mustParseTime("2027-04-01T00:00:00Z")}
+		april := timeutil.ClosedPeriod{From: march.To, To: s.mustParseTime("2027-05-01T00:00:00Z")}
+
+		// The fees keep the period indexes they would have without a billing start: November is 0.
+		feeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMin: 3, PeriodMax: 5}).ChildIDs(view.Subscription.ID)
+
+		// When synced at its start, three months before billing starts.
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+		// Then nothing exists for the months billed elsewhere, while the first billed month and
+		// the one after it are already provisioned.
+		s.requireFees(view, map[string]timeutil.ClosedPeriod{feeIDs[0]: february, feeIDs[1]: march})
+
+		// And no sync is scheduled before billing starts.
+		syncAt := s.requireActiveDeadline(view.Subscription.NamespacedID, march)
+
+		legacyStates, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
+		s.Require().NoError(err)
+		s.Require().Len(legacyStates, 1)
+		s.True(legacyStates[0].HasBillables)
+		s.Equal(&march.From, legacyStates[0].NextSyncAfter)
+
+		// When synced at that deadline.
+		clock.FreezeTime(syncAt)
+		defer clock.UnFreeze()
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+		// Then billing continues like for any other subscription.
+		s.requireFees(view, map[string]timeutil.ClosedPeriod{feeIDs[0]: february, feeIDs[1]: march, feeIDs[2]: april})
+		s.requireActiveDeadline(view.Subscription.NamespacedID, april)
+	})
+}
+
+func (s *SyncStateTestSuite) TestCancellationBeforeBillingStart() {
+	s.forEachBackend(func() {
+		// Given a subscription billed elsewhere until February 1, with its first billed months provisioned.
+		ctx := s.T().Context()
+		start := s.mustParseTime("2026-11-01T00:00:00Z")
+		billingStartsAt := s.mustParseTime("2027-02-01T00:00:00Z")
+		clock.FreezeTime(start)
+		defer clock.UnFreeze()
+		s.useNewCustomer()
+		view := s.createSyncStateSubscriptionWithBillingStart(start, &billingStartsAt, s.paidMonthlyPhase())
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+		s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2027-03-01T00:00:00Z"),
+			To:   s.mustParseTime("2027-04-01T00:00:00Z"),
+		})
+
+		// When it is canceled for January 1, before billing starts, and synced at its end.
+		end := s.mustParseTime("2027-01-01T00:00:00Z")
+		_, err := s.SubscriptionService.Cancel(ctx, view.Subscription.NamespacedID, subscription.Timing{Custom: &end})
+		s.Require().NoError(err)
+
+		clock.FreezeTime(end)
+		defer clock.UnFreeze()
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+		// Then nothing is left to bill, and reconciliation is complete.
+		if s.Service == s.ChargeSyncService {
+			result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+				Namespace:      s.Namespace,
+				SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
+			})
+			s.Require().NoError(err)
+			s.Empty(result.Items)
+		} else {
+			s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
+		}
+
+		s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateEnded)
+	})
+}
+
+func (s *SyncStateTestSuite) TestBillingStartInsideYearlyFee() {
+	s.forEachBackend(func() {
+		// Given a yearly in-advance fee on monthly billing from November 1, billed elsewhere until
+		// December 1: a billing period boundary inside the fee's first year.
+		ctx := s.T().Context()
+		start := s.mustParseTime("2026-11-01T00:00:00Z")
+		billingStartsAt := s.mustParseTime("2026-12-01T00:00:00Z")
+		clock.FreezeTime(start)
+		defer clock.UnFreeze()
+		s.useNewCustomer()
+		view := s.createSyncStateSubscriptionWithBillingStart(start, &billingStartsAt, productcatalog.Phase{
+			PhaseMeta: s.phaseMeta("paid", ""),
+			RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "yearly-fee",
+					Name: "Yearly fee",
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(120),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+				},
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1Y")),
+			}},
+		})
+
+		// When synced at its start.
+		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+		// Then the rest of the first year is billed from the billing start and invoiced there,
+		// not in November.
+		feeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "yearly-fee"}).ChildIDs(view.Subscription.ID)
+		s.requireFees(view, map[string]timeutil.ClosedPeriod{
+			feeIDs[0]: {From: billingStartsAt, To: s.mustParseTime("2027-11-01T00:00:00Z")},
+		})
+		s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{
+			From: s.mustParseTime("2027-01-01T00:00:00Z"),
+			To:   s.mustParseTime("2027-02-01T00:00:00Z"),
+		})
+	})
+}
+
+func (s *SyncStateTestSuite) TestBillingStartInsideBillingPeriod() {
+	// Given a monthly subscription from November 1 with a fee billed in advance and usage billed
+	// in arrears, billed elsewhere until November 17. Only charges can start billing inside a
+	// billing period.
+	ctx := s.T().Context()
+	s.Service = s.ChargeSyncService
+	start := s.mustParseTime("2026-11-01T00:00:00Z")
+	billingStartsAt := s.mustParseTime("2026-11-17T00:00:00Z")
+	december := s.mustParseTime("2026-12-01T00:00:00Z")
+	january := s.mustParseTime("2027-01-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+	view := s.createSyncStateSubscriptionWithBillingStart(start, &billingStartsAt, productcatalog.Phase{
+		PhaseMeta: s.phaseMeta("paid", ""),
+		RateCards: productcatalog.RateCards{
+			&productcatalog.FlatFeeRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:  "monthly-fee",
+					Name: "Monthly fee",
+					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+						Amount:      alpacadecimal.NewFromInt(30),
+						PaymentTerm: productcatalog.InAdvancePaymentTerm,
+					}),
+				},
+				BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1M")),
+			},
+			&productcatalog.UsageBasedRateCard{
+				RateCardMeta: productcatalog.RateCardMeta{
+					Key:     s.APIRequestsTotalFeature.Key,
+					Name:    "API requests",
+					Feature: productcatalog.NewFeatureReference(nil, lo.ToPtr(s.APIRequestsTotalFeature.Key)),
+					Price:   productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+				},
+				BillingCadence: datetime.MustParseDuration(s.T(), "P1M"),
+			},
+		},
+	})
+
+	// When synced at its start.
+	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+	// Then November is billed only from the billing start: the fee is prorated to 14 of the
+	// 30 days and invoiced at the billing start, and usage is metered from there. December is
+	// billed in full.
+	type billedCharge struct {
+		ServicePeriod     timeutil.ClosedPeriod
+		FullServicePeriod timeutil.ClosedPeriod
+		BillingPeriod     timeutil.ClosedPeriod
+		InvoiceAt         time.Time
+		// FeeAmount is the fee after proration. It is zero for usage.
+		FeeAmount float64
+	}
+
+	restOfNovember := timeutil.ClosedPeriod{From: billingStartsAt, To: december}
+	fullNovember := timeutil.ClosedPeriod{From: start, To: december}
+	fullDecember := timeutil.ClosedPeriod{From: december, To: january}
+
+	feeIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: "monthly-fee", PeriodMax: 1}).ChildIDs(view.Subscription.ID)
+	usageIDs := (recurringLineMatcher{PhaseKey: "paid", ItemKey: s.APIRequestsTotalFeature.Key, PeriodMax: 1}).ChildIDs(view.Subscription.ID)
+
+	expected := map[string]billedCharge{
+		feeIDs[0]:   {ServicePeriod: restOfNovember, FullServicePeriod: fullNovember, BillingPeriod: restOfNovember, InvoiceAt: billingStartsAt, FeeAmount: 14},
+		feeIDs[1]:   {ServicePeriod: fullDecember, FullServicePeriod: fullDecember, BillingPeriod: fullDecember, InvoiceAt: december, FeeAmount: 30},
+		usageIDs[0]: {ServicePeriod: restOfNovember, FullServicePeriod: fullNovember, BillingPeriod: restOfNovember, InvoiceAt: december},
+		usageIDs[1]: {ServicePeriod: fullDecember, FullServicePeriod: fullDecember, BillingPeriod: fullDecember, InvoiceAt: january},
+	}
+
+	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
+	})
+	s.Require().NoError(err)
+
+	actual := make(map[string]billedCharge, len(result.Items))
+	for _, item := range result.Items {
+		reference, err := item.GetUniqueReferenceID()
+		s.Require().NoError(err)
+		s.Require().NotNil(reference)
+
+		switch item.Type() {
+		case chargesmeta.ChargeTypeFlatFee:
+			charge, err := item.AsFlatFeeCharge()
+			s.Require().NoError(err)
+			intent := charge.Intent.GetBaseIntent()
+			actual[*reference] = billedCharge{
+				ServicePeriod:     intent.ServicePeriod,
+				FullServicePeriod: intent.FullServicePeriod,
+				BillingPeriod:     intent.BillingPeriod,
+				InvoiceAt:         intent.InvoiceAt,
+				FeeAmount:         charge.State.AmountAfterProration.InexactFloat64(),
+			}
+		case chargesmeta.ChargeTypeUsageBased:
+			charge, err := item.AsUsageBasedCharge()
+			s.Require().NoError(err)
+			intent := charge.Intent.GetBaseIntent()
+			actual[*reference] = billedCharge{
+				ServicePeriod:     intent.ServicePeriod,
+				FullServicePeriod: intent.FullServicePeriod,
+				BillingPeriod:     intent.BillingPeriod,
+				InvoiceAt:         intent.InvoiceAt,
+			}
+		default:
+			s.Failf("unexpected charge type", "%s: %s", *reference, item.Type())
+		}
+	}
+
+	s.Equal(expected, actual)
+
+	// And repeating the sync changes nothing: the shortened period is the target, not a drift.
+	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+	repeated, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
+		IncludeDeleted: true,
+	})
+	s.Require().NoError(err)
+	s.ElementsMatch(
+		lo.Map(result.Items, func(item charges.Charge, _ int) string { return lo.Must(item.GetChargeID()).ID }),
+		lo.Map(repeated.Items, func(item charges.Charge, _ int) string { return lo.Must(item.GetChargeID()).ID }),
+	)
 }
 
 func (s *SyncStateTestSuite) TestFreeToPaidProgression() {

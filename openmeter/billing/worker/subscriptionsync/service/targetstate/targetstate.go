@@ -107,7 +107,12 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			return timeutil.Compare(i.SubscriptionPhase.ActiveFrom, j.SubscriptionPhase.ActiveFrom)
 		})
 
-		upcomingLinesResult, err := b.collectUpcomingLines(ctx, subs, input.AsOf)
+		asOf, firstBillingPeriod, err := applyBillingStartToAsOf(subs, input.AsOf)
+		if err != nil {
+			return State{}, err
+		}
+
+		upcomingLinesResult, err := b.collectUpcomingLines(ctx, subs, asOf)
 		if err != nil {
 			return State{}, fmt.Errorf("collecting upcoming lines: %w", err)
 		}
@@ -115,6 +120,12 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 		inScopeLines, err := b.correctPeriodStartForUpcomingLines(ctx, subs.Subscription.ID, upcomingLinesResult.Lines, input.Persisted)
 		if err != nil {
 			return State{}, fmt.Errorf("correcting period start for upcoming lines: %w", err)
+		}
+
+		if billingStartsAt := subs.Subscription.BillingStartsAt; billingStartsAt != nil {
+			inScopeLines = lo.FilterMap(inScopeLines, func(item SubscriptionItemWithPeriods, _ int) (SubscriptionItemWithPeriods, bool) {
+				return item.startBillingAt(*billingStartsAt, firstBillingPeriod)
+			})
 		}
 
 		items, err := slicesx.MapWithErr(inScopeLines, func(item SubscriptionItemWithPeriods) (StateItem, error) {
@@ -141,6 +152,33 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 			BillingEndsAt: subs.Spec.ActiveTo,
 		}, nil
 	})
+}
+
+// applyBillingStartToAsOf returns the time to generate upcoming lines for, and the billing period
+// that contains the subscription's billing start.
+//
+// Items before the billing start are dropped, so we generate from there on. Otherwise the first
+// billed period would not exist until a sync shortly before it.
+//
+// asOf is returned unchanged with an empty period when there is no billing start, or when the
+// subscription ends by then: nothing is ever billed in that case, so there is no first billing
+// period to provision.
+func applyBillingStartToAsOf(subs subscription.SubscriptionView, asOf time.Time) (time.Time, timeutil.ClosedPeriod, error) {
+	billingStartsAt := subs.Subscription.BillingStartsAt
+	if billingStartsAt == nil {
+		return asOf, timeutil.ClosedPeriod{}, nil
+	}
+
+	if subs.Spec.ActiveTo != nil && !subs.Spec.ActiveTo.After(*billingStartsAt) {
+		return asOf, timeutil.ClosedPeriod{}, nil
+	}
+
+	firstBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(*billingStartsAt)
+	if err != nil {
+		return time.Time{}, timeutil.ClosedPeriod{}, fmt.Errorf("getting the billing period at billing start: %w", err)
+	}
+
+	return lo.Latest(asOf, *billingStartsAt), firstBillingPeriod, nil
 }
 
 func resolveSubscriptionItemCurrency(item SubscriptionItemWithPeriods, invoiceCurrency currencyx.Code) (currencies.Currency, error) {
