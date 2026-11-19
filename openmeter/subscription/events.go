@@ -3,6 +3,7 @@ package subscription
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/session"
@@ -198,6 +199,13 @@ func (s UpdatedEvent) Validate() error {
 
 type SubscriptionSyncEvent struct {
 	Subscription Subscription `json:"subscription"`
+	// SkipIfSyncedSince is the time the publisher selected the subscription for
+	// periodic reconciliation. The handler leaves the subscription alone when
+	// another sync has succeeded after it and the subscription has not changed
+	// since: by then this event is stale, and an earlier event may have synced
+	// with a later horizon. Leave it nil to sync unconditionally, as a forced
+	// reconciliation does.
+	SkipIfSyncedSince *time.Time `json:"skipIfSyncedSince,omitempty"`
 }
 
 func NewSubscriptionSyncEvent(ctx context.Context, sub Subscription) SubscriptionSyncEvent {

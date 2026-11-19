@@ -83,38 +83,94 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 		return nil, err
 	}
 
-	// Use one timestamp for all pages, so a deadline passing while we page
-	// cannot move a subscription across the cursor.
-	now := clock.Now()
+	var out []subscriptionsync.SubscriptionToReconcile
 
-	due, err := paginationv2.CollectAll(ctx, paginationv2.NewPaginator(func(ctx context.Context, cursor *paginationv2.Cursor) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
-		return r.subscriptionSync.ListSubscriptionsToReconcile(ctx, subscriptionsync.ListSubscriptionsToReconcileInput{
+	err := r.forEachCandidatePage(ctx, in, clock.Now(), func(page []subscriptionsync.SubscriptionToReconcile) error {
+		out = append(out, page...)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+// forEachCandidatePage calls fn with each page of subscriptions to reconcile:
+// first the non-deleted ones that are due at asOf, then the deleted ones awaiting
+// cleanup. The next page is listed only after fn returns, so a caller can sync a
+// large backlog without holding all of it.
+//
+// asOf stays the same for every page, so a deadline passing while we page cannot
+// move a subscription across the cursor.
+func (r *Reconciler) forEachCandidatePage(ctx context.Context, in ReconcilerListSubscriptionsInput, asOf time.Time, fn func([]subscriptionsync.SubscriptionToReconcile) error) error {
+	err := forEachPage(fn, func(cursor *paginationv2.Cursor) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
+		page, err := r.subscriptionSync.ListSubscriptionsToReconcile(ctx, subscriptionsync.ListSubscriptionsToReconcileInput{
 			Namespaces: in.Namespaces,
 			Customers:  in.Customers,
-			AsOf:       now,
+			AsOf:       asOf,
 			Lookback:   in.Lookback,
 			ForceSync:  in.ForceSync,
 			Cursor:     cursor,
 			Limit:      defaultWindowSize,
 		})
-	}), nil)
+		if err != nil {
+			return page, fmt.Errorf("listing subscriptions awaiting reconciliation: %w", err)
+		}
+
+		return page, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("listing subscriptions awaiting reconciliation: %w", err)
+		return err
 	}
 
-	deleted, err := paginationv2.CollectAll(ctx, paginationv2.NewPaginator(func(ctx context.Context, cursor *paginationv2.Cursor) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
-		return r.subscriptionSync.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
+	return forEachPage(fn, func(cursor *paginationv2.Cursor) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
+		page, err := r.subscriptionSync.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 			Namespaces: in.Namespaces,
 			Customers:  in.Customers,
 			Cursor:     cursor,
 			Limit:      defaultWindowSize,
 		})
-	}), nil)
-	if err != nil {
-		return nil, fmt.Errorf("listing deleted subscriptions awaiting reconciliation: %w", err)
-	}
+		if err != nil {
+			return page, fmt.Errorf("listing deleted subscriptions awaiting reconciliation: %w", err)
+		}
 
-	return append(due, deleted...), nil
+		return page, nil
+	})
+}
+
+// forEachPage follows the cursor from the first page to the last, passing each
+// non-empty page to fn before listing the next one.
+func forEachPage(
+	fn func([]subscriptionsync.SubscriptionToReconcile) error,
+	listPage func(cursor *paginationv2.Cursor) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error),
+) error {
+	var cursor *paginationv2.Cursor
+
+	for {
+		page, err := listPage(cursor)
+		if err != nil {
+			return err
+		}
+
+		if len(page.Items) > 0 {
+			if err := fn(page.Items); err != nil {
+				return err
+			}
+		}
+
+		if page.NextCursor == nil {
+			return nil
+		}
+
+		// The same cursor would list the same page again, forever.
+		if cursor != nil && page.NextCursor.ID == cursor.ID && page.NextCursor.Time.Equal(cursor.Time) {
+			return errors.New("listing subscriptions to reconcile: the pagination cursor did not advance")
+		}
+
+		cursor = page.NextCursor
+	}
 }
 
 type ReconcilerAllInput struct {
@@ -122,32 +178,67 @@ type ReconcilerAllInput struct {
 	ForceResyncOldSubscriptions bool
 }
 
+// All syncs every subscription that needs periodic reconciliation, one page of
+// candidates at a time. A failed sync does not stop the run: its subscription
+// stays due and the error is returned once the run ends.
 func (r *Reconciler) All(ctx context.Context, in ReconcilerAllInput) error {
-	subscriptions, err := r.ListSubscriptions(ctx, in.ReconcilerListSubscriptionsInput)
-	if err != nil {
-		return fmt.Errorf("failed to list subscriptions: %w", err)
+	if err := in.Validate(); err != nil {
+		return err
 	}
+
+	// One selection time for the whole run: every page compares deadlines against
+	// it, and a sync that succeeds after it makes ours unnecessary.
+	selectedAt := clock.Now()
 
 	var syncOptions []subscriptionsync.SynchronizeSubscriptionOption
 	if in.ForceResyncOldSubscriptions {
 		syncOptions = append(syncOptions, subscriptionsync.WithForceResyncOldSubscriptions())
 	}
 
-	// Logged before syncing, so a large backlog (for example the first run after
-	// switching to v2 scheduling) can be watched draining from run to run.
-	r.logger.InfoContext(ctx, "selected subscriptions for periodic reconciliation",
-		slog.Int("total", len(subscriptions)),
-		slog.Bool("force_sync", in.ForceSync),
-	)
-
-	var outErr error
-	for _, sub := range subscriptions {
-		if err := r.subscriptionSync.SyncByID(ctx, sub.NamespacedID, clock.Now(), syncOptions...); err != nil {
-			r.logger.ErrorContext(ctx, "failed to reconcile subscription", "error", err)
-
-			outErr = errors.Join(outErr, fmt.Errorf("failed to reconcile subscription: %w", err))
-		}
+	if !in.ForceSync {
+		// A forced run syncs no matter what other syncs did in the meantime.
+		syncOptions = append(syncOptions, subscriptionsync.WithSkipIfSyncedSince(selectedAt))
 	}
 
-	return outErr
+	var errs []error
+
+	selected := 0
+
+	err := r.forEachCandidatePage(ctx, in.ReconcilerListSubscriptionsInput, selectedAt, func(page []subscriptionsync.SubscriptionToReconcile) error {
+		selected += len(page)
+
+		// Logged per page, so a large backlog (for example the first run after
+		// switching to v2 scheduling) can be watched draining.
+		r.logger.InfoContext(ctx, "reconciling a page of subscriptions",
+			slog.Int("page_size", len(page)),
+			slog.Int("selected_so_far", selected),
+			slog.Bool("force_sync", in.ForceSync),
+		)
+
+		for _, sub := range page {
+			// Once the run is canceled every remaining sync would fail the same way.
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+
+			if err := r.subscriptionSync.SyncByID(ctx, sub.NamespacedID, clock.Now(), syncOptions...); err != nil {
+				r.logger.ErrorContext(ctx, "failed to reconcile subscription",
+					"namespace", sub.Namespace, "subscription_id", sub.ID, "error", err)
+
+				errs = append(errs, fmt.Errorf("reconciling subscription %s/%s: %w", sub.Namespace, sub.ID, err))
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	r.logger.InfoContext(ctx, "periodic subscription reconciliation finished",
+		slog.Int("selected", selected),
+		slog.Int("failed", len(errs)),
+	)
+
+	return errors.Join(errs...)
 }

@@ -49,7 +49,7 @@ INSERT INTO subscriptions
     (id, namespace, customer_id, created_at, updated_at, deleted_at, active_from, active_to,
      name, currency, billing_anchor, billing_cadence, pro_rating_config, settlement_mode, cost_basis_mode)
 SELECT lpad(i::text, 26, '0'), 'bench-' || ((i-1) % 10), lpad((((i-1) % 100)+1)::text, 26, '0'),
-       '2025-01-01'::timestamptz + ((i-1)/10) * interval '1 second',
+       '2025-01-01T00:00:00Z'::timestamptz + ((i-1)/10) * interval '1 second',
        '2026-01-01'::timestamptz,
        CASE WHEN ((i-1)/100) % 20 >= 18 THEN '2026-01-01'::timestamptz END,
        '2024-06-01'::timestamptz,

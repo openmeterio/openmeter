@@ -66,6 +66,15 @@ func (a *adapter) ListDeletedSubscriptionsToReconcile(ctx context.Context, input
 func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (string, []any) {
 	completed := []predicate.SubscriptionSyncStateV2{
 		subscriptionsyncstatev2.LastSuccessStateEQ(subscriptionsync.SyncStateV2StateSubscriptionDeleted),
+		// Subscription IDs are globally unique, but a cleanup record must also match
+		// the namespace. One from another namespace counts as missing, as it does
+		// for non-deleted subscriptions.
+		func(state *sql.Selector) {
+			state.Where(sql.ColumnsEQ(
+				state.C(subscriptionsyncstatev2.FieldNamespace),
+				sql.Table(dbsubscription.Table).C(dbsubscription.FieldNamespace),
+			))
+		},
 	}
 	if len(input.Namespaces) > 0 {
 		// A namespace-scoped worker must not scan every tenant's cleanup records.

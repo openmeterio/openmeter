@@ -69,7 +69,12 @@ func (s *Service) HandleSubscriptionSyncEvent(ctx context.Context, event *subscr
 		return nil
 	}
 
-	return s.SyncByID(ctx, event.Subscription.NamespacedID, time.Now(), subscriptionsync.WithInvoicePendingLines())
+	opts := []subscriptionsync.SynchronizeSubscriptionOption{subscriptionsync.WithInvoicePendingLines()}
+	if event.SkipIfSyncedSince != nil {
+		opts = append(opts, subscriptionsync.WithSkipIfSyncedSince(*event.SkipIfSyncedSince))
+	}
+
+	return s.SyncByID(ctx, event.Subscription.NamespacedID, time.Now(), opts...)
 }
 
 func (s *Service) SyncByID(ctx context.Context, subscriptionID models.NamespacedID, asOf time.Time, opts ...subscriptionsync.SynchronizeSubscriptionOption) error {
@@ -201,6 +206,20 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				subsRevision = ulid.Make().String()
 			} else {
 				subsRevision = syncStates[0].CurrentSubsRevision
+			}
+
+			// Checked under the billing lock, so a sync that was holding it is seen
+			// here. Only a strictly later success counts: one recorded at the selection
+			// instant may be the very state that made the subscription due.
+			if options.SkipIfSyncedSince != nil && len(syncStates) > 0 {
+				state := syncStates[0]
+				if state.LastSuccessAt != nil && state.LastSuccessAt.After(*options.SkipIfSyncedSince) &&
+					state.CurrentSubsRevision == state.LastSyncedSubsRevision {
+					s.logger.InfoContext(ctx, "skipping subscription sync because it was synced after it was selected",
+						"subscription_id", subscriptionID.ID, "last_success_at", *state.LastSuccessAt)
+
+					return &synchronizeSubscriptionResult{CustomerID: customerID}, nil
+				}
 			}
 
 			// A sync waiting for the billing lock must observe any deletion cleanup

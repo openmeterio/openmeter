@@ -644,6 +644,67 @@ func (s *SyncStateTestSuite) TestCancellationProgression() {
 	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
 }
 
+// A cancellation makes the subscription due for periodic reconciliation while
+// its event is still in flight, so both can sync it, in either order. The
+// cancellation syncs up to the subscription end; a periodic sync with the
+// current time as its horizon must not take that away again.
+func (s *SyncStateTestSuite) TestCancellationAndPeriodicSyncInEitherOrder() {
+	start := s.mustParseTime("2026-11-01T00:00:00Z")
+	december := s.mustParseTime("2026-12-01T00:00:00Z")
+	january := s.mustParseTime("2027-01-01T00:00:00Z")
+	end := s.mustParseTime("2027-02-01T00:00:00Z")
+	periods := []timeutil.ClosedPeriod{{From: start, To: december}, {From: december, To: january}, {From: january, To: end}}
+
+	for _, tc := range []struct {
+		name              string
+		cancellationFirst bool
+	}{
+		{name: "cancellation sync first", cancellationFirst: true},
+		{name: "periodic sync first"},
+	} {
+		s.Run(tc.name, func() {
+			// given: a synced subscription that is canceled for February 1, and a
+			// periodic run that selects it because of the cancellation
+			ctx := s.T().Context()
+			clock.FreezeTime(start)
+			defer clock.UnFreeze()
+			s.useNewCustomer()
+
+			view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
+			subscriptionID := view.Subscription.NamespacedID
+			s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, clock.Now()))
+			_, err := s.SubscriptionService.Cancel(ctx, subscriptionID, subscription.Timing{Custom: &end})
+			s.Require().NoError(err)
+			selectedAt := clock.Now()
+
+			clock.FreezeTime(start.Add(time.Minute))
+			defer clock.UnFreeze()
+			cancellationSync := func() {
+				s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, end))
+			}
+			periodicSync := func() {
+				s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, clock.Now(), subscriptionsync.WithSkipIfSyncedSince(selectedAt)))
+			}
+
+			// when: both sync the subscription
+			if tc.cancellationFirst {
+				cancellationSync()
+				periodicSync()
+			} else {
+				periodicSync()
+				cancellationSync()
+			}
+
+			// then: every month up to the end is provisioned and the final sync waits for the end
+			s.requireMonthlyItems(view, periods)
+			state := s.getSyncStateV2(subscriptionID)
+			s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+			s.Equal(&end, state.NextReconciliationAt)
+			s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
+		})
+	}
+}
+
 func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	// Given a successfully synced subscription with its first two fees provisioned.
 	start := s.mustParseTime("2026-11-01T00:00:00Z")

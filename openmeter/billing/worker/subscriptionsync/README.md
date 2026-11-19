@@ -252,11 +252,25 @@ syncs them with the current time as `asOf`:
 The two candidate queries are the only place this rule lives:
 `ListDeletedSubscriptionsToReconcile` applies the deleted rows and
 `ListSubscriptionsToReconcile` the others. The reconciler syncs everything they
-return without checking the sync state again, so a subscription that an event
-settles after selection is synced once more and converges. Each run logs how
-many subscriptions it selected. The queries return the subscription and customer
-IDs: a sync needs only the subscription, and the customer is there for workers
-that publish subscription sync events, which are keyed by customer.
+return, one page of candidates at a time, without evaluating the rule again. The
+queries return the subscription and customer IDs: a sync needs only the
+subscription, and the customer is there for workers that publish subscription
+sync events, which are keyed by customer.
+
+An event can sync a selected subscription before the periodic run reaches it.
+The periodic sync is then skipped (`WithSkipIfSyncedSince`): the event may have
+used a later horizon than the run would. A cancellation syncs up to the
+subscription end, and a periodic sync as of now would remove the lines for the
+billing periods after the next one. A forced run never skips.
+
+A worker that publishes `SubscriptionSyncEvent`s instead of syncing directly sets
+`SkipIfSyncedSince` on each event to the time it selected the candidates. The
+event handler applies the same check, which also drops an event that is still
+queued when a later one for the same subscription has already been handled.
+
+A failed sync does not stop the run: the subscription stays due and the run
+returns the error at its end. A canceled run stops before the next
+subscription. Each run logs every page it starts and a summary when it ends.
 
 The non-deleted query requires `DeletedAt` to be nil and the subscription to be
 active at some point within the lookback before now. `ended`, `no_billables`,
@@ -272,13 +286,18 @@ Known limits of this selection:
   switch from legacy scheduling syncs every such subscription in the lookback once.
 - The lookback defaults to 30 days, the same age after which sync skips an ended
   subscription as `too_old`. An ended subscription whose final sync is missed for
-  longer than the lookback is not listed again until it is edited or the job runs
-  with a wider lookback. A future-dated subscription is not listed before it starts.
-- Deleting a customer does not change the subscription revision, so such a
-  subscription is reconciled at its next deadline rather than immediately.
+  longer than the lookback is not listed again until the job runs with a wider
+  lookback. An edit alone does not bring it back, because the lookback still
+  excludes it, and by then a sync only records `too_old`, so repairing it also
+  needs `--force-all`. A future-dated subscription is not listed before it starts.
+- Deleting a customer does not change the subscription revision. An `active`
+  subscription is reconciled at its next deadline rather than immediately. A
+  `no_billables` subscription has no deadline and is not selected again until it
+  is edited.
 - A subscription created or edited just before a run still shows `new` or
-  differing revisions while its event is in flight, so it can be synced twice. The
-  customer billing lock serializes the two syncs and the second one converges.
+  differing revisions while its event is in flight, so both can sync it. The
+  customer billing lock serializes them. If the event gets there first the
+  periodic sync is skipped; otherwise the event syncs it again.
 - The deadline lies in the last 5-20% of a billing period, so very short periods
   depend on how often the job runs.
 
@@ -289,7 +308,9 @@ selection and defaults to 30 days; resyncing older history also requires a wider
 lookback. Forced reconciliation still excludes deleted subscriptions with a
 successful cleanup result. To put one back in the periodic cleanup queue, delete
 its `subscription_sync_states_v2` entry. `list` prints what a run would sync;
-`list --f` prints what a forced run would sync.
+`list --f` prints what a forced run would select. With a lookback wider than 30
+days that includes subscriptions `all --f` only records as `too_old`;
+reconciling those needs `all --force-all`.
 
 ## Race between billing collection and subscription deletion cleanup
 

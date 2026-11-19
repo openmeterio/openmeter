@@ -85,6 +85,22 @@ type SynchronizeSubscriptionOptions struct {
 	DryRun                      bool
 	InvoicePendingLines         bool
 	ForceResyncOldSubscriptions bool
+	// SkipIfSyncedSince is set by WithSkipIfSyncedSince.
+	SkipIfSyncedSince *time.Time
+}
+
+// WithSkipIfSyncedSince makes the sync a no-op when another sync has succeeded
+// after selectedAt and the subscription has not changed since.
+//
+// Periodic reconciliation selects its candidates first and syncs them later. An
+// event handler can sync one of them in between, with a horizon the periodic
+// run does not know about: a cancellation syncs up to the subscription end. A
+// periodic sync with the current time as its horizon would then remove the
+// lines provisioned for the later billing periods.
+func WithSkipIfSyncedSince(selectedAt time.Time) SynchronizeSubscriptionOption {
+	return func(o *SynchronizeSubscriptionOptions) {
+		o.SkipIfSyncedSince = &selectedAt
+	}
 }
 
 // WithForceResyncOldSubscriptions reconciles billing artifacts even when the

@@ -54,7 +54,7 @@ var ListCmd = func() *cobra.Command {
 	cmd.PersistentFlags().StringSliceVar(&namespaces, "n", nil, "filter by namespaces")
 	cmd.PersistentFlags().StringSliceVar(&customerIDs, "c", nil, "filter by customer ids")
 	cmd.PersistentFlags().DurationVar(&lookback, "l", reconciler.DefaultLookback, "lookback period")
-	cmd.PersistentFlags().BoolVar(&forceSync, "f", false, "list what a forced run would sync: every subscription in the lookback regardless of its sync state; deleted subscriptions with completed cleanup stay excluded")
+	cmd.PersistentFlags().BoolVar(&forceSync, "f", false, "list what a forced run would select: every subscription in the lookback regardless of its sync state; a subscription that ended more than 30 days ago is only reconciled by all --force-all; deleted subscriptions with completed cleanup stay excluded")
 
 	return cmd
 }

@@ -129,6 +129,90 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 	require.Equal(t, observedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
 }
 
+func TestSyncEventSkipsSubscriptionSyncedSinceSelection(t *testing.T) {
+	selectedAt := time.Now().Add(-time.Hour)
+	// An end this old takes the cheapest sync path: it only records the skipped
+	// result, which shows whether the sync went ahead.
+	end := time.Now().Add(-31 * 24 * time.Hour)
+
+	for _, tc := range []struct {
+		name          string
+		lastSuccessAt time.Time
+		changedSince  bool
+		// skipIfSyncedSince is what the event carries.
+		skipIfSyncedSince *time.Time
+		wantSynced        bool
+	}{
+		{
+			name:              "another sync succeeded after selection",
+			lastSuccessAt:     selectedAt.Add(time.Minute),
+			skipIfSyncedSince: &selectedAt,
+		},
+		{
+			name:              "the subscription changed after that sync",
+			lastSuccessAt:     selectedAt.Add(time.Minute),
+			changedSince:      true,
+			skipIfSyncedSince: &selectedAt,
+			wantSynced:        true,
+		},
+		{
+			name:              "the last sync predates selection",
+			lastSuccessAt:     selectedAt.Add(-time.Minute),
+			skipIfSyncedSince: &selectedAt,
+			wantSynced:        true,
+		},
+		{
+			name:          "the event carries no selection time",
+			lastSuccessAt: selectedAt.Add(time.Minute),
+			wantSynced:    true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: a subscription with a recorded sync
+			sub := subscription.Subscription{
+				NamespacedID: models.NamespacedID{Namespace: "namespace", ID: "subscription-id"},
+				CustomerId:   "customer-id",
+			}
+			sub.ActiveTo = &end
+			state := subscriptionsync.SyncStateV2{
+				LastSuccessState:       subscriptionsync.SyncStateV2StateTooOld,
+				LastSuccessAt:          &tc.lastSuccessAt,
+				LastSyncedSubsRevision: ulid.Make().String(),
+			}
+			state.CurrentSubsRevision = state.LastSyncedSubsRevision
+			if tc.changedSince {
+				state.CurrentSubsRevision = ulid.Make().String()
+			}
+
+			syncAdapter := &subscriptionSyncAdapterSpy{statesV2: []subscriptionsync.SyncStateV2Managed{{SyncStateV2: state}}}
+			billingService := &billingServiceSpy{}
+			service := &Service{
+				billingService:          billingService,
+				reconciler:              &syncReconcilerSpy{},
+				subscriptionService:     &subscriptionServiceSpy{view: subscription.SubscriptionView{Subscription: sub}},
+				subscriptionSyncAdapter: syncAdapter,
+				logger:                  testutils.NewDiscardLogger(t),
+				tracer:                  noop.NewTracerProvider().Tracer("test"),
+			}
+
+			// when: the periodic sync event for it is handled
+			err := service.HandleSubscriptionSyncEvent(t.Context(), &subscription.SubscriptionSyncEvent{
+				Subscription:      sub,
+				SkipIfSyncedSince: tc.skipIfSyncedSince,
+			})
+
+			// then: it is synced unless another sync already covered this selection
+			require.NoError(t, err)
+			require.True(t, billingService.withLockCalled, "the decision is made under the billing lock")
+			if tc.wantSynced {
+				require.Len(t, syncAdapter.recordedResultsV2, 1)
+			} else {
+				require.Empty(t, syncAdapter.recordedResultsV2)
+			}
+		})
+	}
+}
+
 type billingServiceSpy struct {
 	billing.Service
 	beforeLock               func()

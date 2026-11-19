@@ -376,14 +376,18 @@ func (s *SubscriptionsToReconcileSuite) TestPaginationWhileSyncsComplete() {
 	input := s.listInput()
 	input.Limit = 1
 
-	// when: each returned subscription is synced before the next page is read
+	// when: only the first returned subscription is settled before the next page is
+	// read, so the cursor alone has to move past the two that stay listed
 	var visited []models.NamespacedID
-	for range expected {
+	for i := range expected {
 		page, err := s.adapter.ListSubscriptionsToReconcile(ctx, input)
 		s.Require().NoError(err)
 		s.Require().Len(page.Items, 1)
 		visited = append(visited, page.Items[0].NamespacedID)
-		s.recordSettled(page.Items[0].NamespacedID)
+		if i == 0 {
+			s.recordSettled(page.Items[0].NamespacedID)
+		}
+
 		s.Require().NotNil(page.NextCursor)
 		input.Cursor = page.NextCursor
 	}
@@ -394,10 +398,13 @@ func (s *SubscriptionsToReconcileSuite) TestPaginationWhileSyncsComplete() {
 	s.Require().NoError(err)
 	s.Empty(result.Items)
 	s.Nil(result.NextCursor)
+
+	// and: a listing that starts over returns only what is still pending
 	input.Cursor = nil
+	input.Limit = 100
 	result, err = s.adapter.ListSubscriptionsToReconcile(ctx, input)
 	s.Require().NoError(err)
-	s.Empty(result.Items, "settled subscriptions must stay excluded when polling starts over")
+	s.Equal(expected[1:], subscriptionIDs(result.Items), "the settled subscription must stay excluded when polling starts over")
 }
 
 func TestSubscriptionsToReconcileQuery(t *testing.T) {
