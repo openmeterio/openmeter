@@ -62,6 +62,10 @@ type Consumer struct {
 }
 
 func New(opts Options) (*Consumer, error) {
+	if err := opts.Validate(); err != nil {
+		return nil, err
+	}
+
 	entitlementSnapshotHandler := &EntitlementSnapshotHandler{
 		Notification: opts.Notification,
 		Logger:       opts.Logger.WithGroup("entitlement_snapshot_handler"),
