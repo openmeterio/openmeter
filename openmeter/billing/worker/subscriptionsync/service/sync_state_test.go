@@ -643,60 +643,66 @@ func (s *SyncStateTestSuite) TestBillingStartInsideBillingPeriod() {
 		usageIDs[1]: {ServicePeriod: fullDecember, FullServicePeriod: fullDecember, BillingPeriod: fullDecember, InvoiceAt: january},
 	}
 
-	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:      s.Namespace,
-		SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
-	})
-	s.Require().NoError(err)
-
-	actual := make(map[string]billedCharge, len(result.Items))
-	for _, item := range result.Items {
-		reference, err := item.GetUniqueReferenceID()
+	// billedCharges returns the subscription's charges by sync identity, and their IDs. Deleted
+	// charges are included, so a charge replaced by a sync shows up as an extra ID.
+	billedCharges := func() (map[string]billedCharge, []string) {
+		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
+			IncludeDeleted: true,
+		})
 		s.Require().NoError(err)
-		s.Require().NotNil(reference)
 
-		switch item.Type() {
-		case chargesmeta.ChargeTypeFlatFee:
-			charge, err := item.AsFlatFeeCharge()
+		billed := make(map[string]billedCharge, len(result.Items))
+		ids := make([]string, 0, len(result.Items))
+		for _, item := range result.Items {
+			reference, err := item.GetUniqueReferenceID()
 			s.Require().NoError(err)
-			intent := charge.Intent.GetBaseIntent()
-			actual[*reference] = billedCharge{
-				ServicePeriod:     intent.ServicePeriod,
-				FullServicePeriod: intent.FullServicePeriod,
-				BillingPeriod:     intent.BillingPeriod,
-				InvoiceAt:         intent.InvoiceAt,
-				FeeAmount:         charge.State.AmountAfterProration.InexactFloat64(),
-			}
-		case chargesmeta.ChargeTypeUsageBased:
-			charge, err := item.AsUsageBasedCharge()
+			s.Require().NotNil(reference)
+
+			chargeID, err := item.GetChargeID()
 			s.Require().NoError(err)
-			intent := charge.Intent.GetBaseIntent()
-			actual[*reference] = billedCharge{
-				ServicePeriod:     intent.ServicePeriod,
-				FullServicePeriod: intent.FullServicePeriod,
-				BillingPeriod:     intent.BillingPeriod,
-				InvoiceAt:         intent.InvoiceAt,
+			ids = append(ids, chargeID.ID)
+
+			switch item.Type() {
+			case chargesmeta.ChargeTypeFlatFee:
+				charge, err := item.AsFlatFeeCharge()
+				s.Require().NoError(err)
+				intent := charge.Intent.GetBaseIntent()
+				billed[*reference] = billedCharge{
+					ServicePeriod:     intent.ServicePeriod,
+					FullServicePeriod: intent.FullServicePeriod,
+					BillingPeriod:     intent.BillingPeriod,
+					InvoiceAt:         intent.InvoiceAt,
+					FeeAmount:         charge.State.AmountAfterProration.InexactFloat64(),
+				}
+			case chargesmeta.ChargeTypeUsageBased:
+				charge, err := item.AsUsageBasedCharge()
+				s.Require().NoError(err)
+				intent := charge.Intent.GetBaseIntent()
+				billed[*reference] = billedCharge{
+					ServicePeriod:     intent.ServicePeriod,
+					FullServicePeriod: intent.FullServicePeriod,
+					BillingPeriod:     intent.BillingPeriod,
+					InvoiceAt:         intent.InvoiceAt,
+				}
+			default:
+				s.Failf("unexpected charge type", "%s: %s", *reference, item.Type())
 			}
-		default:
-			s.Failf("unexpected charge type", "%s: %s", *reference, item.Type())
 		}
+
+		return billed, ids
 	}
 
+	actual, chargeIDs := billedCharges()
 	s.Equal(expected, actual)
 
 	// And repeating the sync changes nothing: the shortened period is the target, not a drift.
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
 
-	repeated, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:      s.Namespace,
-		SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
-		IncludeDeleted: true,
-	})
-	s.Require().NoError(err)
-	s.ElementsMatch(
-		lo.Map(result.Items, func(item charges.Charge, _ int) string { return lo.Must(item.GetChargeID()).ID }),
-		lo.Map(repeated.Items, func(item charges.Charge, _ int) string { return lo.Must(item.GetChargeID()).ID }),
-	)
+	repeated, repeatedChargeIDs := billedCharges()
+	s.Equal(expected, repeated)
+	s.ElementsMatch(chargeIDs, repeatedChargeIDs)
 }
 
 func (s *SyncStateTestSuite) TestFreeToPaidProgression() {

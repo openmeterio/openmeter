@@ -6817,8 +6817,7 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionBillingStartProratesSeats()
 		{Name: "Seats", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 144},
 	}, provisionedFees())
 
-	// When the seat count changes twice before billing starts: 2 seats are removed in the short
-	// first billing period, and 7 are added in December, leaving 14 add-on seats.
+	// changeSeats sets the number of add-on seats at the given time and syncs the subscription.
 	changeSeats := func(at time.Time, quantity int) {
 		clock.FreezeTime(at)
 		defer clock.UnFreeze()
@@ -6833,11 +6832,23 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionBillingStartProratesSeats()
 		s.Require().NoError(s.SubscriptionSync.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
 	}
 
+	// When 2 seats are removed in the short first billing period, before billing starts.
 	changeSeats(time.Date(2026, 11, 28, 0, 0, 0, 0, time.UTC), 7)
+
+	// Then the change adds no fee for the time before the billing start, and the seat fees from
+	// the billing start follow the 7 add-on seats.
+	s.ElementsMatch([]billedFee{
+		{Name: "Team plan fee", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 7.74},
+		{Name: "Seats", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 54.19},
+		{Name: "Team plan fee", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 16},
+		{Name: "Seats", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 112},
+	}, provisionedFees())
+
+	// When 7 seats are added in December, still before billing starts.
 	changeSeats(time.Date(2026, 12, 5, 0, 0, 0, 0, time.UTC), 14)
 
-	// Then the changes add no fee for the time before the billing start. The seat fees follow the
-	// seat count in effect at the billing start, and December is still prorated to 15 of 31 days.
+	// Then there is still no fee for the time before the billing start. The seat fees follow the
+	// 14 add-on seats in effect at the billing start, and December is prorated to 15 of 31 days.
 	decemberFees := []billedFee{
 		{Name: "Team plan fee", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 7.74},
 		{Name: "Seats", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 108.39},
@@ -6871,6 +6882,19 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionBillingStartProratesSeats()
 
 		return invoices[0], fees
 	}
+
+	// When invoicing is attempted a second before the billing start.
+	justBeforeBillingStart := billingStartsAt.Add(-time.Second)
+	clock.FreezeTime(justBeforeBillingStart)
+	defer clock.UnFreeze()
+
+	_, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &justBeforeBillingStart,
+	})
+
+	// Then there is nothing to invoice yet.
+	s.Require().ErrorIs(err, billing.ErrInvoiceCreateNoLines)
 
 	// When the billing start arrives.
 	firstInvoice, firstFees := invoiceDueFees(billingStartsAt)
