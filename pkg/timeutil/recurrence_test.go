@@ -428,6 +428,38 @@ func TestGetPeriodAt(t *testing.T) {
 	}
 }
 
+func TestRecurrenceValidateInterval(t *testing.T) {
+	anchor := time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	for _, tc := range []struct {
+		interval string
+		wantErr  string
+	}{
+		{interval: "P1M"},
+		{interval: "P1Y2M3DT4H5M6S"},
+		{interval: "PT0.5S"},
+		{interval: "PT0S", wantErr: "recurrence interval must be positive"},
+		{interval: "-P1M", wantErr: "recurrence interval must be positive"},
+		{interval: "P-1M", wantErr: "recurrence interval must be positive"},
+		// Positive overall, but the boundaries would jump back and forth in time.
+		{interval: "P1M-30DT-10H", wantErr: "recurrence interval must not have negative components"},
+		{interval: "P1DT-1H", wantErr: "recurrence interval must not have negative components"},
+	} {
+		t.Run(tc.interval, func(t *testing.T) {
+			interval, err := datetime.ISODurationString(tc.interval).Parse()
+			require.NoError(t, err)
+
+			_, err = timeutil.NewRecurrenceFromISODuration(interval, anchor)
+			if tc.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+
+			require.EqualError(t, err, tc.wantErr)
+		})
+	}
+}
+
 func TestRecurrenceIterator(t *testing.T) {
 	start := time.Date(2024, time.March, 1, 0, 0, 0, 0, time.UTC)
 	for _, anchor := range []time.Time{start.AddDate(0, -2, 0), start, start.AddDate(0, 3, 0)} {

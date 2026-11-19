@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -23,6 +24,21 @@ func (r Recurrence) Validate() error {
 
 	if r.Interval.ISODuration.Sign() != 1 {
 		errs = append(errs, fmt.Errorf("recurrence interval must be positive"))
+	} else if slices.Min([]int{
+		r.Interval.YearsDecimal().Sign(),
+		r.Interval.MonthsDecimal().Sign(),
+		r.Interval.WeeksDecimal().Sign(),
+		r.Interval.DaysDecimal().Sign(),
+		r.Interval.HoursDecimal().Sign(),
+		r.Interval.MinutesDecimal().Sign(),
+		r.Interval.SecondsDecimal().Sign(),
+	}) < 0 {
+		// The overall sign is not enough: P1M-30DT-10H counts as positive, but its
+		// boundaries jump back and forth in time (Jan 1 14:00, Dec 30 04:00, Dec 30 18:00
+		// from a Jan 1 anchor). "Next" and "previous" have no meaning there, and the
+		// boundary lookup relies on boundaries growing with their index, so it would
+		// return arbitrary ones.
+		errs = append(errs, fmt.Errorf("recurrence interval must not have negative components"))
 	}
 
 	if r.Anchor.IsZero() {
