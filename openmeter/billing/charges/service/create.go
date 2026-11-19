@@ -101,10 +101,13 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 }
 
 // validateTaxCodesExist verifies every distinct non-empty tax code referenced by the intents
-// exists.
+// exists. Deleted Tax Codes pass: authored ones were already rejected with the deleted-specific
+// error, and inherited ones (defaults stamped here, sync ApplyPatches creates) may legitimately
+// reference a code deleted since.
 func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
 	seen := make(map[string]struct{}, len(intents))
 
+	var errs []error
 	for _, createIntent := range intents {
 		taxCodeID, err := createIntent.TaxCodeID()
 		if err != nil {
@@ -122,19 +125,59 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 		seen[taxCodeID] = struct{}{}
 
 		_, err = s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			Namespace: namespace,
-			ID:        taxCodeID,
+			Namespace:      namespace,
+			ID:             taxCodeID,
+			IncludeDeleted: true,
 		})
 		if err != nil {
 			if taxcode.IsTaxCodeNotFoundError(err) {
-				return models.NewGenericValidationError(
+				errs = append(errs, models.NewGenericValidationError(
 					models.NewValidationError("tax_code_not_found", fmt.Sprintf("referenced tax code %q does not exist", taxCodeID)).
 						WithPathString("tax_config", "tax_code"),
-				)
+				))
+
+				continue
 			}
 
 			return err
 		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// validateAuthoredTaxCodes rejects Tax Code IDs the caller authored in this request
+// when they reference a missing or deleted Tax Code. Runs before applyDefaultTaxCodes so only
+// caller-sent IDs are checked; defaults filled in here are inherited and may be deleted.
+// All distinct IDs resolve in one batch; each failing intent gets its own issue naming it.
+func (s *service) validateAuthoredTaxCodes(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
+	refs := make([]billing.AuthoredTaxCodeID, 0, len(intents))
+	for idx, createIntent := range intents {
+		taxCodeID, err := createIntent.TaxCodeID()
+		if err != nil {
+			return err
+		}
+
+		if taxCodeID == "" {
+			continue
+		}
+
+		refs = append(refs, billing.AuthoredTaxCodeID{
+			TaxCodeID: taxCodeID,
+			FieldPath: fmt.Sprintf("intents/%d/tax_config/tax_code", idx),
+		})
+	}
+
+	if len(refs) == 0 {
+		return nil
+	}
+
+	if err := billing.ValidateAuthoredTaxCodeIDs(ctx, billing.ValidateAuthoredTaxCodeIDsInput{
+		Namespace:  namespace,
+		Resolver:   s.taxCodeResolver,
+		References: refs,
+	}); err != nil {
+		return billing.ValidationError{Err: err}
 	}
 
 	return nil
@@ -168,6 +211,14 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 
 	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
 		return nil, err
+	}
+
+	// Validate already rejected an unset ChangeSource, so the input classifies its
+	// references: only API requests carry authored ones.
+	if input.ChangeSource == billing.ChangeSourceAPIRequest {
+		if err := s.validateAuthoredTaxCodes(ctx, input.Namespace, input.Intents); err != nil {
+			return nil, err
+		}
 	}
 
 	intentsWithDefaults, err := s.applyDefaultTaxCodes(ctx, input.Namespace, input.Intents)
@@ -496,6 +547,9 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 					BypassFeatureMeterValidation: item.bypassFeatureMeterValidation,
 				}
 			}),
+			// The charge intents were already validated, so the lines' tax code
+			// references are inherited, not authored by this call.
+			ChangeSource: billing.ChangeSourceSystem,
 		})
 		if err != nil {
 			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: %w", err)

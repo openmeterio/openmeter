@@ -398,8 +398,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		// When we create pending invoice items
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						// Covered case: Discount caused by maximum amount
@@ -1245,8 +1246,9 @@ func (s *StripeInvoiceTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	// Given we have pending invoice items without usage
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -1396,8 +1398,9 @@ func (s *StripeInvoiceTestSuite) TestDeletedAppFailsAdvancementButAllowsInvoiceD
 			Return([]stripeclient.StripeInvoiceItemWithLineID{}, nil)
 
 		_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace:     namespace,
@@ -1586,8 +1589,9 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 	// Add a pending invoice line with a flat fee
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:        timeutil.ClosedPeriod{From: periodStart, To: periodEnd},

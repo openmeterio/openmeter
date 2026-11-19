@@ -972,6 +972,7 @@ func (s *BaseSuite) CreatePromotionalCreditFunding(ctx context.Context, input Cr
 				TaxConfig:     input.TaxConfig,
 			}),
 		),
+		ChangeSource: billing.ChangeSourceSystem,
 	})
 	s.NoError(err)
 	s.Len(res, 1)

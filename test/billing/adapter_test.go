@@ -1235,8 +1235,9 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLines() {
 		periodEnd := time.Now().Add(time.Hour)
 
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -1363,8 +1364,9 @@ func (s *BillingAdapterTestSuite) TestHardDeleteGatheringInvoiceLinesNegative() 
 		line2PeriodEnd := line2PeriodStart.Add(time.Hour)
 
 		createdPendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{

@@ -135,7 +135,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeGatheringPreviewPopulatesTotalsW
 	)
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -372,7 +373,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceL
 				})
 
 				created, err := s.Charges.Create(ctx, charges.CreateInput{
-					Namespace: ns,
+					ChangeSource: billing.ChangeSourceSystem,
+					Namespace:    ns,
 					Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 						Intent: meta.Intent{
 							ManagedBy:         billing.SubscriptionManagedLine,
@@ -897,7 +899,8 @@ func (s *InvoicableChargesTestSuite) runFlatFeeCustomCurrencyFiatOverageAfterInv
 
 	s.Run("given a draft invoice with gross fiat overage", func() {
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 				Intent: meta.Intent{
 					ManagedBy:         billing.SubscriptionManagedLine,
@@ -1299,7 +1302,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceR
 		Rate:         alpacadecimal.NewFromFloat(0.5),
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -1508,7 +1512,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceM
 		Rate:         alpacadecimal.NewFromFloat(0.5),
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -1726,7 +1731,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyGatheringPreviewAn
 		Rate:         alpacadecimal.NewFromFloat(0.5),
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -2072,7 +2078,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyInvalidAccrualResu
 				Rate:         alpacadecimal.NewFromFloat(0.5),
 			})
 			created, err := s.Charges.Create(ctx, charges.CreateInput{
-				Namespace: ns,
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    ns,
 				Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 					Intent: meta.Intent{
 						ManagedBy:         billing.SubscriptionManagedLine,
@@ -2260,7 +2267,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCustomCurrencyCreditThenInvoiceS
 		Rate:         alpacadecimal.NewFromFloat(0.5),
 	})
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -2546,7 +2554,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedGatheringPreviewPopulatesTota
 	defer clock.UnFreeze()
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -2671,7 +2680,8 @@ func runFlatFeeCreditThenInvoiceImmutableProrationScenario(s *BaseSuite, expectR
 		defer s.FlatFeeTestHandler.Reset()
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -2800,7 +2810,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountCreat
 	defer clock.UnFreeze()
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -2859,7 +2870,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeePartialCreditRealizations() {
 
 	s.Run("create new upcoming charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -3150,7 +3162,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInAdvanceWithPr
 
 		// And a future in-advance flat fee is created for 7 USD.
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -3292,7 +3305,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceInvoiceAtBefore
 		// then:
 		// - the charge waits for invoice_at, not service period start
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 				Intent: meta.Intent{
 					ManagedBy:         billing.SubscriptionManagedLine,
@@ -3438,7 +3452,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceFullyCreditedDo
 
 	s.Run("create charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -3616,7 +3631,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditThenInvoiceZeroAmountNonZe
 		}
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -3785,7 +3801,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycle() {
 
 		// When creating a credit-only usage-based charge for 2026-01-01T00:00:00Z...2026-02-01T00:00:00Z at $1/unit.
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -4125,7 +4142,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyLifecycleVolumeTier
 		clock.FreezeTime(createAt)
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
@@ -4370,7 +4388,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceLifecycle() 
 
 	s.Run("#2 create future credit-then-invoice usage-based charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
@@ -4669,7 +4688,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceFullyCredite
 
 	s.Run("#2 create future credit-then-invoice usage-based charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
@@ -4889,7 +4909,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyActive() {
 
 	// When creating a credit-only usage-based charge at service period start.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -4967,7 +4988,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditThenInvoiceDirectPaidFl
 	s.grantPromotionalCredits(ctx, cust.GetID(), 5)
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -5139,7 +5161,8 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreateImmediatelyFinal() {
 
 	// When creating a credit-only usage-based charge well after the service period.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -5225,7 +5248,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyLifecycle() {
 
 		// When creating a credit-only flat fee charge.
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -5426,7 +5450,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyCreateImmediatelyFinal
 
 	// When creating a credit-only flat fee charge at InvoiceAt.
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -5624,8 +5649,9 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyWithCustomCurrency() {
 		})
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
-			Intents:   charges.NewCreateChargeIntents(intent),
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
+			Intents:      charges.NewCreateChargeIntents(intent),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -5804,8 +5830,9 @@ func (s *InvoicableChargesTestSuite) TestUsageBasedCreditOnlyWithCustomCurrency(
 		})
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
-			Intents:   charges.NewCreateChargeIntents(intent),
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
+			Intents:      charges.NewCreateChargeIntents(intent),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(created, 1)
@@ -5888,7 +5915,8 @@ func (s *InvoicableChargesTestSuite) TestFlatFeeCreditOnlyInArrearsAllocatesAtIn
 	defer clock.UnFreeze()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),

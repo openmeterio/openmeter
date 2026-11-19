@@ -376,8 +376,9 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(
 			ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Namespace: namespace,
@@ -410,8 +411,9 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 
 		res, err = s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.HUF),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.HUF),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
@@ -666,8 +668,9 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace: namespace,
@@ -846,8 +849,9 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 	s.Run("When staging more lines the old gathering invoice gets reused", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Name:      "Test item1",
@@ -911,8 +915,9 @@ func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCu
 
 	now := time.Now().UTC().Truncate(time.Second)
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customerEntity.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customerEntity.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(
 				billing.NewFlatFeeLineInput{
@@ -940,8 +945,9 @@ func (s *InvoicingTestSuite) TestListCustomerIDsPendingCollectionReturnsUniqueCu
 	require.NoError(s.T(), s.BillingAdapter.UpdateGatheringInvoice(ctx, gatheringInvoice))
 
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customerEntity.GetID(),
-		Currency: currencyx.FiatCode(currency.HUF),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customerEntity.GetID(),
+		Currency:     currencyx.FiatCode(currency.HUF),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Namespace:     namespace,
@@ -1923,8 +1929,9 @@ func (s *InvoicingTestSuite) createManualApprovalInvoice(
 	}
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customerEntity.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customerEntity.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Namespace:         namespace,
@@ -2150,8 +2157,9 @@ func (s *InvoicingTestSuite) TestUBPProgressiveInvoicing() {
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
 			ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -3023,8 +3031,9 @@ func (s *InvoicingTestSuite) TestUBPGraduatingFlatFeeTier1() {
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
 			ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -3339,8 +3348,9 @@ func (s *InvoicingTestSuite) TestUBPNonProgressiveInvoicing() {
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
 			ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -3853,8 +3863,9 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceRecalculation() {
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
 			ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -4021,8 +4032,9 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroUsage() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
 		ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -4140,8 +4152,9 @@ func (s *InvoicingTestSuite) TestEmptyInvoiceGenerationZeroPrice() {
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
 		ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -4421,8 +4434,9 @@ func (s *InvoicingTestSuite) TestProgressiveBillLate() {
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -4514,8 +4528,9 @@ func (s *InvoicingTestSuite) TestPartialInvoiceLinesOptions() {
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -4621,8 +4636,9 @@ func (s *InvoicingTestSuite) TestSortLines() {
 	defer clock.ResetTime()
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -4746,8 +4762,9 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 
 	// When
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
@@ -4778,8 +4795,9 @@ func (s *InvoicingTestSuite) TestGatheringInvoicePeriodPersisting() {
 	newPeriodEnd := periodEnd.Add(time.Hour * 24)
 
 	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    timeutil.ClosedPeriod{From: newPeriodStart, To: newPeriodEnd},
@@ -4845,8 +4863,9 @@ func (s *InvoicingTestSuite) TestDeleteGatheringInvoiceViaService() {
 	// given:
 	// - a gathering invoice with two active flat-fee lines
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Namespace: namespace,
@@ -4934,8 +4953,9 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	clock.SetTime(customerDeletedAt.Add(24 * time.Hour))
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
@@ -4970,8 +4990,9 @@ func (s *InvoicingTestSuite) TestCreatePendingInvoiceLinesForDeletedCustomers() 
 	// Then we should not be able to perform the operation
 
 	pendingLines, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customer.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customer.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:        timeutil.ClosedPeriod{From: clock.Now(), To: clock.Now().Add(time.Hour * 24)},
@@ -5009,8 +5030,9 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityMissingFeature() {
 	// given:
 	// - a valid metered gathering line whose persisted feature reference becomes orphaned
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customerEntity.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customerEntity.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines(billing.GatheringLines{{
 			GatheringLineBase: billing.GatheringLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -5229,8 +5251,9 @@ func (s *InvoicingTestSuite) TestSnapshotQuantityInvalidDatabaseState() {
 		pendingLines, err := s.BillingService.CreatePendingInvoiceLines(
 			ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerID,
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerID,
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -5387,8 +5410,9 @@ func (s *InvoicingTestSuite) TestGatheringInvoiceEmulation() {
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Namespace:     namespace,
@@ -5472,9 +5496,10 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 
 		s.Run("given a gathering invoice with a line and a deleted line", func() {
 			res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
-				Lines:    billing.NewCreatePendingInvoiceLines(testLines),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
+				Lines:        billing.NewCreatePendingInvoiceLines(testLines),
 			})
 			require.NoError(s.T(), err)
 			require.Len(s.T(), res.Lines, 2)
@@ -5567,9 +5592,10 @@ func (s *InvoicingTestSuite) TestUpdateInvoice() {
 
 		s.Run("given a draft invoice with a line and a deleted line", func() {
 			pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
-				Lines:    billing.NewCreatePendingInvoiceLines(testLines),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
+				Lines:        billing.NewCreatePendingInvoiceLines(testLines),
 			})
 			require.NoError(s.T(), err)
 			require.Len(s.T(), pendingLines.Lines, 2)

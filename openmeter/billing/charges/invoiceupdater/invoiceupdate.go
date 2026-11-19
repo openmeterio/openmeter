@@ -329,6 +329,9 @@ func (u *updater) provisionUpcomingLines(ctx context.Context, customerID custome
 			Customer: customerID,
 			Currency: currency,
 			Lines:    billing.NewCreatePendingInvoiceLines(lines),
+			// Sync re-creates lines from stored charges, whose tax code references
+			// may point at a Tax Code deleted since.
+			ChangeSource: billing.ChangeSourceSystem,
 		})
 		if err != nil {
 			return fmt.Errorf("creating pending invoice lines: %w", err)

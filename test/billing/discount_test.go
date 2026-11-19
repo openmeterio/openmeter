@@ -91,8 +91,9 @@ func (s *DiscountsTestSuite) TestCorrelationIDHandling() {
 	s.Run("Creating new pending lines with discounts sets the correlationID", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -238,8 +239,9 @@ func (s *DiscountsTestSuite) TestFlatPriceUsageDiscountIsNotPersisted() {
 	// when:
 	// - the pending line is created
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: customerEntity.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     customerEntity.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			{
 				GatheringLineBase: billing.GatheringLineBase{
@@ -360,8 +362,9 @@ func (s *DiscountsTestSuite) TestUnitDiscountProgressiveBilling() {
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					GatheringLineBase: billing.GatheringLineBase{
@@ -572,8 +575,9 @@ func (s *DiscountsTestSuite) TestPercentageDiscountProgressiveCommitments() {
 			defer testFeature.Cleanup()
 
 			_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.USD),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					{
 						GatheringLineBase: billing.GatheringLineBase{

@@ -148,9 +148,12 @@ func (s *service) Create(ctx context.Context, input creditgrant.CreateInput) (cr
 		return creditpurchase.Charge{}, fmt.Errorf("build credit grant intent: %w", err)
 	}
 
+	// The grant's tax config was authored by the API caller in this request, so a
+	// deleted Tax Code ID is rejected before defaults are applied.
 	result, err := s.chargesService.Create(ctx, charges.CreateInput{
-		Namespace: input.Namespace,
-		Intents:   charges.NewCreateChargeIntents(intent),
+		Namespace:    input.Namespace,
+		Intents:      charges.NewCreateChargeIntents(intent),
+		ChangeSource: billing.ChangeSourceAPIRequest,
 	})
 	if err != nil {
 		return creditpurchase.Charge{}, fmt.Errorf("create credit grant charge: %w", err)

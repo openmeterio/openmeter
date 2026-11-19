@@ -143,8 +143,9 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedAmountDiscountsBillProgressiv
 			s.Require().NoError(err)
 			intent.Discounts = test.discounts
 			created, err := s.Charges.Create(ctx, charges.CreateInput{
-				Namespace: ns,
-				Intents:   charges.NewCreateChargeIntents(charges.NewChargeIntent(intent)),
+				ChangeSource: billing.ChangeSourceSystem,
+				Namespace:    ns,
+				Intents:      charges.NewCreateChargeIntents(charges.NewChargeIntent(intent)),
 			})
 			s.Require().NoError(err)
 			s.Require().Len(created, 1)
@@ -321,8 +322,9 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBilling() 
 
 	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -540,8 +542,9 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountGraduatedTiersSingleI
 
 	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -711,8 +714,9 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -875,8 +879,9 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -1136,8 +1141,9 @@ func (s *CreditThenInvoiceTestSuite) TestPercentageDiscountProgressiveBillingUsa
 
 	res, err := s.Charges.CreatePendingInvoiceLines(ctx,
 		billing.CreatePendingInvoiceLinesInput{
-			Customer: customerEntity.GetID(),
-			Currency: currencyx.FiatCode(currency.USD),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     customerEntity.GetID(),
+			Currency:     currencyx.FiatCode(currency.USD),
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				{
 					ManagedResource: models.NewManagedResource(models.ManagedResourceInput{

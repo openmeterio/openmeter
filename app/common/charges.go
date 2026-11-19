@@ -42,6 +42,7 @@ import (
 	ledgercollector "github.com/openmeterio/openmeter/openmeter/ledger/collector"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -388,6 +389,7 @@ func NewChargesService(
 	billingService billing.Service,
 	recognizerService recognizer.Service,
 	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	currencyResolver currencies.CurrencyResolver,
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
@@ -404,6 +406,7 @@ func NewChargesService(
 		BillingService:        billingService,
 		RecognizerService:     recognizerService,
 		TaxCodeService:        taxCodeService,
+		TaxCodeResolver:       taxCodeResolver,
 		CurrencyResolver:      currencyResolver,
 		CustomerService:       customerService,
 		SubscriptionService:   subscriptionService,
@@ -453,6 +456,7 @@ func newChargesRegistry(
 	accountService ledgeraccount.Service,
 	breakageService ledgerbreakage.Service,
 	taxCodeService taxcode.Service,
+	taxCodeResolver productcatalog.TaxCodeResolver,
 	currencyResolver currencies.CurrencyResolver,
 	currenciesService currencies.Service,
 	customerService customer.Service,
@@ -610,6 +614,7 @@ func newChargesRegistry(
 		billingService,
 		recognizerService,
 		taxCodeService,
+		taxCodeResolver,
 		currencyResolver,
 		customerService,
 		subscriptionService,

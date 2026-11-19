@@ -79,6 +79,10 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				},
 				Currency: currencyx.FiatCode(req.Currency),
 				Lines:    billing.NewCreatePendingInvoiceLines(lineEntities),
+
+				// API callers author the tax code references they send, so a deleted
+				// Tax Code ID is rejected.
+				ChangeSource: billing.ChangeSourceAPIRequest,
 			}, nil
 		},
 		func(ctx context.Context, request CreatePendingLineRequest) (CreatePendingLineResponse, error) {

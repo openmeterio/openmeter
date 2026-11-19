@@ -61,7 +61,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesReturnsEmptyForAlreadyActive
 	clock.SetTime(servicePeriod.From)
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -147,7 +148,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceFl
 	clock.SetTime(servicePeriod.From.Add(-time.Second))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -200,7 +202,8 @@ func (s *AdvanceChargesTestSuite) TestAdvanceChargesActivatesCreditThenInvoiceUs
 	clock.SetTime(servicePeriod.From.Add(-24 * time.Hour))
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
