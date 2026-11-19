@@ -1533,3 +1533,441 @@ func TestChannelTypeNormalizationMigration(t *testing.T) {
 		})
 	}
 }
+
+func TestChannelConfigNormalizationMigration(t *testing.T) {
+	env := newChannelTestEnv(t)
+	migrations := make(map[string]string)
+	for _, direction := range []string{"up", "down"} {
+		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+			migrate.OMMigrationsConfig.FSPath,
+			"20261118215856_notification_channel_config_normalization."+direction+".sql",
+		))
+		require.NoError(t, err)
+
+		migrations[direction] = string(migration)
+	}
+
+	t.Run("preserves channel state", func(t *testing.T) {
+		// given: both config formats in multiple namespaces, including inactive Channels
+		cases := []struct {
+			name               string
+			storedType         string
+			config             string
+			wantConfig         string
+			disabled           bool
+			deleted            bool
+			annotations        string
+			sqlNullAnnotations bool
+		}{
+			{
+				name:       "uppercase envelope and column",
+				storedType: "WEBHOOK",
+				config:     `{"type":"WEBHOOK","data":{"url":"https://example.com/hook?original=1","customHeaders":{"X-Team":"billing","signingSecret":"user header","X-Empty":""},"signingSecret":"original-secret"}}`,
+				wantConfig: `{"url":"https://example.com/hook?original=1","custom_headers":{"X-Team":"billing","signingSecret":"user header","X-Empty":""},"signing_secret":"original-secret"}`,
+			},
+			{
+				name:       "lowercase envelope and column",
+				config:     `{"type":"webhook","data":{"url":"https://example.com/hook","customHeaders":{"X-Team":"billing"},"signingSecret":"original-secret"}}`,
+				wantConfig: `{"url":"https://example.com/hook","custom_headers":{"X-Team":"billing"},"signing_secret":"original-secret"}`,
+			},
+			{
+				name:       "disabled with omitted optional fields",
+				config:     `{"type":"WEBHOOK","data":{"url":"https://example.com/hook"}}`,
+				wantConfig: `{"url":"https://example.com/hook"}`,
+				disabled:   true,
+			},
+			{
+				name:       "deleted with empty optional fields",
+				config:     `{"type":"WEBHOOK","data":{"url":"https://example.com/hook","customHeaders":{},"signingSecret":""}}`,
+				wantConfig: `{"url":"https://example.com/hook","custom_headers":{},"signing_secret":""}`,
+				disabled:   true,
+				deleted:    true,
+			},
+			{
+				name:       "null optional fields",
+				config:     `{"type":"WEBHOOK","data":{"url":"https://example.com/hook","customHeaders":null,"signingSecret":null}}`,
+				wantConfig: `{"url":"https://example.com/hook","custom_headers":null,"signing_secret":null}`,
+			},
+			{
+				name:       "null header value",
+				config:     `{"type":"WEBHOOK","data":{"url":"https://example.com/hook","customHeaders":{"X-Empty":null}}}`,
+				wantConfig: `{"url":"https://example.com/hook","custom_headers":{"X-Empty":null}}`,
+			},
+			{
+				name:   "flat config",
+				config: `{"url":"https://example.com/hook","custom_headers":{"X-Team":"billing"},"signing_secret":"original-secret"}`,
+			},
+			{
+				name:       "flat config with uppercase column",
+				storedType: "WEBHOOK",
+				config:     `{"url":"https://example.com/hook","custom_headers":{},"signing_secret":null}`,
+			},
+			{
+				name:       "unknown channel type",
+				storedType: "future_channel",
+				config:     `{"type":"future_channel","data":{"opaque":true}}`,
+			},
+			{
+				name:               "SQL null annotations",
+				config:             `{"type":"WEBHOOK","data":{"url":"https://example.com/hook"}}`,
+				wantConfig:         `{"url":"https://example.com/hook"}`,
+				sqlNullAnnotations: true,
+			},
+			{
+				name:        "JSON null annotations",
+				config:      `{"type":"WEBHOOK","data":{"url":"https://example.com/hook"}}`,
+				wantConfig:  `{"url":"https://example.com/hook"}`,
+				annotations: `null`,
+			},
+			{
+				name:        "empty annotations",
+				config:      `{"type":"WEBHOOK","data":{"url":"https://example.com/hook"}}`,
+				wantConfig:  `{"url":"https://example.com/hook"}`,
+				annotations: `{}`,
+			},
+			{
+				name:        "existing backup survives another legacy write",
+				config:      `{"type":"WEBHOOK","data":{"url":"https://example.com/hook"}}`,
+				wantConfig:  `{"url":"https://example.com/hook"}`,
+				annotations: `{"preserve":9007199254740993,"dbmigration.notification.channel.config.normalization.original":{"type":"WEBHOOK","data":{"url":"https://original.example.com"}}}`,
+			},
+		}
+
+		type channelSnapshot struct {
+			id               string
+			namespace        string
+			before           string
+			wantConfig       string
+			wantLegacyConfig string
+			wantAnnotations  string
+			xmin             string
+			config           notification.ChannelConfig
+			readable         bool
+			changed          bool
+		}
+
+		var snapshots []channelSnapshot
+		for range 2 {
+			namespace := ulid.Make().String()
+			for _, tc := range cases {
+				storedType := tc.storedType
+				if storedType == "" {
+					storedType = "webhook"
+				}
+
+				wantConfig := tc.wantConfig
+				if wantConfig == "" {
+					wantConfig = tc.config
+				}
+
+				var deletedAt *time.Time
+				if tc.deleted {
+					deletedAt = lo.ToPtr(time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC))
+				}
+
+				snapshot := channelSnapshot{
+					id:        ulid.Make().String(),
+					namespace: namespace,
+					readable:  storedType != "future_channel",
+					changed:   tc.wantConfig != "",
+				}
+				annotations := tc.annotations
+				if annotations == "" {
+					annotations = `{"preserve":9007199254740993}`
+				}
+
+				var storedAnnotations any = annotations
+				if tc.sqlNullAnnotations {
+					storedAnnotations = nil
+					annotations = `null`
+				}
+
+				var wantAnnotations map[string]json.RawMessage
+				require.NoError(t, json.Unmarshal([]byte(annotations), &wantAnnotations))
+
+				if snapshot.changed {
+					if wantAnnotations == nil {
+						wantAnnotations = make(map[string]json.RawMessage)
+					}
+
+					const backupKey = "dbmigration.notification.channel.config.normalization.original"
+					if _, exists := wantAnnotations[backupKey]; !exists {
+						wantAnnotations[backupKey] = json.RawMessage(tc.config)
+					}
+				}
+
+				encodedAnnotations, err := json.Marshal(wantAnnotations)
+				require.NoError(t, err)
+
+				legacyConfig := tc.config
+				if snapshot.readable {
+					var data map[string]json.RawMessage
+					require.NoError(t, json.Unmarshal([]byte(wantConfig), &data))
+
+					for current, legacy := range map[string]string{"custom_headers": "customHeaders", "signing_secret": "signingSecret"} {
+						if value, ok := data[current]; ok {
+							data[legacy] = value
+							delete(data, current)
+						}
+					}
+
+					encoded, err := json.Marshal(map[string]any{"type": "WEBHOOK", "data": data})
+					require.NoError(t, err)
+
+					legacyConfig = string(encoded)
+				}
+
+				err = env.sqlDB.QueryRowContext(t.Context(), `
+					INSERT INTO notification_channels AS c
+						(id, namespace, name, type, disabled, config, created_at, updated_at, deleted_at,
+						 metadata, annotations, event_type_filter, provider_data, generation, reconcile_status, reconcile_next_at)
+					VALUES ($1, $2, $3, $4, $5, $6, '2026-01-01T00:00:00Z', '2026-01-01T12:00:00Z', $7,
+						 '{"team":"billing"}', $9, '["v1.billing.invoice.created"]',
+						 '{"svix.endpoint_id":"ep_preserve"}', 7, 'pending', '2026-01-03T00:00:00Z')
+					RETURNING (to_jsonb(c) - 'config' - 'annotations')::text, xmin::text, $8::jsonb::text, $10::jsonb::text, $11::jsonb::text`,
+					snapshot.id, namespace, tc.name, storedType, tc.disabled, tc.config, deletedAt, wantConfig, storedAnnotations, string(encodedAnnotations), legacyConfig,
+				).Scan(&snapshot.before, &snapshot.xmin, &snapshot.wantConfig, &snapshot.wantAnnotations, &snapshot.wantLegacyConfig)
+				require.NoError(t, err)
+
+				if snapshot.readable {
+					channel, err := env.adapter.GetChannel(t.Context(), notification.GetChannelInput{Namespace: namespace, ID: snapshot.id})
+					require.NoError(t, err)
+
+					snapshot.config = channel.Config
+				}
+
+				snapshots = append(snapshots, snapshot)
+			}
+		}
+
+		for _, step := range []struct {
+			name      string
+			direction string
+		}{
+			{name: "upgrade", direction: "up"},
+			{name: "repeat upgrade", direction: "up"},
+			{name: "rollback", direction: "down"},
+			{name: "repeat rollback", direction: "down"},
+			{name: "upgrade after rollback", direction: "up"},
+			{name: "repeat upgrade after rollback", direction: "up"},
+		} {
+			t.Run(step.name, func(t *testing.T) {
+				// when: applying the actual migration, including repeated runs and rollback
+				_, err := env.sqlDB.ExecContext(t.Context(), migrations[step.direction])
+				require.NoError(t, err)
+
+				// then: legacy configs are backed up and flattened; settings and other fields stay unchanged
+				for i := range snapshots {
+					snapshot := &snapshots[i]
+					wantConfig := snapshot.wantConfig
+					if step.direction == "down" {
+						wantConfig = snapshot.wantLegacyConfig
+					}
+
+					if step.name == "upgrade after rollback" && snapshot.readable {
+						var annotations map[string]json.RawMessage
+						require.NoError(t, json.Unmarshal([]byte(snapshot.wantAnnotations), &annotations))
+
+						const backupKey = "dbmigration.notification.channel.config.normalization.original"
+						if _, exists := annotations[backupKey]; !exists {
+							annotations[backupKey] = json.RawMessage(snapshot.wantLegacyConfig)
+							encoded, err := json.Marshal(annotations)
+							require.NoError(t, err)
+
+							err = env.sqlDB.QueryRowContext(t.Context(), `SELECT $1::jsonb::text`, string(encoded)).Scan(&snapshot.wantAnnotations)
+							require.NoError(t, err)
+						}
+					}
+
+					var config, after, xmin, annotations string
+					err := env.sqlDB.QueryRowContext(t.Context(), `
+						SELECT config::text, (to_jsonb(c) - 'config' - 'annotations')::text, xmin::text, annotations::text
+						FROM notification_channels c WHERE id = $1`, snapshot.id,
+					).Scan(&config, &after, &xmin, &annotations)
+					require.NoError(t, err)
+
+					assert.Equal(t, wantConfig, config)
+					assert.Equal(t, snapshot.before, after)
+					assert.Equal(t, snapshot.wantAnnotations, annotations)
+
+					if (step.name == "upgrade" && snapshot.changed) ||
+						((step.name == "rollback" || step.name == "upgrade after rollback") && snapshot.readable) {
+						assert.NotEqual(t, snapshot.xmin, xmin)
+					} else {
+						assert.Equal(t, snapshot.xmin, xmin, "unchanged configs must not be rewritten")
+					}
+
+					snapshot.xmin = xmin
+					if snapshot.readable {
+						channel, err := env.adapter.GetChannel(t.Context(), notification.GetChannelInput{Namespace: snapshot.namespace, ID: snapshot.id})
+						require.NoError(t, err)
+
+						assert.Equal(t, snapshot.config, channel.Config)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("rollback preserves later edits and new channels", func(t *testing.T) {
+		// given: a migrated Channel is updated, and another Channel is created after the upgrade
+		namespace := ulid.Make().String()
+		updatedID := ulid.Make().String()
+		const original = `{"type":"WEBHOOK","data":{"url":"https://original.example.com","signingSecret":"original-secret"}}`
+		_, err := env.sqlDB.ExecContext(t.Context(), `
+			INSERT INTO notification_channels (id, namespace, name, type, config, created_at, updated_at)
+			VALUES ($1, $2, 'updated later', 'webhook', $3, NOW(), NOW())`, updatedID, namespace, original)
+		require.NoError(t, err)
+
+		_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
+		require.NoError(t, err)
+
+		const current = `{"url":"https://current.example.com","custom_headers":{"X-Team":"new-team"},"signing_secret":"rotated-secret"}`
+		_, err = env.sqlDB.ExecContext(t.Context(), `
+			UPDATE notification_channels SET config = $1, updated_at = NOW() WHERE id = $2`, current, updatedID)
+		require.NoError(t, err)
+
+		createdID := ulid.Make().String()
+		_, err = env.sqlDB.ExecContext(t.Context(), `
+			INSERT INTO notification_channels (id, namespace, name, type, config, annotations, created_at, updated_at)
+			VALUES ($1, $2, 'created later', 'webhook', $3, '{"keep":"new"}', NOW(), NOW())`, createdID, namespace, current)
+		require.NoError(t, err)
+
+		cases := []struct {
+			name   string
+			id     string
+			before string
+		}{
+			{name: "updated channel", id: updatedID},
+			{name: "new channel without backup", id: createdID},
+		}
+		for i := range cases {
+			err := env.sqlDB.QueryRowContext(t.Context(), `
+				SELECT (to_jsonb(c) - 'config')::text FROM notification_channels c WHERE id = $1`, cases[i].id).Scan(&cases[i].before)
+			require.NoError(t, err)
+		}
+
+		// when: rolling back, use the current config even if an older backup exists
+		_, err = env.sqlDB.ExecContext(t.Context(), migrations["down"])
+		require.NoError(t, err)
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				// then: the legacy representation keeps the latest URL, headers and rotated secret
+				var config, after string
+				err := env.sqlDB.QueryRowContext(t.Context(), `
+					SELECT config::text, (to_jsonb(c) - 'config')::text FROM notification_channels c WHERE id = $1`, tc.id).Scan(&config, &after)
+				require.NoError(t, err)
+
+				assert.JSONEq(t, `{"type":"WEBHOOK","data":{"url":"https://current.example.com","customHeaders":{"X-Team":"new-team"},"signingSecret":"rotated-secret"}}`, config)
+				assert.Equal(t, tc.before, after)
+			})
+		}
+
+		_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
+		require.NoError(t, err)
+
+		var converted int
+		err = env.sqlDB.QueryRowContext(t.Context(), `
+			SELECT COUNT(*) FROM notification_channels WHERE namespace = $1 AND config = $2::jsonb`, namespace, current).Scan(&converted)
+		require.NoError(t, err)
+
+		assert.Equal(t, 2, converted)
+
+		var backup string
+		err = env.sqlDB.QueryRowContext(t.Context(), `
+			SELECT (annotations->'dbmigration.notification.channel.config.normalization.original')::text
+			FROM notification_channels WHERE id = $1`, updatedID).Scan(&backup)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, original, backup)
+	})
+
+	t.Run("rejects malformed envelopes atomically", func(t *testing.T) {
+		cases := []struct {
+			name         string
+			config       string
+			repairConfig string
+		}{
+			{name: "missing discriminator", config: `{"data":{"url":"https://example.com"}}`},
+			{name: "unknown discriminator", config: `{"type":"email","data":{"url":"https://example.com"}}`},
+			{
+				name:         "missing data repaired as flat config",
+				config:       `{"type":"WEBHOOK"}`,
+				repairConfig: `{"url":"https://example.com","signing_secret":"must-stay-private"}`,
+			},
+			{name: "null data", config: `{"type":"WEBHOOK","data":null}`},
+			{name: "array data", config: `{"type":"WEBHOOK","data":[]}`},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				// given: a valid envelope is processed before an invalid one
+				namespace := ulid.Make().String()
+				_, err := env.sqlDB.ExecContext(t.Context(), `
+					INSERT INTO notification_channels (id, namespace, name, type, config, created_at, updated_at)
+					VALUES ('00000000000000000000000001', $1, 'valid', 'webhook',
+						'{"type":"WEBHOOK","data":{"url":"https://example.com","signingSecret":"must-stay-private"}}', NOW(), NOW()),
+						('00000000000000000000000002', $1, 'invalid', 'webhook', $2, NOW(), NOW())`, namespace, tc.config)
+				require.NoError(t, err)
+
+				defer func() {
+					_, err := env.sqlDB.ExecContext(t.Context(), `DELETE FROM notification_channels WHERE namespace = $1`, namespace)
+					require.NoError(t, err)
+				}()
+
+				var before string
+				err = env.sqlDB.QueryRowContext(t.Context(), `
+					SELECT jsonb_agg(to_jsonb(c) ORDER BY id)::text FROM notification_channels c WHERE namespace = $1`, namespace).Scan(&before)
+				require.NoError(t, err)
+
+				// when: migration encounters malformed data, it fails without exposing configs
+				_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
+				require.ErrorContains(t, err, "invalid channel config")
+
+				assert.Contains(t, err.Error(), namespace)
+				assert.Contains(t, err.Error(), "00000000000000000000000002")
+				assert.Contains(t, err.Error(), "table=notification_channels")
+				assert.Contains(t, err.Error(), "expected type WEBHOOK/webhook and an object-valued data field")
+				assert.Contains(t, err.Error(), "Repair this row's config")
+				assert.Contains(t, err.Error(), "customHeaders/signingSecret inside data")
+				assert.Contains(t, err.Error(), "flat config with url and optional custom_headers/signing_secret")
+				assert.Contains(t, err.Error(), "then rerun the migration")
+				assert.NotContains(t, err.Error(), tc.config)
+				assert.NotContains(t, err.Error(), "must-stay-private")
+
+				// then: earlier conversions and malformed rows are both preserved exactly
+				var after string
+				err = env.sqlDB.QueryRowContext(t.Context(), `
+					SELECT jsonb_agg(to_jsonb(c) ORDER BY id)::text FROM notification_channels c WHERE namespace = $1`, namespace).Scan(&after)
+				require.NoError(t, err)
+
+				assert.Equal(t, before, after)
+
+				// when: an operator repairs the identified row using either supported shape
+				repairConfig := tc.repairConfig
+				if repairConfig == "" {
+					repairConfig = `{"type":"WEBHOOK","data":{"url":"https://example.com","signingSecret":"must-stay-private"}}`
+				}
+
+				_, err = env.sqlDB.ExecContext(t.Context(), `
+					UPDATE notification_channels SET config = $1
+					WHERE namespace = $2 AND id = '00000000000000000000000002'`, repairConfig, namespace)
+				require.NoError(t, err)
+
+				_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
+				require.NoError(t, err)
+
+				// then: rerunning completes the conversion for both rows
+				var converted int
+				err = env.sqlDB.QueryRowContext(t.Context(), `
+					SELECT COUNT(*) FROM notification_channels
+					WHERE namespace = $1 AND config = '{"url":"https://example.com","signing_secret":"must-stay-private"}'::jsonb`,
+					namespace).Scan(&converted)
+				require.NoError(t, err)
+
+				assert.Equal(t, 2, converted)
+			})
+		}
+	})
+}
