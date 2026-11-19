@@ -112,7 +112,7 @@ Generate the token with `SVIX_JWT_SECRET=<signingSecret> svix-server jwt generat
 
 Each OpenMeter component reads its own `resources`, `nodeSelector`, `tolerations`, and `affinity` values. A component value replaces the equivalent chart-wide value. If you do not set a component value, the chart-wide value applies.
 
-The components are `api`, `balanceWorker`, `notificationService`, `sinkWorker`, `billingWorker`, `svix`, `jobs.subscriptionSync`, `jobs.billingCollectInvoices`, and `jobs.billingAdvanceInvoices`.
+The components are `api`, `balanceWorker`, `rte`, `notificationService`, `sinkWorker`, `billingWorker`, `svix`, `jobs.subscriptionSync`, `jobs.billingCollectInvoices`, and `jobs.billingAdvanceInvoices`.
 
 ```yaml
 # Chart-wide default for every component.
@@ -229,6 +229,7 @@ jobs:
 | api.nodeSelector | object | The chart-wide `nodeSelector` value. | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the API. |
 | api.tolerations | list | The chart-wide `tolerations` value. | [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the API. |
 | api.affinity | object | The chart-wide `affinity` value. | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the API. |
+| rte.replicaCount | int | `1` | Number of RTE worker replicas when config.rte.enabled is true. |
 | balanceWorker.replicaCount | int | `1` | Number of Balance Worker replicas (pods) to launch. |
 | balanceWorker.resources | object | The chart-wide `resources` value. | Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the Balance Worker. |
 | balanceWorker.nodeSelector | object | The chart-wide `nodeSelector` value. | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the Balance Worker. |

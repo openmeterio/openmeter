@@ -337,8 +337,8 @@ api:
   # @default -- The chart-wide `affinity` value.
   affinity: {}
 
-# RTE is deployed when config.rte.enabled is true.
 rte:
+  # -- Number of RTE worker replicas when config.rte.enabled is true.
   replicaCount: 1
 
 balanceWorker:

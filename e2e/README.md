@@ -26,17 +26,20 @@ its build inputs. Set the expected version to an empty string for an unversioned
 
 The opt-in RTE scenario runs against separate API and RTE processes. It creates grants
 over the API, publishes calculation requests to Kafka and reads the worker's stored
-results through the RTE client. From this directory:
+results through the RTE client. Run these commands from the `e2e` directory in the
+repository's development shell.
 
 ```sh
 export OPENMETER_E2E_EXTRA_COMPOSE_FILES="-f docker-compose.rte.yaml"
 make env-local-up
+make wait-local
 make test-rte
 make env-local-down
 ```
 
 The overlay enables RTE and exposes the local Kafka broker at `localhost:39092`.
-Only `test-rte` enables the `rte_e2e` build tag.
+The default suite omits the `rte_e2e` build tag. For service-backed tests and the worker
+scenario that also exercises metered entitlements and late usage, see the [RTE test guide](../test/rte/README.md).
 
 ## Benchmarks
 

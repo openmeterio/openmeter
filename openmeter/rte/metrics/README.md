@@ -61,28 +61,27 @@ while queue drops and failed delivery reduce coverage.
 
 ## Reading the performance comparison
 
-See [live-trial setup](../README.md#comparing-performance-on-live-traffic) for
-sampling and activation. A shadow `read` times `EnsureFresh + Get`; `calculate`
-times an explicit calculation including storage and update enqueueing.
+Each successful replay records two durations with the same kind and operation. The direct
+sample is the original operation's elapsed time. The RTE sample measures the worker's replay.
+A read includes `EnsureFresh` and `Get`. A calculation includes storage and enqueueing an
+accepted update. The worker discards the value after timing the operation.
+[Sampling and trial setup](../README.md#comparing-performance-on-live-traffic)
 
-- Compare `rte.comparison.duration` by the same `kind`, `operation` and time window.
-  Each successful replay records one sample per variant. Failed or expired replays
-  contribute no pair. Use histogram sum/count for means; compare p95s per operation.
-- Check producer publications, worker execution outcomes and replay lag alongside
-  timings. Observations expire after one minute; Kafka redelivery can repeat a
-  sample. Lost source facts or a backlog can inflate apparent cache reuse.
-- Split `rte.demand.ensure_fresh.duration` by outcome to separate reuse from refresh
-  costs. Calculation and state-read durations explain parts of the paired RTE
-  measurement; they overlap it and must not be added to it.
-- These timings begin after the balance key is known. HTTP handling, currency or
-  entitlement lookup, Kafka lag and asynchronous outbox delivery are outside the
-  comparison. Source routing is additional work measured separately. Check API
-  latency and database/ClickHouse load too: shadow traffic adds work and shares
-  caches with the existing path.
+- Compare the two variants for the same kind, operation and time window. Use histogram sum
+  divided by count for means, or compare latency percentiles separately for reads and calculations.
+- Check publication drops, replay errors, expiry and lag alongside latency. Failed or expired
+  replays contribute no timing pair. Redelivery can repeat a sample. Missed source events can
+  make reuse look cheaper because RTE never learned that the inputs changed.
+- To explain a slow read, split `rte.demand.ensure_fresh.duration` by outcome. To explain
+  delayed background updates, compare `rte.demand.queue_wait.duration` with
+  `rte.demand.processing.duration`. Only claimed work contributes to the latter two histograms,
+  so an idle or stopped worker produces no evidence about outstanding queue age.
+- Product HTTP handling, entitlement or currency lookup, Kafka lag and asynchronous update
+  delivery fall outside the paired timings. Check API latency and database and ClickHouse load
+  separately. The trial runs both paths and they share infrastructure.
 
-For time saved across the observed sampled operation mix, compare the paired
-histogram sums. A negative value means RTE took longer. This is not total-system
-savings or a forecast for a different read/calculation mix.
+This query gives the percentage reduction in timed work for each kind, weighted by the mix
+of successfully replayed operations in the last hour. Negative values mean RTE took longer.
 
 ```promql
 100 * (1 -

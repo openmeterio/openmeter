@@ -13,3 +13,7 @@ against a 100-unit grant can yield a balance of 75 and usage of 25. Persisting o
 A stored result has its own RTE calculation timestamp. The domain engine rounds the supplied
 instant when evaluating usage. A newer stored timestamp can therefore describe the same usage
 minute as the previous result.
+
+RTE can read the engine’s existing snapshots and suppresses snapshot writes during its own
+calculations. Late usage that predates a snapshot follows the same rules as a direct balance
+read. Recalculating RTE state does not rebuild the entitlement’s snapshot history.

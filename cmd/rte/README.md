@@ -1,7 +1,10 @@
 # Running the RTE worker
 
-Build the executable from the repository root and validate the deployment configuration before
-starting it.
+RTE is disabled by default. A disabled worker exits before opening connections or running
+migrations. To run it, enable both `rte.enabled` and `credits.enabled` in the configuration.
+Use distinct Kafka topics for system events and stored-usage notifications.
+
+From the repository root, build the worker, validate the configuration, then start it.
 
 ```sh
 make build-rte
@@ -9,27 +12,21 @@ make build-rte
 ./build/rte --config config.yaml
 ```
 
-RTE defaults to disabled. The command then exits before opening connections or running migrations.
-With `rte.enabled: true`, `--validate` checks the configuration and requires `credits.enabled`. Startup initializes the
-domain services for both calculators, runs the configured migrations, and starts the Kafka worker
-and telemetry server. If either fails, the command exits with a nonzero status.
-The two source topics must have different names. The worker drains its own calculation updates
-from the shared outbox. Other system events continue through their usual publishers. Delivery limits and retries use the
-[outbox configuration](../../openmeter/watermill/outbox/README.md).
+Startup runs the configured migrations and starts message consumption, demand processing and
+the telemetry server. An unexpected worker or listener failure causes a nonzero exit.
+Individual message and calculation failures follow their respective retry policies.
 
-| Setting | Effect |
+| Setting | What to tune |
 | --- | --- |
-| `events.systemEvents.topic`, `events.ingestEvents.topic` | Inputs for calculation requests, domain facts and stored-usage notifications |
-| `rte.consumerGroupName` | Kafka group shared by RTE replicas, default `om_rte` |
-| `rte.retry`, `rte.dlq` | Message-processing retries and dead lettering. With `rte.dlq.enabled: false`, failed deliveries return to Kafka for redelivery after retries. |
-| `rte.pollInterval` | Wait per idle background slot after an empty or failed claim, default 1s |
-| `rte.calculationConcurrency` | Background calculation slots per process, default 4; does not limit message-handler calculations |
-| `rte.calculationTimeout` | Time budget for one demand calculation, default 30s |
-| `rte.enabled` | Starts the worker and enables shadow observations and source facts on participating processes. The Helm chart uses `config.rte.enabled` to deploy the worker. |
-| `rte.shadowSamplePercent` | Percentage of balance keys observed on the API and balance workers (1–100, default 10). |
+| `rte.consumerGroupName` | Kafka group shared by replicas. Defaults to `om_rte`. |
+| `rte.retry`, `rte.dlq` | Retries and dead lettering for message handlers. With the DLQ disabled, failed messages remain eligible for broker redelivery after retries. |
+| `rte.pollInterval` | Delay after an idle background slot finds no work or fails to claim it. Defaults to 1s. |
+| `rte.calculationConcurrency` | Background slots per process. Defaults to 4. Message handlers can calculate concurrently with those slots. |
+| `rte.calculationTimeout` | Time budget for an individual demand calculation. Defaults to 30s. |
+| `rte.shadowSamplePercent` | Percentage of balance keys sampled by producers during the trial. Accepts 1–100 and defaults to 10. |
 
-On the telemetry listener, `/healthz/subscriptions` reports Kafka subscription status for both
-topics. Use the [framework metrics](../../openmeter/rte/README.md) to distinguish a healthy
-subscription from actual source routing and successful calculations. The
-[local process test](../../test/rte/README.md) exercises the compiled worker with PostgreSQL,
-Kafka and ClickHouse.
+The Helm chart deploys the worker when `config.rte.enabled` is true. On its telemetry listener,
+`/healthz/subscriptions` reports whether it has subscribed to both topics. Use the routing and
+calculation metrics to see whether keys are being refreshed. Calculation updates use the shared
+outbox and its delivery policy. [Metrics](../../openmeter/rte/metrics/README.md#instruments) ·
+[Outbox delivery](../../openmeter/watermill/outbox/README.md)

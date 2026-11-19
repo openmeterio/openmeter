@@ -1,51 +1,40 @@
-# RTE tests
+# RTE integration tests
 
-The ordinary suite uses PostgreSQL with service-backed billing/ledger fixtures.
-The optional live test starts the production RTE executable as a separate process,
-with real Kafka and ClickHouse. It checks background refresh for both balances, reuse of stored
-results, targeted ledger updates, late usage, rating reuse and source redelivery.
-It only accepts loopback services and creates isolated PostgreSQL/ClickHouse
-databases, Kafka topics, consumer group and telemetry port.
+Run these commands from the repository root with Docker Compose and the repository's Go
+toolchain. To enter the development shell, run `nix develop --impure .#ci` once.
 
-## Running locally
-
-Run the service-backed suite with PostgreSQL available. The event pipeline tests
-exercise the real router and transactional outbox with in-memory message transport.
+## PostgreSQL integration suite
 
 ```sh
-POSTGRES_HOST=127.0.0.1 nix develop --impure .#ci -c go test -tags=dynamic ./test/rte -run '^TestRTEIntegration$' -count=1
+docker compose up -d --wait postgres
+POSTGRES_HOST=127.0.0.1 go test -tags=dynamic ./test/rte -count=1
 ```
 
-To run the separate-process scenario, execute these commands from the repository
-root:
+This exercises persisted balances, demand tracking and transactional update delivery. The
+event pipeline uses the production router and outbox with in-memory message transport.
+The separate-process test skips unless both environment variables below are set.
+
+## Worker process with Kafka and ClickHouse
 
 ```sh
-docker compose up -d postgres kafka clickhouse
-nix develop --impure .#ci -c make build-rte
+docker compose up -d --wait postgres kafka clickhouse
+make build-rte
 POSTGRES_HOST=127.0.0.1 \
   RTE_E2E_BINARY="$PWD/build/rte" \
   RTE_E2E_CONFIG="$PWD/test/rte/live.yaml" \
-  nix develop --impure .#ci -c go test -tags=dynamic ./test/rte -run '^TestRTELiveProcess$' -count=1 -v
+  go test -tags=dynamic ./test/rte -run '^TestRTELiveProcess$' -count=1 -v
 ```
 
-Run the two Nix commands sequentially. The test prints its child process log path.
-On failure it preserves that log and the generated configuration in a temporary
-directory. Fixture setup uses the real domain services. Usage is inserted through
-the ClickHouse connector, followed by the sink's ingest notification on Kafka.
-The test begins at the stored-usage notification boundary.
+The test starts the compiled worker, creates isolated databases and Kafka topics, then drives
+it through the RTE client. Its inputs must be local. On failure, the test keeps the worker log
+and generated configuration in the temporary directory printed in the test output.
 
-## What the process test observes
+The scenario starts with 100 credits and a 100-unit entitlement. Repeated product reads exercise
+a fresh calculation and a cache hit. Adding 25 credits changes the credit balance alone. Then
+25 units of late usage, priced at one credit per unit, bring live credit to 100 and entitlement
+balance to 75. The test inserts usage through the ClickHouse connector and publishes the sink's
+stored-usage notification. Redelivery must increment the duplicate counter without another
+calculation. [Process test](live_process_test.go)
 
-| Step | Observable result |
-| --- | --- |
-| Read the same credit balance twice through the product facade | The worker records two matching timing pairs, one recalculation, one cache hit, and two stored-state reads. |
-| Activate a credit key and a metered entitlement key | The worker persists each initial balance. |
-| Request a fresh credit balance | The count for `operation="pull"`, `outcome="cache_hit"` increases and the stored timestamp stays the same. |
-| Fund the customer with another 25 credits | Credit live balance reaches 125, rating records a reuse hit, and the metered timestamp stays the same. |
-| Store 25 units of late usage and deliver the ingest notification | Credit stays booked at 125 and live falls to 100. Metered usage reaches 25 and the remaining entitlement balance falls to 75. |
-| Redeliver the same CloudEvent | The duplicate metric increments. The calculation count and both stored states stay the same. |
-
-The duplicate assertion waits for acknowledgement through the worker’s metric
-before checking the counts. This distinguishes successfully suppressed work
-from a message the worker has yet to process. For rollback, failed enqueue and
-equal or older attempts, see the [transaction tests](event_transaction_test.go).
+For the opt-in Compose test that creates grants through the product API and reads the worker's
+result through the client, see [RTE client e2e](../../e2e/README.md#rte-client).

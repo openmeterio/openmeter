@@ -19,7 +19,4 @@ be accepted. An update means RTE stored a calculation, even if its numeric value
 successful read. Call [the demand service](../demand/README.md) to require freshness or coalesce
 work. An explicit calculation does not start tracking the key or complete pending work for it.
 
-The execution counter and duration histogram distinguish `updated`, `superseded` and `failed`.
-Duration includes domain work and storing/enqueuing the result. The separate read counter
-distinguishes `hit`, `missing` and `failed`. These labels let operators distinguish expensive
-attempts from accepted writes and plain reads.
+For calculation and read timings, see the [metric reference](../metrics/README.md#instruments).

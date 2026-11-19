@@ -23,3 +23,7 @@ The result contains the domain calculator’s four decimal amounts, `Booked`, `S
 and `Pending`. The calculation time belongs to the enclosing RTE state. See
 [customer credit balance semantics](../../ledger/customerbalance/README.md) for allocation,
 advance debt and the difference between amounts.
+
+RTE requests a current calculation so live usage is included. Each run reads fresh usage.
+When the quantity and pricing inputs for an open charge are identical, the calculator can
+reuse its previous rating total. [Per-charge rating cache](../../billing/charges/usagebased/service/rating/README.md)

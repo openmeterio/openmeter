@@ -34,4 +34,5 @@ transaction as those effects. A command may be consumed before the mutation it r
 happened. Return no selectors when there are no candidates. A selector with just a namespace and
 kind marks **every active key** of that kind. Keep emission coverage explicit. For example, the
 billing [charge input event](../../billing/charges/README.md) covers root creates and patches.
-Time-dependent changes need a refresh policy even when no source fact arrives.
+For a balance that can change with time alone, a finite `MaxAge` on `EnsureFresh` bounds reuse
+at the next read. Activated keys have no periodic refresh.
