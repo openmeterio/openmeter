@@ -182,19 +182,6 @@
             ];
 
             env = {
-              # Go's action cache does not include Nix store identities in its linker key. Include
-              # both the complete Go output and runtime-loader store basenames so neither a Go
-              # rebuild nor a stdenv/glibc update can reuse link results from another generation.
-              GOCACHE =
-                let
-                  goToolchainID = builtins.baseNameOf (toString config.devenv.shells.default.languages.go.package);
-                  runtimeLinkerID =
-                    if pkgs.stdenv.hostPlatform.isLinux then
-                      builtins.elemAt (builtins.match "/nix/store/([^/]+)/.*" pkgs.stdenv.cc.bintools.dynamicLinker) 0
-                    else
-                      "native";
-                in
-                "${config.devenv.shells.default.env.DEVENV_STATE}/go/build-cache/${goToolchainID}/${runtimeLinkerID}";
               KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
               KIND_CLUSTER_NAME = "openmeter";
 
@@ -208,25 +195,50 @@
               GO_LDSO = pkgs.stdenv.cc.bintools.dynamicLinker;
             };
 
-            enterShell = ''
-              # Share downloaded modules across worktrees; keep GOPATH and build artifacts local.
-              export GOMODCACHE="$HOME/go/pkg/mod"
+            enterShell =
+              let
+                # Go's action cache does not include Nix store identities in its linker key. Include
+                # both the complete Go output and runtime-loader store basenames so neither a Go
+                # rebuild nor a stdenv/glibc update can reuse link results from another generation.
+                goToolchainID = builtins.baseNameOf (toString config.devenv.shells.default.languages.go.package);
+                runtimeLinkerID =
+                  if pkgs.stdenv.hostPlatform.isLinux then
+                    builtins.elemAt (builtins.match "/nix/store/([^/]+)/.*" pkgs.stdenv.cc.bintools.dynamicLinker) 0
+                  else
+                    "native";
+              in
+              ''
+                # Share downloaded modules and the build cache across worktrees; keep GOPATH local.
+                # A cache per worktree is never trimmed once the worktree goes idle, so they pile up.
+                export GOMODCACHE="$HOME/go/pkg/mod"
+                export GOCACHE="$HOME/go/cache/${goToolchainID}/${runtimeLinkerID}"
 
-              ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
-                # Workaround for XCBUILD.XCRUN cosmetic issue due to incompatible plists (see https://github.com/NixOS/nixpkgs/issues/376958)
-                # 1) Filter out the buggy Nix version of xcbuild/xcrun from PATH
-                export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "xcbuild" | tr '\n' ':')
+                # Go only trims the cache it is using, so a toolchain nobody enters any more keeps
+                # its cache forever. Stamp ours on every entry and point out the ones left behind.
+                mkdir -p "$GOCACHE"
+                touch "$HOME/go/cache/${goToolchainID}/.last-used"
+                stale_go_caches="$(find "$HOME/go/cache" -mindepth 2 -maxdepth 2 -name .last-used -mtime +30 -exec dirname {} \; 2>/dev/null)"
+                if [ -n "$stale_go_caches" ]; then
+                  echo "Go caches older than 30d found, please remove them by executing:" >&2
+                  printf '%s\n' "$stale_go_caches" | sed 's/.*/  rm -rf "&"/' >&2
+                fi
+                unset stale_go_caches
 
-                # 2) Force the system to use the Apple SDK path if needed
-                unset DEVELOPER_DIR
-                # End of workaround
-              ''}
+                ${lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
+                  # Workaround for XCBUILD.XCRUN cosmetic issue due to incompatible plists (see https://github.com/NixOS/nixpkgs/issues/376958)
+                  # 1) Filter out the buggy Nix version of xcbuild/xcrun from PATH
+                  export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "xcbuild" | tr '\n' ':')
 
-              # Keep GitHub-hosted jobs aligned with the Nix shell.
-              node -v > .nvmrc
-              go env GOVERSION | sed 's/^go//' > .go-version
-              printf 'v%s\n' "$(golangci-lint version --short)" > .golangci.version
-            '';
+                  # 2) Force the system to use the Apple SDK path if needed
+                  unset DEVELOPER_DIR
+                  # End of workaround
+                ''}
+
+                # Keep GitHub-hosted jobs aligned with the Nix shell.
+                node -v > .nvmrc
+                go env GOVERSION | sed 's/^go//' > .go-version
+                printf 'v%s\n' "$(golangci-lint version --short)" > .golangci.version
+              '';
 
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
             containers = pkgs.lib.mkForce { };
