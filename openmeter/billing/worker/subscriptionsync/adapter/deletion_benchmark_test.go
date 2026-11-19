@@ -39,7 +39,7 @@ INSERT INTO subscriptions
     (id, namespace, customer_id, created_at, updated_at, deleted_at, active_from,
      name, currency, billing_anchor, billing_cadence, pro_rating_config, settlement_mode, cost_basis_mode)
 SELECT lpad(i::text, 26, '0'), 'bench-' || ((i-1) % 10), lpad((((i-1) % 100)+1)::text, 26, '0'),
-       '2025-01-01'::timestamptz + ((i-1)/10) * interval '1 second',
+       '2025-01-01T00:00:00Z'::timestamptz + ((i-1)/10) * interval '1 second',
        '2026-01-01'::timestamptz,
        CASE WHEN ((i-1)/100) % 5 != 0 THEN '2026-01-01'::timestamptz END,
        '2025-01-01'::timestamptz, 'Synthetic subscription ' || i, 'USD',
@@ -68,8 +68,10 @@ FROM generate_series(1, 200000) AS i`)
 			require.NoError(b, err)
 			_, err = db.ExecContext(ctx, `
 INSERT INTO subscription_sync_states_v2
-    (id, namespace, subscription_id, created_at, updated_at, last_success_at, last_success_state)
-SELECT id, namespace, id, '2026-01-01', '2026-01-01', '2026-01-01', 'subscription_deleted'
+    (id, namespace, subscription_id, created_at, updated_at, last_success_at, last_success_state,
+     last_synced_subs_revision, current_subs_revision)
+SELECT id, namespace, id, '2026-01-01', '2026-01-01', '2026-01-01', 'subscription_deleted',
+       lpad('1', 26, '0'), lpad('1', 26, '0')
 FROM (
     SELECT id, namespace, row_number() OVER (ORDER BY md5(id)) AS position
     FROM subscriptions WHERE deleted_at IS NOT NULL

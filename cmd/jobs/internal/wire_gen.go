@@ -553,7 +553,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	reconciler, err := common.NewBillingSubscriptionReconciler(logger, subscriptionServiceWithWorkflow, serviceService, customerService)
+	reconciler, err := common.NewBillingSubscriptionReconciler(logger, serviceService)
 	if err != nil {
 		cleanup8()
 		cleanup7()

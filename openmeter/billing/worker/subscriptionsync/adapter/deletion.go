@@ -13,37 +13,36 @@ import (
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
-func (a *adapter) ListDeletedSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
+func (a *adapter) ListDeletedSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 	if err := input.Validate(); err != nil {
-		return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("validating deleted subscription list: %w", err)
+		return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("validating deleted subscription list: %w", err)
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (paginationv2.Result[models.NamespacedID], error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 		query, args := DeletedSubscriptionsToReconcileQuery(tx.db.GetConfig().Driver.Dialect(), input)
 		rows, err := tx.db.QueryContext(ctx, query, args...)
 		if err != nil {
-			return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("listing deleted subscriptions awaiting reconciliation: %w", err)
+			return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("listing deleted subscriptions awaiting reconciliation: %w", err)
 		}
 
 		defer func() { _ = rows.Close() }()
 
-		result := paginationv2.Result[models.NamespacedID]{Items: []models.NamespacedID{}}
+		result := paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{Items: []subscriptionsync.SubscriptionToReconcile{}}
 		var lastCreatedAt time.Time
 		for rows.Next() {
-			var id models.NamespacedID
-			if err := rows.Scan(&id.ID, &id.Namespace, &lastCreatedAt); err != nil {
-				return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("scanning deleted subscription: %w", err)
+			var item subscriptionsync.SubscriptionToReconcile
+			if err := rows.Scan(&item.ID, &item.Namespace, &item.CustomerID, &lastCreatedAt); err != nil {
+				return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("scanning deleted subscription: %w", err)
 			}
 
-			result.Items = append(result.Items, id)
+			result.Items = append(result.Items, item)
 		}
 
 		if err := rows.Err(); err != nil {
-			return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("iterating deleted subscriptions: %w", err)
+			return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("iterating deleted subscriptions: %w", err)
 		}
 
 		if len(result.Items) == input.Limit {
@@ -67,6 +66,15 @@ func (a *adapter) ListDeletedSubscriptionsToReconcile(ctx context.Context, input
 func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (string, []any) {
 	completed := []predicate.SubscriptionSyncStateV2{
 		subscriptionsyncstatev2.LastSuccessStateEQ(subscriptionsync.SyncStateV2StateSubscriptionDeleted),
+		// Subscription IDs are globally unique, but a cleanup record must also match
+		// the namespace. One from another namespace counts as missing, as it does
+		// for non-deleted subscriptions.
+		func(state *sql.Selector) {
+			state.Where(sql.ColumnsEQ(
+				state.C(subscriptionsyncstatev2.FieldNamespace),
+				sql.Table(dbsubscription.Table).C(dbsubscription.FieldNamespace),
+			))
+		},
 	}
 	if len(input.Namespaces) > 0 {
 		// A namespace-scoped worker must not scan every tenant's cleanup records.
@@ -77,6 +85,7 @@ func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync
 	query := sql.Dialect(dialect).Select(
 		sub.C(dbsubscription.FieldID),
 		sub.C(dbsubscription.FieldNamespace),
+		sub.C(dbsubscription.FieldCustomerID),
 		sub.C(dbsubscription.FieldCreatedAt),
 	).From(sub)
 	dbsubscription.DeletedAtNotNil()(query)

@@ -77,8 +77,6 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	// Acknowledge what was read after locking, not a revision changed during planning.
 	require.Equal(t, lockedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
 	require.Equal(t, 1, syncAdapter.getStatesV2Calls)
-	require.Len(t, syncAdapter.upserts, 1)
-	require.False(t, syncAdapter.upserts[0].HasBillables)
 }
 
 func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
@@ -126,10 +124,93 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 	require.Zero(t, billingService.getLinesCalls)
 	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.False(t, reconciler.planCalled)
-	require.Empty(t, syncAdapter.upserts)
 	require.Len(t, syncAdapter.recordedResultsV2, 1)
 	require.Equal(t, subscriptionsync.SyncStateV2StateTooOld, syncAdapter.recordedResultsV2[0].LastSuccessState)
 	require.Equal(t, observedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
+}
+
+func TestSyncEventSkipsSubscriptionSyncedSinceSelection(t *testing.T) {
+	selectedAt := time.Now().Add(-time.Hour)
+	// An end this old takes the cheapest sync path: it only records the skipped
+	// result, which shows whether the sync went ahead.
+	end := time.Now().Add(-31 * 24 * time.Hour)
+
+	for _, tc := range []struct {
+		name          string
+		lastSuccessAt time.Time
+		changedSince  bool
+		// skipIfSyncedSince is what the event carries.
+		skipIfSyncedSince *time.Time
+		wantSynced        bool
+	}{
+		{
+			name:              "another sync succeeded after selection",
+			lastSuccessAt:     selectedAt.Add(time.Minute),
+			skipIfSyncedSince: &selectedAt,
+		},
+		{
+			name:              "the subscription changed after that sync",
+			lastSuccessAt:     selectedAt.Add(time.Minute),
+			changedSince:      true,
+			skipIfSyncedSince: &selectedAt,
+			wantSynced:        true,
+		},
+		{
+			name:              "the last sync predates selection",
+			lastSuccessAt:     selectedAt.Add(-time.Minute),
+			skipIfSyncedSince: &selectedAt,
+			wantSynced:        true,
+		},
+		{
+			name:          "the event carries no selection time",
+			lastSuccessAt: selectedAt.Add(time.Minute),
+			wantSynced:    true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: a subscription with a recorded sync
+			sub := subscription.Subscription{
+				NamespacedID: models.NamespacedID{Namespace: "namespace", ID: "subscription-id"},
+				CustomerId:   "customer-id",
+			}
+			sub.ActiveTo = &end
+			state := subscriptionsync.SyncStateV2{
+				LastSuccessState:       subscriptionsync.SyncStateV2StateTooOld,
+				LastSuccessAt:          &tc.lastSuccessAt,
+				LastSyncedSubsRevision: ulid.Make().String(),
+			}
+			state.CurrentSubsRevision = state.LastSyncedSubsRevision
+			if tc.changedSince {
+				state.CurrentSubsRevision = ulid.Make().String()
+			}
+
+			syncAdapter := &subscriptionSyncAdapterSpy{statesV2: []subscriptionsync.SyncStateV2Managed{{SyncStateV2: state}}}
+			billingService := &billingServiceSpy{}
+			service := &Service{
+				billingService:          billingService,
+				reconciler:              &syncReconcilerSpy{},
+				subscriptionService:     &subscriptionServiceSpy{view: subscription.SubscriptionView{Subscription: sub}},
+				subscriptionSyncAdapter: syncAdapter,
+				logger:                  testutils.NewDiscardLogger(t),
+				tracer:                  noop.NewTracerProvider().Tracer("test"),
+			}
+
+			// when: the periodic sync event for it is handled
+			err := service.HandleSubscriptionSyncEvent(t.Context(), &subscription.SubscriptionSyncEvent{
+				Subscription:      sub,
+				SkipIfSyncedSince: tc.skipIfSyncedSince,
+			})
+
+			// then: it is synced unless another sync already covered this selection
+			require.NoError(t, err)
+			require.True(t, billingService.withLockCalled, "the decision is made under the billing lock")
+			if tc.wantSynced {
+				require.Len(t, syncAdapter.recordedResultsV2, 1)
+			} else {
+				require.Empty(t, syncAdapter.recordedResultsV2)
+			}
+		})
+	}
 }
 
 type billingServiceSpy struct {
@@ -198,7 +279,6 @@ func (s *subscriptionServiceSpy) GetView(context.Context, models.NamespacedID) (
 
 type subscriptionSyncAdapterSpy struct {
 	subscriptionsync.Adapter
-	upserts           []subscriptionsync.UpsertSyncStateInput
 	recordedResultsV2 []subscriptionsync.RecordSyncResultV2Input
 	statesV2          []subscriptionsync.SyncStateV2Managed
 	getStatesV2Calls  int
@@ -207,11 +287,6 @@ type subscriptionSyncAdapterSpy struct {
 func (s *subscriptionSyncAdapterSpy) GetSyncStatesV2(context.Context, subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
 	s.getStatesV2Calls++
 	return s.statesV2, nil
-}
-
-func (s *subscriptionSyncAdapterSpy) UpsertSyncState(_ context.Context, input subscriptionsync.UpsertSyncStateInput) error {
-	s.upserts = append(s.upserts, input)
-	return nil
 }
 
 func (s *subscriptionSyncAdapterSpy) RecordSyncResultV2(_ context.Context, input subscriptionsync.RecordSyncResultV2Input) error {

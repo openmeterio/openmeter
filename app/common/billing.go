@@ -385,12 +385,10 @@ func NewBillingCollector(logger *slog.Logger, billingRegistry BillingRegistry, f
 	})
 }
 
-func NewBillingSubscriptionReconciler(logger *slog.Logger, subsServices SubscriptionServiceWithWorkflow, subscriptionSync *subscriptionsyncservice.Service, customerService customer.Service) (*reconciler.Reconciler, error) {
+func NewBillingSubscriptionReconciler(logger *slog.Logger, subscriptionSync *subscriptionsyncservice.Service) (*reconciler.Reconciler, error) {
 	return reconciler.NewReconciler(reconciler.ReconcilerConfig{
-		SubscriptionService: subsServices.Service,
-		SubscriptionSync:    subscriptionSync,
-		Logger:              logger,
-		CustomerService:     customerService,
+		SubscriptionSync: subscriptionSync,
+		Logger:           logger,
 	})
 }
 

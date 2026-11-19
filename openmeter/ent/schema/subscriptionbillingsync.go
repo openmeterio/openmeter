@@ -10,6 +10,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
+// TODO: drop this table (subscription_billing_sync_states). Periodic subscription
+// sync schedules from SubscriptionSyncStateV2 and no longer reads or writes it;
+// it only stays until no deployed version uses it.
 type SubscriptionBillingSyncState struct {
 	ent.Schema
 }

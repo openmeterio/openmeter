@@ -1320,3 +1320,31 @@ func (s *SuiteBase) getSyncStateV2(subscriptionID models.NamespacedID) subscript
 
 	return states[0]
 }
+
+// requireActiveDeadline checks the persisted result against the expected calendar
+// period. Subsequent syncs use the returned deadline, including its random offset.
+func (s *SuiteBase) requireActiveDeadline(subscriptionID models.NamespacedID, period timeutil.ClosedPeriod) time.Time {
+	s.T().Helper()
+	state := s.getSyncStateV2(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	s.Equal(lo.ToPtr(clock.Now().UTC()), state.LastSuccessAt)
+	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
+	s.Require().NotNil(state.NextReconciliationAt)
+	duration := period.To.Sub(period.From)
+	s.Require().False(state.NextReconciliationAt.Before(period.From.Add(duration*80/100)), "deadline %s is before the 80%% point of %v", state.NextReconciliationAt, period)
+	s.Require().False(state.NextReconciliationAt.After(period.From.Add(duration*95/100)), "deadline %s is after the 95%% point of %v", state.NextReconciliationAt, period)
+	s.Require().True(state.NextReconciliationAt.After(clock.Now()), "next sync must advance the clock")
+
+	return *state.NextReconciliationAt
+}
+
+// requireUnscheduled checks that the sync that just ran recorded the given state
+// without a next reconciliation deadline. Only active results are scheduled.
+func (s *SuiteBase) requireUnscheduled(subscriptionID models.NamespacedID, want subscriptionsync.SyncStateV2State) {
+	s.T().Helper()
+	state := s.getSyncStateV2(subscriptionID)
+	s.Equal(want, state.LastSuccessState)
+	s.Equal(lo.ToPtr(clock.Now().UTC()), state.LastSuccessAt)
+	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
+	s.Nil(state.NextReconciliationAt)
+}
