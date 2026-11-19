@@ -393,24 +393,24 @@ func NewChargesService(
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
 	fsNamespaceLockdown []string,
-	inputChangePublisher eventbus.AfterCommitPublisher,
+	customerChargesChangedPublisher eventbus.AfterCommitPublisher,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
-		InputChangePublisher:  inputChangePublisher,
-		Logger:                logger,
-		Adapter:               rootAdapter,
-		MetaAdapter:           metaAdapter,
-		FeatureMeterResolver:  featureMeterResolver,
-		FlatFeeService:        flatFeeSvc,
-		CreditPurchaseService: creditPurchaseSvc,
-		UsageBasedService:     usageBasedSvc,
-		BillingService:        billingService,
-		RecognizerService:     recognizerService,
-		TaxCodeService:        taxCodeService,
-		CurrencyResolver:      currencyResolver,
-		CustomerService:       customerService,
-		SubscriptionService:   subscriptionService,
-		FSNamespaceLockdown:   fsNamespaceLockdown,
+		CustomerChargesChangedPublisher: customerChargesChangedPublisher,
+		Logger:                          logger,
+		Adapter:                         rootAdapter,
+		MetaAdapter:                     metaAdapter,
+		FeatureMeterResolver:            featureMeterResolver,
+		FlatFeeService:                  flatFeeSvc,
+		CreditPurchaseService:           creditPurchaseSvc,
+		UsageBasedService:               usageBasedSvc,
+		BillingService:                  billingService,
+		RecognizerService:               recognizerService,
+		TaxCodeService:                  taxCodeService,
+		CurrencyResolver:                currencyResolver,
+		CustomerService:                 customerService,
+		SubscriptionService:             subscriptionService,
+		FSNamespaceLockdown:             fsNamespaceLockdown,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges service: %w", err)
@@ -464,7 +464,7 @@ func newChargesRegistry(
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
-	inputChangePublisher eventbus.AfterCommitPublisher,
+	customerChargesChangedPublisher eventbus.AfterCommitPublisher,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {
@@ -618,7 +618,7 @@ func newChargesRegistry(
 		customerService,
 		subscriptionService,
 		fsNamespaceLockdown,
-		inputChangePublisher,
+		customerChargesChangedPublisher,
 	)
 	if err != nil {
 		return nil, err

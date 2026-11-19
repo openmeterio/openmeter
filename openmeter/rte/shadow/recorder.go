@@ -1,5 +1,7 @@
-// Package shadow publishes sampled balance operations and committed source changes
-// for the RTE comparison without making their delivery part of the production operation.
+// Package shadow records balance operations for the RTE performance comparison.
+// The original service calculates and returns the balance. The RTE worker replays
+// sampled operations asynchronously and compares the elapsed times. The recorder
+// also forwards committed source changes so the worker can track dirty balances.
 package shadow
 
 import (

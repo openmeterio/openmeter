@@ -63,20 +63,20 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 		s.Require().NoError(pipeline.publisher.Publish(ctx, event))
 	}, logger)
 	writer, err := chargesservice.New(chargesservice.Config{
-		Logger:                logger,
-		Adapter:               adapter,
-		MetaAdapter:           metaAdapter,
-		FeatureMeterResolver:  s.FeatureMeterResolver,
-		FlatFeeService:        s.FlatFeeSvc,
-		CreditPurchaseService: s.CreditPurchaseSvc,
-		UsageBasedService:     s.UsageBasedSvc,
-		RecognizerService:     s.RevenueRecognizer,
-		BillingService:        s.BillingService,
-		TaxCodeService:        s.TaxCodeEnv.Service,
-		CurrencyResolver:      s.CurrencyResolver,
-		CustomerService:       s.CustomerService,
-		SubscriptionService:   &chargestestutils.FakeSubscriptionService{},
-		InputChangePublisher:  publisher,
+		Logger:                          logger,
+		Adapter:                         adapter,
+		MetaAdapter:                     metaAdapter,
+		FeatureMeterResolver:            s.FeatureMeterResolver,
+		FlatFeeService:                  s.FlatFeeSvc,
+		CreditPurchaseService:           s.CreditPurchaseSvc,
+		UsageBasedService:               s.UsageBasedSvc,
+		RecognizerService:               s.RevenueRecognizer,
+		BillingService:                  s.BillingService,
+		TaxCodeService:                  s.TaxCodeEnv.Service,
+		CurrencyResolver:                s.CurrencyResolver,
+		CustomerService:                 s.CustomerService,
+		SubscriptionService:             &chargestestutils.FakeSubscriptionService{},
+		CustomerChargesChangedPublisher: publisher,
 	})
 	s.Require().NoError(err)
 
@@ -154,8 +154,8 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 		case message := <-pipeline.messages:
 			message.Ack()
 			switch pipeline.publisher.Marshaler().NameFromMessage(message) {
-			case (charges.ChargeInputsChangedEvent{}).EventName():
-				var fact charges.ChargeInputsChangedEvent
+			case (charges.CustomerChargesChangedEvent{}).EventName():
+				var fact charges.CustomerChargesChangedEvent
 				s.Require().NoError(pipeline.publisher.Marshaler().Unmarshal(message, &fact))
 				s.Equal(cust.ID, fact.CustomerID)
 				seenFact = true

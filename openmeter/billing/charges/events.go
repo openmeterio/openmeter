@@ -8,23 +8,25 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// ChargeInputsChangedEvent reports persisted customer charge input changes,
-// including scheduled purchases that have not produced ledger postings.
-type ChargeInputsChangedEvent struct {
+// CustomerChargesChangedEvent signals that creating or patching charges may have
+// changed a customer's credit balances, even before a ledger posting exists.
+// A batch can change several charges. RTE uses the customer ID to invalidate
+// tracked balances across currencies and feature scopes.
+type CustomerChargesChangedEvent struct {
 	Namespace  string `json:"namespace"`
 	CustomerID string `json:"customerId"`
 }
 
-func (e ChargeInputsChangedEvent) EventName() string {
+func (e CustomerChargesChangedEvent) EventName() string {
 	return metadata.GetEventName(metadata.EventType{Subsystem: EventSubsystem, Name: "charges.inputsChanged", Version: "v1"})
 }
 
-func (e ChargeInputsChangedEvent) EventMetadata() metadata.EventMetadata {
+func (e CustomerChargesChangedEvent) EventMetadata() metadata.EventMetadata {
 	path := metadata.ComposeResourcePath(e.Namespace, metadata.EntityCustomer, e.CustomerID)
 	return metadata.EventMetadata{Source: path, Subject: path}
 }
 
-func (e ChargeInputsChangedEvent) Validate() error {
+func (e CustomerChargesChangedEvent) Validate() error {
 	var errs []error
 	if e.Namespace == "" {
 		errs = append(errs, errors.New("namespace is required"))

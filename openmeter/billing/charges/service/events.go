@@ -9,8 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 )
 
-func (s *service) publishInputChanges(ctx context.Context, owners []customer.CustomerID) {
+func (s *service) publishCustomerChargesChanged(ctx context.Context, owners []customer.CustomerID) {
 	for _, owner := range lo.Uniq(owners) {
-		s.inputChangePublisher(ctx, charges.ChargeInputsChangedEvent{Namespace: owner.Namespace, CustomerID: owner.ID})
+		s.customerChargesChangedPublisher(ctx, charges.CustomerChargesChangedEvent{Namespace: owner.Namespace, CustomerID: owner.ID})
 	}
 }

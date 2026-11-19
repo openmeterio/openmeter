@@ -400,7 +400,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	validator := subscriptionServiceWithWorkflow.ItemReferenceValidator
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
 	rteConfiguration := conf.RTE
-	recorder, cleanup9, err := common.NewRTEShadowRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
+	recorder, cleanup9, err := common.NewRTEReplayRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
 	if err != nil {
 		cleanup8()
 		cleanup7()
