@@ -120,6 +120,10 @@ func (r Recurrence) iterateFromNextAfterInclusive(t time.Time) (RecurrenceIterat
 			}
 
 			if v.Before(t) {
+				// res is still the first occurrence at or after t and belongs
+				// to the previous iteration index. Undo this step so callers
+				// advancing the iterator get the next occurrence, not this one.
+				ic += 1
 				break
 			}
 
@@ -252,6 +256,11 @@ func (r Recurrence) iterateFromPrevBeforeInclusive(t time.Time) (RecurrenceItera
 			}
 
 			if v.After(t) {
+				// res is still the last occurrence at or before t and belongs
+				// to the previous iteration index. Undo this step so callers
+				// advancing the iterator get the next occurrence, not the one
+				// after it.
+				ic -= 1
 				break
 			}
 
