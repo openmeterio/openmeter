@@ -10168,8 +10168,8 @@ type BillingSubscription struct {
 	// period. If not provided, billing starts with the subscription.
 	//
 	// When billing starts inside a billing period, we recommend enabling price
-	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-	// flat fees are billed in full.
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
 	BillingStartsAt *DateTime `json:"billing_starts_at,omitempty"`
 
 	// CostBasisMode Controls whether custom-currency cost bases are resolved dynamically or pinned
@@ -10285,8 +10285,8 @@ type BillingSubscriptionBase struct {
 	// period. If not provided, billing starts with the subscription.
 	//
 	// When billing starts inside a billing period, we recommend enabling price
-	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-	// flat fees are billed in full.
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
 	BillingStartsAt *DateTime `json:"billing_starts_at,omitempty"`
 
 	// CostBasisMode Controls whether custom-currency cost bases are resolved dynamically or pinned
@@ -10378,8 +10378,8 @@ type BillingSubscriptionChange struct {
 	// period. If not provided, billing starts with the subscription.
 	//
 	// When billing starts inside a billing period, we recommend enabling price
-	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-	// flat fees are billed in full.
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
 	BillingStartsAt *DateTime `json:"billing_starts_at,omitempty"`
 
 	// CostBasisMode Controls how custom-currency cost bases are selected for the subscription.
@@ -10506,8 +10506,8 @@ type BillingSubscriptionCreate struct {
 	// period. If not provided, billing starts with the subscription.
 	//
 	// When billing starts inside a billing period, we recommend enabling price
-	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-	// flat fees are billed in full.
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
 	BillingStartsAt *DateTime `json:"billing_starts_at,omitempty"`
 
 	// CostBasisMode Controls how custom-currency cost bases are selected for the subscription.

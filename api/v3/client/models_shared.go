@@ -118,8 +118,8 @@ type BillingSubscription struct {
 	// period. If not provided, billing starts with the subscription.
 	//
 	// When billing starts inside a billing period, we recommend enabling price
-	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-	// flat fees are billed in full.
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
 	BillingStartsAt *time.Time `json:"billing_starts_at,omitempty"`
 	// The status of the subscription.
 	Status SubscriptionStatus `json:"status"`

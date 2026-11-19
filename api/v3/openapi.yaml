@@ -17084,8 +17084,8 @@ components:
             period. If not provided, billing starts with the subscription.
 
             When billing starts inside a billing period, we recommend enabling price
-            pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-            flat fees are billed in full.
+            pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+            fees are billed in full.
           title: Billing starts at
         status:
           allOf:
@@ -17301,8 +17301,8 @@ components:
             period. If not provided, billing starts with the subscription.
 
             When billing starts inside a billing period, we recommend enabling price
-            pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-            flat fees are billed in full.
+            pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+            fees are billed in full.
           title: Billing starts at
         status:
           allOf:
@@ -17356,8 +17356,8 @@ components:
             period. If not provided, billing starts with the subscription.
 
             When billing starts inside a billing period, we recommend enabling price
-            pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-            flat fees are billed in full.
+            pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+            fees are billed in full.
           title: Billing starts at
         settlement_mode:
           allOf:
@@ -17546,8 +17546,8 @@ components:
             period. If not provided, billing starts with the subscription.
 
             When billing starts inside a billing period, we recommend enabling price
-            pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-            flat fees are billed in full.
+            pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+            fees are billed in full.
           title: Billing starts at
         settlement_mode:
           allOf:

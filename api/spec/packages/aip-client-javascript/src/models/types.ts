@@ -5324,8 +5324,8 @@ export interface SubscriptionBase {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /** The status of the subscription. */
@@ -9225,8 +9225,8 @@ export interface Subscription {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /** The status of the subscription. */
@@ -9266,8 +9266,8 @@ export interface SubscriptionCreate {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /**
@@ -9344,8 +9344,8 @@ export interface SubscriptionChange {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /**
@@ -11377,8 +11377,8 @@ export interface SubscriptionBaseInput {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /** The status of the subscription. */
@@ -13136,8 +13136,8 @@ export interface SubscriptionInput {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /** The status of the subscription. */
@@ -13177,8 +13177,8 @@ export interface SubscriptionCreateInput {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /**
@@ -13255,8 +13255,8 @@ export interface SubscriptionChangeInput {
    * period. If not provided, billing starts with the subscription.
    *
    * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's
-   * flat fees are billed in full.
+   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+   * fees are billed in full.
    */
   billingStartsAt?: Date
   /**
