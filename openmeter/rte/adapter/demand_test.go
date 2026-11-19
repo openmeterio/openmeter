@@ -182,11 +182,67 @@ func TestDemandInvalidationCoalescesDistinctAndDuplicateFacts(t *testing.T) {
 	marked, err = f.repository.Invalidate(t.Context(), input)
 	require.NoError(t, err)
 	require.Zero(t, marked.Matched)
+	receipts, err := f.client.RTEInvalidation.Query().Count(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 2, receipts, "only the two facts that dirtied active demand need receipts")
+
 	require.NoError(t, f.repository.Activate(t.Context(), f.target))
 
 	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
 	require.NoError(t, err)
 	require.True(t, result.Processed)
+}
+
+func TestConcurrentInvalidationRecordsOneReceipt(t *testing.T) {
+	f := newDemandFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+	before, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+
+	input := rte.InvalidateInput{
+		Source: "ledger", EventID: "concurrent-delivery",
+		Selectors: []rte.DemandSelector{{Namespace: before.Namespace, Kind: f.target.Kind}},
+	}
+
+	type delivery struct {
+		result rte.InvalidationResult
+		err    error
+	}
+	second := make(chan delivery, 1)
+
+	// Given the first delivery has marked the demand but hasn't committed its receipt.
+	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
+		first, err := f.repository.Invalidate(txCtx, input)
+		require.NoError(t, err)
+		require.Equal(t, 1, first.Matched)
+
+		// When a concurrent copy tries the same update, wait until PostgreSQL
+		// has it blocked on the first transaction before allowing that one to commit.
+		go func() {
+			result, err := f.repository.Invalidate(ctx, input)
+			second <- delivery{result: result, err: err}
+		}()
+		waitForDemandLock(t, ctx, f.client)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	// Then exactly one increment and its receipt survive.
+	duplicate := <-second
+	require.NoError(t, duplicate.err)
+	require.True(t, duplicate.result.Duplicate)
+	require.Zero(t, duplicate.result.Matched)
+
+	after, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.Equal(t, before.DirtyVersion+1, after.DirtyVersion)
+	count, err := f.client.RTEInvalidation.Query().Count(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 1, count)
 }
 
 func TestDemandFailedAttemptRollsBackStateAndPersistsRetry(t *testing.T) {

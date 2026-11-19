@@ -85,7 +85,5 @@ func runService(ctx context.Context, args []string) error {
 		return err
 	}
 
-	app.Run()
-
-	return nil
+	return app.RunWithError()
 }

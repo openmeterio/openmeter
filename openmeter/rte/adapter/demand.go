@@ -248,42 +248,63 @@ func (r *demandRepository) Deactivate(ctx context.Context, target rte.Calculatio
 	})
 }
 
+// A competing delivery may insert the same receipt after our UPDATE took its
+// snapshot. Roll back our dirty-version increments if it wins that race.
+var errConcurrentInvalidation = errors.New("concurrent invalidation already recorded")
+
 func (r *demandRepository) Invalidate(ctx context.Context, input rte.InvalidateInput) (rte.InvalidationResult, error) {
 	if err := input.Validate(); err != nil {
 		return rte.InvalidationResult{}, err
 	}
 
-	return transaction.Run(ctx, r, func(ctx context.Context) (rte.InvalidationResult, error) {
+	if len(input.Selectors) == 0 {
+		return rte.InvalidationResult{}, nil
+	}
+
+	result, err := transaction.Run(ctx, r, func(ctx context.Context) (rte.InvalidationResult, error) {
 		return entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (rte.InvalidationResult, error) {
-			err := a.db.RTEInvalidation.Create().SetSource(input.Source).SetEventID(input.EventID).
+			query, args, err := (invalidateDemandQuery{input: input, at: clock.Now()}).SQL()
+			if err != nil {
+				return rte.InvalidationResult{}, err
+			}
+
+			updated, err := a.db.ExecContext(ctx, query, args...)
+			if err != nil {
+				return rte.InvalidationResult{}, err
+			}
+
+			matched, err := updated.RowsAffected()
+			if err != nil {
+				return rte.InvalidationResult{}, err
+			}
+
+			if matched == 0 {
+				duplicate, err := a.db.RTEInvalidation.Query().Where(
+					receiptdb.SourceEQ(input.Source), receiptdb.EventIDEQ(input.EventID),
+				).Exist(ctx)
+
+				return rte.InvalidationResult{Duplicate: duplicate}, err
+			}
+
+			err = a.db.RTEInvalidation.Create().SetSource(input.Source).SetEventID(input.EventID).
 				OnConflict(sql.ConflictColumns(receiptdb.FieldSource, receiptdb.FieldEventID)).DoNothing().Exec(ctx)
 			if errors.Is(err, stdsql.ErrNoRows) {
-				return rte.InvalidationResult{Duplicate: true}, nil
+				return rte.InvalidationResult{}, errConcurrentInvalidation
 			}
 
 			if err != nil {
 				return rte.InvalidationResult{}, fmt.Errorf("remember invalidation: %w", err)
 			}
 
-			if len(input.Selectors) == 0 {
-				return rte.InvalidationResult{}, nil
-			}
-
-			query, args, err := (invalidateDemandQuery{selectors: input.Selectors, at: clock.Now()}).SQL()
-			if err != nil {
-				return rte.InvalidationResult{}, err
-			}
-
-			result, err := a.db.ExecContext(ctx, query, args...)
-			if err != nil {
-				return rte.InvalidationResult{}, err
-			}
-
-			matched, err := result.RowsAffected()
-
-			return rte.InvalidationResult{Matched: int(matched)}, err
+			return rte.InvalidationResult{Matched: int(matched)}, nil
 		})
 	})
+	// A rollback failure is joined to the sentinel and must reach the caller.
+	if err == errConcurrentInvalidation {
+		return rte.InvalidationResult{Duplicate: true}, nil
+	}
+
+	return result, err
 }
 
 // A deletion notification can arrive before its effective time. Read the source
