@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -41,7 +42,7 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 				return ListCustomerOverridesRequest{}, err
 			}
 
-			return ListCustomerOverridesRequest{
+			req := ListCustomerOverridesRequest{
 				Namespace:                     ns,
 				BillingProfiles:               lo.FromPtr(input.BillingProfile),
 				IncludeAllCustomers:           lo.FromPtr(input.IncludeAllCustomers),
@@ -59,7 +60,17 @@ func (h *handler) ListCustomerOverrides() ListCustomerOverridesHandler {
 					PageSize:   lo.FromPtr(input.PageSize),
 					PageNumber: lo.FromPtr(input.Page),
 				},
-			}, nil
+			}
+
+			// Without either page parameter, every override is listed. With only one of
+			// them, default the other one: a page number of 0 would give the database a
+			// negative offset.
+			if !req.Page.IsZero() {
+				req.Page.PageNumber = defaultx.IfZero(req.Page.PageNumber, commonhttp.DefaultPage)
+				req.Page.PageSize = defaultx.IfZero(req.Page.PageSize, commonhttp.DefaultPageSize)
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, input ListCustomerOverridesRequest) (ListCustomerOverridesResponse, error) {
 			overrides, err := h.service.ListCustomerBillingProfiles(ctx, input)
