@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -424,6 +425,65 @@ func TestGetPeriodAt(t *testing.T) {
 			got, _ := tt.recurrence.GetPeriodAt(tt.time)
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func TestRecurrenceIterator(t *testing.T) {
+	start := time.Date(2024, time.March, 1, 0, 0, 0, 0, time.UTC)
+	for _, anchor := range []time.Time{start.AddDate(0, -2, 0), start, start.AddDate(0, 3, 0)} {
+		for _, query := range []time.Time{start, start.AddDate(0, 0, 14)} {
+			for _, boundary := range []timeutil.Boundary{timeutil.Inclusive, timeutil.Exclusive} {
+				t.Run(anchor.Format(time.DateOnly)+"/"+query.Format(time.DateOnly)+"/"+string(boundary), func(t *testing.T) {
+					r, err := timeutil.NewRecurrence(timeutil.RecurrencePeriodMonth, anchor)
+					require.NoError(t, err)
+
+					wantNext, wantPrev := start.AddDate(0, 1, 0), start
+					if query.Equal(start) {
+						if boundary == timeutil.Inclusive {
+							wantNext = start
+						} else {
+							wantPrev = start.AddDate(0, -1, 0)
+						}
+					}
+
+					next, err := r.IterateFromNextAfter(query, boundary)
+					require.NoError(t, err)
+					prev, err := r.IterateFromPrevBefore(query, boundary)
+					require.NoError(t, err)
+					for _, tc := range []struct {
+						name     string
+						iterator timeutil.RecurrenceIterator
+						want     time.Time
+					}{
+						{name: "next_after", iterator: next, want: wantNext},
+						{name: "prev_before", iterator: prev, want: wantPrev},
+					} {
+						t.Run(tc.name, func(t *testing.T) {
+							require.Equal(t, tc.want, tc.iterator.At)
+							forward, backward := tc.iterator, tc.iterator
+							for step := 1; step <= 2; step++ {
+								forward, err = forward.Next()
+								require.NoError(t, err)
+								assert.Equal(t, tc.want.AddDate(0, step, 0), forward.At)
+								backward, err = backward.Prev()
+								require.NoError(t, err)
+								assert.Equal(t, tc.want.AddDate(0, -step, 0), backward.At)
+							}
+						})
+					}
+
+					nextAt, err := r.NextAfter(query, boundary)
+					require.NoError(t, err)
+					assert.Equal(t, wantNext, nextAt)
+					prevAt, err := r.PrevBefore(query, boundary)
+					require.NoError(t, err)
+					assert.Equal(t, wantPrev, prevAt)
+					period, err := r.GetPeriodAt(query)
+					require.NoError(t, err)
+					assert.Equal(t, timeutil.ClosedPeriod{From: start, To: start.AddDate(0, 1, 0)}, period)
+				})
+			}
+		}
 	}
 }
 
