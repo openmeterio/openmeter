@@ -3,6 +3,8 @@ package timeutil
 import (
 	"errors"
 	"fmt"
+	"math"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -22,6 +24,21 @@ func (r Recurrence) Validate() error {
 
 	if r.Interval.ISODuration.Sign() != 1 {
 		errs = append(errs, fmt.Errorf("recurrence interval must be positive"))
+	} else if slices.Min([]int{
+		r.Interval.YearsDecimal().Sign(),
+		r.Interval.MonthsDecimal().Sign(),
+		r.Interval.WeeksDecimal().Sign(),
+		r.Interval.DaysDecimal().Sign(),
+		r.Interval.HoursDecimal().Sign(),
+		r.Interval.MinutesDecimal().Sign(),
+		r.Interval.SecondsDecimal().Sign(),
+	}) < 0 {
+		// The overall sign is not enough: P1M-30DT-10H counts as positive, but its
+		// boundaries jump back and forth in time (Jan 1 14:00, Dec 30 04:00, Dec 30 18:00
+		// from a Jan 1 anchor). "Next" and "previous" have no meaning there, and the
+		// boundary lookup relies on boundaries growing with their index, so it would
+		// return arbitrary ones.
+		errs = append(errs, fmt.Errorf("recurrence interval must not have negative components"))
 	}
 
 	if r.Anchor.IsZero() {
@@ -33,31 +50,23 @@ func (r Recurrence) Validate() error {
 
 // Returns a period where p.Contains(t) is true
 func (r Recurrence) GetPeriodAt(t time.Time) (ClosedPeriod, error) {
-	var def ClosedPeriod
+	if t.IsZero() {
+		return ClosedPeriod{}, fmt.Errorf("t cannot be zero")
+	}
 
-	next, err := r.IterateFromNextAfter(t, Exclusive)
+	// Period.Contains() is inclusive at the start and exclusive at the end, so the period
+	// starts at the last boundary not after t and ends at the boundary that follows it.
+	start, err := r.lastIterationNotAfter(t)
 	if err != nil {
-		return def, err
+		return ClosedPeriod{}, err
 	}
 
-	// As Period.Contains() is inclusive at the start and exclusive at the end, we need to get the next time
-	if next.At.Equal(t) {
-		start := next
-		end, err := start.Next()
-		if err != nil {
-			return def, err
-		}
-
-		return ClosedPeriod{start.At, end.At}, nil
-	}
-
-	// Otherwise the next time will be the end
-	prev, err := r.IterateFromPrevBefore(t, Inclusive)
+	end, err := start.Next()
 	if err != nil {
-		return def, err
+		return ClosedPeriod{}, err
 	}
 
-	return ClosedPeriod{prev.At, next.At}, nil
+	return ClosedPeriod{start.At, end.At}, nil
 }
 
 // IterateFromNextAfter returns the next time after (or equal to) t that the recurrence should occur.
@@ -73,16 +82,23 @@ func (r Recurrence) IterateFromNextAfter(t time.Time, boundaryBehavior Boundary)
 		return RecurrenceIterator{}, fmt.Errorf("t cannot be zero")
 	}
 
-	inclusiveNextAfter, err := r.iterateFromNextAfterInclusive(t)
+	// The anchor is always a boundary, so answer it directly. An anchor in the repeated
+	// hour of a DST fall-back can sit after the boundaries that follow it, and the
+	// lookup below would step past it.
+	if boundaryBehavior == Inclusive && t.Equal(r.Anchor) {
+		return r.Iterator(), nil
+	}
+
+	prev, err := r.lastIterationNotAfter(t)
 	if err != nil {
 		return RecurrenceIterator{}, err
 	}
 
-	if boundaryBehavior == Exclusive && inclusiveNextAfter.At.Equal(t) {
-		return inclusiveNextAfter.Next()
+	if boundaryBehavior == Inclusive && prev.At.Equal(t) {
+		return prev, nil
 	}
 
-	return inclusiveNextAfter, nil
+	return prev.Next()
 }
 
 // NextAfter is a convenience function that returns the next time after t that the recurrence should occur.
@@ -99,70 +115,6 @@ func (r Recurrence) NextAfter(t time.Time, boundaryBehavior Boundary) (time.Time
 	return iter.At, nil
 }
 
-func (r Recurrence) iterateFromNextAfterInclusive(t time.Time) (RecurrenceIterator, error) {
-	// If the anchor is in the future, we call .Prev() repeatedly. If the new value is Before t, we break
-	if r.Anchor.After(t) {
-		res := r.Anchor
-		ic := 0
-
-		// Calculate the inclusive nextAfter value
-		for res.After(t) {
-			// TODO: Right now we cannot iterate backwards past 1733, please fix this.
-			if ic <= -MAX_SAFE_ITERATIONS {
-				return RecurrenceIterator{}, fmt.Errorf("recurrence.NextAfter: too many iterations")
-			}
-
-			v, err := r.addIntervalNTimes(r.Anchor, ic-1)
-			if err != nil {
-				return RecurrenceIterator{}, err
-			}
-
-			if v.Before(t) {
-				break
-			}
-
-			ic -= 1
-			res = v
-		}
-
-		return RecurrenceIterator{
-			r:         r,
-			iteration: ic,
-			At:        res,
-		}, nil
-	}
-
-	// If the anchor is in the past, we call .Next() repeatedly. If the new value is !Before T, we break
-	if r.Anchor.Before(t) {
-		res := r.Anchor
-		ic := 0
-
-		// Calculate the inclusive nextAfter value
-		for res.Before(t) {
-			if ic >= MAX_SAFE_ITERATIONS {
-				return RecurrenceIterator{}, fmt.Errorf("recurrence.NextAfter: too many iterations")
-			}
-
-			ic += 1
-
-			v, err := r.addIntervalNTimes(r.Anchor, ic)
-			if err != nil {
-				return RecurrenceIterator{}, err
-			}
-
-			res = v
-		}
-
-		return RecurrenceIterator{
-			r:         r,
-			iteration: ic,
-			At:        res,
-		}, nil
-	}
-
-	return r.Iterator(), nil
-}
-
 // IterateFromPrevBefore returns the previous time before (or equal to) t that the recurrence should occur.
 //
 // If boundaryBehavior is Inclusive, if t matches a recurrence value, we return t as is.
@@ -176,16 +128,36 @@ func (r Recurrence) IterateFromPrevBefore(t time.Time, boundaryBehavior Boundary
 		return RecurrenceIterator{}, fmt.Errorf("t cannot be zero")
 	}
 
-	inclusivePrevBefore, err := r.iterateFromPrevBeforeInclusive(t)
+	// Same as in IterateFromNextAfter: the anchor is a boundary even when a DST fall-back
+	// puts it out of order.
+	if boundaryBehavior == Inclusive && t.Equal(r.Anchor) {
+		return r.Iterator(), nil
+	}
+
+	prev, err := r.lastIterationNotAfter(t)
 	if err != nil {
 		return RecurrenceIterator{}, err
 	}
 
-	if boundaryBehavior == Exclusive && inclusivePrevBefore.At.Equal(t) {
-		return inclusivePrevBefore.Prev()
+	if boundaryBehavior == Inclusive {
+		return prev, nil
 	}
 
-	return inclusivePrevBefore, nil
+	// Usually one step back is enough, but an anchor in the repeated hour of a DST
+	// fall-back makes neighboring boundaries land on the same instant, so keep going
+	// until we are strictly before t.
+	for steps := 0; !prev.At.Before(t); steps++ {
+		if steps >= MAX_SAFE_ITERATIONS {
+			return RecurrenceIterator{}, fmt.Errorf("recurrence: too many iterations")
+		}
+
+		prev, err = prev.Prev()
+		if err != nil {
+			return RecurrenceIterator{}, err
+		}
+	}
+
+	return prev, nil
 }
 
 // PrevBefore is a convenience function that returns the previous time before t that the recurrence should occur.
@@ -202,68 +174,93 @@ func (r Recurrence) PrevBefore(t time.Time, boundaryBehavior Boundary) (time.Tim
 	return iter.At, nil
 }
 
-// IterateFromPrevBefore returns the previous time before t that the recurrence should occur.
+// lastIterationNotAfter returns the last recurrence boundary at or before t.
 //
-// If t is an iteration boundary, it will return the previous iteration (as the start of a period is inclusive).
-func (r Recurrence) iterateFromPrevBeforeInclusive(t time.Time) (RecurrenceIterator, error) {
-	// If the anchor is in the future, we call .Prev() repeatedly. If the new value is Before t, we break
-	if r.Anchor.After(t) {
-		res := r.Anchor
-		ic := 0
+// Boundary i is always computed as Anchor + i*Interval (never by accumulating steps), so
+// month-end clamping does not drift. Boundaries grow monotonically with i, which lets us
+// jump to an estimated index and correct it locally instead of walking from the anchor.
+// The cost is independent of how many intervals separate t from the anchor.
+//
+// The one exception to the ordering is an anchor in the repeated hour of a DST fall-back:
+// datetime.DateTime.Add resolves it to the first occurrence, so the boundaries around the
+// anchor are an hour early and can collapse onto it or land before it. Callers handle
+// the anchor itself; lookups between those early boundaries keep that quirk.
+func (r Recurrence) lastIterationNotAfter(t time.Time) (RecurrenceIterator, error) {
+	iteration := r.estimateIteration(t)
 
-		for res.After(t) {
-			if ic <= -MAX_SAFE_ITERATIONS {
-				return RecurrenceIterator{}, fmt.Errorf("recurrence.PrevBefore: too many iterations")
-			}
-
-			ic -= 1
-
-			v, err := r.addIntervalNTimes(r.Anchor, ic)
-			if err != nil {
-				return RecurrenceIterator{}, err
-			}
-
-			res = v
-		}
-
-		return RecurrenceIterator{
-			r:         r,
-			iteration: ic,
-			At:        res,
-		}, nil
-		// If the anchor is T or in the past relative, we call .Next() repeatedly. If the new value is !Before T, we break
+	at, err := r.addIntervalNTimes(r.Anchor, iteration)
+	if err != nil {
+		return RecurrenceIterator{}, err
 	}
 
-	if r.Anchor.Before(t) {
-		res := r.Anchor
-		ic := 0
-
-		for res.Before(t) {
-			if ic >= MAX_SAFE_ITERATIONS {
-				return RecurrenceIterator{}, fmt.Errorf("recurrence.PrevBefore: too many iterations")
-			}
-
-			v, err := r.addIntervalNTimes(r.Anchor, ic+1)
-			if err != nil {
-				return RecurrenceIterator{}, err
-			}
-
-			if v.After(t) {
-				break
-			}
-
-			ic += 1
-			res = v
+	// The estimate assumes a nominal interval length (see estimateIteration), so the
+	// boundary it lands on can be a few steps off in either direction.
+	for steps := 0; at.After(t); steps++ {
+		if steps >= MAX_SAFE_ITERATIONS {
+			return RecurrenceIterator{}, fmt.Errorf("recurrence: too many iterations")
 		}
 
-		return RecurrenceIterator{
-			r:         r,
-			iteration: ic,
-			At:        res,
-		}, nil
+		iteration--
+
+		at, err = r.addIntervalNTimes(r.Anchor, iteration)
+		if err != nil {
+			return RecurrenceIterator{}, err
+		}
 	}
 
-	return r.Iterator(), nil
+	for steps := 0; ; steps++ {
+		if steps >= MAX_SAFE_ITERATIONS {
+			return RecurrenceIterator{}, fmt.Errorf("recurrence: too many iterations")
+		}
+
+		next, err := r.addIntervalNTimes(r.Anchor, iteration+1)
+		if err != nil {
+			return RecurrenceIterator{}, err
+		}
+
+		if next.After(t) {
+			break
+		}
+
+		iteration++
+		at = next
+	}
+
+	return RecurrenceIterator{
+		r:         r,
+		iteration: iteration,
+		At:        at,
+	}, nil
+}
+
+// maxEstimatedIteration keeps the estimate far away from int overflow in Interval.Mul.
+const maxEstimatedIteration = 1 << 40
+
+// estimateIteration returns the index of a boundary close to t, using the interval's
+// nominal length (a year is 365.2425 days, a month 1/12 of that, a day 24 hours). The
+// real boundaries deviate from that by month-length and DST differences only, which
+// lastIterationNotAfter corrects for.
+func (r Recurrence) estimateIteration(t time.Time) int {
+	step := r.Interval.DurationApprox().Seconds()
+	if step <= 0 {
+		return 0
+	}
+
+	// time.Time.Sub saturates beyond ~292 years, so compute the elapsed seconds directly.
+	elapsed := float64(t.Unix()-r.Anchor.Unix()) + float64(t.Nanosecond()-r.Anchor.Nanosecond())/float64(time.Second)
+
+	estimate := math.Floor(elapsed / step)
+
+	switch {
+	case math.IsNaN(estimate):
+		return 0
+	case estimate > maxEstimatedIteration:
+		return maxEstimatedIteration
+	case estimate < -maxEstimatedIteration:
+		return -maxEstimatedIteration
+	}
+
+	return int(estimate)
 }
 
 // Iterator returns an iterator that starts at the anchor.
@@ -276,6 +273,13 @@ func (r Recurrence) Iterator() RecurrenceIterator {
 }
 
 func (r Recurrence) addIntervalNTimes(t time.Time, nrIntervals int) (time.Time, error) {
+	// Adding a zero calendar duration rebuilds the wall clock time, which resolves an
+	// ambiguous DST time (the repeated hour) to its first occurrence. Boundary 0 must
+	// stay the anchor itself.
+	if nrIntervals == 0 {
+		return t, nil
+	}
+
 	interval, err := r.Interval.Mul(nrIntervals)
 	if err != nil {
 		return time.Time{}, err
