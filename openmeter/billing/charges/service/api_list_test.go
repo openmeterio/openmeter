@@ -145,6 +145,197 @@ func newCustomerChargeFeatureTestService(t *testing.T, features []feature.Featur
 	}
 }
 
+func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() {
+	t := s.T()
+	ctx := t.Context()
+
+	// Given a mix of persisted charge statuses and overridden service periods.
+	now := time.Date(2027, 3, 15, 12, 0, 0, 0, time.UTC)
+	// Create the charges before any period starts so create-time advancement leaves them untouched.
+	clock.FreezeTime(now.Add(-3 * time.Hour))
+	defer clock.UnFreeze()
+
+	namespace := s.GetUniqueNamespace("charges-realtime-usage")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(t, namespace)
+	cust := s.CreateTestCustomer(namespace, "charges-realtime-usage")
+	sandboxApp := s.InstallSandboxApp(t, namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	feat := s.SetupApiRequestsTotalFeature(ctx, namespace)
+	defer feat.Cleanup()
+
+	current := timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now.Add(time.Hour)}
+	starting := timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour)}
+	ending := timeutil.ClosedPeriod{From: now.Add(-time.Hour), To: now}
+	past := timeutil.ClosedPeriod{From: now.Add(-2 * time.Hour), To: now.Add(-time.Hour)}
+	future := timeutil.ClosedPeriod{From: now.Add(time.Hour), To: now.Add(2 * time.Hour)}
+	overrideCurrent := timeutil.ClosedPeriod{From: now.Add(-30 * time.Minute), To: now.Add(30 * time.Minute)}
+
+	type chargeFixture struct {
+		name              string
+		status            usagebased.Status
+		period            timeutil.ClosedPeriod
+		override          *timeutil.ClosedPeriod
+		overrideDeleted   bool
+		wantRealtimeUsage bool
+		// quantity is distinct per eligible fixture so a result written back to
+		// the wrong charge fails the assertions.
+		quantity float64
+	}
+	fixtures := []chargeFixture{
+		{name: "active", status: usagebased.StatusActive, period: current, wantRealtimeUsage: true, quantity: 3},
+		{name: "awaiting payment after period", status: usagebased.StatusActiveAwaitingPaymentSettlement, period: past, wantRealtimeUsage: true, quantity: 5},
+		{name: "created at start", status: usagebased.StatusCreated, period: starting, wantRealtimeUsage: true, quantity: 7},
+		{name: "created at end", status: usagebased.StatusCreated, period: ending},
+		{name: "created in future", status: usagebased.StatusCreated, period: future},
+		{name: "override moves into period", status: usagebased.StatusCreated, period: future, override: &overrideCurrent, wantRealtimeUsage: true, quantity: 11},
+		{name: "override moves out of period", status: usagebased.StatusCreated, period: current, override: &future},
+		{name: "final", status: usagebased.StatusFinal, period: current},
+		{name: "deleted", status: usagebased.StatusDeleted, period: current},
+		{name: "effective intent deleted", status: usagebased.StatusActive, period: current, override: &current, overrideDeleted: true},
+	}
+
+	chargeIDs := make(map[string]meta.ChargeID, len(fixtures))
+	fixturesByID := make(map[string]chargeFixture, len(fixtures))
+	var wantPeriods []timeutil.ClosedPeriod
+	for _, fixture := range fixtures {
+		created, err := s.Charges.Create(ctx, charges.CreateInput{
+			Namespace: namespace,
+			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
+				customer:          cust.GetID(),
+				currency:          USD,
+				servicePeriod:     fixture.period,
+				price:             productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(1)}),
+				featureKey:        feat.Feature.Key,
+				name:              fixture.name,
+				managedBy:         billing.SubscriptionManagedLine,
+				uniqueReferenceID: fixture.name,
+			})),
+		})
+		require.NoError(t, err, fixture.name)
+		require.Len(t, created, 1, fixture.name)
+		charge, err := created[0].AsUsageBasedCharge()
+		require.NoError(t, err, fixture.name)
+		chargeIDs[fixture.name] = charge.GetChargeID()
+		fixturesByID[charge.ID] = fixture
+
+		// Set the lifecycle state directly so the fixture isolates what the read observes.
+		if fixture.status == usagebased.StatusDeleted {
+			require.NoError(t, s.UsageBasedAdapter.DeleteCharge(ctx, charge), fixture.name)
+		} else if charge.Status != fixture.status {
+			charge.Status = fixture.status
+			charge.State.FeatureID = feat.Feature.ID
+			charge.ChargeBase, err = s.UsageBasedAdapter.UpdateCharge(ctx, charge.ChargeBase)
+			require.NoError(t, err, fixture.name)
+		}
+
+		effectivePeriod := fixture.period
+		if fixture.override != nil {
+			effectivePeriod = *fixture.override
+			override := charge.Intent.GetBaseIntent().IntentMutableFields
+			override.ServicePeriod = effectivePeriod
+			override.FullServicePeriod = effectivePeriod
+			override.BillingPeriod = effectivePeriod
+			override.InvoiceAt = effectivePeriod.To
+			if fixture.overrideDeleted {
+				override.IntentDeletedAt = lo.ToPtr(clock.Now())
+			}
+
+			_, err := s.UsageBasedAdapter.CreateChargeOverride(ctx, charge.ChargeBase, override)
+			require.NoError(t, err, fixture.name)
+		}
+
+		if fixture.wantRealtimeUsage {
+			wantPeriods = append(wantPeriods, effectivePeriod)
+			s.MockStreamingConnector.AddRow(feat.Feature.Key, meter.MeterQueryRow{
+				Value:       fixture.quantity,
+				WindowStart: effectivePeriod.From,
+				WindowEnd:   effectivePeriod.To,
+			})
+		}
+	}
+
+	// When the customer list requests realtime usage for the mixed batch.
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	expands := meta.Expands{meta.ExpandRealtimeUsage}
+	queryCountBeforeList := len(s.MockStreamingConnector.MeterQueries())
+	listed, err := s.Charges.ListCustomerCharges(ctx, charges.ListCustomerChargesInput{
+		ListChargesInput: charges.ListChargesInput{
+			Namespace:      namespace,
+			Page:           pagination.NewPage(1, len(fixtures)),
+			CustomerIDs:    []string{cust.ID},
+			ChargeTypes:    []meta.ChargeType{meta.ChargeTypeUsageBased},
+			IncludeDeleted: true,
+			Expands:        expands,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, listed.Charges.Items, len(fixtures))
+
+	// Then only eligible effective periods reach the meter and populate live fields.
+	var queriedPeriods []timeutil.ClosedPeriod
+	for _, query := range s.MockStreamingConnector.MeterQueries()[queryCountBeforeList:] {
+		require.NotNil(t, query.From)
+		require.NotNil(t, query.To)
+		require.NotNil(t, query.FilterStoredAt)
+		require.NotNil(t, query.FilterStoredAt.Lt)
+		require.True(t, query.FilterStoredAt.Lt.Equal(now))
+		queriedPeriods = append(queriedPeriods, timeutil.ClosedPeriod{From: query.From.UTC(), To: query.To.UTC()})
+	}
+
+	require.ElementsMatch(t, wantPeriods, queriedPeriods)
+
+	for _, item := range listed.Charges.Items {
+		charge, err := item.AsUsageBasedCharge()
+		require.NoError(t, err)
+		fixture, ok := fixturesByID[charge.ID]
+		require.True(t, ok, charge.ID)
+		delete(fixturesByID, charge.ID)
+		require.Equal(t, fixture.status, charge.Status, fixture.name)
+
+		if fixture.wantRealtimeUsage {
+			require.NotNil(t, charge.Expands.RealtimeUsage, fixture.name)
+			require.Equal(t, fixture.quantity, charge.Expands.RealtimeUsage.Total.InexactFloat64(), fixture.name)
+			require.NotNil(t, charge.Expands.RealtimeQuantity, fixture.name)
+			require.Equal(t, fixture.quantity, charge.Expands.RealtimeQuantity.InexactFloat64(), fixture.name)
+			require.Len(t, item.UsageBasedRealizations, 1, fixture.name)
+			require.NotNil(t, item.UsageBasedRealizations[0].Quantity, fixture.name)
+			require.Equal(t, fixture.quantity, item.UsageBasedRealizations[0].Quantity.InexactFloat64(), fixture.name)
+		} else {
+			require.Nil(t, charge.Expands.RealtimeUsage, fixture.name)
+			require.Nil(t, charge.Expands.RealtimeQuantity, fixture.name)
+			for _, realization := range item.UsageBasedRealizations {
+				if realization.Run == nil {
+					require.Nil(t, realization.Quantity, fixture.name)
+				}
+			}
+		}
+	}
+
+	require.Empty(t, fixturesByID)
+
+	s.Run("direct single reads apply the same period boundary", func() {
+		t := s.T()
+		reader, ok := s.UsageBasedService.(interface {
+			GetByID(context.Context, usagebased.GetByIDInput) (usagebased.Charge, error)
+		})
+		require.True(t, ok)
+
+		before := len(s.MockStreamingConnector.MeterQueries())
+		eligible, err := reader.GetByID(t.Context(), usagebased.GetByIDInput{ChargeID: chargeIDs["created at start"], Expands: expands})
+		require.NoError(t, err)
+		require.NotNil(t, eligible.Expands.RealtimeQuantity)
+		require.Len(t, s.MockStreamingConnector.MeterQueries(), before+1)
+
+		skipped, err := reader.GetByID(t.Context(), usagebased.GetByIDInput{ChargeID: chargeIDs["created at end"], Expands: expands})
+		require.NoError(t, err)
+		require.Nil(t, skipped.Expands.RealtimeUsage)
+		require.Nil(t, skipped.Expands.RealtimeQuantity)
+		require.Len(t, s.MockStreamingConnector.MeterQueries(), before+1)
+	})
+}
+
 func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesExpands() {
 	// given:
 	// - a subscription-managed usage-based charge referencing a feature by key

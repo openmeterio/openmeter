@@ -380,14 +380,15 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedRealizationsWireShapeAcrossLi
 		s.NotEqual(voidedRunID, *wire.Realizations[2].Id)
 	})
 
-	s.Run("expands hydrate invoice headers and the live usage on the wire", func() {
+	s.Run("expands hydrate invoice headers and skip the live usage of a final charge", func() {
 		// given:
 		// - the finalized charge carries a voided run plus two booked runs, each
 		//   realized into an approved invoice
 		// when:
 		// - the wire is read with the realization.invoice and real_time_usage expands
 		// then:
-		// - the charge-level usage reports the live cumulative read (5+3+2)
+		// - the charge-level usage stays empty: a final charge is fully booked,
+		//   so real_time_usage skips the live read
 		// - every booked realization embeds the invoice header of its booked
 		//   line: the invoice entity without its lines
 		wire := s.mustListChargeWireOverHTTP(ns, cust.ID,
@@ -395,8 +396,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedRealizationsWireShapeAcrossLi
 			apiv3models.BillingChargesExpandRealTimeUsage,
 		)
 
-		s.Require().NotNil(wire.Usage, "real_time_usage fills the charge-level usage")
-		s.Equal("10", *wire.Usage)
+		s.Nil(wire.Usage, "real_time_usage skips final charges")
 
 		s.Require().Len(wire.Realizations, 3)
 		for _, idx := range []int{1, 2} {

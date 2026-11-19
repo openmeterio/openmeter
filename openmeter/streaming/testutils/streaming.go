@@ -3,8 +3,10 @@ package testutils
 import (
 	"context"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,11 +37,85 @@ type SimpleEvent struct {
 type MockStreamingConnector struct {
 	rows   map[string][]meter.MeterQueryRow
 	events map[string][]SimpleEvent
+
+	meterQueriesMu sync.Mutex
+	meterQueries   []streaming.QueryParams
 }
 
 func (m *MockStreamingConnector) Reset() {
 	m.rows = map[string][]meter.MeterQueryRow{}
 	m.events = map[string][]SimpleEvent{}
+
+	m.meterQueriesMu.Lock()
+	defer m.meterQueriesMu.Unlock()
+	m.meterQueries = nil
+}
+
+func (m *MockStreamingConnector) MeterQueries() []streaming.QueryParams {
+	m.meterQueriesMu.Lock()
+	defer m.meterQueriesMu.Unlock()
+
+	return lo.Map(m.meterQueries, func(params streaming.QueryParams, _ int) streaming.QueryParams {
+		return snapshotQueryParams(params)
+	})
+}
+
+// snapshotQueryParams copies the pointer, slice and map fields so the recorded
+// query history can't be changed by the caller after QueryMeter returns, or by
+// tests reading MeterQueries.
+func snapshotQueryParams(params streaming.QueryParams) streaming.QueryParams {
+	out := params
+
+	if params.ClientID != nil {
+		out.ClientID = lo.ToPtr(*params.ClientID)
+	}
+
+	if params.From != nil {
+		out.From = lo.ToPtr(*params.From)
+	}
+
+	if params.To != nil {
+		out.To = lo.ToPtr(*params.To)
+	}
+
+	if params.WindowSize != nil {
+		out.WindowSize = lo.ToPtr(*params.WindowSize)
+	}
+
+	if params.FilterStoredAt != nil {
+		out.FilterStoredAt = &filter.FilterTimeUnix{FilterTime: snapshotFilterTime(params.FilterStoredAt.FilterTime)}
+	}
+
+	out.FilterCustomer = slices.Clone(params.FilterCustomer)
+	out.FilterSubject = slices.Clone(params.FilterSubject)
+	out.FilterGroupBy = maps.Clone(params.FilterGroupBy)
+	out.GroupBy = slices.Clone(params.GroupBy)
+
+	return out
+}
+
+func snapshotFilterTime(f filter.FilterTime) filter.FilterTime {
+	out := f
+
+	for _, field := range []**time.Time{&out.Eq, &out.Gt, &out.Gte, &out.Lt, &out.Lte} {
+		if *field != nil {
+			*field = lo.ToPtr(**field)
+		}
+	}
+
+	if f.Exists != nil {
+		out.Exists = lo.ToPtr(*f.Exists)
+	}
+
+	if f.And != nil {
+		out.And = lo.ToPtr(lo.Map(*f.And, func(item filter.FilterTime, _ int) filter.FilterTime { return snapshotFilterTime(item) }))
+	}
+
+	if f.Or != nil {
+		out.Or = lo.ToPtr(lo.Map(*f.Or, func(item filter.FilterTime, _ int) filter.FilterTime { return snapshotFilterTime(item) }))
+	}
+
+	return out
 }
 
 type AddOption func(event *SimpleEvent)
@@ -108,6 +184,10 @@ func (m *MockStreamingConnector) ListEventsV2(ctx context.Context, params stream
 // Returns the result query set for the given params. If the query set is not found,
 // it will try to approximate the result by aggregating the simple events
 func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	m.meterQueriesMu.Lock()
+	m.meterQueries = append(m.meterQueries, snapshotQueryParams(params))
+	m.meterQueriesMu.Unlock()
+
 	rows := []meter.MeterQueryRow{}
 	_, rowOk := m.rows[mm.Key]
 

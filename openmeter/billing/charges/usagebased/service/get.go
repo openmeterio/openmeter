@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/samber/lo"
@@ -16,18 +17,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 const (
 	// defaultMaxParallelRatingsPerRequest is the number of workers to use for the rating (fetching from CH).
 	defaultMaxParallelRatingsPerRequest = 5
 )
-
-type realtimeUsageRating struct {
-	Usage            usagebasedrating.GetTotalsForUsageResult
-	ValidationIssues billing.ValidationIssues
-}
 
 func (s *service) GetByIDs(ctx context.Context, input usagebased.GetByIDsInput) ([]usagebased.Charge, error) {
 	if err := input.Validate(); err != nil {
@@ -70,24 +65,43 @@ func (s *service) GetByID(ctx context.Context, input usagebased.GetByIDInput) (u
 	}
 
 	if input.Expands.Has(meta.ExpandRealtimeUsage) {
-		totals, err := s.GetCurrentTotals(ctx, usagebased.GetCurrentTotalsInput{
-			ChargeID: charge.GetChargeID(),
-		})
+		expanded, err := s.expandChargesUsage(ctx, charge.Namespace, usagebased.Charges{charge})
 		if err != nil {
 			return usagebased.Charge{}, err
 		}
 
-		charge.Expands.RealtimeUsage = &totals.DueTotals
-		charge.Expands.RealtimeQuantity = &totals.MeteredQuantity
-		charge = withRealtimeValidationIssues(charge, totals.ValidationIssues)
+		charge = expanded[0]
 	}
 
 	return charge, nil
 }
 
 func (s *service) expandChargesUsage(ctx context.Context, namespace string, charges usagebased.Charges) (usagebased.Charges, error) {
-	// Fetch unique customers from the charges to avoid duplicate calls to the customer override service.
-	uniqueCustomers := lo.Uniq(lo.Map(charges, func(charge usagebased.Charge, _ int) customer.CustomerID {
+	storedAt := clock.Now()
+	var eligible usagebased.Charges
+	var eligibleIndexes []int
+	for idx, charge := range charges {
+		if charge.GetIntentDeletedAt() != nil {
+			continue
+		}
+
+		status, err := charge.Status.ToMetaChargeStatus()
+		if err != nil {
+			return nil, fmt.Errorf("get status for charge %s: %w", charge.ID, err)
+		}
+
+		if status == meta.ChargeStatusActive ||
+			(status == meta.ChargeStatusCreated && charge.Intent.GetEffectiveServicePeriod().Contains(storedAt)) {
+			eligible = append(eligible, charge)
+			eligibleIndexes = append(eligibleIndexes, idx)
+		}
+	}
+
+	if len(eligible) == 0 {
+		return charges, nil
+	}
+
+	uniqueCustomers := lo.Uniq(lo.Map(eligible, func(charge usagebased.Charge, _ int) customer.CustomerID {
 		return charge.GetCustomerID()
 	}))
 
@@ -107,21 +121,18 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 	}
 
 	// Fetch all referenced feature meters in bulk.
-	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, charges...)
+	featureMeters, err := s.featureMeterResolver.Resolve(ctx, namespace, eligible...)
 	if err != nil {
 		return nil, err
 	}
 
-	// Let's do the rating for each charge
 	sem := semaphore.NewWeighted(int64(defaultMaxParallelRatingsPerRequest))
-	storedAt := clock.Now()
-
-	errCh := make(chan error, len(charges))
-	ratingResults := sync.Map{}
+	errCh := make(chan error, len(eligible))
+	expanded := slices.Clone(charges)
 
 	var wg sync.WaitGroup
 
-	for _, charge := range charges {
+	for idx, charge := range eligible {
 		featureMeter, err := featureMeters.Get(charge)
 		if err != nil {
 			errCh <- fmt.Errorf("resolving feature meter: %w", err)
@@ -150,8 +161,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				}
 			}()
 
-			var ratedUsage usagebasedrating.GetTotalsForUsageResult
-			ratedUsage, err = s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
+			ratedUsage, err := s.rater.GetTotalsForUsage(ctx, usagebasedrating.GetTotalsForUsageInput{
 				Charge:                  charge,
 				Customer:                customerOverridesById[charge.GetCustomerID()],
 				FeatureMeter:            featureMeter,
@@ -164,10 +174,9 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 				return
 			}
 
-			ratingResults.Store(charge.GetChargeID(), realtimeUsageRating{
-				Usage:            ratedUsage,
-				ValidationIssues: issues,
-			})
+			charge.Expands.RealtimeUsage = &ratedUsage.Totals
+			charge.Expands.RealtimeQuantity = &ratedUsage.MeteredQuantity
+			expanded[eligibleIndexes[idx]] = withRealtimeValidationIssues(charge, issues)
 		})
 	}
 
@@ -187,22 +196,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 		return nil, errors.Join(errs...)
 	}
 
-	return slicesx.MapWithErr(charges, func(charge usagebased.Charge) (usagebased.Charge, error) {
-		ratedAny, ok := ratingResults.Load(charge.GetChargeID())
-		if !ok {
-			return charge, fmt.Errorf("totals result not found for charge %s", charge.ID)
-		}
-
-		rated, ok := ratedAny.(realtimeUsageRating)
-		if !ok {
-			return charge, fmt.Errorf("invalid totals type for charge %s", charge.ID)
-		}
-
-		charge.Expands.RealtimeUsage = &rated.Usage.Totals
-		charge.Expands.RealtimeQuantity = &rated.Usage.MeteredQuantity
-
-		return withRealtimeValidationIssues(charge, rated.ValidationIssues), nil
-	})
+	return expanded, nil
 }
 
 // Realtime warnings describe this read's metered snapshot, not persisted charge state.
