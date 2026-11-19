@@ -66,6 +66,13 @@ func (r Recurrence) IterateFromNextAfter(t time.Time, boundaryBehavior Boundary)
 		return RecurrenceIterator{}, fmt.Errorf("t cannot be zero")
 	}
 
+	// The anchor is always a boundary, so answer it directly. An anchor in the repeated
+	// hour of a DST fall-back can sit after the boundaries that follow it, and the
+	// lookup below would step past it.
+	if boundaryBehavior == Inclusive && t.Equal(r.Anchor) {
+		return r.Iterator(), nil
+	}
+
 	prev, err := r.lastIterationNotAfter(t)
 	if err != nil {
 		return RecurrenceIterator{}, err
@@ -105,13 +112,33 @@ func (r Recurrence) IterateFromPrevBefore(t time.Time, boundaryBehavior Boundary
 		return RecurrenceIterator{}, fmt.Errorf("t cannot be zero")
 	}
 
+	// Same as in IterateFromNextAfter: the anchor is a boundary even when a DST fall-back
+	// puts it out of order.
+	if boundaryBehavior == Inclusive && t.Equal(r.Anchor) {
+		return r.Iterator(), nil
+	}
+
 	prev, err := r.lastIterationNotAfter(t)
 	if err != nil {
 		return RecurrenceIterator{}, err
 	}
 
-	if boundaryBehavior == Exclusive && prev.At.Equal(t) {
-		return prev.Prev()
+	if boundaryBehavior == Inclusive {
+		return prev, nil
+	}
+
+	// Usually one step back is enough, but an anchor in the repeated hour of a DST
+	// fall-back makes neighboring boundaries land on the same instant, so keep going
+	// until we are strictly before t.
+	for steps := 0; !prev.At.Before(t); steps++ {
+		if steps >= MAX_SAFE_ITERATIONS {
+			return RecurrenceIterator{}, fmt.Errorf("recurrence: too many iterations")
+		}
+
+		prev, err = prev.Prev()
+		if err != nil {
+			return RecurrenceIterator{}, err
+		}
 	}
 
 	return prev, nil
@@ -137,6 +164,11 @@ func (r Recurrence) PrevBefore(t time.Time, boundaryBehavior Boundary) (time.Tim
 // month-end clamping does not drift. Boundaries grow monotonically with i, which lets us
 // jump to an estimated index and correct it locally instead of walking from the anchor.
 // The cost is independent of how many intervals separate t from the anchor.
+//
+// The one exception to the ordering is an anchor in the repeated hour of a DST fall-back:
+// datetime.DateTime.Add resolves it to the first occurrence, so the boundaries around the
+// anchor are an hour early and can collapse onto it or land before it. Callers handle
+// the anchor itself; lookups between those early boundaries keep that quirk.
 func (r Recurrence) lastIterationNotAfter(t time.Time) (RecurrenceIterator, error) {
 	iteration := r.estimateIteration(t)
 

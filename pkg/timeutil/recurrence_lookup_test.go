@@ -292,6 +292,63 @@ func TestRecurrenceLookupFarFromAnchor(t *testing.T) {
 	})
 }
 
+func TestRecurrenceExclusivePrevBeforeRepeatedDSTHour(t *testing.T) {
+	// given an hourly recurrence anchored in the repeated hour of a New York fall-back,
+	// where DateTime.Add puts boundaries 0 and 1 on the same instant
+	loc, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+
+	anchor := time.Date(2025, 11, 2, 6, 30, 0, 0, time.UTC).In(loc)
+	r := timeutil.Recurrence{
+		Interval: timeutil.RecurrenceInterval{ISODuration: datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0)},
+		Anchor:   anchor,
+	}
+
+	// when looking up the boundary strictly before the anchor
+	prev, err := r.IterateFromPrevBefore(anchor, timeutil.Exclusive)
+	require.NoError(t, err)
+
+	// then we skip the collapsed boundaries instead of returning the anchor itself
+	require.True(t, time.Date(2025, 11, 2, 4, 30, 0, 0, time.UTC).Equal(prev.At), "got %s", prev.At)
+
+	next, err := prev.Next()
+	require.NoError(t, err)
+	require.True(t, anchor.Equal(next.At), "got %s", next.At)
+}
+
+func TestRecurrenceInclusiveLookupAtRepeatedDSTHourAnchor(t *testing.T) {
+	// given a sub-hour recurrence anchored in the repeated hour of a New York fall-back,
+	// where DateTime.Add puts boundaries 1 and 2 (06:27Z, 06:55Z) before the anchor
+	loc, err := time.LoadLocation("America/New_York")
+	require.NoError(t, err)
+
+	anchor := time.Date(2025, 11, 2, 6, 59, 0, 0, time.UTC).In(loc)
+	r := timeutil.Recurrence{
+		Interval: timeutil.RecurrenceInterval{ISODuration: datetime.NewISODuration(0, 0, 0, 0, 0, 28, 0)},
+		Anchor:   anchor,
+	}
+
+	// when looking up the anchor inclusively
+	next, err := r.IterateFromNextAfter(anchor, timeutil.Inclusive)
+	require.NoError(t, err)
+
+	prev, err := r.IterateFromPrevBefore(anchor, timeutil.Inclusive)
+	require.NoError(t, err)
+
+	// then both lookups return the anchor, as it is a boundary itself
+	require.True(t, anchor.Equal(next.At), "next: got %s", next.At)
+	require.True(t, anchor.Equal(prev.At), "prev: got %s", prev.At)
+
+	// and the exclusive lookups still move strictly past it
+	nextExclusive, err := r.NextAfter(anchor, timeutil.Exclusive)
+	require.NoError(t, err)
+	require.True(t, nextExclusive.After(anchor), "next exclusive: got %s", nextExclusive)
+
+	prevExclusive, err := r.PrevBefore(anchor, timeutil.Exclusive)
+	require.NoError(t, err)
+	require.True(t, prevExclusive.Before(anchor), "prev exclusive: got %s", prevExclusive)
+}
+
 func BenchmarkRecurrenceGetPeriodAt(b *testing.B) {
 	at := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
 	anchor := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
