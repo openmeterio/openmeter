@@ -1564,12 +1564,16 @@ func TestBillingStartsAtValidation(t *testing.T) {
 	}
 
 	t.Run("charges can start billing inside a billing period", func(t *testing.T) {
+		// given a namespace where credit_then_invoice subscriptions are billed through charges
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t, subscription.ChargesConfig{Enabled: true, EnableCreditThenInvoice: true, FeatureGate: creditsForEveryNamespace})
 
+		// when a subscription is created with a billing start inside a billing period
 		created, err := deps.Service.Create(t.Context(), subscriptiontestutils.ExampleNamespace, specWithBillingStart(t, deps, insidePeriod))
+
+		// then it is accepted and stored
 		require.NoError(t, err)
 		require.Equal(t, &insidePeriod, created.BillingStartsAt)
 	})
@@ -1578,12 +1582,16 @@ func TestBillingStartsAtValidation(t *testing.T) {
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
+		// given a charge-backed subscription spec that does not prorate prices
 		deps := setup(t, subscription.ChargesConfig{Enabled: true, EnableCreditThenInvoice: true, FeatureGate: creditsForEveryNamespace})
 
 		spec := specWithBillingStart(t, deps, insidePeriod)
 		spec.ProRatingConfig.Enabled = false
 
+		// when it is created with a billing start inside a billing period
 		created, err := deps.Service.Create(t.Context(), subscriptiontestutils.ExampleNamespace, spec)
+
+		// then it is still accepted: pro-rating is recommended, not required
 		require.NoError(t, err)
 		require.Equal(t, &insidePeriod, created.BillingStartsAt)
 	})
@@ -1592,9 +1600,13 @@ func TestBillingStartsAtValidation(t *testing.T) {
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
+		// given credits are enabled, but credit_then_invoice subscriptions are not moved to charges
 		deps := setup(t, subscription.ChargesConfig{Enabled: true, FeatureGate: creditsForEveryNamespace})
 
+		// when a credit_then_invoice subscription is created with a billing start inside a billing period
 		_, err := deps.Service.Create(t.Context(), subscriptiontestutils.ExampleNamespace, specWithBillingStart(t, deps, insidePeriod))
+
+		// then it is rejected, because invoice lines can only skip whole billing periods
 		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotAligned)
 	})
 
