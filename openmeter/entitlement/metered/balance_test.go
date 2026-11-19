@@ -1,6 +1,7 @@
 package meteredentitlement_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	dbbalancesnapshot "github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
@@ -20,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -81,6 +84,48 @@ func TestGetEntitlementBalance(t *testing.T) {
 		name string
 		run  func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies)
 	}{
+		{
+			name: "reads an uncommitted grant on the transaction connection",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				// Given an entitlement with usage and a pool with one connection.
+				ctx := t.Context()
+				start := getAnchor(t)
+				name := testutils.NameGenerator.Generate()
+				cust := createCustomerAndSubject(t, deps.subjectService, deps.customerService, namespace, name.Key, name.Name)
+
+				input := getEntitlement(t, feat, cust.GetUsageAttribution())
+				input.MeasureUsageFrom = &start
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, input)
+				require.NoError(t, err)
+				owner := models.NamespacedID{Namespace: namespace, ID: ent.ID}
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 3, start.Add(time.Minute))
+
+				pool := deps.pgDriver.DB()
+				previousMax := pool.Stats().MaxOpenConnections
+				pool.SetMaxOpenConns(1)
+				t.Cleanup(func() { pool.SetMaxOpenConns(previousMax) })
+
+				ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+				defer cancel()
+
+				// When the caller issues a grant and reads the balance before commit.
+				bal, err := transaction.Run(ctx, deps.grantRepo, func(ctx context.Context) (*meteredentitlement.EntitlementBalance, error) {
+					_, err := deps.creditConnector.CreateGrant(ctx, owner, credit.CreateGrantInput{
+						Amount:      10,
+						EffectiveAt: start,
+					})
+					if err != nil {
+						return nil, err
+					}
+
+					return connector.GetEntitlementBalance(ctx, owner, start.Add(time.Hour))
+				})
+
+				// Then the calculation can see the grant and deduct the usage.
+				require.NoError(t, err)
+				require.Equal(t, 7.0, bal.Balance)
+			},
+		},
 		{
 			name: "Should ignore usage before start of measurement",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {

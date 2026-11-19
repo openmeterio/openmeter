@@ -16,10 +16,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+// A balance read inside a transaction must see grants changed by that caller
+// and reuse the connection it already holds.
+func (m *connector) listActiveGrantsBetween(ctx context.Context, owner models.NamespacedID, from, to time.Time) ([]grant.Grant, error) {
+	return entutils.TransactingRepo(ctx, m.GrantRepo, func(ctx context.Context, repo grant.Repo) ([]grant.Grant, error) {
+		return repo.ListActiveGrantsBetween(ctx, owner, from, to)
+	})
+}
 
 // GetLastValidSnapshotAt fetches the last valid snapshot for an owner.
 // If no usable snapshot exists returns a default snapshot for measurement start to recalculate the entire history.
@@ -71,7 +80,7 @@ func (m *connector) startOfMeasurementSnapshot(ctx context.Context, owner models
 		return balance.Snapshot{}, err
 	}
 
-	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
+	grants, err := m.listActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
 	if err != nil {
 		return balance.Snapshot{}, err
 	}
