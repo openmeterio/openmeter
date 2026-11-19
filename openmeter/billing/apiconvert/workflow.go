@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func ToAPIBillingProfileApps(a *billing.ProfileApps) (*apiv1models.BillingProfileAppsOrReference, error) {
@@ -191,12 +192,78 @@ func ResolveWorkflowTaxCodes(ctx context.Context, resolver productcatalog.TaxCod
 		return id, id != ""
 	}))
 
+	return resolveTaxCodesByIDs(ctx, resolver, namespace, ids)
+}
+
+// ResolveInvoiceTaxCodesInput carries what one v1 invoice response renders: the workflows'
+// default tax configs and the lines' own tax configs.
+type ResolveInvoiceTaxCodesInput struct {
+	Namespace string
+	// Workflows are the workflows whose default tax config references render on the response.
+	Workflows []billing.WorkflowConfig
+	// StandardLines and GatheringLines are the lines rendered on the response. Child
+	// (detailed) lines inherit their parent's config and need no entry of their own.
+	StandardLines  []*billing.StandardLine
+	GatheringLines []billing.GatheringLine
+}
+
+func (i ResolveInvoiceTaxCodesInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// ResolveInvoiceTaxCodes looks up, in one batch, every Tax Code a v1 invoice response renders:
+// the workflows' default tax configs' references plus the lines' own tax config references.
+// stripe.code comes from the referenced Tax Code's current Stripe mapping, so a line whose
+// stored stripe.code no longer matches renders the current one, and the whole page shares one
+// lookup. A referenced ID the namespace can't resolve fails rendering (a 500), consistent with
+// the default.
+func ResolveInvoiceTaxCodes(ctx context.Context, resolver productcatalog.TaxCodeResolver, input ResolveInvoiceTaxCodesInput) (map[string]*taxcode.TaxCode, error) {
+	if err := input.Validate(); err != nil {
+		return nil, err
+	}
+
+	ids := lo.FilterMap(input.Workflows, func(wf billing.WorkflowConfig, _ int) (string, bool) {
+		id := wf.Invoicing.DefaultTaxCodeID()
+		return id, id != ""
+	})
+
+	for _, line := range input.StandardLines {
+		if id := taxCodeIDFromConfig(line.TaxConfig.ToProductCatalog()); id != "" {
+			ids = append(ids, id)
+		}
+	}
+
+	for _, line := range input.GatheringLines {
+		if id := taxCodeIDFromConfig(line.TaxConfig); id != "" {
+			ids = append(ids, id)
+		}
+	}
+
+	return resolveTaxCodesByIDs(ctx, resolver, input.Namespace, lo.Uniq(ids))
+}
+
+// taxCodeIDFromConfig returns the Tax Code reference of the config, or "" when there is none.
+func taxCodeIDFromConfig(cfg *productcatalog.TaxConfig) string {
+	if cfg == nil || cfg.TaxCodeID == nil {
+		return ""
+	}
+
+	return *cfg.TaxCodeID
+}
+
+func resolveTaxCodesByIDs(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, ids []string) (map[string]*taxcode.TaxCode, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 
 	if resolver == nil {
-		return nil, errors.New("tax code resolver is required to render default tax configs")
+		return nil, errors.New("tax code resolver is required to render tax configs")
 	}
 
 	taxCodes, err := resolver.BatchResolve(ctx, namespace, ids...)

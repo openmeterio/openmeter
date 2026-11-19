@@ -14,6 +14,7 @@ import (
 	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customerhttpdriver "github.com/openmeterio/openmeter/openmeter/customer/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -451,6 +452,10 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				return SimulateInvoiceRequest{}, err
 			}
 
+			if err := resolveSimulationLineTaxConfigs(ctx, h.taxCodeResolver, ns, body.Lines); err != nil {
+				return SimulateInvoiceRequest{}, err
+			}
+
 			lines, err := slicesx.MapWithErr(body.Lines, mapSimulationLineToEntity)
 			if err != nil {
 				return SimulateInvoiceRequest{}, billing.ValidationError{
@@ -579,20 +584,36 @@ func (h *handler) updateGatheringInvoice(ctx context.Context, invoice billing.In
 		return billing.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
 	}
 
-	updatedGatheringInvoice, err := h.service.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-		Invoice:      gatheringInvoice.GetInvoiceID(),
-		ChangeSource: billing.ChangeSourceAPIRequest,
-		EditFn: func(invoice *billing.GatheringInvoice) error {
-			var err error
-			invoice.Lines, err = h.mergeGatheringInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines)
-			if err != nil {
-				return fmt.Errorf("merging lines: %w", err)
-			}
+	// Resolution shares the update's transaction, so a stripe.code is created with (or rolled
+	// back with) the edit; the EditFn only applies the already-resolved IDs.
+	var updatedGatheringInvoice billing.GatheringInvoice
+	if err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+		resolvedTaxConfigs, err := resolveUpdateLineTaxConfigs(ctx, resolver, request.InvoiceID.Namespace, request.Input.Lines)
+		if err != nil {
+			return err
+		}
 
-			return nil
-		},
-	})
-	if err != nil {
+		result, err := h.service.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      gatheringInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				var err error
+				invoice.Lines, err = h.mergeGatheringInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines, resolvedTaxConfigs)
+				if err != nil {
+					return fmt.Errorf("merging lines: %w", err)
+				}
+
+				return nil
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		updatedGatheringInvoice = result
+
+		return nil
+	}); err != nil {
 		return billing.Invoice{}, err
 	}
 
@@ -605,32 +626,48 @@ func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Inv
 		return billing.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
 	}
 
-	updatedStandardInvoice, err := h.service.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-		Invoice:      stdInvoice.GetInvoiceID(),
-		ChangeSource: billing.ChangeSourceAPIRequest,
-		EditFn: func(invoice *billing.StandardInvoice) error {
-			invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
-			invoice.Customer = mergeInvoiceCustomerFromAPI(invoice.Customer, request.Input.Customer)
+	// Resolution shares the update's transaction, so a stripe.code is created with (or rolled
+	// back with) the edit; the EditFn only applies the already-resolved IDs.
+	var updatedStandardInvoice billing.StandardInvoice
+	if err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+		resolvedTaxConfigs, err := resolveUpdateLineTaxConfigs(ctx, resolver, request.InvoiceID.Namespace, request.Input.Lines)
+		if err != nil {
+			return err
+		}
 
-			var err error
-			invoice.Workflow, err = mergeInvoiceWorkflowFromAPI(invoice.Workflow, request.Input.Workflow)
-			if err != nil {
-				return fmt.Errorf("merging workflow: %w", err)
-			}
+		result, err := h.service.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      stdInvoice.GetInvoiceID(),
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Supplier = mergeInvoiceSupplierFromAPI(invoice.Supplier, request.Input.Supplier)
+				invoice.Customer = mergeInvoiceCustomerFromAPI(invoice.Customer, request.Input.Customer)
 
-			invoice.Lines, err = h.mergeStandardInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines)
-			if err != nil {
-				return fmt.Errorf("merging lines: %w", err)
-			}
+				var err error
+				invoice.Workflow, err = mergeInvoiceWorkflowFromAPI(invoice.Workflow, request.Input.Workflow)
+				if err != nil {
+					return fmt.Errorf("merging workflow: %w", err)
+				}
 
-			// basic fields
-			invoice.Description = request.Input.Description
-			invoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
+				invoice.Lines, err = h.mergeStandardInvoiceLinesFromAPI(ctx, invoice, request.Input.Lines, resolvedTaxConfigs)
+				if err != nil {
+					return fmt.Errorf("merging lines: %w", err)
+				}
 
-			return nil
-		},
-	})
-	if err != nil {
+				// basic fields
+				invoice.Description = request.Input.Description
+				invoice.Metadata = lo.FromPtrOr(request.Input.Metadata, map[string]string{})
+
+				return nil
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		updatedStandardInvoice = result
+
+		return nil
+	}); err != nil {
 		return billing.Invoice{}, err
 	}
 
@@ -659,17 +696,14 @@ type invoiceToMap struct {
 	mergedProfile billing.CustomerBillingProfile
 }
 
-func (i invoiceToMap) workflow() billing.WorkflowConfig {
-	if i.standard != nil {
-		return i.standard.Workflow.Config
-	}
-
-	return i.mergedProfile.EffectiveProfile.WorkflowConfig
-}
-
-// mapInvoicesToAPI maps invoices with one Tax Code lookup for all of their default tax configs.
+// mapInvoicesToAPI maps invoices with one Tax Code lookup for the default and line tax configs
+// of the whole page.
 func (h *handler) mapInvoicesToAPI(ctx context.Context, namespace string, invoices ...billing.Invoice) ([]apiv1models.Invoice, error) {
 	prepared := make([]invoiceToMap, 0, len(invoices))
+
+	workflows := make([]billing.WorkflowConfig, 0, len(invoices))
+	standardLines := make([]*billing.StandardLine, 0, len(invoices))
+	gatheringLines := make([]billing.GatheringLine, 0, len(invoices))
 
 	for _, invoice := range invoices {
 		switch invoice.Type() {
@@ -680,6 +714,8 @@ func (h *handler) mapInvoicesToAPI(ctx context.Context, namespace string, invoic
 			}
 
 			prepared = append(prepared, invoiceToMap{standard: &standardInvoice})
+			workflows = append(workflows, standardInvoice.Workflow.Config)
+			standardLines = append(standardLines, standardInvoice.Lines.OrEmpty()...)
 		case billing.InvoiceTypeGathering:
 			gatheringInvoice, err := invoice.AsGatheringInvoice()
 			if err != nil {
@@ -699,15 +735,19 @@ func (h *handler) mapInvoicesToAPI(ctx context.Context, namespace string, invoic
 			}
 
 			prepared = append(prepared, invoiceToMap{gathering: &gatheringInvoice, mergedProfile: mergedProfile})
+			workflows = append(workflows, mergedProfile.EffectiveProfile.WorkflowConfig)
+			gatheringLines = append(gatheringLines, gatheringInvoice.Lines.OrEmpty()...)
 		default:
 			return nil, fmt.Errorf("invalid invoice type: %s", invoice.Type())
 		}
 	}
 
-	taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, namespace,
-		lo.Map(prepared, func(i invoiceToMap, _ int) billing.WorkflowConfig {
-			return i.workflow()
-		})...)
+	taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, h.taxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:      namespace,
+		Workflows:      workflows,
+		StandardLines:  standardLines,
+		GatheringLines: gatheringLines,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -737,9 +777,19 @@ func (h *handler) mapInvoicesToAPI(ctx context.Context, namespace string, invoic
 }
 
 func (h *handler) taxCodesForStandardInvoices(ctx context.Context, namespace string, invoices ...billing.StandardInvoice) (map[string]*taxcode.TaxCode, error) {
-	return billingconvert.ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, namespace, lo.Map(invoices, func(invoice billing.StandardInvoice, _ int) billing.WorkflowConfig {
-		return invoice.Workflow.Config
-	})...)
+	workflows := make([]billing.WorkflowConfig, 0, len(invoices))
+	lines := make([]*billing.StandardLine, 0, len(invoices))
+
+	for _, invoice := range invoices {
+		workflows = append(workflows, invoice.Workflow.Config)
+		lines = append(lines, invoice.Lines.OrEmpty()...)
+	}
+
+	return billingconvert.ResolveInvoiceTaxCodes(ctx, h.taxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:     namespace,
+		Workflows:     workflows,
+		StandardLines: lines,
+	})
 }
 
 func (h *handler) mapStandardInvoiceWithTaxCodesToAPI(ctx context.Context, invoice billing.StandardInvoice) (apiv1models.Invoice, error) {
@@ -752,13 +802,15 @@ func (h *handler) mapStandardInvoiceWithTaxCodesToAPI(ctx context.Context, invoi
 }
 
 // MapStandardInvoiceToAPI maps a standard invoice. taxCodes must hold the invoice's default Tax
-// Code (see ResolveWorkflowTaxCodes) for its stripe.code to show.
+// Code and every Tax Code its lines' tax configs reference (see ResolveInvoiceTaxCodes) for
+// their stripe.code to show.
 func MapStandardInvoiceToAPI(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	return billingconvert.ToAPIStandardInvoice(invoice, taxCodes)
 }
 
 // MapEventInvoiceToAPI maps an invoice event to the v1 invoice shape notifications carry. The event
-// has no Stripe code for the invoice default; taxCodes (see ResolveWorkflowTaxCodes) supplies it.
+// has no Stripe code for the invoice default; taxCodes (see ResolveInvoiceTaxCodes) supplies it
+// and the lines' stripe.code.
 func MapEventInvoiceToAPI(event billing.EventStandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	return billingconvert.ToAPIEventInvoice(event, taxCodes)
 }

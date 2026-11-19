@@ -18,9 +18,12 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	apiv1models "github.com/openmeterio/openmeter/api/models"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -406,6 +409,7 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceHTTP() {
 	h := &handler{
 		service:          s.BillingService,
 		namespaceDecoder: namespacedriver.StaticNamespaceDecoder(namespace),
+		taxCodeResolver:  s.TaxCodeResolver,
 	}
 
 	// when:
@@ -422,4 +426,160 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceHTTP() {
 	s.NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
 	s.Len(lo.FromPtr(invoice.Lines), 1)
 	s.Equal(10.0, alpacadecimal.RequireFromString(invoice.Totals.Total).InexactFloat64())
+}
+
+func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
+	namespace := "ns-simulate-taxconfig"
+	ctx := s.T().Context()
+
+	// given: a customer with a billing profile and a known Stripe-mapped tax code
+	appSandbox := s.InstallSandboxApp(s.T(), namespace)
+
+	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
+		Namespace: namespace,
+
+		CustomerMutate: customer.CustomerMutate{
+			Key:      lo.ToPtr("test-customer"),
+			Name:     "Test Customer",
+			Currency: lo.ToPtr(currencyx.Code(currency.USD)),
+		},
+	})
+	s.Require().NoError(err)
+
+	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
+
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+
+	h := &handler{
+		service:          s.BillingService,
+		namespaceDecoder: namespacedriver.StaticNamespaceDecoder(namespace),
+		logger:           testutils.NewDiscardLogger(s.T()),
+		taxCodeResolver:  s.TaxCodeResolver,
+	}
+
+	period := invoiceLineTestPeriod()
+	price := apiv1models.RateCardUsageBasedPrice{}
+	s.NoError(price.FromFlatPriceWithPaymentTerm(apiv1models.FlatPriceWithPaymentTerm{
+		Amount: "10",
+		Type:   apiv1models.FlatPriceWithPaymentTermTypeFlat,
+	}))
+
+	// The simulation reads: it must not create the Tax Code an unknown stripe.code would
+	// resolve to, so deleted rows included, the count can't move.
+
+	s.Run("known stripe code renders its id and stripe code", func() {
+		// given: a line with only stripe.code
+		before := s.taxCodeCount(namespace)
+		// when: the invoice is simulated
+		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+			Currency: apiv1models.CurrencyCode(currency.USD),
+			Lines:    []apiv1models.InvoiceSimulationLine{s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "txcd_10000000"}})},
+		})
+		s.Require().NoError(err)
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+		// then: the line shows the tax code's id and stripe code, and nothing was created
+		s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
+
+		var invoice apiv1models.Invoice
+		s.Require().NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
+		s.Require().Len(lo.FromPtr(invoice.Lines), 1)
+		s.Require().NotNil((*invoice.Lines)[0].TaxConfig)
+		s.Equal(&apiv1models.TaxConfig{
+			Stripe:    &apiv1models.StripeTaxConfig{Code: "txcd_10000000"},
+			TaxCodeId: lo.ToPtr(taxCode.ID),
+		}, (*invoice.Lines)[0].TaxConfig)
+
+		s.Equal(before, s.taxCodeCount(namespace))
+	})
+
+	s.Run("unknown stripe code creates nothing and renders no stripe code", func() {
+		// given: a line with a stripe.code no tax code maps to
+		before := s.taxCodeCount(namespace)
+
+		// when: the invoice is simulated
+		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+			Currency: apiv1models.CurrencyCode(currency.USD),
+			Lines:    []apiv1models.InvoiceSimulationLine{s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "txcd_99000000"}})},
+		})
+		s.Require().NoError(err)
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+		// then: the request succeeds, the line carries no tax code reference and no stripe code
+		s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
+
+		var invoice apiv1models.Invoice
+		s.Require().NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
+		s.Require().Len(lo.FromPtr(invoice.Lines), 1)
+		s.Require().NotNil((*invoice.Lines)[0].TaxConfig)
+		s.Nil((*invoice.Lines)[0].TaxConfig.Stripe)
+		s.Nil((*invoice.Lines)[0].TaxConfig.TaxCodeId)
+
+		s.Equal(before, s.taxCodeCount(namespace))
+	})
+
+	s.Run("tax code id wins over stripe code", func() {
+		// given: a line echoing both the id and a foreign stripe code
+		// when: the invoice is simulated
+		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+			Currency: apiv1models.CurrencyCode(currency.USD),
+			Lines: []apiv1models.InvoiceSimulationLine{s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{
+				Stripe:    &apiv1models.StripeTaxConfig{Code: "txcd_99000000"},
+				TaxCodeId: lo.ToPtr(taxCode.ID),
+			})},
+		})
+		s.Require().NoError(err)
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+		// then: the id wins and the stripe code comes from the tax code's mapping
+		s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
+
+		var invoice apiv1models.Invoice
+		s.Require().NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
+		s.Require().Len(lo.FromPtr(invoice.Lines), 1)
+		s.Require().NotNil((*invoice.Lines)[0].TaxConfig)
+		s.Equal(lo.ToPtr(taxCode.ID), (*invoice.Lines)[0].TaxConfig.TaxCodeId)
+		s.Equal(&apiv1models.StripeTaxConfig{Code: "txcd_10000000"}, (*invoice.Lines)[0].TaxConfig.Stripe)
+	})
+
+	s.Run("malformed stripe code is rejected", func() {
+		// when: the invoice is simulated with a malformed stripe code
+		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+			Currency: apiv1models.CurrencyCode(currency.USD),
+			Lines:    []apiv1models.InvoiceSimulationLine{s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "invalid_code"}})},
+		})
+		s.Require().NoError(err)
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+		// then: the request fails with a validation error
+		s.Require().Equal(http.StatusBadRequest, w.Code, w.Body.String())
+	})
+}
+
+func (s *InvoicingTestSuite) taxCodeCount(namespace string) int {
+	count, err := s.DBClient.TaxCode.Query().Where(taxcodedb.Namespace(namespace)).Count(s.T().Context())
+	s.Require().NoError(err)
+
+	return count
+}
+
+func (s *InvoicingTestSuite) simulationTaxConfigLine(price *apiv1models.RateCardUsageBasedPrice, period timeutil.ClosedPeriod, taxConfig *apiv1models.TaxConfig) apiv1models.InvoiceSimulationLine {
+	return apiv1models.InvoiceSimulationLine{
+		Name:      "simulated flat fee",
+		Period:    apiv1models.Period(period),
+		InvoiceAt: period.To,
+		RateCard:  &apiv1models.InvoiceUsageBasedRateCard{Price: price, TaxConfig: taxConfig},
+	}
 }

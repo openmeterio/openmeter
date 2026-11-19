@@ -237,7 +237,11 @@ func (t *Generator) newTestInvoicePayload(ctx context.Context, namespace string,
 		return notification.EventPayload{}, err
 	}
 
-	taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, t.taxCodeResolver, invoice.Namespace, invoice.Workflow.Config)
+	taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, t.taxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:     invoice.Namespace,
+		Workflows:     []billing.WorkflowConfig{invoice.Workflow.Config},
+		StandardLines: invoice.Lines.OrEmpty(),
+	})
 	if err != nil {
 		return notification.EventPayload{}, err
 	}
