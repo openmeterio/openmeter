@@ -91,13 +91,16 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 
 			handler := chargehandlers.New(func(context.Context) (string, error) {
 				return ns, nil
-			}, s.Charges, false)
+			}, s.Charges, s.TaxCodeResolver, false)
 
 			for _, testCase := range []struct {
 				name       string
 				taxConfig  apiv3models.BillingTaxConfig
 				wantCodeID string
-				wantStatus int
+				// wantStripeCode resolves wantCodeID when the request backfills a Tax Code
+				// that doesn't exist yet, so its ID is only known after the create.
+				wantStripeCode string
+				wantStatus     int
 			}{
 				{
 					name: "tax code reference",
@@ -141,6 +144,17 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 					},
 					wantCodeID: requestedTaxCode.ID,
 					wantStatus: http.StatusCreated,
+				},
+				{
+					// The namespace has no Tax Code mapped to this Stripe code yet, so the
+					// handler creates one inside the request transaction.
+					name: "unknown Stripe code is backfilled",
+					taxConfig: apiv3models.BillingTaxConfig{
+						Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorExclusive),
+						Stripe:   &apiv3models.BillingTaxConfigStripe{Code: "txcd_50000000"},
+					},
+					wantStripeCode: "txcd_50000000",
+					wantStatus:     http.StatusCreated,
 				},
 				{
 					name:       "empty tax config uses organization default",
@@ -207,6 +221,18 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 						return
 					}
 
+					wantCodeID := testCase.wantCodeID
+					if testCase.wantStripeCode != "" {
+						// then: the backfilled Tax Code maps the Stripe code the request sent
+						backfilled, err := s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+							Namespace: ns,
+							AppType:   app.AppTypeStripe,
+							TaxCode:   testCase.wantStripeCode,
+						})
+						s.Require().NoError(err)
+						wantCodeID = backfilled.ID
+					}
+
 					var created struct {
 						ID        string                        `json:"id"`
 						TaxConfig *apiv3models.BillingTaxConfig `json:"tax_config"`
@@ -217,10 +243,10 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 					s.Require().NotNil(created.TaxConfig)
 					s.Require().NotNil(created.TaxConfig.TaxCode)
 					s.Equal(testCase.taxConfig.Behavior, created.TaxConfig.Behavior)
-					s.Equal(testCase.wantCodeID, created.TaxConfig.TaxCode.Id, "organization default: %s", defaults.InvoicingTaxCodeID)
+					s.Equal(wantCodeID, created.TaxConfig.TaxCode.Id, "organization default: %s", defaults.InvoicingTaxCodeID)
 					s.requirePersistedChargeTaxCodeConfig(meta.ChargeID{Namespace: ns, ID: created.ID}, productcatalog.TaxCodeConfig{
 						Behavior:  (*productcatalog.TaxBehavior)(testCase.taxConfig.Behavior),
-						TaxCodeID: testCase.wantCodeID,
+						TaxCodeID: wantCodeID,
 					})
 				})
 			}
@@ -1734,7 +1760,7 @@ func (s *TaxCodePersistenceTestSuite) TestCreateCustomerChargeWithDeletedTaxCode
 			Namespace:    ns,
 			CustomerID:   cust.ID,
 			CurrencyCode: USD,
-			TaxConfig:    productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)},
+			TaxConfig:    productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID},
 			FlatFee:      s.newCustomerChargeFlatFeeInput(servicePeriod),
 		}
 
@@ -1751,16 +1777,16 @@ func (s *TaxCodePersistenceTestSuite) TestCreateCustomerChargeWithDeletedTaxCode
 			Namespace:    ns,
 			CustomerID:   cust.ID,
 			CurrencyCode: USD,
-			TaxConfig:    productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(ulid.Make().String())},
+			TaxConfig:    productcatalog.TaxCodeConfig{TaxCodeID: ulid.Make().String()},
 			FlatFee:      s.newCustomerChargeFlatFeeInput(servicePeriod),
 		}
 
 		_, err := s.Charges.CreateCustomerCharge(ctx, input)
 
-		// then: the missing reference is still rejected as not found
+		// then: the missing reference is rejected as not found
 		s.Require().Error(err)
-		s.True(models.IsGenericValidationError(err), "expected a validation error, got: %v", err)
-		s.ErrorContains(err, "not found")
+		s.ErrorIs(err, billing.ErrTaxCodeNotFound)
+		s.True(billing.IsValidationIssueOnly(err), "expected a validation error, got: %v", err)
 	})
 
 	s.Run("when the caller omits the tax config the profile default applies", func() {
