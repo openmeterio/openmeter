@@ -5,6 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingerrors"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
@@ -18,6 +19,7 @@ type Handler interface {
 type handler struct {
 	resolveNamespace  func(ctx context.Context) (string, error)
 	service           billingcharges.Service
+	taxCodeResolver   productcatalog.TransactionalTaxCodeResolver
 	unitConfigEnabled bool
 	options           []httptransport.HandlerOption
 }
@@ -25,6 +27,7 @@ type handler struct {
 func New(
 	resolveNamespace func(ctx context.Context) (string, error),
 	service billingcharges.Service,
+	taxCodeResolver productcatalog.TransactionalTaxCodeResolver,
 	unitConfigEnabled bool,
 	options ...httptransport.HandlerOption,
 ) Handler {
@@ -35,6 +38,7 @@ func New(
 	return &handler{
 		resolveNamespace:  resolveNamespace,
 		service:           service,
+		taxCodeResolver:   taxCodeResolver,
 		unitConfigEnabled: unitConfigEnabled,
 		options:           sharedOptions,
 	}

@@ -932,21 +932,21 @@ func fromAPIChargesExpands(ctx context.Context, expand *[]apiv3models.BillingCha
 	return meta.ExpandNone.With(expands...), nil
 }
 
-func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
+func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, *productcatalog.TaxConfig, error) {
 	var zero billingcharges.CreateCustomerChargeInput
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(flatFee.TaxConfig)
 	if err != nil {
-		return zero, fmt.Errorf("invalid tax config: %w", err)
+		return zero, nil, fmt.Errorf("invalid tax config: %w", err)
 	}
 
 	if flatFee.AmountBeforeProration.Currency != flatFee.Currency {
-		return zero, models.NewGenericValidationError(errors.New("currency mismatch, amount_before_proration.currency should match currency field"))
+		return zero, nil, models.NewGenericValidationError(errors.New("currency mismatch, amount_before_proration.currency should match currency field"))
 	}
 
 	amountBeforeProration, err := alpacadecimal.NewFromString(flatFee.AmountBeforeProration.Amount)
 	if err != nil {
-		return zero, models.NewGenericValidationError(errors.New("invalid amount_before_proration.amount, must be a valid decimal string"))
+		return zero, nil, models.NewGenericValidationError(errors.New("invalid amount_before_proration.amount, must be a valid decimal string"))
 	}
 
 	var metadata models.Metadata
@@ -982,7 +982,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 
 	costBasis, err := billingcommon.FromAPIChargeCostBasis(flatFee.CostBasis)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 
 	return billingcharges.CreateCustomerChargeInput{
@@ -990,7 +990,6 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(flatFee.Currency),
 		CostBasis:         costBasis,
-		TaxConfig:         lo.FromPtr(taxConfig),
 		UniqueReferenceID: flatFee.UniqueReferenceId,
 		FlatFee: &billingcharges.CreateCustomerChargeFlatFeeInput{
 			IntentMutableFields: flatfee.IntentMutableFields{
@@ -1011,15 +1010,15 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 			FeatureID:      featureID,
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
-	}, nil
+	}, taxConfig, nil
 }
 
-func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee apiv3models.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
+func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee apiv3models.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, *productcatalog.TaxConfig, error) {
 	var zero billingcharges.CreateCustomerChargeInput
 
 	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(usageBasedFee.TaxConfig)
 	if err != nil {
-		return zero, fmt.Errorf("invalid tax config: %w", err)
+		return zero, nil, fmt.Errorf("invalid tax config: %w", err)
 	}
 
 	var metadata models.Metadata
@@ -1038,7 +1037,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		if usageBasedFee.Discounts.Usage != nil {
 			quantity, err := alpacadecimal.NewFromString(lo.FromPtr(usageBasedFee.Discounts.Usage))
 			if err != nil {
-				return zero, fmt.Errorf("invalid usage discount quantity: %w", err)
+				return zero, nil, fmt.Errorf("invalid usage discount quantity: %w", err)
 			}
 
 			discounts.Usage = &productcatalog.UsageDiscount{
@@ -1051,20 +1050,20 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 
 	price, err := plans.FromAPIBillingPriceUsageBased(usageBasedFee.Price, usageBasedFee.Commitments)
 	if err != nil {
-		return zero, fmt.Errorf("invalid price: %w", err)
+		return zero, nil, fmt.Errorf("invalid price: %w", err)
 	}
 
 	var unitConfig *productcatalog.UnitConfig
 	if usageBasedFee.UnitConfig != nil {
 		unitConfig, err = plans.FromAPIBillingUnitConfig(*usageBasedFee.UnitConfig)
 		if err != nil {
-			return zero, fmt.Errorf("invalid unit config: %w", err)
+			return zero, nil, fmt.Errorf("invalid unit config: %w", err)
 		}
 	}
 
 	costBasis, err := billingcommon.FromAPIChargeCostBasis(usageBasedFee.CostBasis)
 	if err != nil {
-		return zero, err
+		return zero, nil, err
 	}
 
 	return billingcharges.CreateCustomerChargeInput{
@@ -1072,7 +1071,6 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(usageBasedFee.Currency),
 		CostBasis:         costBasis,
-		TaxConfig:         lo.FromPtr(taxConfig),
 		UniqueReferenceID: usageBasedFee.UniqueReferenceId,
 		UsageBased: &billingcharges.CreateCustomerChargeUsageBasedInput{
 			IntentMutableFields: usagebased.IntentMutableFields{
@@ -1092,7 +1090,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 			FeatureID:      usageBasedFee.Feature.Id,
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
-	}, nil
+	}, taxConfig, nil
 }
 
 // maxListChargesPageSize bounds a single page: every listed charge loads its

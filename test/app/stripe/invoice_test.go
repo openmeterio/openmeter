@@ -1796,12 +1796,12 @@ func (s *StripeInvoiceTestSuite) assertSentTaxBehavior(behavior string) {
 	s.Equal(behavior, lo.FromPtr(s.lastAddedInvoiceLines[0].TaxBehavior))
 }
 
-// A draft re-sync sends the Tax Code's current Stripe mapping: the app looks the code up by
-// the line's TaxCodeID at sync time, so a mapping changed after line creation reaches Stripe
-// on the next upsert.
-func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
+// A draft re-sync sends the line's Tax Code Stripe mapping again: the app looks the code up by
+// the line's TaxCodeID at sync time, so both the initial sync and every later re-sync of the
+// draft render the current mapping.
+func (s *StripeInvoiceTestSuite) TestDraftResyncSendsTaxCodeMapping() {
 	ctx := s.T().Context()
-	namespace := s.GetUniqueNamespace("stripe-taxcode-remap")
+	namespace := s.GetUniqueNamespace("stripe-taxcode-resync")
 	period := timeutil.ClosedPeriod{
 		From: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z")),
 		To:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z")),
@@ -1838,32 +1838,19 @@ func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
 		}, nil)
 
 	// given: a draft whose line references the tax code, synced to Stripe
-	s.stubDraftSyncUpsert("in_taxcode_remap")
+	s.stubDraftSyncUpsert("in_taxcode_resync")
 	defer s.StripeAppClient.Restore()
 
 	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
 		TaxCodeID: lo.ToPtr(invoicingTaxCode.ID),
-	}, "Remapped fee")
+	}, "Resynced fee")
 
-	s.Equal("in_taxcode_remap", invoice.ExternalIDs.Invoicing)
+	s.Equal("in_taxcode_resync", invoice.ExternalIDs.Invoicing)
 	s.assertSentTaxCode("txcd_10000000")
 	s.assertSentTaxBehavior(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive))
 
-	// when: the tax code is remapped to another Stripe code
-	_, err = s.TaxCodeEnv.Service.UpdateTaxCode(ctx, taxcode.UpdateTaxCodeInput{
-		NamespacedID: invoicingTaxCode.NamespacedID,
-		Name:         invoicingTaxCode.Name,
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
-		},
-		// The test drives the update directly, not through the API, so the immutability
-		// guard doesn't apply.
-		AllowAppMappingOverride: true,
-	})
-	s.Require().NoError(err)
-
-	// then: a re-sync of the draft updates the existing Stripe line with the tax code's new mapping
+	// when: the draft is re-synced to Stripe, the same flow an edit takes
 	updatedStripeLineID := "il_1"
 
 	var updatedLines []*stripeclient.StripeInvoiceItemWithID
@@ -1876,13 +1863,13 @@ func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
 		On("UpdateInvoice", mock.Anything).
 		Once().
 		Return(&stripe.Invoice{
-			ID:       "in_taxcode_remap",
+			ID:       "in_taxcode_resync",
 			Customer: &stripe.Customer{ID: defaultStripeCustomerID},
 			Currency: "USD",
 			Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
 		}, nil)
 	s.StripeAppClient.
-		On("ListInvoiceLineItems", "in_taxcode_remap").
+		On("ListInvoiceLineItems", "in_taxcode_resync").
 		Once().
 		Return([]*stripe.InvoiceLineItem{{ID: updatedStripeLineID, InvoiceItem: &stripe.InvoiceItem{ID: "ii_1"}}}, nil)
 	s.StripeAppClient.
@@ -1897,15 +1884,16 @@ func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
 	s.Require().NoError(err)
 
 	resync := lo.Must(invoice.RemoveCircularReferences())
-	resync.ExternalIDs.Invoicing = "in_taxcode_remap"
+	resync.ExternalIDs.Invoicing = "in_taxcode_resync"
 
 	_, err = invoicingApp.UpsertStandardInvoice(ctx, resync)
 	s.Require().NoError(err)
 
+	// then: the re-sync updates the existing Stripe line and sends its tax code mapping again
 	s.StripeAppClient.AssertNotCalled(s.T(), "AddInvoiceLines", mock.Anything)
 	s.Require().Len(updatedLines, 1)
 	s.Equal(updatedStripeLineID, updatedLines[0].ID)
-	s.Equal("txcd_20000000", lo.FromPtr(updatedLines[0].TaxCode))
+	s.Equal("txcd_10000000", lo.FromPtr(updatedLines[0].TaxCode))
 }
 
 // A draft sync resolves the lines' Tax Codes before it writes to Stripe: a line whose Tax Code

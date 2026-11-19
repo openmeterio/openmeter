@@ -392,7 +392,7 @@ func TestFromAPICreateChargeUsageBasedRequestMapsRatingConfiguration(t *testing.
 		Type:   apiv3models.BillingPriceUnitTypeUnit,
 	}))
 
-	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
+	input, _, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
 		Commitments: &apiv3models.BillingSpendCommitments{
 			MaximumAmount: lo.ToPtr(apiv3models.Numeric("50")),
 			MinimumAmount: lo.ToPtr(apiv3models.Numeric("5")),
@@ -1161,7 +1161,7 @@ func TestFromAPICreateChargeUsageBasedRequestMapsCostBasis(t *testing.T) {
 		Rate:         "0.5",
 	}))
 
-	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
+	input, _, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
 		CostBasis:      &costBasis,
 		Currency:       apiv3models.CurrencyCode("TOKENS"),
 		Feature:        apiv3models.FeatureReference{Id: "feature-id"},
