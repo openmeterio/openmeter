@@ -17,7 +17,6 @@ import (
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -40,16 +39,11 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		return charges.CustomerCharge{}, fmt.Errorf("resolving currency: %w", err)
 	}
 
-	taxConfig := input.TaxConfig.Clone()
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Namespace, &taxConfig, productcatalog.AllowDeletedTaxCodeByID()); err != nil {
-		return charges.CustomerCharge{}, fmt.Errorf("resolving charge tax config: %w", err)
-	}
-
 	intent := meta.Intent{
 		ManagedBy:         billing.ManuallyManagedLine,
 		CustomerID:        input.CustomerID,
 		Currency:          *currency,
-		TaxConfig:         productcatalog.TaxCodeConfigFrom(&taxConfig),
+		TaxConfig:         input.TaxConfig.Clone(),
 		UniqueReferenceID: input.UniqueReferenceID,
 	}
 
