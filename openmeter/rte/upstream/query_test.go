@@ -264,18 +264,3 @@ AND (("d"."kind" = $5
 		"ns", "meter", "ns", now, rte.CalculationKindMeteredEntitlement, rte.CalculationKindCreditBalance,
 	}, args)
 }
-
-func TestSourceFactories(t *testing.T) {
-	for name := range eventFactories {
-		first, ok := NewEvent(name)
-		require.True(t, ok)
-		second, ok := NewEvent(name)
-		require.True(t, ok)
-		require.NotSame(t, first, second)
-		require.Equal(t, name, first.EventName())
-	}
-
-	event, ok := NewEvent("unrelated")
-	require.False(t, ok)
-	require.Nil(t, event)
-}

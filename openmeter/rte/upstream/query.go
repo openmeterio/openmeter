@@ -23,6 +23,7 @@ import (
 	meterdb "github.com/openmeterio/openmeter/openmeter/ent/db/meter"
 	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/ledger/routequery"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 )
@@ -81,8 +82,7 @@ func (q ledgerQuery) SQL() (string, []any) {
 	return d.Where(sql.And(sql.EQ(d.C(demanddb.FieldKind), rte.CalculationKindCreditBalance), sql.Exists(entries))).Query()
 }
 
-// Custom ledger routes include the stable currency ID in their fourth component.
-// Fiat routes match by code; feature scopes share the same ledger funding changes.
+// Funding affects every feature scope for the same fiat code or custom currency ID.
 func ledgerCurrencyScope(key, currency string) *sql.Predicate {
 	custom := sqljson.Path("currency", "custom_currency_id")
 
@@ -93,9 +93,7 @@ func ledgerCurrencyScope(key, currency string) *sql.Predicate {
 		),
 		sql.And(
 			sqljson.HasKey(key, custom, sqljson.Unquote(true)),
-			sqljson.ValueEQ(key, sql.ExprFunc(func(b *sql.Builder) {
-				b.WriteString("split_part").Wrap(func(b *sql.Builder) { b.Ident(currency).Comma().Arg("|").Comma().Arg(4) })
-			}), custom),
+			sqljson.ValueEQ(key, routequery.CustomCurrencyID(currency), custom),
 		),
 	)
 }
