@@ -7,14 +7,19 @@ using TypeSpec.OpenAPI;
 
 namespace Common;
 
+// MaxSize limits the page size. An endpoint that needs a different limit
+// declares its own named page model, for example
+// `model MyPage is Common.CursorPaginationQueryPage<100>`.
 /**
  * Determines which page of the collection to retrieve.
  */
 @friendlyName("CursorPaginationQueryPage")
-model CursorPaginationQueryPage {
+model CursorPaginationQueryPage<MaxSize extends valueof int64 = 1000> {
   /**
    * The number of items to include per page.
    */
+  @minValue(1)
+  @maxValue(MaxSize)
   size?: integer;
 
   /**
@@ -51,11 +56,14 @@ model PagePaginationQuery {
     /**
      * The number of items to include per page.
      */
+    @minValue(1)
+    @maxValue(1000)
     size?: integer;
 
     /**
      * The page number.
      */
+    @minValue(1)
     number?: integer;
   };
 }

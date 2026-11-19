@@ -13,10 +13,7 @@ import (
 	pagination "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
-const (
-	defaultPageSize = 100
-	maxPageSize     = 100
-)
+const defaultPageSize = 100
 
 type (
 	QueryEntitlementAccessParams   = apiv3models.QueryEntitlementAccessParams
@@ -82,18 +79,8 @@ func applyPaging(ctx context.Context, req *QueryEntitlementAccessRequest, params
 		return nil
 	}
 
+	// The request validator already limits page[size] to 1..100.
 	if params.Page.Size != nil {
-		if *params.Page.Size < 1 || *params.Page.Size > maxPageSize {
-			return apierrors.NewBadRequestError(ctx,
-				fmt.Errorf("page[size] must be between 1 and %d", maxPageSize),
-				apierrors.InvalidParameters{{
-					Field:  "page[size]",
-					Reason: fmt.Sprintf("must be between 1 and %d", maxPageSize),
-					Source: apierrors.InvalidParamSourceQuery,
-				}},
-			)
-		}
-
 		req.PageSize = *params.Page.Size
 	}
 

@@ -2718,7 +2718,7 @@ paths:
         _Designed to be called on a fixed refresh interval and the query response is
         intended to be cached._
       parameters:
-        - $ref: '#/components/parameters/CursorPaginationQuery'
+        - $ref: '#/components/parameters/EntitlementAccessQueryPagination'
       responses:
         '200':
           description: The request has succeeded.
@@ -2830,7 +2830,7 @@ paths:
       summary: List metering events
       description: List ingested events.
       parameters:
-        - $ref: '#/components/parameters/CursorPaginationQuery'
+        - $ref: '#/components/parameters/ListEventsPagination'
         - name: filter
           in: query
           required: false
@@ -5342,6 +5342,22 @@ components:
       schema:
         $ref: '#/components/schemas/CursorPaginationQueryPage'
       style: deepObject
+    EntitlementAccessQueryPagination:
+      name: page
+      in: query
+      required: false
+      description: Determines which page of the collection to retrieve.
+      schema:
+        $ref: '#/components/schemas/EntitlementAccessQueryPage'
+      style: deepObject
+    ListEventsPagination:
+      name: page
+      in: query
+      required: false
+      description: Determines which page of the collection to retrieve.
+      schema:
+        $ref: '#/components/schemas/ListEventsPage'
+      style: deepObject
     PagePaginationQuery:
       name: page
       in: query
@@ -5352,9 +5368,12 @@ components:
         properties:
           size:
             type: integer
+            minimum: 1
+            maximum: 1000
             description: The number of items to include per page.
           number:
             type: integer
+            minimum: 1
             description: The page number.
         additionalProperties: false
       style: deepObject
@@ -20295,6 +20314,8 @@ components:
       properties:
         size:
           type: integer
+          minimum: 1
+          maximum: 1000
           description: The number of items to include per page.
         after:
           type: string
@@ -20409,6 +20430,24 @@ components:
         - unknown
         - customer_not_found
       description: Error code for an entitlement access query failure.
+    EntitlementAccessQueryPage:
+      type: object
+      properties:
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: The number of items to include per page.
+        after:
+          type: string
+          description: Request the next page of data, starting with the item after this parameter.
+        before:
+          type: string
+          description: Request the previous page of data, starting with the item before this parameter.
+      additionalProperties: false
+      description: |-
+        Determines which page of the entitlement access query to retrieve. A page holds
+        at most 100 customers.
     EntitlementAccessQueryRequest:
       type: object
       required:
@@ -21407,6 +21446,24 @@ components:
           description: Filter entitlements by customer ID.
       additionalProperties: false
       description: Filter options for listing entitlements.
+    ListEventsPage:
+      type: object
+      properties:
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: The number of items to include per page.
+        after:
+          type: string
+          description: Request the next page of data, starting with the item after this parameter.
+        before:
+          type: string
+          description: Request the previous page of data, starting with the item before this parameter.
+      additionalProperties: false
+      description: |-
+        Determines which page of the metering event list to retrieve. A page holds at
+        most 100 events.
     ListEventsParamsFilter:
       type: object
       properties:

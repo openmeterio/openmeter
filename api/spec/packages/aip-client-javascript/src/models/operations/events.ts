@@ -4,15 +4,16 @@ import { z } from 'zod'
 import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
-  CursorPaginationQueryPage,
   EventInput,
   IngestedEventPaginatedResponse,
+  ListEventsPage,
   ListEventsParamsFilter,
   SortQueryInput,
 } from '../types.js'
 
 export interface ListMeteringEventsQuery {
-  page?: CursorPaginationQueryPage
+  /** Determines which page of the collection to retrieve. */
+  page?: ListEventsPage
   /**
    * Filter events returned in the response.
    *

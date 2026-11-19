@@ -33,11 +33,13 @@ export const numeric = z
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
   .describe('Numeric represents an arbitrary precision number.')
 
-export const cursorPaginationQueryPage = z
+export const listEventsPage = z
   .object({
     size: z
       .number()
       .int()
+      .gte(1)
+      .lte(100)
       .optional()
       .describe('The number of items to include per page.'),
     after: z
@@ -55,7 +57,10 @@ export const cursorPaginationQueryPage = z
         'Request the previous page of data, starting with the item before this parameter.',
       ),
   })
-  .describe('Determines which page of the collection to retrieve.')
+
+  .describe(
+    'Determines which page of the metering event list to retrieve. A page holds at most 100 events.',
+  )
 
 export const stringFieldFilter = z
   .union([
@@ -682,6 +687,32 @@ export const creditGrantVoidPaymentAdjustment = z
     'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
   )
 
+export const cursorPaginationQueryPage = z
+  .object({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+  .describe('Determines which page of the collection to retrieve.')
+
 export const creditTransactionType = z
   .enum(['funded', 'consumed', 'correction', 'expired', 'voided'])
 
@@ -1283,6 +1314,35 @@ export const addonStatus = z
 
   .describe(
     'The status of the add-on defined by the `effective_from` and `effective_to` properties. - `draft`: The add-on has not yet been published and can be edited. - `active`: The add-on is published and available for use. - `archived`: The add-on is no longer available for use.',
+  )
+
+export const entitlementAccessQueryPage = z
+  .object({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(100)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+
+  .describe(
+    'Determines which page of the entitlement access query to retrieve. A page holds at most 100 customers.',
   )
 
 export const entitlementAccessQueryRequestCustomers = z
@@ -2123,9 +2183,11 @@ export const pagePaginationQuery = z
         size: z
           .number()
           .int()
+          .gte(1)
+          .lte(1000)
           .optional()
           .describe('The number of items to include per page.'),
-        number: z.number().int().optional().describe('The page number.'),
+        number: z.number().int().gte(1).optional().describe('The page number.'),
       })
       .optional()
       .describe('Determines which page of the collection to retrieve.'),
@@ -2751,11 +2813,14 @@ export const queryFilterNumeric = z
     'A query filter for a numeric attribute. Operators are mutually exclusive, only one operator is allowed at a time.',
   )
 
-export const cursorPaginationQuery = z
+export const listEventsPagination = z
   .object({
-    page: cursorPaginationQueryPage.optional(),
+    page: listEventsPage.optional(),
   })
-  .describe('Cursor page query.')
+
+  .describe(
+    'Cursor pagination for the metering event list, with a smaller page size limit than the common one.',
+  )
 
 export const listMetersParamsFilter = z
   .object({
@@ -4043,6 +4108,12 @@ export const voidCreditGrantRequest = z
   })
   .describe('Request body for voiding a credit grant.')
 
+export const cursorPaginationQuery = z
+  .object({
+    page: cursorPaginationQueryPage.optional(),
+  })
+  .describe('Cursor page query.')
+
 export const subscriptionProRatingConfig = z
   .object({
     enabled: z.boolean().describe('Whether pro-rating is enabled.'),
@@ -4347,6 +4418,15 @@ export const listCurrenciesParamsFilter = z
     code: stringFieldFilter.optional(),
   })
   .describe('Filter options for listing currencies.')
+
+export const entitlementAccessQueryPagination = z
+  .object({
+    page: entitlementAccessQueryPage.optional(),
+  })
+
+  .describe(
+    'Cursor pagination for the entitlement access query, with a smaller page size limit than the common one.',
+  )
 
 export const entitlementAccessQueryRequest = z
   .object({
@@ -10902,7 +10982,7 @@ export const notificationEventPagePaginatedResponse = z
   .describe('Page paginated response.')
 
 export const listMeteringEventsQueryParams = z.object({
-  page: cursorPaginationQueryPage.optional(),
+  page: listEventsPage.optional(),
   filter: listEventsParamsFilter.optional(),
   sort: sortQuery.optional(),
 })
@@ -10930,9 +11010,16 @@ export const listMetersQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -10989,9 +11076,16 @@ export const listCustomersQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11152,9 +11246,16 @@ export const listCustomerEntitlementsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11186,9 +11287,16 @@ export const listEntitlementsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11227,9 +11335,16 @@ export const listCustomerEntitlementGrantsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11269,9 +11384,16 @@ export const listGrantsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11321,9 +11443,16 @@ export const listCreditGrantsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11398,9 +11527,16 @@ export const listCustomerChargesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11446,9 +11582,16 @@ export const listSubscriptionsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11533,9 +11676,16 @@ export const listSubscriptionAddonsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11569,9 +11719,16 @@ export const listAppsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11616,9 +11773,16 @@ export const listAppCatalogQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11645,9 +11809,16 @@ export const listBillingProfilesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11688,9 +11859,16 @@ export const listInvoicesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11751,9 +11929,16 @@ export const listChargesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11789,9 +11974,16 @@ export const listTaxCodesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11824,9 +12016,16 @@ export const listCurrenciesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11867,9 +12066,16 @@ export const listCostBasesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11894,9 +12100,16 @@ export const listFeaturesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11947,9 +12160,16 @@ export const listLlmCostPricesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -11973,9 +12193,16 @@ export const listLlmCostOverridesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -12000,9 +12227,16 @@ export const listPlansQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -12055,9 +12289,16 @@ export const listAddonsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -12114,9 +12355,16 @@ export const listPlanAddonsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -12168,7 +12416,7 @@ export const updateOrganizationDefaultTaxCodesResponse =
   organizationDefaultTaxCodes
 
 export const queryEntitlementAccessQueryParams = z.object({
-  page: cursorPaginationQueryPage.optional(),
+  page: entitlementAccessQueryPage.optional(),
 })
 
 export const queryEntitlementAccessBody = entitlementAccessQueryRequest
@@ -12181,9 +12429,16 @@ export const listBillingNotificationChannelsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -12226,9 +12481,16 @@ export const listBillingNotificationRulesQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -12275,9 +12537,16 @@ export const listBillingNotificationEventsQueryParams = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -12334,11 +12603,13 @@ export const numericWire = z
   .regex(new RegExp('^\\-?[0-9]+(\\.[0-9]+)?$'))
   .describe('Numeric represents an arbitrary precision number.')
 
-export const cursorPaginationQueryPageWire = z
+export const listEventsPageWire = z
   .strictObject({
     size: z
       .number()
       .int()
+      .gte(1)
+      .lte(100)
       .optional()
       .describe('The number of items to include per page.'),
     after: z
@@ -12356,7 +12627,10 @@ export const cursorPaginationQueryPageWire = z
         'Request the previous page of data, starting with the item before this parameter.',
       ),
   })
-  .describe('Determines which page of the collection to retrieve.')
+
+  .describe(
+    'Determines which page of the metering event list to retrieve. A page holds at most 100 events.',
+  )
 
 export const stringFieldFilterWire = z
   .union([
@@ -12983,6 +13257,32 @@ export const creditGrantVoidPaymentAdjustmentWire = z
     'Describes how voiding a credit grant adjusts related payment state. - `none`: Voiding does not adjust invoices, payment authorization, settlement, payment intents, or external collection state.',
   )
 
+export const cursorPaginationQueryPageWire = z
+  .strictObject({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(1000)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+  .describe('Determines which page of the collection to retrieve.')
+
 export const creditTransactionTypeWire = z
   .enum(['funded', 'consumed', 'correction', 'expired', 'voided'])
 
@@ -13578,6 +13878,35 @@ export const addonStatusWire = z
 
   .describe(
     'The status of the add-on defined by the `effective_from` and `effective_to` properties. - `draft`: The add-on has not yet been published and can be edited. - `active`: The add-on is published and available for use. - `archived`: The add-on is no longer available for use.',
+  )
+
+export const entitlementAccessQueryPageWire = z
+  .strictObject({
+    size: z
+      .number()
+      .int()
+      .gte(1)
+      .lte(100)
+      .optional()
+      .describe('The number of items to include per page.'),
+    after: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the next page of data, starting with the item after this parameter.',
+      ),
+    before: z
+      .string()
+      .optional()
+
+      .describe(
+        'Request the previous page of data, starting with the item before this parameter.',
+      ),
+  })
+
+  .describe(
+    'Determines which page of the entitlement access query to retrieve. A page holds at most 100 customers.',
   )
 
 export const entitlementAccessQueryRequestCustomersWire = z
@@ -14425,9 +14754,11 @@ export const pagePaginationQueryWire = z
         size: z
           .number()
           .int()
+          .gte(1)
+          .lte(1000)
           .optional()
           .describe('The number of items to include per page.'),
-        number: z.number().int().optional().describe('The page number.'),
+        number: z.number().int().gte(1).optional().describe('The page number.'),
       })
       .optional()
       .describe('Determines which page of the collection to retrieve.'),
@@ -15052,11 +15383,14 @@ export const queryFilterNumericWire = z
     'A query filter for a numeric attribute. Operators are mutually exclusive, only one operator is allowed at a time.',
   )
 
-export const cursorPaginationQueryWire = z
+export const listEventsPaginationWire = z
   .strictObject({
-    page: cursorPaginationQueryPageWire.optional(),
+    page: listEventsPageWire.optional(),
   })
-  .describe('Cursor page query.')
+
+  .describe(
+    'Cursor pagination for the metering event list, with a smaller page size limit than the common one.',
+  )
 
 export const listMetersParamsFilterWire = z
   .strictObject({
@@ -16335,6 +16669,12 @@ export const voidCreditGrantRequestWire = z
   })
   .describe('Request body for voiding a credit grant.')
 
+export const cursorPaginationQueryWire = z
+  .strictObject({
+    page: cursorPaginationQueryPageWire.optional(),
+  })
+  .describe('Cursor page query.')
+
 export const subscriptionProRatingConfigWire = z
   .strictObject({
     enabled: z.boolean().describe('Whether pro-rating is enabled.'),
@@ -16634,6 +16974,15 @@ export const listCurrenciesParamsFilterWire = z
     code: stringFieldFilterWire.optional(),
   })
   .describe('Filter options for listing currencies.')
+
+export const entitlementAccessQueryPaginationWire = z
+  .strictObject({
+    page: entitlementAccessQueryPageWire.optional(),
+  })
+
+  .describe(
+    'Cursor pagination for the entitlement access query, with a smaller page size limit than the common one.',
+  )
 
 export const entitlementAccessQueryRequestWire = z
   .strictObject({
@@ -23302,7 +23651,7 @@ export const notificationEventPagePaginatedResponseWire = z
   .describe('Page paginated response.')
 
 export const listMeteringEventsQueryParamsWire = z.object({
-  page: cursorPaginationQueryPageWire.optional(),
+  page: listEventsPageWire.optional(),
   filter: listEventsParamsFilterWire.optional(),
   sort: z
     .string()
@@ -23339,9 +23688,16 @@ export const listMetersQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23404,9 +23760,16 @@ export const listCustomersQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23575,9 +23938,16 @@ export const listCustomerEntitlementsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23615,9 +23985,16 @@ export const listEntitlementsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23663,9 +24040,16 @@ export const listCustomerEntitlementGrantsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23712,9 +24096,16 @@ export const listGrantsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23770,9 +24161,16 @@ export const listCreditGrantsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23853,9 +24251,16 @@ export const listCustomerChargesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -23908,9 +24313,16 @@ export const listSubscriptionsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24002,9 +24414,16 @@ export const listSubscriptionAddonsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24044,9 +24463,16 @@ export const listAppsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24097,9 +24523,16 @@ export const listAppCatalogQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24126,9 +24559,16 @@ export const listBillingProfilesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24175,9 +24615,16 @@ export const listInvoicesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24244,9 +24691,16 @@ export const listChargesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24288,9 +24742,16 @@ export const listTaxCodesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24323,9 +24784,16 @@ export const listCurrenciesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24372,9 +24840,16 @@ export const listCostBasesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24399,9 +24874,16 @@ export const listFeaturesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24464,9 +24946,16 @@ export const listLlmCostPricesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24490,9 +24979,16 @@ export const listLlmCostOverridesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24517,9 +25013,16 @@ export const listPlansQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24578,9 +25081,16 @@ export const listAddonsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24643,9 +25153,16 @@ export const listPlanAddonsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24703,7 +25220,7 @@ export const updateOrganizationDefaultTaxCodesResponseWire =
   organizationDefaultTaxCodesWire
 
 export const queryEntitlementAccessQueryParamsWire = z.object({
-  page: cursorPaginationQueryPageWire.optional(),
+  page: entitlementAccessQueryPageWire.optional(),
 })
 
 export const queryEntitlementAccessBodyWire = entitlementAccessQueryRequestWire
@@ -24717,9 +25234,16 @@ export const listBillingNotificationChannelsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24770,9 +25294,16 @@ export const listBillingNotificationRulesQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),
@@ -24825,9 +25356,16 @@ export const listBillingNotificationEventsQueryParamsWire = z.object({
       size: z.coerce
         .number()
         .int()
+        .gte(1)
+        .lte(1000)
         .optional()
         .describe('The number of items to include per page.'),
-      number: z.coerce.number().int().optional().describe('The page number.'),
+      number: z.coerce
+        .number()
+        .int()
+        .gte(1)
+        .optional()
+        .describe('The page number.'),
     })
     .optional()
     .describe('Determines which page of the collection to retrieve.'),

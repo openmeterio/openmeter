@@ -33,6 +33,17 @@ func (value EntitlementAccessQueryErrorCode) Valid() bool {
 	}
 }
 
+// Determines which page of the entitlement access query to retrieve. A page holds
+// at most 100 customers.
+type EntitlementAccessQueryPage struct {
+	// The number of items to include per page.
+	Size *int64 `json:"size,omitempty"`
+	// Request the next page of data, starting with the item after this parameter.
+	After *string `json:"after,omitempty"`
+	// Request the previous page of data, starting with the item before this parameter.
+	Before *string `json:"before,omitempty"`
+}
+
 // Query to evaluate feature access for a list of customers.
 type EntitlementAccessQueryRequest struct {
 	// Whether to include credit balance availability for each resolved customer. When

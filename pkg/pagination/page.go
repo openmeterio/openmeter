@@ -1,6 +1,9 @@
 package pagination
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
 
 type InvalidError struct {
 	p   Page
@@ -56,6 +59,12 @@ func (p Page) Validate() error {
 
 	if p.PageNumber < 1 {
 		return &InvalidError{p, "page has to be at least 1"}
+	}
+
+	// Reject pages whose end, Offset()+Limit(), would overflow: callers would
+	// otherwise hand a negative offset to the database or slice out of range.
+	if p.PageSize > 0 && p.PageNumber > math.MaxInt/p.PageSize {
+		return &InvalidError{p, "page is out of range"}
 	}
 
 	return nil
