@@ -354,6 +354,7 @@ func TestDemandPullWaitsForClaimedVersion(t *testing.T) {
 		if outerTransaction {
 			name = "caller transaction"
 		}
+
 		t.Run(name, func(t *testing.T) {
 			f := newDemandFixture(t)
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -375,6 +376,7 @@ func TestDemandPullWaitsForClaimedVersion(t *testing.T) {
 					result, err := f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error {
 						return errors.New("pull recalculated a version the worker already covered")
 					})
+
 					return errors.Join(err, result.CalculationError)
 				}
 
@@ -388,6 +390,7 @@ func TestDemandPullWaitsForClaimedVersion(t *testing.T) {
 					}
 				}()
 				waitForDemandLock(t, ctx, f.client)
+
 				return nil
 			})
 
@@ -1150,6 +1153,7 @@ func TestDemandQueuePositionAcrossCalculation(t *testing.T) {
 		require.NotNil(t, work.Timing)
 		require.Equal(t, []time.Duration{5 * time.Second, 2 * time.Second}[i], work.Timing.QueueWait)
 	}
+
 	row, err := f.client.RTEDemand.Query().Where(demanddb.OwnerIDEQ(f.key.CustomerID.ID)).Only(ctx)
 	require.NoError(t, err)
 	require.Equal(t, row.DirtyVersion, row.CompletedVersion)

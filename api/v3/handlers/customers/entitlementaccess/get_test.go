@@ -81,6 +81,7 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 			get: func(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
 				require.Equal(t, current, entitlement.CurrentValueOperationFromContext(ctx) == entitlement.CurrentValueOperationRead)
 				*received = input
+
 				return entitlement.CustomerEntitlementAccess{FeatureKey: testFeatureKey, Type: entitlement.EntitlementTypeBoolean, Value: &booleanentitlement.BooleanEntitlementValue{}}, nil
 			},
 		}

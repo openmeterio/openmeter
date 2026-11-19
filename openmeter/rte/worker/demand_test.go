@@ -126,6 +126,7 @@ func TestDemandWorkerConcurrencyAndShutdown(t *testing.T) {
 		default:
 			t.Fatal("pool did not stop after attempts finished")
 		}
+
 		require.Zero(t, active.Load())
 		require.Equal(t, int32(concurrency+1), calls.Load())
 	})
@@ -215,6 +216,7 @@ func TestDemandWorkerCancellationInterruptsIdleWait(t *testing.T) {
 		default:
 			t.Fatal("idle workers did not stop")
 		}
+
 		require.Equal(t, int32(2), calls.Load())
 	})
 }

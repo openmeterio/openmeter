@@ -85,6 +85,7 @@ func (q ledgerQuery) SQL() (string, []any) {
 // Fiat routes match by code; feature scopes share the same ledger funding changes.
 func ledgerCurrencyScope(key, currency string) *sql.Predicate {
 	custom := sqljson.Path("currency", "custom_currency_id")
+
 	return sql.Or(
 		sql.And(
 			sql.Not(sqljson.HasKey(key, custom, sqljson.Unquote(true))),
@@ -205,6 +206,7 @@ func chargeFeatureMatch(c, f *sql.SelectTable) *sql.Predicate {
 func creditChargeScope(key string, c *sql.SelectTable) *sql.Predicate {
 	custom := sqljson.Path("currency", "custom_currency_id")
 	feature := sqljson.Path("featureFilter")
+
 	return sql.And(
 		sql.Or(
 			sql.And(
@@ -348,6 +350,7 @@ func (q ingestQuery) usageTimes() *sql.Selector {
 	for _, timestamp := range q.timestamps {
 		timestamps = append(timestamps, timestamp.UTC().Format(time.RFC3339Nano))
 	}
+
 	pg := sql.Dialect(dialect.Postgres)
 
 	return pg.Select(pg.Table("t").C("at")).FromExpr(sql.ExprFunc(func(b *sql.Builder) {

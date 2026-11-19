@@ -17,6 +17,7 @@ func TestRTEDemandCalculationLocksMigration(t *testing.T) {
 			VALUES ('test', now(), now(), 'credit_balance', 'customer', $1, '{}', now())
 			RETURNING id`, key).Scan(&id)
 		require.NoError(t, err)
+
 		return id
 	}
 
