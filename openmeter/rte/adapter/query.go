@@ -50,6 +50,7 @@ func (q renewPullQuery) SQL() (string, []any) {
 	// against the row whose lease was renewed.
 	var b sql.Builder
 	b.SetDialect(dialect.Postgres)
+
 	return b.Join(update).WriteString(" RETURNING ").Join(clean).Query()
 }
 
@@ -93,6 +94,7 @@ func (q invalidateDemandQuery) SQL() (string, []any, error) {
 	markDemandDirty(update, q.at)
 
 	query, args := update.Query()
+
 	return query, args, nil
 }
 

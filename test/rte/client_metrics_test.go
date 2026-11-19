@@ -44,7 +44,7 @@ func (s *RTEIntegrationSuite) TestClientReadMetrics() {
 	require.NoError(t, err)
 	ns := s.GetUniqueNamespace("rte-client-metrics")
 
-	// When each balance kind is missing, stored as zero, and read with a cancelled context.
+	// When each balance kind is missing, stored as zero, and read with a canceled context.
 	exerciseClientReads(t, balanceClient.CreditBalances(), creditStore, creditbalance.Key{
 		CustomerID: customer.CustomerID{Namespace: ns, ID: "customer"},
 		Currency:   currencies.NewCurrencyReference("USD"),
@@ -70,9 +70,11 @@ func (s *RTEIntegrationSuite) TestClientReadMetrics() {
 					points[point.Attributes.Encoded(attribute.DefaultEncoder())] = point.Count
 				}
 			}
+
 			counts[instrument.Name] = points
 		}
 	}
+
 	require.Len(t, counts, 2, "client reads must not construct calculation instruments")
 	require.Equal(t, counts["rte.state.reads"], counts["rte.state.read.duration"])
 	require.Len(t, counts["rte.state.reads"], 6, "three outcomes for each balance kind")
@@ -96,8 +98,8 @@ func exerciseClientReads[K rte.Key, V any](t *testing.T, client rte.BalanceClien
 	require.NoError(t, err)
 	require.Equal(t, stored.State, result)
 
-	cancelled, cancel := context.WithCancel(ctx)
+	canceled, cancel := context.WithCancel(ctx)
 	cancel()
-	_, err = client.Get(cancelled, key)
+	_, err = client.Get(canceled, key)
 	require.ErrorIs(t, err, context.Canceled)
 }

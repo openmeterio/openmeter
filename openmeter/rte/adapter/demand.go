@@ -224,6 +224,7 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 				if row.Attempts == 0 {
 					update.SetNextAttemptAt(now)
 				}
+
 				clean = false
 			}
 
@@ -342,6 +343,7 @@ func (a *adapter) claimDemand(ctx context.Context, target *rte.CalculationTarget
 	if db.IsNotFound(err) {
 		return nil, nil
 	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -422,10 +424,12 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 					if err != nil || row == nil {
 						return rte.DemandWorkResult{}, err
 					}
+
 					deletedAt, err = a.demandSourceDeletionAt(ctx, row)
 					if err != nil {
 						return rte.DemandWorkResult{}, err
 					}
+
 					continue
 				}
 
