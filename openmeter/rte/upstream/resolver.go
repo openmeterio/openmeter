@@ -6,23 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"reflect"
 	"time"
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/billing/charges"
-	"github.com/openmeterio/openmeter/openmeter/credit/grant"
-	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	metered "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
-	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -59,161 +49,52 @@ type resolver struct {
 	logger *slog.Logger
 }
 
-var eventFactories = newEventFactories()
-
-// NewEvent allocates a fresh source payload for decoding. Commands are excluded:
-// another consumer group can handle them before their effects commit.
-func NewEvent(name string) (marshaler.Event, bool) {
-	factory, ok := eventFactories[name]
-	if !ok {
-		return nil, false
-	}
-
-	return factory(), true
-}
-
-func newEventFactories() map[string]func() marshaler.Event {
-	prototypes := []marshaler.Event{
-		ingestevents.EventBatchedIngest{},
-		ledger.TransactionGroupCommittedEvent{},
-		charges.CustomerChargesChangedEvent{},
-		entitlement.EntitlementCreatedEventV2{},
-		entitlement.EntitlementDeletedEventV2{},
-		grant.CreatedEvent{},
-		grant.CreatedEventV2{},
-		grant.VoidedEvent{},
-		grant.VoidedEventV2{},
-		metered.EntitlementResetEvent{},
-		metered.EntitlementResetEventV3{},
-		customer.CustomerCreateEvent{},
-		customer.CustomerUpdateEvent{},
-		customer.CustomerDeleteEvent{},
-		feature.FeatureCreateEvent{},
-		feature.FeatureUpdateEvent{},
-		feature.FeatureArchiveEvent{},
-		meter.MeterCreateEvent{},
-		meter.MeterUpdateEvent{},
-		meter.MeterDeleteEvent{},
-		subscription.CreatedEvent{},
-		subscription.UpdatedEvent{},
-		subscription.DeletedEvent{},
-		subscription.CancelledEvent{},
-		subscription.ContinuedEvent{},
-	}
-	factories := make(map[string]func() marshaler.Event, len(prototypes))
-	for _, prototype := range prototypes {
-		eventType := reflect.TypeOf(prototype)
-		factories[prototype.EventName()] = func() marshaler.Event {
-			return reflect.New(eventType).Interface().(marshaler.Event)
-		}
-	}
-
-	return factories
-}
-
 func (r *resolver) Resolve(ctx context.Context, event marshaler.Event) ([]rte.DemandSelector, error) {
-	if event == nil {
+	if lo.IsNil(event) {
 		return nil, models.NewGenericValidationError(errors.New("source event is required"))
 	}
 
-	// Group handlers decode pointers; direct callers may already have a value.
-	value := reflect.ValueOf(event)
-	if value.Kind() == reflect.Pointer {
-		if value.IsNil() {
-			return nil, models.NewGenericValidationError(errors.New("source event is required"))
-		}
-
-		if decoded, ok := value.Elem().Interface().(marshaler.Event); ok {
-			event = decoded
-		}
-	}
-
-	// Validate the original payload before reading fields from versioned literals.
 	if err := event.Validate(); err != nil {
 		return nil, err
 	}
 
-	switch e := event.(type) {
-	case charges.CustomerChargesChangedEvent:
-		return []rte.DemandSelector{{Namespace: e.Namespace, Kind: rte.CalculationKindCreditBalance, OwnerIDs: []string{e.CustomerID}}}, nil
-	case ledger.TransactionGroupCommittedEvent:
-		return r.query(ctx, ledgerQuery{namespace: e.Namespace, groupID: e.GroupID, now: clock.Now().UTC()})
-	case ingestevents.EventBatchedIngest:
-		if len(e.RawEvents) == 0 {
-			return nil, nil
-		}
-
-		// A newly created meter may already count these events while the sink
-		// is still reporting slugs from its previous meter-cache refresh.
-		var eventTypes []string
-		timestamps := make([]time.Time, 0, len(e.RawEvents))
-		for _, raw := range e.RawEvents {
-			if raw.Type != "" {
-				eventTypes = append(eventTypes, raw.Type)
-			}
-
-			timestamps = append(timestamps, time.Unix(raw.Time, 0).UTC())
-		}
-
-		if len(e.MeterSlugs) == 0 && len(eventTypes) == 0 {
-			return nil, nil
-		}
-
-		return r.query(ctx, ingestQuery{
-			namespace:  e.Namespace.ID,
-			subject:    e.SubjectKey,
-			meterSlugs: lo.Uniq(e.MeterSlugs),
-			eventTypes: lo.Uniq(eventTypes),
-			timestamps: lo.Uniq(timestamps),
-			now:        clock.Now().UTC(),
-		})
-	case entitlement.EntitlementCreatedEventV2:
-		return entitlementSelector(e.Namespace.ID, e.Entitlement.ID), nil
-	case entitlement.EntitlementDeletedEventV2:
-		return entitlementSelector(e.Namespace.ID, e.Entitlement.ID), nil
-	case grant.CreatedEvent:
-		return entitlementSelector(e.Namespace.ID, e.OwnerID), nil
-	case grant.CreatedEventV2:
-		return entitlementSelector(e.Namespace.ID, e.Grant.OwnerID), nil
-	case grant.VoidedEvent:
-		return entitlementSelector(e.Namespace.ID, e.OwnerID), nil
-	case grant.VoidedEventV2:
-		return entitlementSelector(e.Namespace.ID, e.Grant.OwnerID), nil
-	case metered.EntitlementResetEvent:
-		return entitlementSelector(e.Namespace.ID, e.EntitlementID), nil
-	case metered.EntitlementResetEventV3:
-		return entitlementSelector(e.Namespace.ID, e.EntitlementID), nil
-	case customer.CustomerCreateEvent:
-		return r.forCustomer(ctx, e.Customer.Namespace, e.Customer.ID)
-	case customer.CustomerUpdateEvent:
-		return r.forCustomer(ctx, e.Customer.Namespace, e.Customer.ID)
-	case customer.CustomerDeleteEvent:
-		return r.forCustomer(ctx, e.Customer.Namespace, e.Customer.ID)
-	case feature.FeatureCreateEvent:
-		return r.query(ctx, featureQuery{namespace: e.Feature.Namespace, featureID: e.Feature.ID, now: clock.Now().UTC()})
-	case feature.FeatureUpdateEvent:
-		return r.query(ctx, featureQuery{namespace: e.Feature.Namespace, featureID: e.Feature.ID, now: clock.Now().UTC()})
-	case feature.FeatureArchiveEvent:
-		return r.query(ctx, featureQuery{namespace: e.Feature.Namespace, featureID: e.Feature.ID, now: clock.Now().UTC()})
-	case meter.MeterCreateEvent:
-		return r.query(ctx, meterQuery{namespace: e.Meter.Namespace, meterID: e.Meter.ID, now: clock.Now().UTC()})
-	case meter.MeterUpdateEvent:
-		return r.query(ctx, meterQuery{namespace: e.Meter.Namespace, meterID: e.Meter.ID, now: clock.Now().UTC()})
-	case meter.MeterDeleteEvent:
-		return r.query(ctx, meterQuery{namespace: e.Meter.Namespace, meterID: e.Meter.ID, now: clock.Now().UTC()})
-	case subscription.CreatedEvent:
-		return r.forCustomer(ctx, e.Subscription.Namespace, e.Customer.ID)
-	case subscription.UpdatedEvent:
-		return r.forCustomer(ctx, e.UpdatedView.Subscription.Namespace, e.UpdatedView.Customer.ID)
-	case subscription.CancelledEvent:
-		return r.forCustomer(ctx, e.Subscription.Namespace, e.Customer.ID)
-	case subscription.DeletedEvent:
-		return r.forCustomer(ctx, e.Subscription.Namespace, e.Customer.ID)
-	case subscription.ContinuedEvent:
-		return r.forCustomer(ctx, e.Subscription.Namespace, e.Customer.ID)
-	default:
+	source, ok := sourceEvents[event.EventName()]
+	if !ok {
 		return nil, nil
 	}
+
+	return source.resolve(r, ctx, event)
+}
+
+func (r *resolver) forIngest(ctx context.Context, e ingestevents.EventBatchedIngest) ([]rte.DemandSelector, error) {
+	if len(e.RawEvents) == 0 {
+		return nil, nil
+	}
+
+	// A newly created meter may already count these events while the sink
+	// is still reporting slugs from its previous meter-cache refresh.
+	var eventTypes []string
+	timestamps := make([]time.Time, 0, len(e.RawEvents))
+	for _, raw := range e.RawEvents {
+		if raw.Type != "" {
+			eventTypes = append(eventTypes, raw.Type)
+		}
+
+		timestamps = append(timestamps, time.Unix(raw.Time, 0).UTC())
+	}
+
+	if len(e.MeterSlugs) == 0 && len(eventTypes) == 0 {
+		return nil, nil
+	}
+
+	return r.query(ctx, ingestQuery{
+		namespace:  e.Namespace.ID,
+		subject:    e.SubjectKey,
+		meterSlugs: lo.Uniq(e.MeterSlugs),
+		eventTypes: lo.Uniq(eventTypes),
+		timestamps: lo.Uniq(timestamps),
+		now:        clock.Now().UTC(),
+	})
 }
 
 func entitlementSelector(namespace, id string) []rte.DemandSelector {

@@ -6,7 +6,7 @@ import (
 	dbledgerbreakagerecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgerbreakagerecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
+	"github.com/openmeterio/openmeter/openmeter/ledger/routequery"
 )
 
 func expiredRecordRoutePredicate(route ledger.RouteFilter) (predicate.LedgerBreakageRecord, error) {

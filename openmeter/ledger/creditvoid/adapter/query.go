@@ -6,7 +6,7 @@ import (
 	dbledgercreditvoidrecord "github.com/openmeterio/openmeter/openmeter/ent/db/ledgercreditvoidrecord"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
-	"github.com/openmeterio/openmeter/openmeter/ledger/internal/routequery"
+	"github.com/openmeterio/openmeter/openmeter/ledger/routequery"
 )
 
 func voidRecordRoutePredicate(route ledger.RouteFilter) (predicate.LedgerCreditVoidRecord, error) {
