@@ -126,28 +126,6 @@ func (s *DeletedSubscriptionsToReconcileSuite) TestHistoricalDeletionsIgnoreServ
 	s.ElementsMatch([]models.NamespacedID{withoutEnd.NamespacedID, withEnd.NamespacedID}, result.Items)
 }
 
-func (s *DeletedSubscriptionsToReconcileSuite) TestLegacyStateDoesNotCompleteCleanup() {
-	ctx := s.T().Context()
-
-	// given: a deleted subscription previously marked as having no billables
-	sub := s.createSubscription(s.customerID)
-	s.Require().NoError(s.db.Subscription.UpdateOneID(sub.ID).SetDeletedAt(s.now).Exec(ctx))
-	s.Require().NoError(s.adapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
-		SubscriptionID: sub.NamespacedID,
-		SyncedAt:       s.now,
-		HasBillables:   false,
-	}))
-
-	// when: the worker selects cleanup candidates
-	result, err := s.adapter.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
-		Limit: 100,
-	})
-
-	// then: legacy state cannot stand in for a v2 deletion cleanup result
-	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{sub.NamespacedID}, result.Items)
-}
-
 func (s *DeletedSubscriptionsToReconcileSuite) TestCompletedDeletionIsExcluded() {
 	ctx := s.T().Context()
 

@@ -293,13 +293,6 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return nil, errors.New("building subscription sync plan returned nil without an error")
 			}
 
-			// An empty cleanup target must stop periodic scheduling even if the
-			// subscription's spec still contains billable items.
-			hasBillables := false
-			if subsView != nil {
-				hasBillables = subsView.Spec.HasBillables()
-			}
-
 			if !linesDiff.IsEmpty() {
 				if err := s.reconciler.Apply(ctx, reconciler.ApplyInput{
 					DryRun:   options.DryRun,
@@ -313,14 +306,6 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 
 			if options.DryRun {
 				return res, nil
-			}
-
-			if err := s.updateSyncState(ctx, updateSyncStateInput{
-				SubscriptionID:         subscriptionID,
-				MaxGenerationTimeLimit: linesDiff.SubscriptionMaxGenerationTimeLimit,
-				HasBillables:           hasBillables,
-			}); err != nil {
-				return nil, fmt.Errorf("updating sync state: %w", err)
 			}
 
 			result := subscriptionsync.RecordSyncResultV2Input{
@@ -338,7 +323,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				// Record completion only once both the worker clock and AsOf cover that end.
 				case billingEndsAt != nil && !billingEndsAt.After(now) && !billingEndsAt.After(asOf):
 					result.LastSuccessState = subscriptionsync.SyncStateV2StateEnded
-				case !hasBillables:
+				case !subsView.Spec.HasBillables():
 					result.LastSuccessState = subscriptionsync.SyncStateV2StateNoBillables
 				default:
 					generatedUntil := linesDiff.SubscriptionMaxGenerationTimeLimit
@@ -382,7 +367,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				}
 			}
 
-			// Record success even for an empty plan, together with billing changes and legacy scheduling.
+			// Record success even for an empty plan, together with billing changes.
 			if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, result); err != nil {
 				return nil, fmt.Errorf("recording subscription sync result: %w", err)
 			}
@@ -426,44 +411,4 @@ func (s *Service) getSubscription(ctx context.Context, subscriptionID models.Nam
 	}
 
 	return subs.Items[0], nil
-}
-
-type updateSyncStateInput struct {
-	SubscriptionID         models.NamespacedID
-	MaxGenerationTimeLimit time.Time
-	HasBillables           bool
-}
-
-func (s *Service) updateSyncState(ctx context.Context, in updateSyncStateInput) error {
-	span := tracex.StartWithNoValue(ctx, s.tracer, "billing.worker.subscription.sync.updateSyncState", trace.WithAttributes(
-		attribute.String("subscription_id", in.SubscriptionID.ID),
-		attribute.String("max_generation_time_limit", in.MaxGenerationTimeLimit.Format(time.RFC3339)),
-	))
-
-	return span.Wrap(func(ctx context.Context) error {
-		if !in.HasBillables {
-			return s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
-				SubscriptionID: in.SubscriptionID,
-				HasBillables:   false,
-				SyncedAt:       clock.Now().UTC(),
-			})
-		}
-
-		nextSyncAfter := in.MaxGenerationTimeLimit
-
-		if in.MaxGenerationTimeLimit.IsZero() {
-			// Fallback: we cannot determine the next sync after, so we'll just mandate the sync
-			if nextSyncAfter.IsZero() {
-				s.logger.WarnContext(ctx, "cannot determine the next sync after, syncing immediately", "subscription_id", in.SubscriptionID.ID)
-				nextSyncAfter = clock.Now().UTC()
-			}
-		}
-
-		return s.subscriptionSyncAdapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
-			SubscriptionID: in.SubscriptionID,
-			HasBillables:   true,
-			NextSyncAfter:  lo.ToPtr(nextSyncAfter),
-			SyncedAt:       clock.Now().UTC(),
-		})
-	})
 }

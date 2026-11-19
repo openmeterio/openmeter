@@ -89,7 +89,7 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		input.LastSuccessState = subscriptionsync.SyncStateV2StateCustomerDeletedBefore
 		require.NoError(t, f.adapter.RecordSyncResultV2(ctx, input))
 
-		// then: the same row holds the latest result and v1 state is untouched
+		// then: the same row holds the latest result
 		states, err = f.adapter.GetSyncStatesV2(ctx, ids)
 		require.NoError(t, err)
 		expectedState.LastSuccessState = input.LastSuccessState
@@ -99,9 +99,6 @@ func TestSyncStateV2Persistence(t *testing.T) {
 		count, err := f.db.SubscriptionSyncStateV2.Query().Count(ctx)
 		require.NoError(t, err)
 		require.Equal(t, 1, count)
-		legacyStates, err := f.adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{input.SubscriptionID})
-		require.NoError(t, err)
-		require.Empty(t, legacyStates)
 	})
 
 	t.Run("missing observed revision does not record cleanup", func(t *testing.T) {

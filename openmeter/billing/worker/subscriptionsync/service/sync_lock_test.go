@@ -77,8 +77,6 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	// Acknowledge what was read after locking, not a revision changed during planning.
 	require.Equal(t, lockedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
 	require.Equal(t, 1, syncAdapter.getStatesV2Calls)
-	require.Len(t, syncAdapter.upserts, 1)
-	require.False(t, syncAdapter.upserts[0].HasBillables)
 }
 
 func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
@@ -126,7 +124,6 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 	require.Zero(t, billingService.getLinesCalls)
 	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.False(t, reconciler.planCalled)
-	require.Empty(t, syncAdapter.upserts)
 	require.Len(t, syncAdapter.recordedResultsV2, 1)
 	require.Equal(t, subscriptionsync.SyncStateV2StateTooOld, syncAdapter.recordedResultsV2[0].LastSuccessState)
 	require.Equal(t, observedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
@@ -198,7 +195,6 @@ func (s *subscriptionServiceSpy) GetView(context.Context, models.NamespacedID) (
 
 type subscriptionSyncAdapterSpy struct {
 	subscriptionsync.Adapter
-	upserts           []subscriptionsync.UpsertSyncStateInput
 	recordedResultsV2 []subscriptionsync.RecordSyncResultV2Input
 	statesV2          []subscriptionsync.SyncStateV2Managed
 	getStatesV2Calls  int
@@ -207,11 +203,6 @@ type subscriptionSyncAdapterSpy struct {
 func (s *subscriptionSyncAdapterSpy) GetSyncStatesV2(context.Context, subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
 	s.getStatesV2Calls++
 	return s.statesV2, nil
-}
-
-func (s *subscriptionSyncAdapterSpy) UpsertSyncState(_ context.Context, input subscriptionsync.UpsertSyncStateInput) error {
-	s.upserts = append(s.upserts, input)
-	return nil
 }
 
 func (s *subscriptionSyncAdapterSpy) RecordSyncResultV2(_ context.Context, input subscriptionsync.RecordSyncResultV2Input) error {

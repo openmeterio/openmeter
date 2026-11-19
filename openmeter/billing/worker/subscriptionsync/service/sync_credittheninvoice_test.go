@@ -11105,25 +11105,7 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateNoBillables() {
 	s.assertCharges(ctx, subsView, nil)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
-		{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-	})
-
-	require.NoError(s.T(), err)
-	require.Len(s.T(), syncStates, 1)
-
-	s.Equal(subscriptionsync.SyncState{
-		SubscriptionID: models.NamespacedID{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-		HasBillables:  false,
-		SyncedAt:      clock.Now().UTC(),
-		NextSyncAfter: nil,
-	}, syncStates[0])
+	s.requireUnscheduled(subsView.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInTheFuture() {
@@ -11242,25 +11224,11 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInThe
 	})
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
-		{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
+	// Only the first paid billing period is provisioned, so the next sync falls into it.
+	s.requireActiveDeadline(subsView.Subscription.NamespacedID, timeutil.ClosedPeriod{
+		From: s.mustParseTime("2025-12-15T00:00:00Z"),
+		To:   s.mustParseTime("2026-01-15T00:00:00Z"),
 	})
-
-	require.NoError(s.T(), err)
-	require.Len(s.T(), syncStates, 1)
-
-	s.Equal(subscriptionsync.SyncState{
-		SubscriptionID: models.NamespacedID{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-		HasBillables:  true,
-		SyncedAt:      clock.Now().UTC(),
-		NextSyncAfter: lo.ToPtr(s.mustParseTime("2025-12-15T00:00:00Z")),
-	}, syncStates[0])
 
 	// Let's advance the clock to simulate the next sync happening
 	clock.FreezeTime(s.mustParseTime("2025-12-15T01:00:00Z"))
@@ -11323,25 +11291,10 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInThe
 	})
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	syncStates, err = s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
-		{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
+	s.requireActiveDeadline(subsView.Subscription.NamespacedID, timeutil.ClosedPeriod{
+		From: s.mustParseTime("2026-01-15T00:00:00Z"),
+		To:   s.mustParseTime("2026-02-15T00:00:00Z"),
 	})
-
-	require.NoError(s.T(), err)
-	require.Len(s.T(), syncStates, 1)
-
-	s.Equal(subscriptionsync.SyncState{
-		SubscriptionID: models.NamespacedID{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-		HasBillables:  true,
-		SyncedAt:      clock.Now().UTC(),
-		NextSyncAfter: lo.ToPtr(s.mustParseTime("2026-01-15T00:00:00Z")),
-	}, syncStates[0])
 }
 
 func (s *CreditThenInvoiceTestSuite) expectValidationIssueForLine(line *billing.StandardLine, issue billing.ValidationIssue) {

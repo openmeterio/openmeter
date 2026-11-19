@@ -116,15 +116,15 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) GetSyncStates(ctx context.Context, input subscriptionsync.GetSyncStatesInput) ([]subscriptionsync.SyncState, error) {
-	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncState, error) {
-		return s.subscriptionSyncAdapter.GetSyncStates(ctx, input)
-	})
-}
-
 func (s *Service) GetSyncStatesV2(ctx context.Context, input subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
 	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncStateV2Managed, error) {
 		return s.subscriptionSyncAdapter.GetSyncStatesV2(ctx, input)
+	})
+}
+
+func (s *Service) ListSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
+	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) (paginationv2.Result[models.NamespacedID], error) {
+		return s.subscriptionSyncAdapter.ListSubscriptionsToReconcile(ctx, input)
 	})
 }
 

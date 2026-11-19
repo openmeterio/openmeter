@@ -22,8 +22,8 @@ billing artifacts after another sync completed deletion cleanup. Under that lock
 2. builds the target billable periods from the resolved subscription view
 3. diffs target and persisted items by their subscription-sync identity
 4. applies invoice patches, then charge patches
-5. records whether the subscription still has billables and when it next needs
-   reconciliation
+5. records the sync outcome and, for a subscription with further billing work,
+   when it next needs reconciliation
 
 This is reconciliation, not event handling by side effect. Repeating the same
 sync must converge. Subscription events provide the prompt path, invoice
@@ -162,13 +162,19 @@ deletion after subscription start still allows reconciliation of earlier service
 It caps recurring service periods at customer deletion even if the stored item
 dates extend further. Full service periods remain unchanged for proration.
 
-Legacy sync state is written only after the plan has been applied. `HasBillables`
-prevents needless future scheduling; `NextSyncAfter` is the end of the
-billing period containing `asOf`. Errors remain retryable through the event handler or
-periodic reconciler. Dry-run builds the same plan but only logs it and does not
-write artifacts or sync state.
+Sync state is written only after the plan has been applied. Errors remain
+retryable through the event handler or periodic reconciler. Dry-run builds the
+same plan but only logs it and does not write artifacts or sync state.
 
-The v2 sync-state table keeps the last recorded outcome and subscription revisions:
+## Sync state
+
+The v2 sync-state table (`subscription_sync_states_v2`) keeps the last recorded
+outcome and subscription revisions. Periodic reconciliation schedules from it; see
+[Periodic reconciliation](#periodic-reconciliation). The legacy
+`subscription_billing_sync_states` table is no longer read or written and will be
+dropped once no deployed version uses it.
+
+The states are:
 
 - `new`: no v2 outcome has been recorded; `last_success_at` is NULL.
 - `active`: ordinary reconciliation succeeded. This also covers scheduled subscriptions with billables; it is not the subscription's lifecycle status.
@@ -179,14 +185,13 @@ The v2 sync-state table keeps the last recorded outcome and subscription revisio
 - `too_old`: billing reconciliation was deliberately skipped because `ActiveTo` is more than 30 days before the worker clock. This outcome does not establish that billing artifacts were reconciled.
 
 Deletion cleanup takes precedence over the age cutoff, with subscription deletion
-checked before customer deletion. Cleanup still stops legacy periodic scheduling
-with `HasBillables=false` and no next deadline. An age skip leaves billing artifacts
-and legacy scheduling unchanged, skips pending-line collection, and records only
-the v2 outcome without loading the subscription view or billing artifacts.
+checked before customer deletion. An age skip leaves billing artifacts unchanged,
+skips pending-line collection, and records only the outcome without loading the
+subscription view or billing artifacts.
 Exactly 30 days old remains eligible for normal reconciliation.
 
-Sync writes reconciliation outcomes in the same transaction as billing changes
-and legacy scheduling, even when the plan was empty. Both a missing row and
+Sync writes reconciliation outcomes in the same transaction as billing changes,
+even when the plan was empty. Both a missing row and
 `new` mean no v2 outcome has been recorded. Other states require a non-NULL
 `last_success_at`. Dry runs and failed syncs do not record outcomes.
 
@@ -208,9 +213,6 @@ period containing `asOf`.
 - A sync with a historical `AsOf` can leave a deadline in the past. That is
   intended: the subscription stays due until a sync with a current `AsOf` catches up.
 
-Periodic workers still use legacy scheduling; the v2 deadline does not yet change
-candidate selection.
-
 Subscription create, update, cancel, continue, and delete hooks mark changes in
 the subscription command's transaction. If no v2 row exists, the hook inserts
 `new` with no success timestamp and initializes both revisions to the same ULID.
@@ -228,25 +230,64 @@ Both revisions are required on every v2 row. For subscriptions without a v2 row,
 sync generates a ULID and recording the outcome inserts it into both columns.
 On conflict, it updates the result, deadline, and last synced revision; the current
 revision is never overwritten by sync. Every successful reconciliation records
-an outcome, including an empty plan. Revisions do not yet change periodic
-scheduling or suppress reconciliation.
+an outcome, including an empty plan. Differing revisions make the subscription
+due for periodic reconciliation; they never suppress a sync that was asked for.
 
-The regular periodic list requires `DeletedAt` to be nil. A separate cleanup
-query selects all subscriptions with non-nil `DeletedAt` whose v2 result is not
-`subscription_deleted`. This query has no service-period or deletion lookback:
-a missed deletion remains eligible until cleanup succeeds. Legacy `HasBillables`
-and `NextSyncAfter` do not suppress these candidates; they only schedule non-deleted
-subscriptions. The list loads v2 state only for deleted subscriptions.
-`SubscriptionWithSyncState.ShouldReconcile(now)` checks v2 cleanup completion for
-deleted subscriptions and legacy billing deadlines for other subscriptions. It
-also catches cleanup completed between candidate selection and state loading.
+## Periodic reconciliation
 
-The CLI's `--f` flag bypasses billing deadlines. `--force-all` also enables
-`ForceResyncOldSubscriptions` to reconcile subscriptions older than the 30-day
-cutoff. The `--l` lookback still limits selection and defaults to 24 hours;
-resyncing older history also requires a wider lookback. Forced reconciliation
-still excludes deleted subscriptions with a successful v2 cleanup result. To put
-one back in the periodic cleanup queue, delete its `subscription_sync_states_v2` entry.
+The periodic reconciler repairs what event handling missed and provisions the
+next billing period on time. Each run selects candidates from two queries and
+syncs them with the current time as `asOf`:
+
+| Subscription | Sync state | Decision | Reason |
+|---|---|---|---|
+| deleted | no row, or state is not `subscription_deleted` | sync | `deletion_cleanup` |
+| deleted | `subscription_deleted` | skip | |
+| not deleted | no row | sync | `missing_state` |
+| not deleted | `new` | sync | `no_outcome` |
+| not deleted | any other state, revisions differ | sync | `revision_mismatch` |
+| not deleted | `active`, `next_reconciliation_at` ≤ now | sync | `deadline` |
+| not deleted | anything else | skip | |
+
+`SyncStateV2.ReconciliationReason` is this rule in Go;
+`ListSubscriptionsToReconcile` applies the non-deleted rows in SQL, so a run reads
+only the subscriptions it will sync. Keep the two in step.
+`SubscriptionWithSyncState.ShouldReconcile(now)` applies the rule again after the
+state is loaded, which catches a sync that completed between candidate selection
+and state loading. Each run logs how many subscriptions it selected per reason.
+
+The non-deleted query requires `DeletedAt` to be nil and the subscription to be
+active at some point within the lookback before now. `ended`, `no_billables`,
+`too_old` and `customer_deleted_before` subscriptions therefore drop out after one
+sync, and come back only if they are edited. The cleanup query selects all
+subscriptions with non-nil `DeletedAt` whose result is not `subscription_deleted`.
+It has no service-period or deletion lookback: a missed deletion remains eligible
+until cleanup succeeds.
+
+Known limits of this selection:
+
+- A subscription without a row predates v2 state, so the first run after the
+  switch from legacy scheduling syncs every such subscription in the lookback once.
+- The lookback defaults to 30 days, the same age after which sync skips an ended
+  subscription as `too_old`. An ended subscription whose final sync is missed for
+  longer than the lookback is not listed again until it is edited or the job runs
+  with a wider lookback. A future-dated subscription is not listed before it starts.
+- Deleting a customer does not change the subscription revision, so such a
+  subscription is reconciled at its next deadline rather than immediately.
+- A subscription created or edited just before a run still shows `new` or
+  differing revisions while its event is in flight, so it can be synced twice. The
+  customer billing lock serializes the two syncs and the second one converges.
+- The deadline lies in the last 5-20% of a billing period, so very short periods
+  depend on how often the job runs.
+
+The CLI's `--f` flag syncs every subscription in the lookback regardless of its
+sync state. `--force-all` also enables `ForceResyncOldSubscriptions` to reconcile
+subscriptions older than the 30-day cutoff. The `--l` lookback still limits
+selection and defaults to 30 days; resyncing older history also requires a wider
+lookback. Forced reconciliation still excludes deleted subscriptions with a
+successful cleanup result. To put one back in the periodic cleanup queue, delete
+its `subscription_sync_states_v2` entry. `list` prints what a run would sync and
+why; `list --all` prints what a forced run would sync.
 
 ## Race between billing collection and subscription deletion cleanup
 

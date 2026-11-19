@@ -10,10 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/reconciler"
 )
 
-const (
-	defaultLookback = 24 * time.Hour
-)
-
 var (
 	namespaces  []string
 	customerIDs []string
@@ -31,31 +27,24 @@ func init() {
 }
 
 var ListCmd = func() *cobra.Command {
+	var forceSync bool
+
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List subscriptions which can be synced",
+		Short: "List subscriptions which need to be synced",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			subs, err := internal.App.BillingSubscriptionReconciler.ListSubscriptions(cmd.Context(), reconciler.ReconcilerListSubscriptionsInput{
 				Namespaces: namespaces,
 				Customers:  customerIDs,
 				Lookback:   lookback,
+				ForceSync:  forceSync,
 			})
 			if err != nil {
 				return err
 			}
 
 			for _, sub := range subs {
-				activeTo := ""
-				if sub.ActiveTo != nil {
-					activeTo = fmt.Sprintf(" ActiveTo: %s", sub.ActiveTo.Format(time.RFC3339))
-				}
-
-				fmt.Printf("Namespace: %s ID: %s CustomerID: %s ActiveFrom: %s%s\n",
-					sub.Namespace,
-					sub.ID,
-					sub.CustomerId,
-					sub.ActiveFrom.Format(time.RFC3339),
-					activeTo)
+				fmt.Printf("Namespace: %s ID: %s\n", sub.Namespace, sub.ID)
 			}
 
 			return nil
@@ -64,7 +53,8 @@ var ListCmd = func() *cobra.Command {
 
 	cmd.PersistentFlags().StringSliceVar(&namespaces, "n", nil, "filter by namespaces")
 	cmd.PersistentFlags().StringSliceVar(&customerIDs, "c", nil, "filter by customer ids")
-	cmd.PersistentFlags().DurationVar(&lookback, "l", defaultLookback, "lookback period")
+	cmd.PersistentFlags().DurationVar(&lookback, "l", reconciler.DefaultLookback, "lookback period")
+	cmd.PersistentFlags().BoolVar(&forceSync, "f", false, "list what a forced run would sync: every subscription in the lookback regardless of its sync state; deleted subscriptions with completed cleanup stay excluded")
 
 	return cmd
 }
@@ -82,8 +72,8 @@ var AllCmd = func() *cobra.Command {
 					Namespaces: namespaces,
 					Customers:  customerIDs,
 					Lookback:   lookback,
+					ForceSync:  force || forceAll,
 				},
-				Force:                       force || forceAll,
 				ForceResyncOldSubscriptions: forceAll,
 			})
 		},
@@ -91,9 +81,9 @@ var AllCmd = func() *cobra.Command {
 
 	cmd.PersistentFlags().StringSliceVar(&namespaces, "n", nil, "filter by namespaces")
 	cmd.PersistentFlags().StringSliceVar(&customerIDs, "c", nil, "filter by customer ids")
-	cmd.PersistentFlags().DurationVar(&lookback, "l", defaultLookback, "lookback period")
-	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation regardless of billing deadlines; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
-	cmd.PersistentFlags().BoolVar(&forceAll, "force-all", false, "force reconciliation regardless of billing deadlines or subscription end age; lookback still limits selection; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
+	cmd.PersistentFlags().DurationVar(&lookback, "l", reconciler.DefaultLookback, "lookback period")
+	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation of every subscription in the lookback regardless of its sync state; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
+	cmd.PersistentFlags().BoolVar(&forceAll, "force-all", false, "force reconciliation of every subscription in the lookback regardless of its sync state or subscription end age; lookback still limits selection; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
 
 	return cmd
 }

@@ -383,25 +383,20 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupDryRun() {
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
-	// given: a deleted subscription with generated billing lines and legacy sync state
+	// given: a deleted subscription with generated billing lines
 	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
-	legacyBefore, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
-	s.Require().NoError(err)
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
 	v2Before := s.getSyncStateV2(subscriptionID)
 
 	// when: deletion cleanup is planned as a dry run
 	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now, subscriptionsync.EnableDryRun()))
 
-	// then: the lines and legacy state remain unchanged, with no v2 completion record
+	// then: the lines remain unchanged, with no v2 completion record
 	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty())
 	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
 	s.Equal(v2Before, states[0])
-	legacyAfter, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
-	s.Require().NoError(err)
-	s.Equal(legacyBefore, legacyAfter)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() {
@@ -412,8 +407,6 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() 
 
 	// given: a deleted subscription whose billing lines still need cleanup
 	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
-	legacyBefore, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
-	s.Require().NoError(err)
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
 	v2Before := s.getSyncStateV2(subscriptionID)
 	persistErr := errors.New("cannot record deletion cleanup")
@@ -423,11 +416,8 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() 
 	// when: billing cleanup runs but its v2 completion record cannot be saved
 	s.Require().ErrorIs(failingService.SyncByID(ctx, subscriptionID, now), persistErr)
 
-	// then: billing changes and legacy state roll back, and cleanup remains eligible
+	// then: billing changes roll back, and cleanup remains eligible
 	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty())
-	legacyAfter, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
-	s.Require().NoError(err)
-	s.Equal(legacyBefore, legacyAfter)
 	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
@@ -472,25 +462,18 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRecordsSucc
 	s.Empty(candidates.Items)
 }
 
-func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupWithLegacyState() {
+func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupByPeriodicReconciliation() {
 	ctx := s.T().Context()
 	now := s.mustParseTime("2024-01-01T00:00:00Z")
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
-	// given: an old sync marked a deleted subscription non-billable without cleaning its lines
+	// given: a subscription deleted before it started, whose deletion event was never handled
 	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
-	s.Require().NoError(s.Adapter.UpsertSyncState(ctx, subscriptionsync.UpsertSyncStateInput{
-		SubscriptionID: subscriptionID,
-		HasBillables:   false,
-		SyncedAt:       now,
-	}))
 	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
-		SubscriptionSync:    s.Service,
-		SubscriptionService: s.SubscriptionService,
-		CustomerService:     s.CustomerService,
-		Logger:              s.Service.logger,
+		SubscriptionSync: s.Service,
+		Logger:           s.Service.logger,
 	})
 	s.Require().NoError(err)
 	listInput := periodicreconciler.ReconcilerListSubscriptionsInput{
@@ -499,76 +482,167 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupWithLegacyS
 	}
 	pending, err := periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
-	s.Require().Len(pending, 1)
-	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
-	s.Nil(pending[0].SyncState, "legacy scheduling must not suppress deletion cleanup")
-	s.Require().NotNil(pending[0].SyncStateV2)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, pending[0].SyncStateV2.LastSuccessState)
-	s.Equal(lo.ToPtr(now), pending[0].SyncStateV2.LastSuccessAt)
-	s.NotNil(pending[0].SyncStateV2.NextReconciliationAt)
-	s.True(pending[0].ShouldReconcile(now))
+	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	// It has not started yet, so the lookback of the regular list does not cover
+	// it, and its billing deadline is still ahead. Only the cleanup query finds it.
+	state := s.getSyncStateV2(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	s.Equal(lo.ToPtr(now), state.LastSuccessAt)
+	s.Require().NotNil(state.NextReconciliationAt)
+	s.True(state.NextReconciliationAt.After(now))
 
 	// when: periodic reconciliation processes the pending cleanup
 	s.Require().NoError(periodic.All(ctx, periodicreconciler.ReconcilerAllInput{
 		ReconcilerListSubscriptionsInput: listInput,
 	}))
 
-	// then: cleanup runs despite the legacy flag and the subscription is no longer listed
+	// then: cleanup removes the lines and the subscription is no longer listed
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
 	s.Empty(pending)
 }
 
-func (s *SubscriptionHandlerTestSuite) TestPeriodicListKeepsActiveAndCanceledSubscriptions() {
+func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationFollowsSyncState() {
 	ctx := s.T().Context()
 	createdAt := s.mustParseTime("2024-01-01T00:00:00Z")
 	clock.FreezeTime(createdAt)
 	defer clock.UnFreeze()
 
-	// given: a non-deleted subscription whose service period overlaps the lookback
+	// given: a synced, running subscription whose service period overlaps the lookback
 	subscriptionID, _ := s.createScheduledSubscriptionWithBillingLines()
 	now := createdAt.Add(25 * time.Hour)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
-		SubscriptionSync:    s.Service,
-		SubscriptionService: s.SubscriptionService,
-		CustomerService:     s.CustomerService,
-		Logger:              s.Service.logger,
+		SubscriptionSync: s.Service,
+		Logger:           s.Service.logger,
 	})
 	s.Require().NoError(err)
 	listInput := periodicreconciler.ReconcilerListSubscriptionsInput{
 		Namespaces: []string{s.Namespace},
 		Lookback:   24 * time.Hour,
 	}
+	allInput := periodicreconciler.ReconcilerAllInput{ReconcilerListSubscriptionsInput: listInput}
 
-	// when/then: active subscriptions remain in the regular list with legacy state
+	// then: it is not listed while its billing deadline is ahead, unless everything is requested
 	pending, err := periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
-	s.Require().Len(pending, 1)
-	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
-	s.NotNil(pending[0].SyncState)
-	s.Nil(pending[0].Subscription.DeletedAt)
+	s.Empty(pending)
+	s.Require().NoError(periodic.All(ctx, allInput))
+	s.Equal(lo.ToPtr(createdAt), s.getSyncStateV2(subscriptionID).LastSuccessAt, "a subscription that is not due must not be synced")
+	forcedInput := listInput
+	forcedInput.ForceSync = true
+	pending, err = periodic.ListSubscriptions(ctx, forcedInput)
+	s.Require().NoError(err)
+	s.Equal([]models.NamespacedID{subscriptionID}, pending)
 
-	// when: that subscription is canceled, rather than deleted
+	// when: the subscription is canceled and the cancellation event is never handled
 	canceled, err := s.SubscriptionService.Cancel(ctx, subscriptionID, subscription.Timing{
 		Enum: lo.ToPtr(subscription.TimingNextBillingCycle),
 	})
 	s.Require().NoError(err)
 	s.Require().NotNil(canceled.ActiveTo)
-	clock.FreezeTime(canceled.ActiveTo.Add(time.Hour))
+
+	// then: the changed revision makes it due before its deadline
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+
+	// when: periodic reconciliation repairs the missed cancellation
+	s.Require().NoError(periodic.All(ctx, allInput))
+
+	// then: the subscription waits for its end
+	state := s.getSyncStateV2(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	s.Equal(canceled.ActiveTo, state.NextReconciliationAt)
+	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Empty(pending)
+
+	// when: the subscription has ended
+	afterEnd := canceled.ActiveTo.Add(time.Hour)
+	clock.FreezeTime(afterEnd)
+	defer clock.UnFreeze()
+
+	// then: the regular list includes its final billing work
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Require().Len(pending, 1)
+	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+
+	// when: the final sync runs
+	s.Require().NoError(periodic.All(ctx, allInput))
+
+	// then: the ended subscription drops out, although the lookback still covers it
+	s.Equal(subscriptionsync.SyncStateV2StateEnded, s.getSyncStateV2(subscriptionID).LastSuccessState)
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Empty(pending)
+	pending, err = periodic.ListSubscriptions(ctx, forcedInput)
+	s.Require().NoError(err)
+	s.Len(pending, 1)
+}
+
+func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationPicksUpSubscriptionWithoutSyncState() {
+	ctx := s.T().Context()
+	createdAt := s.mustParseTime("2024-01-01T00:00:00Z")
+	clock.FreezeTime(createdAt)
+	defer clock.UnFreeze()
+
+	// given: a running subscription that predates v2 sync state
+	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
+	_, err := s.DBClient.SubscriptionSyncStateV2.Delete().
+		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).Exec(ctx)
+	s.Require().NoError(err)
+	now := createdAt.Add(25 * time.Hour)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
+		SubscriptionSync: s.Service,
+		Logger:           s.Service.logger,
+	})
+	s.Require().NoError(err)
+	listInput := periodicreconciler.ReconcilerListSubscriptionsInput{
+		Namespaces: []string{s.Namespace},
+		Lookback:   24 * time.Hour,
+	}
+	allInput := periodicreconciler.ReconcilerAllInput{ReconcilerListSubscriptionsInput: listInput}
+
+	// then: it is due without any recorded state
+	pending, err := periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+
+	// when: periodic reconciliation syncs it once
+	s.Require().NoError(periodic.All(ctx, allInput))
+
+	// then: the recorded deadline takes over and the existing lines are kept
+	state := s.getSyncStateV2(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	s.Equal(lo.ToPtr(now), state.LastSuccessAt)
+	s.Require().NotNil(state.NextReconciliationAt)
+	s.True(state.NextReconciliationAt.After(now))
+	s.ElementsMatch(
+		lo.Map(invoice.Lines.OrEmpty(), func(line billing.GatheringLine, _ int) string { return line.ID }),
+		lo.Map(s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty(), func(line billing.GatheringLine, _ int) string { return line.ID }),
+	)
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Empty(pending)
+
+	// and: it becomes due again exactly at that deadline
+	clock.FreezeTime(state.NextReconciliationAt.Add(-time.Second))
 	defer clock.UnFreeze()
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
-
-	// then: the regular list still includes its final billing work
-	s.Require().Len(pending, 1)
-	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
-	s.NotNil(pending[0].SyncState)
-	s.Nil(pending[0].Subscription.DeletedAt)
-	s.Require().NotNil(pending[0].ActiveTo)
-	s.Equal(*canceled.ActiveTo, *pending[0].ActiveTo)
+	s.Empty(pending)
+	clock.FreezeTime(*state.NextReconciliationAt)
+	defer clock.UnFreeze()
+	pending, err = periodic.ListSubscriptions(ctx, listInput)
+	s.Require().NoError(err)
+	s.Equal([]models.NamespacedID{subscriptionID}, pending)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWorkerClock() {
@@ -589,10 +663,8 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWork
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 	periodic, err := periodicreconciler.NewReconciler(periodicreconciler.ReconcilerConfig{
-		SubscriptionSync:    s.Service,
-		SubscriptionService: s.SubscriptionService,
-		CustomerService:     s.CustomerService,
-		Logger:              s.Service.logger,
+		SubscriptionSync: s.Service,
+		Logger:           s.Service.logger,
 	})
 	s.Require().NoError(err)
 	listInput := periodicreconciler.ReconcilerListSubscriptionsInput{
@@ -604,15 +676,12 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWork
 	pending, err := periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
 
-	// then: only the cleanup query selects it, and legacy scheduling cannot suppress it
-	s.Require().Len(pending, 1)
-	s.Equal(subscriptionID, pending[0].Subscription.NamespacedID)
-	s.Nil(pending[0].SyncState)
-	s.Require().NotNil(pending[0].SyncStateV2)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, pending[0].SyncStateV2.LastSuccessState)
-	s.Equal(lo.ToPtr(createdAt), pending[0].SyncStateV2.LastSuccessAt)
-	s.NotNil(pending[0].SyncStateV2.NextReconciliationAt)
-	s.True(pending[0].ShouldReconcile(now))
+	// then: only the cleanup query selects it, although the regular list's lookback covers it too
+	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	stateBefore := s.getSyncStateV2(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateV2StateActive, stateBefore.LastSuccessState)
+	s.Equal(lo.ToPtr(createdAt), stateBefore.LastSuccessAt)
+	s.NotNil(stateBefore.NextReconciliationAt)
 	s.Require().NoError(periodic.All(ctx, periodicreconciler.ReconcilerAllInput{
 		ReconcilerListSubscriptionsInput: listInput,
 	}))
@@ -734,12 +803,10 @@ func (s *SubscriptionHandlerTestSuite) TestSyncByIDWithLegacyItemCadence() {
 		s.Equal(time.Hour, line.ServicePeriod.To.Sub(line.ServicePeriod.From))
 	}
 
-	states, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
-	s.Require().NoError(err)
-	s.Require().Len(states, 1)
-	s.True(states[0].HasBillables)
-	s.Require().NotNil(states[0].NextSyncAfter)
-	s.Equal(start.AddDate(0, 0, 7), *states[0].NextSyncAfter)
+	s.requireActiveDeadline(view.Subscription.NamespacedID, timeutil.ClosedPeriod{
+		From: start.AddDate(0, 0, 7),
+		To:   start.AddDate(0, 0, 14),
+	})
 
 	// and: repeating the sync preserves the generated line identities
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, asOf))
@@ -5968,33 +6035,11 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateNoBillables() {
 
 	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, clock.Now(), subscriptionsync.WithInvoicePendingLines()))
 
-	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
-		{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-	})
-
-	require.NoError(s.T(), err)
-	require.Len(s.T(), syncStates, 1)
-
-	s.Equal(subscriptionsync.SyncState{
-		SubscriptionID: models.NamespacedID{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-		HasBillables:  false,
-		SyncedAt:      clock.Now().UTC(),
-		NextSyncAfter: nil,
-	}, syncStates[0])
-
-	v2State := s.getSyncStateV2(subsView.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateNoBillables, v2State.LastSuccessState)
-	s.Nil(v2State.NextReconciliationAt)
+	s.requireUnscheduled(subsView.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
 
 	// The optimized lookup fetches by globally unique subscription ID, but must
 	// still conceal sync states from callers requesting that ID in another namespace.
-	syncStates, err = s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
+	syncStates, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{
 		{
 			Namespace: "another-namespace",
 			ID:        subsView.Subscription.ID,
@@ -6093,47 +6138,18 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateWithFreePhaseActiveInT
 
 	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, clock.Now(), subscriptionsync.WithInvoicePendingLines()))
 
-	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
-		{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
+	// Only the first paid billing period is provisioned, so the next sync falls into it.
+	s.requireActiveDeadline(subsView.Subscription.NamespacedID, timeutil.ClosedPeriod{
+		From: s.mustParseTime("2025-12-15T00:00:00Z"),
+		To:   s.mustParseTime("2026-01-15T00:00:00Z"),
 	})
-
-	require.NoError(s.T(), err)
-	require.Len(s.T(), syncStates, 1)
-
-	s.Equal(subscriptionsync.SyncState{
-		SubscriptionID: models.NamespacedID{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-		HasBillables:  true,
-		SyncedAt:      clock.Now().UTC(),
-		NextSyncAfter: lo.ToPtr(s.mustParseTime("2025-12-15T00:00:00Z")),
-	}, syncStates[0])
 
 	// Let's advance the clock to simulate the next sync happening
 	clock.FreezeTime(s.mustParseTime("2025-12-15T01:00:00Z"))
 	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, clock.Now(), subscriptionsync.WithInvoicePendingLines()))
 
-	syncStates, err = s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
-		{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
+	s.requireActiveDeadline(subsView.Subscription.NamespacedID, timeutil.ClosedPeriod{
+		From: s.mustParseTime("2026-01-15T00:00:00Z"),
+		To:   s.mustParseTime("2026-02-15T00:00:00Z"),
 	})
-
-	require.NoError(s.T(), err)
-	require.Len(s.T(), syncStates, 1)
-
-	s.Equal(subscriptionsync.SyncState{
-		SubscriptionID: models.NamespacedID{
-			Namespace: subsView.Subscription.Namespace,
-			ID:        subsView.Subscription.ID,
-		},
-		HasBillables:  true,
-		SyncedAt:      clock.Now().UTC(),
-		NextSyncAfter: lo.ToPtr(s.mustParseTime("2026-01-15T00:00:00Z")),
-	}, syncStates[0])
 }

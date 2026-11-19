@@ -202,34 +202,6 @@ func (s *SyncStateTestSuite) freeMonthlyPhase(duration string) productcatalog.Ph
 	}
 }
 
-// requireActiveDeadline checks the persisted result against the expected calendar
-// period. Subsequent syncs use the returned deadline, including its random offset.
-func (s *SyncStateTestSuite) requireActiveDeadline(subscriptionID models.NamespacedID, period timeutil.ClosedPeriod) time.Time {
-	s.T().Helper()
-	state := s.getSyncStateV2(subscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
-	s.Equal(lo.ToPtr(clock.Now().UTC()), state.LastSuccessAt)
-	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-	s.Require().NotNil(state.NextReconciliationAt)
-	duration := period.To.Sub(period.From)
-	s.Require().False(state.NextReconciliationAt.Before(period.From.Add(duration*80/100)), "deadline %s is before the 80%% point of %v", state.NextReconciliationAt, period)
-	s.Require().False(state.NextReconciliationAt.After(period.From.Add(duration*95/100)), "deadline %s is after the 95%% point of %v", state.NextReconciliationAt, period)
-	s.Require().True(state.NextReconciliationAt.After(clock.Now()), "next sync must advance the clock")
-
-	return *state.NextReconciliationAt
-}
-
-// requireUnscheduled checks that the sync that just ran recorded the given state
-// without a next reconciliation deadline. Only active results are scheduled.
-func (s *SyncStateTestSuite) requireUnscheduled(subscriptionID models.NamespacedID, want subscriptionsync.SyncStateV2State) {
-	s.T().Helper()
-	state := s.getSyncStateV2(subscriptionID)
-	s.Equal(want, state.LastSuccessState)
-	s.Equal(lo.ToPtr(clock.Now().UTC()), state.LastSuccessAt)
-	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
-	s.Nil(state.NextReconciliationAt)
-}
-
 // requireFees checks every provisioned in-advance fee by its sync identity, so
 // duplicate or missing items fail even if the reconciliation deadline is correct.
 func (s *SyncStateTestSuite) requireFees(view subscription.SubscriptionView, expected map[string]timeutil.ClosedPeriod) {
@@ -868,11 +840,9 @@ func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 	view := s.createSyncStateSubscription(now, s.paidMonthlyPhase())
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
 	before := s.getSyncStateV2(view.Subscription.NamespacedID)
-	legacyBefore, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
-	s.Require().NoError(err)
 	s.Require().NotNil(before.NextReconciliationAt)
 	const constraintName = "test_active_sync_result_failure"
-	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, fmt.Sprintf(
+	_, err := s.TestDB.PGDriver.DB().ExecContext(ctx, fmt.Sprintf(
 		"ALTER TABLE subscription_sync_states_v2 ADD CONSTRAINT %s CHECK (subscription_id <> %s OR last_success_at <= %s::timestamptz)",
 		pq.QuoteIdentifier(constraintName), pq.QuoteLiteral(view.Subscription.ID), pq.QuoteLiteral(now.Format(time.RFC3339))))
 	s.Require().NoError(err)
@@ -887,13 +857,10 @@ func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 	defer clock.UnFreeze()
 	s.Require().ErrorContains(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()), constraintName)
 
-	// Then the first two fees and both previously successful sync states are preserved.
+	// Then the first two fees and the previously recorded sync state are preserved.
 	s.requireMonthlyItems(view, []timeutil.ClosedPeriod{
 		{From: now, To: now.AddDate(0, 1, 0)},
 		{From: now.AddDate(0, 1, 0), To: now.AddDate(0, 2, 0)},
 	})
-	states, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
-	s.Require().NoError(err)
-	s.Equal(legacyBefore, states)
 	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
 }
