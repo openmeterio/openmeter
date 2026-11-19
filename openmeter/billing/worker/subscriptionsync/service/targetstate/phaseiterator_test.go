@@ -108,6 +108,17 @@ func TestStartBillingAt(t *testing.T) {
 			expected:          expected{billed: true, servicePeriod: december, billingPeriod: december, invoiceAt: december.From},
 		},
 		{
+			// With a sub-second billing anchor, service can start in the last second of a
+			// billing period. At whole seconds that period is over at the billing start.
+			name:              "service starting at the billing start in a billing period that ends there",
+			rateCardCadence:   &monthly,
+			servicePeriod:     december,
+			fullServicePeriod: december,
+			billingPeriod:     period(day(2026, time.November, 1), day(2026, time.December, 1)),
+			billingStartsAt:   day(2026, time.December, 1),
+			expected:          expected{billed: true, servicePeriod: december, billingPeriod: december, invoiceAt: december.From},
+		},
+		{
 			name:              "service ending at the billing start is not billed",
 			rateCardCadence:   &monthly,
 			servicePeriod:     period(day(2026, time.November, 1), day(2026, time.December, 1)),

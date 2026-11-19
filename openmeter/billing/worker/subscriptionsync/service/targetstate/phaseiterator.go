@@ -103,8 +103,8 @@ func (r SubscriptionItemWithPeriods) GetInvoiceAt() time.Time {
 // billingStartsAt was billed elsewhere, so the item is billed only from there on. It reports false
 // when nothing is left to bill.
 //
-// firstBillingPeriod is the billing period containing billingStartsAt. An item needs it only when
-// its service spans the billing start, which cannot happen once the subscription has ended by then.
+// firstBillingPeriod is the billing period that billing starts in. It is unset when the
+// subscription ends before billing starts: no item is billed then.
 //
 // The period index and unique ID are kept: later syncs must find the same item under the same ID.
 func (r SubscriptionItemWithPeriods) startBillingAt(billingStartsAt time.Time, firstBillingPeriod timeutil.ClosedPeriod) (SubscriptionItemWithPeriods, bool) {
@@ -123,6 +123,10 @@ func (r SubscriptionItemWithPeriods) startBillingAt(billingStartsAt time.Time, f
 	default:
 		// Bill the rest of the period. FullServicePeriod stays, so the price can be prorated.
 		r.ServicePeriod.From = billingStartsAt
+	}
+
+	// The item's billing period ended before billing starts, so bill it in the first billed one.
+	if !r.BillingPeriod.To.After(billingStartsAt) {
 		r.BillingPeriod = firstBillingPeriod.Truncate(streaming.MinimumWindowSizeDuration)
 	}
 

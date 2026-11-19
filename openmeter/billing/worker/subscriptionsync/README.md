@@ -74,19 +74,20 @@ billed.
 
 Second, each generated item is matched against the billing start:
 
-- service starting at or after it is billed unchanged
+- service starting at or after it keeps its service period
 - service ending at or before it is dropped
-- a recurring item spanning it is billed from the billing start, in the billing
-  period that contains the billing start. Its full service period is kept, so
-  the price is prorated when the subscription prorates prices. This happens
-  when the billing start is inside a billing period, and for rate cards billed
-  less often than the subscription
+- a recurring item spanning it is billed from the billing start. Its full
+  service period is kept, so the price is prorated when the subscription
+  prorates prices. This happens when the billing start is inside a billing
+  period, and for rate cards billed less often than the subscription
 - a one-time fee that started earlier is dropped, even if its period ends later:
   it is charged for the moment the item starts, not for service over time
 
 Billing periods never begin before the billing start, so fees billed in advance
-are invoiced there at the earliest. Dropped periods keep their index: the first
-billed artifact of a recurring item can be `period[3]`.
+are invoiced there at the earliest, also when their service starts later in
+that billing period. An item whose own billing period is over by the billing
+start is billed in the first billed billing period. Dropped periods keep their
+index: the first billed artifact of a recurring item can be `period[3]`.
 
 Shortening never leaves an empty period. Periods are compared at meter
 resolution (whole seconds), so a billing period that ends within the second of
