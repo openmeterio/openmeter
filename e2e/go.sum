@@ -161,8 +161,8 @@ github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsI
 github.com/jackc/pgpassfile v1.0.0/go.mod h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=
 github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 h1:iCEnooe7UlwOQYpKFhBabPMi4aNAfoODPEFNiAnClxo=
 github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761/go.mod h1:5TJZWKEWniPve33vlWYSoGYefn3gLQRzjfDlhSJ9ZKM=
-github.com/jackc/pgx/v5 v5.12.0 h1:hWwax8YiGT0YiN50U1oIDn5kgR7KC2tG3rmavwpPkxY=
-github.com/jackc/pgx/v5 v5.12.0/go.mod h1:u2Fi6no03HCSBYE+ZVdLxbwdu3xyi2vU+K/YNJioSds=
+github.com/jackc/pgx/v5 v5.13.0 h1:Hl08k64maU0nrRyVUEbwCnK6/gT0EhMrtAqBHz9/gA4=
+github.com/jackc/pgx/v5 v5.13.0/go.mod h1:u2Fi6no03HCSBYE+ZVdLxbwdu3xyi2vU+K/YNJioSds=
 github.com/jackc/puddle/v2 v2.2.3 h1:f8HoREISb3l5eO9coPgK7U3hKLhWGokOFVcThl5jrao=
 github.com/jackc/puddle/v2 v2.2.3/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
@@ -311,8 +311,8 @@ github.com/stripe/stripe-go/v80 v80.2.1 h1:1FQP5a/gpC4i0ezS8EPqdme3K/H9UlNWswqNH
 github.com/stripe/stripe-go/v80 v80.2.1/go.mod h1:n7tsDvdltYlzOLGXlseMSJM6ik5uv3guptqtae/VSak=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
-github.com/svix/svix-webhooks/v2 v2.9.1 h1:c6JGTkJia2vBQYeVKz9ElAt4+Gn60eVF5N5FnbbTF2Q=
-github.com/svix/svix-webhooks/v2 v2.9.1/go.mod h1:xCaumdE5/kLt+WzGHtr/NCGrW+MoHBqb86VKIn9u5po=
+github.com/svix/svix-webhooks/v2 v2.10.0 h1:ZeqpHmIN2YlFZgdV3X468wuGSRK+829enC5D+JWYFJg=
+github.com/svix/svix-webhooks/v2 v2.10.0/go.mod h1:xCaumdE5/kLt+WzGHtr/NCGrW+MoHBqb86VKIn9u5po=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
