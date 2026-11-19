@@ -63,8 +63,9 @@ With `rte.enabled`, root `Create` and `ApplyPatches` report
 commits. This includes pending purchases before any ledger posting. The shadow
 publisher can drop the event if its queue is full or delivery fails. Direct writes
 through concrete charge services or adapters and later payment/invoice lifecycle
-transitions do not emit this fact. Ledger facts and scheduled refresh remain
-necessary for those paths and for future effective-time boundaries.
+transitions do not emit this fact. A later ledger posting may invalidate the balance. For changes with
+no source event, callers can bound reuse with a maximum age on freshness requests.
+[RTE freshness](../../rte/README.md#how-a-tracked-balance-stays-current)
 
 Subscription-managed charges snapshot the current subscription plan key and
 version when created. A scheduled migration advances that reference immediately,

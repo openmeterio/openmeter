@@ -1,85 +1,51 @@
 # Calculation demand
 
-RTE tracks whether a balance needs recalculating after its inputs change.
+Demand records which changes RTE should track for a balance and whether a worker should act on
+them in the background. The registration belongs to the key. Callers sharing a key also share
+its registration, so one caller's `Deactivate` ends tracking for all of them. The last
+successful balance stays available through `Get`.
 
-- **Background refresh** (`Activate`). When a tracked input changes, the worker recalculates
-  the balance even if nobody asks for it.
-- **On-demand refresh** (`EnsureFresh`). RTE remembers changes between requests for
-  `PullTTL`. With background refresh off, those changes wait for the next `EnsureFresh`
-  call, which recalculates if needed.
-
-`Get` reads the last stored balance. Only `Activate` enables background refresh.
-
-## Choosing a freshness policy
-
-| Setting | What it controls |
+| Operation | When the key gets recalculated |
 | --- | --- |
-| `EnsureFreshInput.PullTTL` | How long to track changes between calls to `EnsureFresh`. Must be positive. |
-| `EnsureFreshInput.MaxAge` | How old a completed calculation `EnsureFresh` accepts. Zero accepts any age if the key is active and clean. |
+| `Activate` | The worker picks up outstanding work and refreshes the balance after tracked changes. Activation persists until deactivation or source retirement. |
+| `EnsureFresh` | The caller waits if the key is dirty, tracking lapsed, or the last calculation reached the caller's maximum age. A clean result can be reused while tracking remains active. |
 
-For example, a client calls `EnsureFresh` every ten seconds with `PullTTL=1m` and
-`MaxAge=30s`. If nothing changes, the second call can reuse the first result. If two usage
-batches arrive between calls, one recalculation covers both. With background refresh off, a
-gap longer than a minute means the next call recalculates because tracking expired.
+For example, a caller can read every ten seconds with `PullTTL=1m` and `MaxAge=30s`.
+Two usage batches between reads can share one refresh. If background tracking is off and the
+caller returns after the lease expired, RTE refreshes even if no dirty event was recorded during
+the gap. A zero maximum age allows any age while the key is continuously tracked and clean.
 
-Demand is shared per semantic key. Repeated activation keeps the existing registration.
-`Deactivate` stops background refresh and change tracking for that key.
-There is no per-caller ownership count. Coordinate deactivation when several
-consumers depend on the same balance.
+## Claims and queue order
 
-When a metered entitlement has a scheduled deletion, demand remains active until
-its effective time. The worker checks the deadline for activated keys. For pull-only keys,
-`EnsureFresh` checks it on the next call. Once deletion takes effect, processing clears
-demand and leaves the last successful result
-available through `Get`. An explicit `EnsureFresh` returns the entitlement's
-not-found error.
+A key is dirty while `dirty_version > completed_version`. An invalidation increments the dirty
+version for matching active keys. It stores a receipt for the CloudEvents source and ID in the
+same transaction if at least one key matched. Duplicate delivery then leaves those keys alone.
+A distinct event for earlier usage still counts. A selector containing only namespace and kind
+matches every active key of that kind.
 
-## Coalescing and redelivery
+The first change to a clean key makes it eligible for work. Further changes while it waits keep
+its place. Background slots claim eligible rows in `next_attempt_at`, then ID order. Each takes
+a separate calculation lock **before** reading the version it will cover. Other slots skip locked
+keys. An `EnsureFresh` for that key waits for the lock and rechecks whether it needs to calculate.
 
-Each key has a dirty version and a completed version. Independent invalidations
-advance the dirty version in PostgreSQL, so pending changes survive a worker restart.
-Each background worker slot claims one ready key at a time. One calculation can cover all changes
-recorded before the worker claims that key. Each calculator reads its own sources
-under their usual consistency rules.
+Suppose a slot claims version 7 and two events advance the dirty version to 9 while it calculates.
+The events can update the demand row while the slot holds the calculation lock. On success the
+slot commits the retained state, any update outbox entry, and completion of **7**. The next pass
+covers 9 and joins the queue at completion time, behind keys already waiting. Explicit one-time
+calculations run independently of demand.
 
-`EnsureFresh` accepts a clean version, with an optional maximum age, or calculates
-it synchronously. A freshness call already in progress can finish after
-deactivation.
+## Failure and expiry
 
-An invalidation receipt uses the immutable source and event ID. Inserting its
-receipt and marking all matching active keys happen in one transaction. Only facts
-that mark at least one key get a receipt. Redelivery of a recorded fact does nothing.
-An independent late event still dirties the key. A selector can span a namespace/kind, owners, or exact semantic keys. An empty owner/target
-list deliberately selects the entire namespace/kind. Producers must include all
-affected selectors on the first delivery. Keys activated after a fact calculate
-from current sources instead of replaying its receipt.
-
-Receipts are retained for seven days by default, configurable independently of
-calculation freshness. Maintenance deletes bounded batches of 1,000 old receipts,
-normally once per minute per service instance. Full batches retry after one
-second to drain a backlog. Replay after deletion safely triggers extra calculation.
-Size retention to the expected source replay window to avoid that extra work.
-
-## Concurrent work and retries
-
-Each tracked key has a calculation-lock row. A worker takes that lock, then reads the
-current dirty version. Other background workers skip the key. A targeted pull waits
-and rechecks whether work is still due. Invalidation updates the demand row independently,
-so one slow calculation can coexist with an event that dirties many keys.
-
-On success, state, the update outbox entry and completion of the claimed version commit
-together. A crash rolls them back and PostgreSQL releases the lock. Changes received before
-claim share that pass. Changes received during it share a later pass, which joins the queue
-at completion time. Repeated changes to a waiting key preserve its place. Explicit
-one-time calculations run independently of this demand queue.
-
-Failed attempts roll back their writes to a savepoint and commit bounded
-exponential retry backoff. New input still advances the dirty version during backoff.
-The next background attempt covers those changes. An explicit `EnsureFresh` can retry immediately.
-Polls order work by its next attempt time and ID, so one failing key does not monopolize the queue.
-Each attempt has a configured timeout, while retry bookkeeping uses the outer
-context. A canceled database read can close its connection. After rolling that
-transaction back, an owning worker records backoff on a fresh connection only
-if its dirty/completed versions and attempt count are unchanged. A caller-owned
-transaction instead receives the failure and must roll back. The transaction
-holds a connection and row lock during calculation, including external reads.
+- A crash rolls back the open transaction and PostgreSQL releases its lock. A calculation error
+  rolls back the attempt's writes and schedules a retry with bounded exponential backoff.
+  New changes advance the dirty version but preserve that retry deadline. A targeted
+  `EnsureFresh` can retry immediately.
+- Each demand calculation has a timeout. If cancellation closes the connection, the worker
+  records backoff in a new transaction only if the versions and attempt count still match.
+  When a caller owns the outer transaction it receives the error and must roll back.
+- A metered entitlement's scheduled deletion is a known deadline. An activated key is checked
+  when deletion takes effect. A key tracked only between reads is checked on the next refresh.
+  Retirement ends tracking, preserves the stored value, and returns not-found to a targeted refresh.
+- Receipts expire after seven days by default. Each instance prunes up to 1,000 at a time,
+  normally once a minute, retrying a full batch after one second. Redelivery after expiry can
+  trigger another calculation.
