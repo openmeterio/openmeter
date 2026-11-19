@@ -76,7 +76,7 @@ func newEventFactories() map[string]func() marshaler.Event {
 	prototypes := []marshaler.Event{
 		ingestevents.EventBatchedIngest{},
 		ledger.TransactionGroupCommittedEvent{},
-		charges.ChargeInputsChangedEvent{},
+		charges.CustomerChargesChangedEvent{},
 		entitlement.EntitlementCreatedEventV2{},
 		entitlement.EntitlementDeletedEventV2{},
 		grant.CreatedEvent{},
@@ -134,7 +134,7 @@ func (r *resolver) Resolve(ctx context.Context, event marshaler.Event) ([]rte.De
 	}
 
 	switch e := event.(type) {
-	case charges.ChargeInputsChangedEvent:
+	case charges.CustomerChargesChangedEvent:
 		return []rte.DemandSelector{{Namespace: e.Namespace, Kind: rte.CalculationKindCreditBalance, OwnerIDs: []string{e.CustomerID}}}, nil
 	case ledger.TransactionGroupCommittedEvent:
 		return r.query(ctx, ledgerQuery{namespace: e.Namespace, groupID: e.GroupID, now: clock.Now().UTC()})

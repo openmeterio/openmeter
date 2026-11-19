@@ -39,7 +39,7 @@ var watermillBroker = wire.NewSet(
 	NewBrokerConfiguration,
 	wire.Struct(new(watermillkafka.PublisherOptions), "*"),
 
-	NewRTEShadowRecorder,
+	NewRTEReplayRecorder,
 	NewRTESourcePublisher,
 )
 

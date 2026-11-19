@@ -124,7 +124,7 @@ func Initialize(ctx context.Context, conf config.Configuration, metadata common.
 		cleanup()
 		return Application{}, nil, err
 	}
-	recorder, cleanup8, err := common.NewRTEShadowRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
+	recorder, cleanup8, err := common.NewRTEReplayRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
 	if err != nil {
 		cleanup7()
 		cleanup6()

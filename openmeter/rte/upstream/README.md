@@ -8,7 +8,7 @@ stays dirty until the next `EnsureFresh`. Resolving a fact does not activate key
 | --- | --- |
 | Ingest batch | Metered entitlements and credit balances related to the batch subject, meters and event times |
 | Committed ledger group | Credit balances whose customer accounts and currency were touched by entries in the group, including other feature scopes in that currency |
-| Charge inputs changed | Credit balances for the affected customer, across currencies and scopes |
+| Customer charges created or patched | Credit balances for the affected customer, across currencies and scopes |
 | Entitlement created/deleted, grant created/voided, entitlement reset | The named metered entitlement |
 | Customer or subscription lifecycle | That customer’s credit balances and metered entitlements |
 | Feature or meter lifecycle | Metered entitlements using the feature and credit balances for matching usage-based charges |
@@ -33,6 +33,6 @@ When adding a source, choose a fact emitted after its effects are durable, or en
 transaction as those effects. A command may be consumed before the mutation it requests has
 happened. Return no selectors when there are no candidates. A selector with just a namespace and
 kind marks **every active key** of that kind. Keep emission coverage explicit. For example, the
-billing [charge input event](../../billing/charges/README.md) covers root creates and patches.
+billing [customer charge change event](../../billing/charges/README.md) covers root creates and patches.
 For a balance that can change with time alone, a finite `MaxAge` on `EnsureFresh` bounds reuse
 at the next read. Activated keys have no periodic refresh.

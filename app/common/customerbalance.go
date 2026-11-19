@@ -20,7 +20,7 @@ import (
 
 var CustomerBalance = wire.NewSet(
 	NewCustomerBalanceService,
-	NewCustomerBalanceFacadeWithShadow,
+	NewCustomerBalanceFacadeWithRTEReplay,
 )
 
 func NewCustomerBalanceService(
@@ -78,7 +78,8 @@ func NewCustomerBalanceFacade(service customerbalance.Service) (*customerbalance
 	return customerbalance.NewFacade(service)
 }
 
-func NewCustomerBalanceFacadeWithShadow(service customerbalance.Service, credits config.CreditsConfiguration, recorder *shadow.Recorder) (*customerbalance.Facade, error) {
+// NewCustomerBalanceFacadeWithRTEReplay records sampled credit reads for the RTE worker to replay.
+func NewCustomerBalanceFacadeWithRTEReplay(service customerbalance.Service, credits config.CreditsConfiguration, recorder *shadow.Recorder) (*customerbalance.Facade, error) {
 	if credits.Enabled && recorder != nil {
 		service = shadow.ObserveCreditReads(service, recorder)
 	}

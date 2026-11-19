@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte/shadow"
 )
 
-func NewRTEShadowRecorder(ctx context.Context, conf config.RTEConfiguration, events config.EventsConfiguration, publisher message.Publisher, meter metric.Meter, logger *slog.Logger) (*shadow.Recorder, func(), error) {
+func NewRTEReplayRecorder(ctx context.Context, conf config.RTEConfiguration, events config.EventsConfiguration, publisher message.Publisher, meter metric.Meter, logger *slog.Logger) (*shadow.Recorder, func(), error) {
 	if !conf.Enabled {
 		return nil, func() {}, nil
 	}

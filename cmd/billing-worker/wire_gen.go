@@ -397,7 +397,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
 	creditsConfiguration := conf.Credits
 	rteConfiguration := conf.RTE
-	recorder, cleanup9, err := common.NewRTEShadowRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
+	recorder, cleanup9, err := common.NewRTEReplayRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
 	if err != nil {
 		cleanup8()
 		cleanup7()

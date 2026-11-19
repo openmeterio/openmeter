@@ -216,7 +216,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	rteConfiguration := conf.RTE
-	recorder, cleanup9, err := common.NewRTEShadowRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
+	recorder, cleanup9, err := common.NewRTEReplayRecorder(ctx, rteConfiguration, eventsConfiguration, publisher, meter, logger)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -228,7 +228,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	entitlement, err := common.NewEntitlementRegistryWithShadow(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService, recorder)
+	entitlement, err := common.NewEntitlementRegistryWithRTEReplay(logger, client, tracer, entitlementsConfiguration, connector, meterService, eventbusPublisher, locker, customerService, recorder)
 	if err != nil {
 		cleanup9()
 		cleanup8()

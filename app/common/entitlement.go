@@ -21,7 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
-var Entitlement = wire.NewSet(NewEntitlementRegistryWithShadow)
+var Entitlement = wire.NewSet(NewEntitlementRegistryWithRTEReplay)
 
 func NewEntitlementRegistry(
 	logger *slog.Logger,
@@ -34,10 +34,11 @@ func NewEntitlementRegistry(
 	locker *lockr.Locker,
 	customerService customer.Service,
 ) (*registry.Entitlement, error) {
-	return NewEntitlementRegistryWithShadow(logger, db, tracer, entitlementConfig, streamingConnector, meterService, eventPublisher, locker, customerService, nil)
+	return NewEntitlementRegistryWithRTEReplay(logger, db, tracer, entitlementConfig, streamingConnector, meterService, eventPublisher, locker, customerService, nil)
 }
 
-func NewEntitlementRegistryWithShadow(
+// NewEntitlementRegistryWithRTEReplay records sampled metered reads and recalculations for the RTE worker to replay.
+func NewEntitlementRegistryWithRTEReplay(
 	logger *slog.Logger,
 	db *entdb.Client,
 	tracer trace.Tracer,

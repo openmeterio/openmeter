@@ -47,7 +47,7 @@ func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesIn
 			}
 		}
 
-		if s.inputChangePublisher != nil && len(input.PatchesByChargeID) > 0 {
+		if s.customerChargesChangedPublisher != nil && len(input.PatchesByChargeID) > 0 {
 			// A nested create for this owner already announces the whole committed
 			// change. Creates may target other customers, so check their owners.
 			announced := false
@@ -60,7 +60,7 @@ func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesIn
 			}
 
 			if !announced {
-				s.publishInputChanges(ctx, []customer.CustomerID{input.CustomerID})
+				s.publishCustomerChargesChanged(ctx, []customer.CustomerID{input.CustomerID})
 			}
 		}
 

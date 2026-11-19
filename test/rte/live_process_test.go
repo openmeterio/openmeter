@@ -63,7 +63,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 	s.fundLiveCredits(ctx, s.Ledger, creditKey, 100)
 
 	// Publish subsequent ledger writes so the worker can discover the balance change.
-	recorder, closeRecorder, err := common.NewRTEShadowRecorder(ctx, live.conf.RTE, live.conf.Events,
+	recorder, closeRecorder, err := common.NewRTEReplayRecorder(ctx, live.conf.RTE, live.conf.Events,
 		live.publisher, noop.NewMeterProvider().Meter("test"), logger)
 	require.NoError(t, err)
 
@@ -76,7 +76,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		t := s.T()
 		ctx := t.Context()
 
-		facade, err := common.NewCustomerBalanceFacadeWithShadow(s.CustomerBalanceSvc, live.conf.Credits, recorder)
+		facade, err := common.NewCustomerBalanceFacadeWithRTEReplay(s.CustomerBalanceSvc, live.conf.Credits, recorder)
 		require.NoError(t, err)
 
 		request := customerbalance.GetBalancesInput{CustomerID: fixture.customer.GetID()}
