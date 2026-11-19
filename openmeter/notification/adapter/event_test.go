@@ -491,22 +491,44 @@ func TestListEvents_MixedDeliveryStatesDueForReconciliation(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			// when: selecting this Event with the poller's active-state filter and cutoff
-			result, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
-				ID:                &filter.FilterULID{FilterString: filter.FilterString{Eq: &event.ID}},
-				DeliveryStatus:    &filter.FilterString{In: new([]string{"PENDING", "SENDING", "RESENDING"})},
-				NextAttemptBefore: cutoff,
-				Page:              pagination.NewPage(1, 20),
-			})
-			require.NoError(t, err)
+			for _, stage := range []struct {
+				name, direction string
+			}{
+				{name: "mixed states"},
+				{name: "after upgrade", direction: "up"},
+				{name: "after rollback", direction: "down"},
+				{name: "after re-upgrade", direction: "up"},
+			} {
+				t.Run(stage.name, func(t *testing.T) {
+					if stage.direction != "" {
+						migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+							migrate.OMMigrationsConfig.FSPath,
+							"20261119143941_notification_delivery_state_normalization."+stage.direction+".sql",
+						))
+						require.NoError(t, err)
 
-			// then: the same destination must be active and due
-			if tt.due {
-				require.Len(t, result.Items, 1)
+						_, err = env.sqlDB.ExecContext(t.Context(), string(migration))
+						require.NoError(t, err)
+					}
 
-				assert.Equal(t, event.ID, result.Items[0].ID)
-			} else {
-				assert.Empty(t, result.Items)
+					// when: selecting this Event with the poller's active-state filter and cutoff
+					result, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+						ID:                &filter.FilterULID{FilterString: filter.FilterString{Eq: &event.ID}},
+						DeliveryStatus:    &filter.FilterString{In: new([]string{"PENDING", "SENDING", "RESENDING"})},
+						NextAttemptBefore: cutoff,
+						Page:              pagination.NewPage(1, 20),
+					})
+					require.NoError(t, err)
+
+					// then: the same destination must be active and due
+					if tt.due {
+						require.Len(t, result.Items, 1)
+
+						assert.Equal(t, event.ID, result.Items[0].ID)
+					} else {
+						assert.Empty(t, result.Items)
+					}
+				})
 			}
 		})
 	}
