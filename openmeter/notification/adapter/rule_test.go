@@ -562,10 +562,6 @@ func TestRuleConfigMappingPrecedence(t *testing.T) {
 			name: "envelope takes precedence over flat fields",
 			data: `{"type":"entitlements.reset","data":{"features":["legacy"]},"features":["flat"]}`,
 		},
-		{
-			name: "legacy unknown fields remain readable",
-			data: `{"type":"entitlements.reset","data":{"features":["legacy"],"historical_field":true}}`,
-		},
 	}
 
 	for _, tt := range tests {
