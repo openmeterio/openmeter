@@ -3,6 +3,8 @@ package adapter
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
+	"path"
 	"slices"
 	"testing"
 	"time"
@@ -19,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 // createRule seeds an invoice.created rule via the adapter directly, mirroring
@@ -579,19 +582,21 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 	env := newChannelTestEnv(t)
 	namespace := ulid.Make().String()
 
-	// given: two public types with both legacy and versioned rows
+	// given: all four public types with both legacy and versioned rows
 	idsByType := make(map[string][]string)
 	var allIDs []string
-	for _, eventType := range []notification.EventType{notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated} {
+	for _, eventType := range []notification.EventType{notification.EventTypeBalanceThreshold, notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated} {
 		var ids []string
 		for _, legacy := range []bool{true, false} {
 			created := createRule(t, env, namespace, clock.Now(), func(input *notification.CreateRuleInput) {
 				input.Type = eventType
 				input.Config = notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: eventType}}
 				switch eventType {
+				case notification.EventTypeBalanceThreshold:
+					input.Config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{Thresholds: []notification.BalanceThreshold{{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50}}}
 				case notification.EventTypeEntitlementReset:
 					input.Config.EntitlementReset = &notification.EntitlementResetRuleConfig{}
-				case notification.EventTypeInvoiceCreated:
+				case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 					input.Config.Invoice = &notification.InvoiceRuleConfig{}
 				}
 			})
@@ -610,6 +615,10 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 		allIDs = append(allIDs, ids...)
 	}
 
+	excludingInvoiceCreated := lo.Filter(allIDs, func(id string, _ int) bool {
+		return !slices.Contains(idsByType["invoice.created"], id)
+	})
+
 	tests := []struct {
 		name   string
 		filter *filter.FilterString
@@ -617,36 +626,58 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 	}{
 		{name: "all", want: allIDs},
 		{name: "equal", filter: &filter.FilterString{Eq: new("invoice.created")}, want: idsByType["invoice.created"]},
-		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: idsByType["entitlements.reset"]},
-		{name: "in", filter: &filter.FilterString{In: &[]string{"invoice.created", "entitlements.reset"}}, want: allIDs},
-		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: idsByType["entitlements.reset"]},
+		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: excludingInvoiceCreated},
+		{name: "in", filter: &filter.FilterString{In: &[]string{"entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated"}}, want: allIDs},
+		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: excludingInvoiceCreated},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
-				t.Run(string(order), func(t *testing.T) {
-					want := slices.Clone(tt.want)
-					if order == sortx.OrderDesc {
-						slices.Reverse(want)
-					}
+	for _, stage := range []struct {
+		name, direction string
+	}{
+		{name: "mixed spellings"},
+		{name: "after upgrade", direction: "up"},
+		{name: "after rollback", direction: "down"},
+		{name: "after re-upgrade", direction: "up"},
+	} {
+		t.Run(stage.name, func(t *testing.T) {
+			if stage.direction != "" {
+				migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+					migrate.OMMigrationsConfig.FSPath,
+					"20261119133042_notification_event_type_normalization."+stage.direction+".sql",
+				))
+				require.NoError(t, err)
 
-					// when: each page contains one row ordered by public type and ID
-					var got []string
-					for page := 1; page <= len(want)+1; page++ {
-						listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
-							Namespace: namespace,
-							Type:      tt.filter, OrderBy: notification.OrderByType, Order: order,
-							Page: pagination.NewPage(page, 1),
+				_, err = env.sqlDB.ExecContext(t.Context(), string(migration))
+				require.NoError(t, err)
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
+						t.Run(string(order), func(t *testing.T) {
+							want := slices.Clone(tt.want)
+							if order == sortx.OrderDesc {
+								slices.Reverse(want)
+							}
+
+							// when: each page contains one row ordered by public type and ID
+							var got []string
+							for page := 1; page <= len(want)+1; page++ {
+								listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
+									Namespace: namespace,
+									Type:      tt.filter, OrderBy: notification.OrderByType, Order: order,
+									Page: pagination.NewPage(page, 1),
+								})
+								require.NoError(t, err)
+
+								for _, item := range listed.Items {
+									got = append(got, item.ID)
+								}
+							}
+
+							// then: pagination includes each matching row once, regardless of storage spelling
+							assert.Equal(t, want, got)
 						})
-						require.NoError(t, err)
-
-						for _, item := range listed.Items {
-							got = append(got, item.ID)
-						}
 					}
-
-					// then: pagination includes each matching row once, regardless of storage spelling
-					assert.Equal(t, want, got)
 				})
 			}
 		})

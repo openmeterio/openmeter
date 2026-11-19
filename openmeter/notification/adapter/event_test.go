@@ -931,6 +931,179 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 	}
 }
 
+func TestRuleEventTypeNormalizationMigration(t *testing.T) {
+	env := newEventTestEnv(t)
+	migrations := make(map[string]string)
+	for _, direction := range []string{"up", "down"} {
+		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+			migrate.OMMigrationsConfig.FSPath,
+			"20261119133042_notification_event_type_normalization."+direction+".sql",
+		))
+		require.NoError(t, err)
+
+		migrations[direction] = string(migration)
+	}
+
+	// Compare raw PostgreSQL JSON text so annotations and snapshots retain large integers exactly.
+	const snapshotSQL = `SELECT e.type, r.type, e.xmin::text, r.xmin::text, jsonb_build_object(
+		'event', to_jsonb(e) - 'type', 'rule', to_jsonb(r) - 'type',
+		'channels', (SELECT jsonb_agg(to_jsonb(c) ORDER BY c.id) FROM notification_channels c WHERE c.namespace = e.namespace),
+		'rule_channels', (SELECT jsonb_agg(to_jsonb(rc) ORDER BY rc.notification_channel_id) FROM notification_channel_rules rc WHERE rc.notification_rule_id = r.id),
+		'deliveries', (SELECT jsonb_agg(to_jsonb(d) ORDER BY d.id) FROM notification_event_delivery_status d WHERE d.event_id = e.id),
+		'event_deliveries', (SELECT jsonb_agg(to_jsonb(ed) ORDER BY ed.notification_event_delivery_status_id) FROM notification_event_delivery_status_events ed WHERE ed.notification_event_id = e.id)
+	)::text FROM notification_events e JOIN notification_rules r ON r.id = e.rule_id WHERE e.id = $1`
+
+	for _, tc := range []struct {
+		legacy    string
+		versioned string
+	}{
+		{legacy: "entitlements.balance.threshold", versioned: "v1.entitlement.balance_threshold.triggered"},
+		{legacy: "entitlements.reset", versioned: "v1.entitlement.usage_period.reset"},
+		{legacy: "invoice.created", versioned: "v1.billing.invoice.created"},
+		{legacy: "invoice.updated", versioned: "v1.billing.invoice.updated"},
+		{legacy: "future.event", versioned: "future.event"},
+	} {
+		t.Run(tc.legacy, func(t *testing.T) {
+			type snapshot struct {
+				id, namespace, before string
+				eventType, ruleType   string
+				eventXmin, ruleXmin   string
+			}
+
+			// Seed through the adapter, then reproduce historical spellings and inactive Rules.
+			seedPair := func(t *testing.T, storedType string, disabled, deleted bool) snapshot {
+				t.Helper()
+
+				eventType := notification.EventType(tc.legacy)
+				if tc.legacy == "future.event" {
+					eventType = notification.EventTypeInvoiceCreated
+				}
+
+				namespace := ulid.Make().String()
+				channel := seedChannel(t, env, namespace)
+				rule := seedRule(t, env, namespace, eventType, channel.ID)
+				payload := notification.EventPayload{
+					EventPayloadMeta: notification.EventPayloadMeta{Type: eventType, Version: notification.EventPayloadVersionCurrent},
+				}
+				switch eventType {
+				case notification.EventTypeBalanceThreshold:
+					payload.BalanceThreshold = &notification.BalanceThresholdPayload{}
+				case notification.EventTypeEntitlementReset:
+					payload.EntitlementReset = &notification.EntitlementResetPayload{}
+				case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+					payload.Invoice = &notification.InvoicePayload{}
+				}
+
+				event, err := env.adapter.CreateEvent(t.Context(), notification.CreateEventInput{
+					NamespacedModel: models.NamespacedModel{Namespace: namespace},
+					Type:            eventType, RuleID: rule.ID, Payload: payload,
+				})
+				require.NoError(t, err)
+
+				// Historical Rules use the envelope; current writers use flat configs.
+				_, err = env.sqlDB.ExecContext(t.Context(), `
+					UPDATE notification_rules SET type = $1, disabled = $2,
+						deleted_at = CASE WHEN $3 THEN '2026-01-02T00:00:00Z'::timestamptz ELSE NULL END,
+						config = CASE WHEN $5 THEN jsonb_build_object('type', $6::text, 'data', config) ELSE config END,
+						metadata = '{"team":"billing"}', annotations = '{"preserve":9007199254740993}'
+					WHERE id = $4`, storedType, disabled, deleted, rule.ID, storedType == tc.legacy, string(eventType))
+				require.NoError(t, err)
+
+				_, err = env.sqlDB.ExecContext(t.Context(), `
+					UPDATE notification_events SET type = $1, annotations = '{"preserve":9007199254740993}',
+						rule_snapshot = '{"preserve":9007199254740993}', provider_data = '{"svix.message_id":"msg_preserve"}'
+					WHERE id = $2`, storedType, event.ID)
+				require.NoError(t, err)
+
+				_, err = env.sqlDB.ExecContext(t.Context(), `
+					UPDATE notification_event_delivery_status SET state = 'sending',
+						next_attempt_at = '2026-01-03T00:00:00Z', dispatch_generation = 3,
+						dispatch_queued_at = '2026-01-01T00:00:00Z', attempts = '[]',
+						provider_data = '{"svix.message_id":"msg_preserve"}', annotations = '{"preserve":9007199254740993}'
+					WHERE event_id = $1`, event.ID)
+				require.NoError(t, err)
+
+				result := snapshot{id: event.ID, namespace: namespace}
+				err = env.sqlDB.QueryRowContext(t.Context(), snapshotSQL, event.ID).Scan(
+					&result.eventType, &result.ruleType, &result.eventXmin, &result.ruleXmin, &result.before)
+				require.NoError(t, err)
+
+				return result
+			}
+
+			// given: mixed spellings, multiple namespaces, and disabled/deleted Rules
+			snapshots := []snapshot{
+				seedPair(t, tc.legacy, false, false),
+				seedPair(t, tc.versioned, false, false),
+				seedPair(t, tc.legacy, true, false),
+				seedPair(t, tc.legacy, true, true),
+			}
+
+			for _, step := range []struct {
+				name, direction string
+				createAfterUp   bool
+			}{
+				{name: "upgrade", direction: "up"},
+				{name: "repeat upgrade with new records", direction: "up", createAfterUp: true},
+				{name: "rollback", direction: "down"},
+				{name: "repeat rollback", direction: "down"},
+				{name: "upgrade after rollback", direction: "up"},
+			} {
+				t.Run(step.name, func(t *testing.T) {
+					if step.createAfterUp {
+						snapshots = append(snapshots, seedPair(t, tc.versioned, false, false))
+					}
+
+					// when: applying both table updates through the embedded migration
+					_, err := env.sqlDB.ExecContext(t.Context(), migrations[step.direction])
+					require.NoError(t, err)
+
+					wantType := tc.versioned
+					if step.direction == "down" {
+						wantType = tc.legacy
+					}
+
+					// then: only the two type columns change, including for newly created records
+					for i := range snapshots {
+						before := &snapshots[i]
+						var eventType, ruleType, eventXmin, ruleXmin, after string
+						err := env.sqlDB.QueryRowContext(t.Context(), snapshotSQL, before.id).Scan(
+							&eventType, &ruleType, &eventXmin, &ruleXmin, &after)
+						require.NoError(t, err)
+
+						assert.Equal(t, wantType, eventType)
+						assert.Equal(t, wantType, ruleType)
+						assert.Equal(t, before.before, after)
+
+						if before.eventType == wantType {
+							assert.Equal(t, before.eventXmin, eventXmin)
+							assert.Equal(t, before.ruleXmin, ruleXmin)
+						} else {
+							assert.NotEqual(t, before.eventXmin, eventXmin)
+							assert.NotEqual(t, before.ruleXmin, ruleXmin)
+						}
+
+						before.eventType, before.ruleType = eventType, ruleType
+						before.eventXmin, before.ruleXmin = eventXmin, ruleXmin
+						if tc.legacy != "future.event" {
+							fetched, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{
+								Namespace: before.namespace, ID: before.id, Expand: &notification.EventExpand{DeliveryStatus: true},
+							})
+							require.NoError(t, err)
+
+							assert.Equal(t, notification.EventType(tc.legacy), fetched.Type)
+							assert.Equal(t, notification.EventType(tc.legacy), fetched.Rule.Type)
+							assert.Equal(t, notification.EventType(tc.legacy), fetched.Payload.Type)
+							assert.Len(t, fetched.Rule.Channels, 1)
+							assert.Len(t, fetched.DeliveryStatus, 1)
+						}
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestEventPayloadStorageCompatibility(t *testing.T) {
 	env := newEventTestEnv(t)
 	tests := []struct {
@@ -1538,10 +1711,10 @@ func TestListEvents_MixedTypeSpellingsAcrossPages(t *testing.T) {
 	namespace := ulid.Make().String()
 	channel := seedChannel(t, env, namespace)
 
-	// given: two public types with both legacy and versioned rows
+	// given: all four public types with both legacy and versioned rows
 	idsByType := make(map[string][]string)
 	var allIDs []string
-	for _, eventType := range []notification.EventType{notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated} {
+	for _, eventType := range []notification.EventType{notification.EventTypeBalanceThreshold, notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated} {
 		var ids []string
 		for _, legacy := range []bool{true, false} {
 			rule := seedRule(t, env, namespace, eventType, channel.ID)
@@ -1549,9 +1722,11 @@ func TestListEvents_MixedTypeSpellingsAcrossPages(t *testing.T) {
 				EventPayloadMeta: notification.EventPayloadMeta{Type: eventType, Version: notification.EventPayloadVersionCurrent},
 			}
 			switch eventType {
+			case notification.EventTypeBalanceThreshold:
+				payload.BalanceThreshold = &notification.BalanceThresholdPayload{}
 			case notification.EventTypeEntitlementReset:
 				payload.EntitlementReset = &notification.EntitlementResetPayload{}
-			case notification.EventTypeInvoiceCreated:
+			case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 				payload.Invoice = &notification.InvoicePayload{}
 			}
 
@@ -1575,6 +1750,10 @@ func TestListEvents_MixedTypeSpellingsAcrossPages(t *testing.T) {
 		allIDs = append(allIDs, ids...)
 	}
 
+	excludingInvoiceCreated := lo.Filter(allIDs, func(id string, _ int) bool {
+		return !slices.Contains(idsByType["invoice.created"], id)
+	})
+
 	tests := []struct {
 		name   string
 		filter *filter.FilterString
@@ -1582,36 +1761,58 @@ func TestListEvents_MixedTypeSpellingsAcrossPages(t *testing.T) {
 	}{
 		{name: "all", want: allIDs},
 		{name: "equal", filter: &filter.FilterString{Eq: new("invoice.created")}, want: idsByType["invoice.created"]},
-		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: idsByType["entitlements.reset"]},
-		{name: "in", filter: &filter.FilterString{In: &[]string{"invoice.created", "entitlements.reset"}}, want: allIDs},
-		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: idsByType["entitlements.reset"]},
+		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: excludingInvoiceCreated},
+		{name: "in", filter: &filter.FilterString{In: &[]string{"entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated"}}, want: allIDs},
+		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: excludingInvoiceCreated},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
-				t.Run(string(order), func(t *testing.T) {
-					want := slices.Clone(tt.want)
-					if order == sortx.OrderDesc {
-						slices.Reverse(want)
-					}
+	for _, stage := range []struct {
+		name, direction string
+	}{
+		{name: "mixed spellings"},
+		{name: "after upgrade", direction: "up"},
+		{name: "after rollback", direction: "down"},
+		{name: "after re-upgrade", direction: "up"},
+	} {
+		t.Run(stage.name, func(t *testing.T) {
+			if stage.direction != "" {
+				migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+					migrate.OMMigrationsConfig.FSPath,
+					"20261119133042_notification_event_type_normalization."+stage.direction+".sql",
+				))
+				require.NoError(t, err)
 
-					// when: each page contains one row ordered by public type and ID
-					var got []string
-					for page := 1; page <= len(want)+1; page++ {
-						listed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
-							Namespaces: []string{namespace},
-							Type:       tt.filter, OrderBy: notification.OrderByType, Order: order,
-							Page: pagination.NewPage(page, 1),
+				_, err = env.sqlDB.ExecContext(t.Context(), string(migration))
+				require.NoError(t, err)
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
+						t.Run(string(order), func(t *testing.T) {
+							want := slices.Clone(tt.want)
+							if order == sortx.OrderDesc {
+								slices.Reverse(want)
+							}
+
+							// when: each page contains one row ordered by public type and ID
+							var got []string
+							for page := 1; page <= len(want)+1; page++ {
+								listed, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+									Namespaces: []string{namespace},
+									Type:       tt.filter, OrderBy: notification.OrderByType, Order: order,
+									Page: pagination.NewPage(page, 1),
+								})
+								require.NoError(t, err)
+
+								for _, item := range listed.Items {
+									got = append(got, item.ID)
+								}
+							}
+
+							// then: pagination includes each matching row once, regardless of storage spelling
+							assert.Equal(t, want, got)
 						})
-						require.NoError(t, err)
-
-						for _, item := range listed.Items {
-							got = append(got, item.ID)
-						}
 					}
-
-					// then: pagination includes each matching row once, regardless of storage spelling
-					assert.Equal(t, want, got)
 				})
 			}
 		})
