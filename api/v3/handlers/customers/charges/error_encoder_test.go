@@ -47,6 +47,7 @@ func TestListCustomerChargesBillingErrorEncoder(t *testing.T) {
 			handler := New(
 				func(context.Context) (string, error) { return "namespace", nil },
 				listCustomerChargesErrorService{err: tt.err},
+				nil,
 				false,
 			)
 			request := httptest.NewRequest(http.MethodGet, "/api/v3/customers/customer-id/charges", nil)

@@ -14,6 +14,7 @@ func TestCreateCustomerChargeRejectsUnitConfigWhenDisabled(t *testing.T) {
 	handler := New(
 		func(context.Context) (string, error) { return "namespace", nil },
 		nil,
+		nil,
 		false,
 	)
 

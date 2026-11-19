@@ -6,18 +6,29 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/api/v3/request"
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
-	CreateCustomerChargesRequest  = billingcharges.CreateCustomerChargeInput
+	// CreateCustomerChargesRequest keeps the tax config in its raw legacy shape: resolving
+	// a deprecated stripe code may create a Tax Code, which has to happen in the same
+	// transaction as the create.
+	CreateCustomerChargesRequest struct {
+		Input     billingcharges.CreateCustomerChargeInput
+		TaxConfig *productcatalog.TaxConfig
+	}
 	CreateCustomerChargesResponse = apiv3models.BillingCharge
 	CreateCustomerChargesParams   struct {
 		CustomerID apiv3models.ULID
@@ -49,7 +60,10 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
-			var input billingcharges.CreateCustomerChargeInput
+			var (
+				input     billingcharges.CreateCustomerChargeInput
+				taxConfig *productcatalog.TaxConfig
+			)
 			switch discriminator {
 			case string(apiv3models.BillingChargeFlatFeeTypeFlatFee):
 				flatFee, err := body.AsCreateChargeFlatFeeRequest()
@@ -63,7 +77,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 					})
 				}
 
-				input, err = fromAPICreateChargeFlatFeeRequest(ns, param.CustomerID, flatFee)
+				input, taxConfig, err = fromAPICreateChargeFlatFeeRequest(ns, param.CustomerID, flatFee)
 				if err != nil {
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
@@ -97,7 +111,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 					})
 				}
 
-				input, err = fromAPICreateChargeUsageBasedRequest(ns, param.CustomerID, usageBasedFee)
+				input, taxConfig, err = fromAPICreateChargeUsageBasedRequest(ns, param.CustomerID, usageBasedFee)
 				if err != nil {
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 						{
@@ -129,17 +143,50 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
-			return input, nil
+			return CreateCustomerChargesRequest{
+				Input:     input,
+				TaxConfig: taxConfig,
+			}, nil
 		},
 		func(ctx context.Context, request CreateCustomerChargesRequest) (CreateCustomerChargesResponse, error) {
-			charge, err := h.service.CreateCustomerCharge(ctx, request)
+			var resp CreateCustomerChargesResponse
+
+			// The stripe.code each request carries is resolved to a Tax Code (creating missing
+			// ones) in the same transaction the charge is created in, so a failed request
+			// leaves no orphan Tax Code behind.
+			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+				input := request.Input
+
+				resolved, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, input.Namespace, productcataloghttp.FromTaxConfig(lo.FromPtr(request.TaxConfig)))
+				if err != nil {
+					var resolveErr *productcataloghttp.TaxCodeResolutionError
+					if errors.As(err, &resolveErr) {
+						return err
+					}
+
+					return billing.ValidationError{Err: err}
+				}
+
+				if resolved != nil {
+					input.TaxConfig = *resolved
+				}
+
+				charge, err := h.service.CreateCustomerCharge(ctx, input)
+				if err != nil {
+					return err
+				}
+
+				// No expands on the create path: every expandable relation
+				// serializes as a reference.
+				resp, err = convertChargeToAPI(charge, meta.ExpandNone)
+
+				return err
+			})
 			if err != nil {
 				return CreateCustomerChargesResponse{}, err
 			}
 
-			// No expands on the create path: every expandable relation
-			// serializes as a reference.
-			return convertChargeToAPI(charge, meta.ExpandNone)
+			return resp, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerChargesResponse](http.StatusCreated),
 		httptransport.AppendOptions(
