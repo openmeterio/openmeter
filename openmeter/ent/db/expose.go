@@ -253,6 +253,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		RTEDemand: NewRTEDemandClient(config),
 
+		RTEDemandLock: NewRTEDemandLockClient(config),
+
 		RTEInvalidation: NewRTEInvalidationClient(config),
 
 		RTEMeteredEntitlementBalance: NewRTEMeteredEntitlementBalanceClient(config),

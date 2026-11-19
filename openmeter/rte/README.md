@@ -58,8 +58,8 @@ that engine's behavior for usage earlier than an existing snapshot.
    has no further effect. A distinct event for earlier usage can still advance that version.
 3. **Calculate once for pending changes.** With background refresh enabled, a worker claims the key.
    Otherwise, recalculation waits for the next `EnsureFresh`. One calculation can cover several
-   input changes.
-   An invalidation racing with a claimed key waits for the lock and can schedule another pass.
+   input changes. Changes that arrive during calculation can commit immediately. The worker
+   completes the version it claimed and leaves newer changes for one subsequent pass.
 4. **Store and announce the accepted result.** A successful demand transaction commits state,
    its update outbox entry and demand completion together. Delivery to Kafka happens later.
    A failed demand calculation leaves the previous value available. Background refreshes retry

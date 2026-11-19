@@ -3,8 +3,8 @@
 The worker uses one Kafka consumer group across distinct ingest and system-event topics. It runs
 message handling alongside a bounded pool that drains the durable PostgreSQL demand queue.
 `rte.calculationConcurrency` sets background slots per process (default 4). Each slot claims one
-ready key with `FOR UPDATE SKIP LOCKED` and keeps the claim through calculation and completion.
-Slots and replicas skip keys already held by another calculation.
+ready key with `FOR UPDATE OF calc_lock SKIP LOCKED` and holds its calculation lock through
+completion. Other slots can process different keys, and events can advance this key’s dirty version.
 
 After processing a key, including recording its retry, that slot immediately checks for more work.
 An empty or failed claim waits `rte.pollInterval` before another attempt. Each idle slot polls

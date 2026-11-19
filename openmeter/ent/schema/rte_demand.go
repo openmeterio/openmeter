@@ -5,8 +5,10 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -41,6 +43,23 @@ func (RTEDemand) Indexes() []ent.Index {
 		index.Fields("namespace", "kind", "owner_id").StorageKey("rte_demand_owner"),
 		index.Fields("next_attempt_at", "id").StorageKey("rte_demand_work").Annotations(
 			entsql.IndexWhere("deleted_at IS NULL AND push_enabled AND (dirty_version > completed_version OR next_refresh_at IS NOT NULL)")),
+	}
+}
+
+// RTEDemandLock gives each calculation its own PostgreSQL row lock. The row
+// shares the demand's primary key and lives until that demand is deleted.
+type RTEDemandLock struct{ ent.Schema }
+
+func (RTEDemandLock) Fields() []ent.Field {
+	return []ent.Field{
+		field.Int("id").Immutable().Annotations(entsql.Annotation{Incremental: lo.ToPtr(false)}),
+	}
+}
+
+func (RTEDemandLock) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("demand", RTEDemand.Type).StorageKey(edge.Column("id")).
+			Unique().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
 

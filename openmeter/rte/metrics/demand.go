@@ -39,6 +39,8 @@ type Demand struct {
 	operations     metric.Int64Counter
 	ensureDuration metric.Float64Histogram
 	invalidated    metric.Int64Counter
+	queueWait      metric.Float64Histogram
+	processing     metric.Float64Histogram
 }
 
 func NewDemand(meter metric.Meter) (*Demand, error) {
@@ -58,7 +60,26 @@ func NewDemand(meter metric.Meter) (*Demand, error) {
 		return nil, err
 	}
 
-	return &Demand{operations: operations, invalidated: invalidated, ensureDuration: ensureDuration}, nil
+	queueWait, err := meter.Float64Histogram("rte.demand.queue_wait.duration", metric.WithUnit("s"),
+		metric.WithExplicitBucketBoundaries(.001, .01, .1, .5, 1, 2.5, 5, 10, 30, 60, 300, 1800, 3600),
+		metric.WithDescription("Time eligible background work waited before the worker claimed it"))
+	if err != nil {
+		return nil, err
+	}
+
+	processing, err := meter.Float64Histogram("rte.demand.processing.duration", durationBuckets(), metric.WithUnit("s"),
+		metric.WithDescription("Background processing from claim through transaction completion"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Demand{
+		operations:     operations,
+		invalidated:    invalidated,
+		ensureDuration: ensureDuration,
+		queueWait:      queueWait,
+		processing:     processing,
+	}, nil
 }
 
 func (m *Demand) Operation(ctx context.Context, operation DemandOperation, outcome DemandOutcome) {
@@ -76,4 +97,11 @@ func (m *Demand) Invalidated(ctx context.Context, matched int) {
 	if matched > 0 {
 		m.invalidated.Add(ctx, int64(matched))
 	}
+}
+
+// BackgroundAttempt records a finished claim, including a failed calculation deferred for retry.
+func (m *Demand) BackgroundAttempt(ctx context.Context, timing rte.DemandAttemptTiming, outcome DemandOutcome) {
+	labels := metric.WithAttributes(attribute.String("kind", string(timing.Kind)), attribute.String("outcome", string(outcome)))
+	m.queueWait.Record(ctx, timing.QueueWait.Seconds(), labels)
+	m.processing.Record(ctx, time.Since(timing.StartedAt).Seconds(), labels)
 }
