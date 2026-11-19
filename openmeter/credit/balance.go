@@ -65,7 +65,7 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	}
 
 	// get all relevant grants
-	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, period.From, period.To)
+	grants, err := m.listActiveGrantsBetween(ctx, ownerID, period.From, period.To)
 	if err != nil {
 		return def, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
 	}
@@ -178,7 +178,7 @@ func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.Name
 	}
 
 	// get all relevant grants
-	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, res.Snapshot.At, period.To)
+	grants, err := m.listActiveGrantsBetween(ctx, ownerID, res.Snapshot.At, period.To)
 	if err != nil {
 		return def, err
 	}
@@ -278,7 +278,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, ownerID models.Names
 	resetBehavior := owner.ResetBehavior
 	resetBehavior.PreserveOverage = params.PreserveOverage
 
-	grants, err := m.GrantRepo.ListActiveGrantsBetween(ctx, ownerID, bal.At, at)
+	grants, err := m.listActiveGrantsBetween(ctx, ownerID, bal.At, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, ownerID.ID, err)
 	}
