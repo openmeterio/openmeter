@@ -94,6 +94,14 @@ func (s *SubscriptionsToReconcileSuite) recordSettled(subscriptionID models.Name
 	}))
 }
 
+// subscriptionIDs drops the customer from the listed candidates, so they can be
+// compared against the subscriptions a test created.
+func subscriptionIDs(items []subscriptionsync.SubscriptionToReconcile) []models.NamespacedID {
+	return lo.Map(items, func(item subscriptionsync.SubscriptionToReconcile, _ int) models.NamespacedID {
+		return item.NamespacedID
+	})
+}
+
 func (s *SubscriptionsToReconcileSuite) listInput() subscriptionsync.ListSubscriptionsToReconcileInput {
 	return subscriptionsync.ListSubscriptionsToReconcileInput{
 		Namespaces: []string{s.namespace},
@@ -199,7 +207,7 @@ func (s *SubscriptionsToReconcileSuite) TestSyncStateDecidesWhatIsDue() {
 
 	// then: exactly the due subscriptions are selected
 	s.Require().NoError(err)
-	s.ElementsMatch(wantDue, result.Items)
+	s.ElementsMatch(wantDue, subscriptionIDs(result.Items))
 	s.Nil(result.NextCursor, "a partial page has no continuation")
 }
 
@@ -232,7 +240,7 @@ func (s *SubscriptionsToReconcileSuite) TestLookbackAndDeletion() {
 		startedInLookback.NamespacedID,
 		endedInLookback.NamespacedID,
 		endsLater.NamespacedID,
-	}, result.Items)
+	}, subscriptionIDs(result.Items))
 
 	// and: a wider lookback reaches the subscription that ended a month ago
 	input := s.listInput()
@@ -260,7 +268,7 @@ func (s *SubscriptionsToReconcileSuite) TestForceSync() {
 
 	// then: sync state is ignored, but deletion and the lookback still apply
 	s.Require().NoError(err)
-	s.ElementsMatch([]models.NamespacedID{settled.NamespacedID, due.NamespacedID}, result.Items)
+	s.ElementsMatch([]models.NamespacedID{settled.NamespacedID, due.NamespacedID}, subscriptionIDs(result.Items))
 }
 
 func (s *SubscriptionsToReconcileSuite) TestStateFromAnotherNamespaceCountsAsMissing() {
@@ -283,7 +291,7 @@ func (s *SubscriptionsToReconcileSuite) TestStateFromAnotherNamespaceCountsAsMis
 
 	// then: the foreign row cannot settle the subscription, matching GetSyncStatesV2
 	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{sub.NamespacedID}, result.Items)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: sub.NamespacedID, CustomerID: s.customerID.ID}}, result.Items)
 	states, err := s.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{sub.NamespacedID})
 	s.Require().NoError(err)
 	s.Empty(states)
@@ -345,7 +353,7 @@ func (s *SubscriptionsToReconcileSuite) TestNamespaceAndCustomerFilters() {
 
 			// then: every returned subscription belongs to the requested scope
 			s.Require().NoError(err)
-			s.ElementsMatch(tc.want, result.Items)
+			s.ElementsMatch(tc.want, subscriptionIDs(result.Items))
 		})
 	}
 }
@@ -374,8 +382,8 @@ func (s *SubscriptionsToReconcileSuite) TestPaginationWhileSyncsComplete() {
 		page, err := s.adapter.ListSubscriptionsToReconcile(ctx, input)
 		s.Require().NoError(err)
 		s.Require().Len(page.Items, 1)
-		visited = append(visited, page.Items[0])
-		s.recordSettled(page.Items[0])
+		visited = append(visited, page.Items[0].NamespacedID)
+		s.recordSettled(page.Items[0].NamespacedID)
 		s.Require().NotNil(page.NextCursor)
 		input.Cursor = page.NextCursor
 	}
@@ -414,7 +422,7 @@ func TestSubscriptionsToReconcileQuery(t *testing.T) {
 				Lookback: reconciliationLookback,
 				Limit:    100,
 			},
-			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."created_at" FROM "subscriptions" WHERE (("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND NOT EXISTS (SELECT "subscription_sync_states_v2"."id" FROM "subscription_sync_states_v2" WHERE "subscription_sync_states_v2"."subscription_id" = "subscriptions"."id" AND "subscription_sync_states_v2"."namespace" = "subscriptions"."namespace" AND "subscription_sync_states_v2"."last_success_state" <> $3 AND "subscription_sync_states_v2"."current_subs_revision" = "subscription_sync_states_v2"."last_synced_subs_revision" AND (NOT ("subscription_sync_states_v2"."last_success_state" = $4 AND "subscription_sync_states_v2"."next_reconciliation_at" <= $5))) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 100`,
+			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."customer_id", "subscriptions"."created_at" FROM "subscriptions" WHERE (("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND NOT EXISTS (SELECT "subscription_sync_states_v2"."id" FROM "subscription_sync_states_v2" WHERE "subscription_sync_states_v2"."subscription_id" = "subscriptions"."id" AND "subscription_sync_states_v2"."namespace" = "subscriptions"."namespace" AND "subscription_sync_states_v2"."last_success_state" <> $3 AND "subscription_sync_states_v2"."current_subs_revision" = "subscription_sync_states_v2"."last_synced_subs_revision" AND (NOT ("subscription_sync_states_v2"."last_success_state" = $4 AND "subscription_sync_states_v2"."next_reconciliation_at" <= $5))) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 100`,
 			expectedArgs:  []any{asOf, lookbackStart, subscriptionsync.SyncStateV2StateNew, subscriptionsync.SyncStateV2StateActive, asOf},
 		},
 		{
@@ -427,7 +435,7 @@ func TestSubscriptionsToReconcileQuery(t *testing.T) {
 				Cursor:     &cursor,
 				Limit:      10,
 			},
-			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."created_at" FROM "subscriptions" WHERE ((((("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND "subscriptions"."namespace" IN ($3, $4)) AND "subscriptions"."customer_id" IN ($5)) AND NOT EXISTS (SELECT "subscription_sync_states_v2"."id" FROM "subscription_sync_states_v2" WHERE "subscription_sync_states_v2"."subscription_id" = "subscriptions"."id" AND "subscription_sync_states_v2"."namespace" = "subscriptions"."namespace" AND "subscription_sync_states_v2"."last_success_state" <> $6 AND "subscription_sync_states_v2"."current_subs_revision" = "subscription_sync_states_v2"."last_synced_subs_revision" AND (NOT ("subscription_sync_states_v2"."last_success_state" = $7 AND "subscription_sync_states_v2"."next_reconciliation_at" <= $8)))) AND ("subscriptions"."created_at", "subscriptions"."id") > ($9, $10) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 10`,
+			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."customer_id", "subscriptions"."created_at" FROM "subscriptions" WHERE ((((("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND "subscriptions"."namespace" IN ($3, $4)) AND "subscriptions"."customer_id" IN ($5)) AND NOT EXISTS (SELECT "subscription_sync_states_v2"."id" FROM "subscription_sync_states_v2" WHERE "subscription_sync_states_v2"."subscription_id" = "subscriptions"."id" AND "subscription_sync_states_v2"."namespace" = "subscriptions"."namespace" AND "subscription_sync_states_v2"."last_success_state" <> $6 AND "subscription_sync_states_v2"."current_subs_revision" = "subscription_sync_states_v2"."last_synced_subs_revision" AND (NOT ("subscription_sync_states_v2"."last_success_state" = $7 AND "subscription_sync_states_v2"."next_reconciliation_at" <= $8)))) AND ("subscriptions"."created_at", "subscriptions"."id") > ($9, $10) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 10`,
 			expectedArgs:  []any{asOf, lookbackStart, "namespace-1", "namespace-2", "customer-1", subscriptionsync.SyncStateV2StateNew, subscriptionsync.SyncStateV2StateActive, asOf, cursor.Time, cursor.ID},
 		},
 		{
@@ -439,7 +447,7 @@ func TestSubscriptionsToReconcileQuery(t *testing.T) {
 				ForceSync:  true,
 				Limit:      100,
 			},
-			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."created_at" FROM "subscriptions" WHERE (("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND "subscriptions"."namespace" IN ($3) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 100`,
+			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."customer_id", "subscriptions"."created_at" FROM "subscriptions" WHERE (("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND "subscriptions"."namespace" IN ($3) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 100`,
 			expectedArgs:  []any{asOf, lookbackStart, "namespace-1"},
 		},
 	}

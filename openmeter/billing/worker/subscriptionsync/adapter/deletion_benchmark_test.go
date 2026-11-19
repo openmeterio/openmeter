@@ -68,8 +68,10 @@ FROM generate_series(1, 200000) AS i`)
 			require.NoError(b, err)
 			_, err = db.ExecContext(ctx, `
 INSERT INTO subscription_sync_states_v2
-    (id, namespace, subscription_id, created_at, updated_at, last_success_at, last_success_state)
-SELECT id, namespace, id, '2026-01-01', '2026-01-01', '2026-01-01', 'subscription_deleted'
+    (id, namespace, subscription_id, created_at, updated_at, last_success_at, last_success_state,
+     last_synced_subs_revision, current_subs_revision)
+SELECT id, namespace, id, '2026-01-01', '2026-01-01', '2026-01-01', 'subscription_deleted',
+       lpad('1', 26, '0'), lpad('1', 26, '0')
 FROM (
     SELECT id, namespace, row_number() OVER (ORDER BY md5(id)) AS position
     FROM subscriptions WHERE deleted_at IS NOT NULL

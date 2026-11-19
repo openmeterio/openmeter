@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
-	"github.com/openmeterio/openmeter/pkg/models"
 	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -122,14 +121,14 @@ func (s *Service) GetSyncStatesV2(ctx context.Context, input subscriptionsync.Ge
 	})
 }
 
-func (s *Service) ListSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
-	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) (paginationv2.Result[models.NamespacedID], error) {
+func (s *Service) ListSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListSubscriptionsToReconcileInput) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
+	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 		return s.subscriptionSyncAdapter.ListSubscriptionsToReconcile(ctx, input)
 	})
 }
 
-func (s *Service) ListDeletedSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
-	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) (paginationv2.Result[models.NamespacedID], error) {
+func (s *Service) ListDeletedSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
+	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 		return s.subscriptionSyncAdapter.ListDeletedSubscriptionsToReconcile(ctx, input)
 	})
 }

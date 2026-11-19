@@ -19,8 +19,8 @@ type subscriptionSyncSpy struct {
 	options subscriptionsync.SynchronizeSubscriptionOptions
 	synced  []models.NamespacedID
 	// candidates and deleted are what the two selection queries return.
-	candidates []models.NamespacedID
-	deleted    []models.NamespacedID
+	candidates []subscriptionsync.SubscriptionToReconcile
+	deleted    []subscriptionsync.SubscriptionToReconcile
 	listInputs []subscriptionsync.ListSubscriptionsToReconcileInput
 }
 
@@ -33,14 +33,14 @@ func (s *subscriptionSyncSpy) SyncByID(_ context.Context, id models.NamespacedID
 	return nil
 }
 
-func (s *subscriptionSyncSpy) ListSubscriptionsToReconcile(_ context.Context, input subscriptionsync.ListSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
+func (s *subscriptionSyncSpy) ListSubscriptionsToReconcile(_ context.Context, input subscriptionsync.ListSubscriptionsToReconcileInput) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 	s.listInputs = append(s.listInputs, input)
 
-	return paginationv2.Result[models.NamespacedID]{Items: s.candidates}, nil
+	return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{Items: s.candidates}, nil
 }
 
-func (s *subscriptionSyncSpy) ListDeletedSubscriptionsToReconcile(context.Context, subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
-	return paginationv2.Result[models.NamespacedID]{Items: s.deleted}, nil
+func (s *subscriptionSyncSpy) ListDeletedSubscriptionsToReconcile(context.Context, subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
+	return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{Items: s.deleted}, nil
 }
 
 func TestAllSyncsEverySelectedSubscription(t *testing.T) {
@@ -52,8 +52,8 @@ func TestAllSyncsEverySelectedSubscription(t *testing.T) {
 	dueID := models.NamespacedID{Namespace: "namespace", ID: "due"}
 	deletedID := models.NamespacedID{Namespace: "namespace", ID: "deleted"}
 	spy := &subscriptionSyncSpy{
-		candidates: []models.NamespacedID{dueID},
-		deleted:    []models.NamespacedID{deletedID},
+		candidates: []subscriptionsync.SubscriptionToReconcile{{NamespacedID: dueID, CustomerID: "customer"}},
+		deleted:    []subscriptionsync.SubscriptionToReconcile{{NamespacedID: deletedID, CustomerID: "customer"}},
 	}
 	r := Reconciler{subscriptionSync: spy, logger: slog.New(slog.DiscardHandler)}
 
@@ -71,28 +71,4 @@ func TestAllSyncsEverySelectedSubscription(t *testing.T) {
 	require.Equal(t, time.Hour, spy.listInputs[0].Lookback)
 	require.Equal(t, []models.NamespacedID{dueID, deletedID}, spy.synced)
 	require.Equal(t, subscriptionsync.SynchronizeSubscriptionOptions{}, spy.options)
-}
-
-func TestAllForceSyncAsksForEverySubscription(t *testing.T) {
-	now := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
-	clock.FreezeTime(now)
-	defer clock.UnFreeze()
-
-	// given: a subscription the selection returns
-	id := models.NamespacedID{Namespace: "namespace", ID: "not-due"}
-	spy := &subscriptionSyncSpy{candidates: []models.NamespacedID{id}}
-	r := Reconciler{subscriptionSync: spy, logger: slog.New(slog.DiscardHandler)}
-
-	// when: reconciliation is forced, including subscriptions past the age cutoff
-	err := r.All(t.Context(), ReconcilerAllInput{
-		ReconcilerListSubscriptionsInput: ReconcilerListSubscriptionsInput{Lookback: time.Hour, ForceSync: true},
-		ForceResyncOldSubscriptions:      true,
-	})
-
-	// then: selection is told to ignore sync state, and the sync bypasses the age cutoff
-	require.NoError(t, err)
-	require.Len(t, spy.listInputs, 1)
-	require.True(t, spy.listInputs[0].ForceSync)
-	require.Equal(t, []models.NamespacedID{id}, spy.synced)
-	require.True(t, spy.options.ForceResyncOldSubscriptions)
 }

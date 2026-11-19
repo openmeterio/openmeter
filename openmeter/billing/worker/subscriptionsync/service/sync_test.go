@@ -427,7 +427,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() 
 		Limit:      10,
 	})
 	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{subscriptionID}, candidates.Items)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, candidates.Items)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRecordsSuccess() {
@@ -482,7 +482,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupByPeriodicR
 	}
 	pending, err := periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 	// It has not started yet, so the lookback of the regular list does not cover
 	// it, and its billing deadline is still ahead. Only the cleanup query finds it.
 	state := s.getSyncStateV2(subscriptionID)
@@ -535,7 +535,7 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationFollowsSyncStat
 	forcedInput.ForceSync = true
 	pending, err = periodic.ListSubscriptions(ctx, forcedInput)
 	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 
 	// when: the subscription is canceled and the cancellation event is never handled
 	canceled, err := s.SubscriptionService.Cancel(ctx, subscriptionID, subscription.Timing{
@@ -547,7 +547,7 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationFollowsSyncStat
 	// then: the changed revision makes it due before its deadline
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 
 	// when: periodic reconciliation repairs the missed cancellation
 	s.Require().NoError(periodic.All(ctx, allInput))
@@ -570,7 +570,7 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationFollowsSyncStat
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
 	s.Require().Len(pending, 1)
-	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 
 	// when: the final sync runs
 	s.Require().NoError(periodic.All(ctx, allInput))
@@ -613,7 +613,7 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationPicksUpSubscrip
 	// then: it is due without any recorded state
 	pending, err := periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 
 	// when: periodic reconciliation syncs it once
 	s.Require().NoError(periodic.All(ctx, allInput))
@@ -642,7 +642,7 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationPicksUpSubscrip
 	defer clock.UnFreeze()
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
-	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWorkerClock() {
@@ -677,7 +677,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWork
 	s.Require().NoError(err)
 
 	// then: only the cleanup query selects it, although the regular list's lookback covers it too
-	s.Equal([]models.NamespacedID{subscriptionID}, pending)
+	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 	stateBefore := s.getSyncStateV2(subscriptionID)
 	s.Equal(subscriptionsync.SyncStateV2StateActive, stateBefore.LastSuccessState)
 	s.Equal(lo.ToPtr(createdAt), stateBefore.LastSuccessAt)

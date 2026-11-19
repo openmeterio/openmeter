@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/models"
 	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
@@ -79,7 +78,7 @@ func (i ReconcilerListSubscriptionsInput) Validate() error {
 // sync: non-deleted ones active within the lookback whose sync state is due, and
 // deleted ones whose cleanup has not been recorded. The two candidate queries
 // decide what is due; every subscription returned here gets synced.
-func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSubscriptionsInput) ([]models.NamespacedID, error) {
+func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSubscriptionsInput) ([]subscriptionsync.SubscriptionToReconcile, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -88,7 +87,7 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 	// cannot move a subscription across the cursor.
 	now := clock.Now()
 
-	due, err := paginationv2.CollectAll(ctx, paginationv2.NewPaginator(func(ctx context.Context, cursor *paginationv2.Cursor) (paginationv2.Result[models.NamespacedID], error) {
+	due, err := paginationv2.CollectAll(ctx, paginationv2.NewPaginator(func(ctx context.Context, cursor *paginationv2.Cursor) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 		return r.subscriptionSync.ListSubscriptionsToReconcile(ctx, subscriptionsync.ListSubscriptionsToReconcileInput{
 			Namespaces: in.Namespaces,
 			Customers:  in.Customers,
@@ -103,7 +102,7 @@ func (r *Reconciler) ListSubscriptions(ctx context.Context, in ReconcilerListSub
 		return nil, fmt.Errorf("listing subscriptions awaiting reconciliation: %w", err)
 	}
 
-	deleted, err := paginationv2.CollectAll(ctx, paginationv2.NewPaginator(func(ctx context.Context, cursor *paginationv2.Cursor) (paginationv2.Result[models.NamespacedID], error) {
+	deleted, err := paginationv2.CollectAll(ctx, paginationv2.NewPaginator(func(ctx context.Context, cursor *paginationv2.Cursor) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 		return r.subscriptionSync.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 			Namespaces: in.Namespaces,
 			Customers:  in.Customers,
@@ -124,7 +123,7 @@ type ReconcilerAllInput struct {
 }
 
 func (r *Reconciler) All(ctx context.Context, in ReconcilerAllInput) error {
-	subscriptionIDs, err := r.ListSubscriptions(ctx, in.ReconcilerListSubscriptionsInput)
+	subscriptions, err := r.ListSubscriptions(ctx, in.ReconcilerListSubscriptionsInput)
 	if err != nil {
 		return fmt.Errorf("failed to list subscriptions: %w", err)
 	}
@@ -137,13 +136,13 @@ func (r *Reconciler) All(ctx context.Context, in ReconcilerAllInput) error {
 	// Logged before syncing, so a large backlog (for example the first run after
 	// switching to v2 scheduling) can be watched draining from run to run.
 	r.logger.InfoContext(ctx, "selected subscriptions for periodic reconciliation",
-		slog.Int("total", len(subscriptionIDs)),
+		slog.Int("total", len(subscriptions)),
 		slog.Bool("force_sync", in.ForceSync),
 	)
 
 	var outErr error
-	for _, subscriptionID := range subscriptionIDs {
-		if err := r.subscriptionSync.SyncByID(ctx, subscriptionID, clock.Now(), syncOptions...); err != nil {
+	for _, sub := range subscriptions {
+		if err := r.subscriptionSync.SyncByID(ctx, sub.NamespacedID, clock.Now(), syncOptions...); err != nil {
 			r.logger.ErrorContext(ctx, "failed to reconcile subscription", "error", err)
 
 			outErr = errors.Join(outErr, fmt.Errorf("failed to reconcile subscription: %w", err))

@@ -239,22 +239,24 @@ The periodic reconciler repairs what event handling missed and provisions the
 next billing period on time. Each run selects candidates from two queries and
 syncs them with the current time as `asOf`:
 
-| Subscription | Sync state | Decision | Reason |
-|---|---|---|---|
-| deleted | no row, or state is not `subscription_deleted` | sync | `deletion_cleanup` |
-| deleted | `subscription_deleted` | skip | |
-| not deleted | no row | sync | `missing_state` |
-| not deleted | `new` | sync | `no_outcome` |
-| not deleted | any other state, revisions differ | sync | `revision_mismatch` |
-| not deleted | `active`, `next_reconciliation_at` ≤ now | sync | `deadline` |
-| not deleted | anything else | skip | |
+| Subscription | Sync state | Decision |
+|---|---|---|
+| deleted | no row, or state is not `subscription_deleted` | sync |
+| deleted | `subscription_deleted` | skip |
+| not deleted | no row | sync |
+| not deleted | `new` | sync |
+| not deleted | any other state, revisions differ | sync |
+| not deleted | `active`, `next_reconciliation_at` ≤ now | sync |
+| not deleted | anything else | skip |
 
-`SyncStateV2.ReconciliationReason` is this rule in Go;
-`ListSubscriptionsToReconcile` applies the non-deleted rows in SQL, so a run reads
-only the subscriptions it will sync. Keep the two in step.
-`SubscriptionWithSyncState.ShouldReconcile(now)` applies the rule again after the
-state is loaded, which catches a sync that completed between candidate selection
-and state loading. Each run logs how many subscriptions it selected per reason.
+The two candidate queries are the only place this rule lives:
+`ListDeletedSubscriptionsToReconcile` applies the deleted rows and
+`ListSubscriptionsToReconcile` the others. The reconciler syncs everything they
+return without checking the sync state again, so a subscription that an event
+settles after selection is synced once more and converges. Each run logs how
+many subscriptions it selected. The queries return the subscription and customer
+IDs: a sync needs only the subscription, and the customer is there for workers
+that publish subscription sync events, which are keyed by customer.
 
 The non-deleted query requires `DeletedAt` to be nil and the subscription to be
 active at some point within the lookback before now. `ended`, `no_billables`,
@@ -286,8 +288,8 @@ subscriptions older than the 30-day cutoff. The `--l` lookback still limits
 selection and defaults to 30 days; resyncing older history also requires a wider
 lookback. Forced reconciliation still excludes deleted subscriptions with a
 successful cleanup result. To put one back in the periodic cleanup queue, delete
-its `subscription_sync_states_v2` entry. `list` prints what a run would sync and
-why; `list --all` prints what a forced run would sync.
+its `subscription_sync_states_v2` entry. `list` prints what a run would sync;
+`list --f` prints what a forced run would sync.
 
 ## Race between billing collection and subscription deletion cleanup
 

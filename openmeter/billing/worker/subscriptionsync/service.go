@@ -11,8 +11,8 @@ import (
 )
 
 type Service interface {
-	ListSubscriptionsToReconcile(context.Context, ListSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error)
-	ListDeletedSubscriptionsToReconcile(context.Context, ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error)
+	ListSubscriptionsToReconcile(context.Context, ListSubscriptionsToReconcileInput) (paginationv2.Result[SubscriptionToReconcile], error)
+	ListDeletedSubscriptionsToReconcile(context.Context, ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[SubscriptionToReconcile], error)
 
 	SyncService
 	SyncStateService
@@ -24,6 +24,13 @@ type SyncService interface {
 
 type SyncStateService interface {
 	GetSyncStatesV2(ctx context.Context, input GetSyncStatesV2Input) ([]SyncStateV2Managed, error)
+}
+
+// SubscriptionToReconcile identifies a subscription that needs a sync. The
+// customer comes along because subscription sync events are keyed by customer.
+type SubscriptionToReconcile struct {
+	models.NamespacedID
+	CustomerID string
 }
 
 // ListSubscriptionsToReconcileInput selects non-deleted subscriptions that were

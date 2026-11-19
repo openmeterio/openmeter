@@ -12,37 +12,36 @@ import (
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
-	"github.com/openmeterio/openmeter/pkg/models"
 	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
 
-func (a *adapter) ListSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListSubscriptionsToReconcileInput) (paginationv2.Result[models.NamespacedID], error) {
+func (a *adapter) ListSubscriptionsToReconcile(ctx context.Context, input subscriptionsync.ListSubscriptionsToReconcileInput) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 	if err := input.Validate(); err != nil {
-		return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("validating subscription list: %w", err)
+		return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("validating subscription list: %w", err)
 	}
 
-	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (paginationv2.Result[models.NamespacedID], error) {
+	return entutils.TransactingRepo(ctx, a, func(ctx context.Context, tx *adapter) (paginationv2.Result[subscriptionsync.SubscriptionToReconcile], error) {
 		query, args := SubscriptionsToReconcileQuery(tx.db.GetConfig().Driver.Dialect(), input)
 		rows, err := tx.db.QueryContext(ctx, query, args...)
 		if err != nil {
-			return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("listing subscriptions awaiting reconciliation: %w", err)
+			return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("listing subscriptions awaiting reconciliation: %w", err)
 		}
 
 		defer func() { _ = rows.Close() }()
 
-		result := paginationv2.Result[models.NamespacedID]{Items: []models.NamespacedID{}}
+		result := paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{Items: []subscriptionsync.SubscriptionToReconcile{}}
 		var lastCreatedAt time.Time
 		for rows.Next() {
-			var id models.NamespacedID
-			if err := rows.Scan(&id.ID, &id.Namespace, &lastCreatedAt); err != nil {
-				return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("scanning subscription: %w", err)
+			var item subscriptionsync.SubscriptionToReconcile
+			if err := rows.Scan(&item.ID, &item.Namespace, &item.CustomerID, &lastCreatedAt); err != nil {
+				return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("scanning subscription: %w", err)
 			}
 
-			result.Items = append(result.Items, id)
+			result.Items = append(result.Items, item)
 		}
 
 		if err := rows.Err(); err != nil {
-			return paginationv2.Result[models.NamespacedID]{}, fmt.Errorf("iterating subscriptions: %w", err)
+			return paginationv2.Result[subscriptionsync.SubscriptionToReconcile]{}, fmt.Errorf("iterating subscriptions: %w", err)
 		}
 
 		if len(result.Items) == input.Limit {
@@ -71,6 +70,7 @@ func SubscriptionsToReconcileQuery(dialect string, input subscriptionsync.ListSu
 	query := sql.Dialect(dialect).Select(
 		sub.C(dbsubscription.FieldID),
 		sub.C(dbsubscription.FieldNamespace),
+		sub.C(dbsubscription.FieldCustomerID),
 		sub.C(dbsubscription.FieldCreatedAt),
 	).From(sub)
 
