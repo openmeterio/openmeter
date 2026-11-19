@@ -67,7 +67,7 @@ The builder applies it in two steps.
 
 First, the horizon is the later of `asOf` and the billing start. The first
 billed billing period and the one after it therefore exist from the first sync,
-and the generation limit and both sync deadlines follow from that horizon:
+and the generation limit and the next sync time follow from that horizon:
 nothing is scheduled before billing starts. The horizon is not moved when the
 subscription ends at or before the billing start, because then nothing is ever
 billed.

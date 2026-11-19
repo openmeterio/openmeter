@@ -436,12 +436,6 @@ func (s *SyncStateTestSuite) TestBillingStartProgression() {
 		// And no sync is scheduled before billing starts.
 		syncAt := s.requireActiveDeadline(view.Subscription.NamespacedID, march)
 
-		legacyStates, err := s.Service.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{view.Subscription.NamespacedID})
-		s.Require().NoError(err)
-		s.Require().Len(legacyStates, 1)
-		s.True(legacyStates[0].HasBillables)
-		s.Equal(&march.From, legacyStates[0].NextSyncAfter)
-
 		// When synced at that deadline.
 		clock.FreezeTime(syncAt)
 		defer clock.UnFreeze()
