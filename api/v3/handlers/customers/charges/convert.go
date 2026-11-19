@@ -1159,6 +1159,13 @@ func fromAPIListChargesParamsFilter(ctx context.Context, f *apiv3models.ListChar
 
 	req.CustomerID = customerID
 
+	subscriptionID, err := filters.FromAPIFilterULID(f.SubscriptionId)
+	if err != nil {
+		return newInvalidQueryParamError(ctx, "filter[subscription_id]", err)
+	}
+
+	req.SubscriptionID = subscriptionID
+
 	status, err := filters.FromAPIFilterStringExact(f.Status)
 	if err != nil {
 		return newInvalidQueryParamError(ctx, "filter[status]", err)

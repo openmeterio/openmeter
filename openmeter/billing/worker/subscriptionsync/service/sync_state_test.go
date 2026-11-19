@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -236,8 +237,8 @@ func (s *SyncStateTestSuite) requireFees(view subscription.SubscriptionView, exp
 	actual := make(map[string]timeutil.ClosedPeriod)
 	if s.Service == s.ChargeSyncService {
 		result, err := s.Charges.ListCharges(s.T().Context(), charges.ListChargesInput{
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{view.Subscription.ID},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
 		})
 		s.Require().NoError(err)
 		s.Require().Len(result.Items, len(expected))
@@ -368,8 +369,8 @@ func (s *SyncStateTestSuite) requireMonthlyUsage(view subscription.SubscriptionV
 	actual := make(map[string]timeutil.ClosedPeriod)
 	if s.Service == s.ChargeSyncService {
 		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{view.Subscription.ID},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
 		})
 		s.Require().NoError(err)
 		for _, item := range result.Items {
@@ -513,8 +514,8 @@ func (s *SyncStateTestSuite) TestNoBillablesHasNoReconciliationDeadline() {
 	// Then neither legacy billing nor charge-based billing has artifacts to collect.
 	s.expectNoGatheringInvoice(s.T().Context(), s.Namespace, s.Customer.ID)
 	result, err := s.Charges.ListCharges(s.T().Context(), charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{view.Subscription.ID},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
 	})
 	s.Require().NoError(err)
 	s.Empty(result.Items)

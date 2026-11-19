@@ -102,6 +102,16 @@ func TestFromAPIListChargesParamsFilter(t *testing.T) {
 		require.Equal(t, customerID, lo.FromPtr(req.CustomerID.Ne))
 	})
 
+	t.Run("subscription id maps to the subscription filter", func(t *testing.T) {
+		var req billingcharges.ListCustomerChargesInput
+		subscriptionIDs := []string{"01ARZ3NDEKTSV4RRFFQ69G5FAV", "01ARZ3NDEKTSV4RRFFQ69G5FAW"}
+		require.NoError(t, fromAPIListChargesParamsFilter(ctx, &apiv3models.ListChargesParamsFilter{
+			SubscriptionId: &apiv3models.ULIDFieldFilter{Oeq: subscriptionIDs},
+		}, &req))
+		require.NotNil(t, req.SubscriptionID)
+		require.Equal(t, subscriptionIDs, lo.FromPtr(req.SubscriptionID.In))
+	})
+
 	t.Run("selecting deleted status lifts the deleted guard", func(t *testing.T) {
 		deleted := string(meta.ChargeStatusDeleted)
 

@@ -65,15 +65,12 @@ func (a *adapter) ListCharges(ctx context.Context, input charges.ListChargesInpu
 			query = query.Where(dbchargessearchv1.CustomerIDIn(input.CustomerIDs...))
 		}
 
-		if len(input.SubscriptionIDs) > 0 {
-			query = query.Where(dbchargessearchv1.SubscriptionIDIn(input.SubscriptionIDs...))
-		}
-
 		if len(input.ChargeTypes) > 0 {
 			query = query.Where(dbchargessearchv1.TypeIn(input.ChargeTypes...))
 		}
 
 		query = filter.ApplyToQuery(query, input.CustomerID, dbchargessearchv1.FieldCustomerID)
+		query = filter.ApplyToQuery(query, input.SubscriptionID, dbchargessearchv1.FieldSubscriptionID)
 		query = filter.ApplyToQuery(query, input.Status, dbchargessearchv1.FieldStatus)
 		query = filter.ApplyToQuery(query, input.FeatureID, dbchargessearchv1.FieldFeatureID)
 		query = filter.ApplyToQuery(query, input.FeatureKey, dbchargessearchv1.FieldFeatureKey)

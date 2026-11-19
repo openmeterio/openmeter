@@ -1003,6 +1003,22 @@ func TestListChargesRoute(t *testing.T) {
 
 		require.Equal(t, http.StatusBadRequest, w.Code)
 	})
+
+	t.Run("accepts the subscription filter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/charges?filter[subscription_id][eq]=01ARZ3NDEKTSV4RRFFQ69G5FAV", nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("rejects a malformed subscription filter", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v3/openmeter/charges?filter[subscription_id][eq]=not-a-ulid", nil)
+		w := httptest.NewRecorder()
+		testServer.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
 }
 
 func TestGetChargeRoute(t *testing.T) {

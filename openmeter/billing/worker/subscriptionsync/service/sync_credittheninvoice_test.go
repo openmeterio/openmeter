@@ -119,9 +119,9 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMeterlessUsageC
 		// - the invalid dependency does not block reconciliation
 		s.Require().NoError(err)
 		chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{subsView.Subscription.ID},
-			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(subsView.Subscription.ID),
+			ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 		})
 		s.Require().NoError(err)
 		s.Require().Len(chargePage.Items, 2)
@@ -323,9 +323,9 @@ func (s *CreditThenInvoiceTestSuite) TestSubscriptionSyncPersistsMissingFeatureU
 		// - the missing feature does not block reconciliation
 		s.Require().NoError(err)
 		chargePage, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{subsView.Subscription.ID},
-			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(subsView.Subscription.ID),
+			ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 		})
 		s.Require().NoError(err)
 		s.Require().Len(chargePage.Items, 2)
@@ -507,9 +507,9 @@ func (s *CreditThenInvoiceTestSuite) TestCustomCurrencyPinnedCostBasisProvisioni
 	s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.NoError(err)
 	s.Len(result.Items, 2)
@@ -3051,9 +3051,9 @@ func (s *CreditThenInvoiceTestSuite) TestRetiresProratedZeroAmountInvoiceLineWit
 	s.NotNil(retiredLine.DeletedAt)
 
 	chargeList, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subView.Subscription.ID},
-		IncludeDeleted:  true,
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subView.Subscription.ID),
+		IncludeDeleted: true,
 	})
 	s.NoError(err)
 	s.NotEmpty(chargeList.Items)
@@ -11492,9 +11492,9 @@ func (s *CreditThenInvoiceTestSuite) mustGetUsageBasedChargeByServicePeriodFrom(
 	s.T().Helper()
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 	})
 	s.Require().NoError(err)
 
@@ -11648,9 +11648,9 @@ func (s *CreditThenInvoiceTestSuite) assertCreditThenInvoiceChargeTaxConfigs(ctx
 
 	expectedChargeTaxConfig := lo.FromPtr(expected)
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargeType},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargeType},
 	})
 	s.NoError(err)
 	s.Require().NotEmpty(res.Items)

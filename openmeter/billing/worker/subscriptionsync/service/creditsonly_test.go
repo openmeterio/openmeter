@@ -32,6 +32,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -204,9 +205,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestUnschedulingAndReplacingFu
 		PeriodMax: 0,
 	}.ChildIDs(subscriptionView.Subscription.ID)[0]
 	initialCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.Require().NoError(err)
 	originalFutureCharge, found := lo.Find(initialCharges.Items, func(charge charges.Charge) bool {
@@ -290,9 +291,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestUnschedulingAndReplacingFu
 	//   - a new v[1]/period[0] $300 charge covers [Jan 20, Feb 1) and references the replacement item
 	s.Require().NoError(s.Service.SyncByID(ctx, rescheduledView.Subscription.NamespacedID, syncUntil))
 	reconciledCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.Require().NoError(err)
 	reconciledFutureCharge, found := lo.Find(reconciledCharges.Items, func(charge charges.Charge) bool {
@@ -321,9 +322,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestUnschedulingAndReplacingFu
 	// Repeating the same sync converges without replacing the new charge again.
 	s.Require().NoError(s.Service.SyncByID(ctx, rescheduledView.Subscription.NamespacedID, syncUntil))
 	stableCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.Require().NoError(err)
 	stableFutureCharge, found := lo.Find(stableCharges.Items, func(charge charges.Charge) bool {
@@ -394,9 +395,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 		PeriodMax: 0,
 	}.ChildIDs(subscriptionView.Subscription.ID)[0]
 	initialCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.Require().NoError(err)
 	originalCharge, found := lo.Find(initialCharges.Items, func(charge charges.Charge) bool {
@@ -509,9 +510,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestSchedulingFutureReplacemen
 		PhaseKey: "default", ItemKey: itemKey, Version: 0, PeriodMin: 0, PeriodMax: 0,
 	}.ChildIDs(subscriptionView.Subscription.ID)[0]
 	initialCharges, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 	})
 	s.Require().NoError(err)
 	originalCharge, found := lo.Find(initialCharges.Items, func(charge charges.Charge) bool {
@@ -660,9 +661,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepai
 	}.ChildIDs(subscriptionView.Subscription.ID)[0]
 
 	provisioned, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.Require().NoError(err)
 
@@ -751,9 +752,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestRecreatingFuturePhaseRepai
 	s.Require().NoError(s.Service.SyncByID(ctx, recreatedView.Subscription.NamespacedID, syncUntil))
 
 	reconciled, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.Require().NoError(err)
 
@@ -859,9 +860,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCustomCurrencyFlatFeeProvi
 	s.NoError(s.Service.SyncByID(ctx, eventView.Subscription.NamespacedID, syncUntil))
 
 	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.NoError(err)
 	s.Len(result.Items, 2)
@@ -1596,9 +1597,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedOverr
 
 		s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-			ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+			ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 		})
 		s.NoError(err)
 		s.Require().Len(result.Items, 1)
@@ -2190,16 +2191,16 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyMixedCharges(
 	s.T().Helper()
 
 	flatFeeResult, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.NoError(err)
 
 	usageBasedResult, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 	})
 	s.NoError(err)
 
@@ -2240,9 +2241,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyFlatFeeCharge
 	s.T().Helper()
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.NoError(err)
 
@@ -2303,9 +2304,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) expectCreditsOnlyUsageBasedCha
 	s.T().Helper()
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 	})
 	s.NoError(err)
 
@@ -2439,9 +2440,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyFlatFeeTaxCodeP
 	s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeFlatFee},
 	})
 	s.NoError(err)
 	s.Require().NotEmpty(res.Items)
@@ -2519,9 +2520,9 @@ func (s *CreditsOnlySubscriptionHandlerTestSuite) TestCreditsOnlyUsageBasedTaxCo
 	s.NoError(s.Service.SyncByID(ctx, subscriptionView.Subscription.NamespacedID, syncUntil))
 
 	res, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-		Namespace:       s.Namespace,
-		SubscriptionIDs: []string{subscriptionView.Subscription.ID},
-		ChargeTypes:     []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(subscriptionView.Subscription.ID),
+		ChargeTypes:    []chargesmeta.ChargeType{chargesmeta.ChargeTypeUsageBased},
 	})
 	s.NoError(err)
 	s.Require().NotEmpty(res.Items)

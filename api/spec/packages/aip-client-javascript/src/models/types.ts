@@ -4485,6 +4485,11 @@ export interface ListChargesParamsFilter {
   servicePeriodTo?: DateTimeFieldFilter
   /** Filter charges by the ID of their customer. */
   customerId?: UlidFieldFilter
+  /**
+   * Filter charges by the ID of their subscription. Only charges linked to a
+   * subscription can match, including when using `neq`.
+   */
+  subscriptionId?: UlidFieldFilter
 }
 
 /** Filter options for listing notification channels. */

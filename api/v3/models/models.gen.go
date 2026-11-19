@@ -12886,6 +12886,10 @@ type ListChargesParamsFilter struct {
 	//
 	// If omitted, all statuses are returned except for `deleted`.
 	Status *StringFieldFilterExact `json:"status,omitempty"`
+
+	// SubscriptionId Filter charges by the ID of their subscription. Only charges linked to a
+	// subscription can match, including when using `neq`.
+	SubscriptionId *ULIDFieldFilter `json:"subscription_id,omitempty"`
 }
 
 // ListCostBasesParamsFilter Filter options for listing cost bases.
@@ -14862,6 +14866,9 @@ type ListChargesParams struct {
 	//
 	// To filter charges by customer add the following query param:
 	// `filter[customer_id][eq]=<id>` or `filter[customer_id][oeq]=<id>,<id>`.
+	//
+	// To filter charges by subscription, use `filter[subscription_id][eq]=<id>` or
+	// `filter[subscription_id][oeq]=<id>,<id>`.
 	//
 	// To filter charges by status add the following query param:
 	// `filter[status][oeq]=created,active`

@@ -48,6 +48,9 @@ export interface ListChargesQuery {
    * To filter charges by customer add the following query param:
    * `filter[customer_id][eq]=<id>` or `filter[customer_id][oeq]=<id>,<id>`.
    *
+   * To filter charges by subscription, use `filter[subscription_id][eq]=<id>` or
+   * `filter[subscription_id][oeq]=<id>,<id>`.
+   *
    * To filter charges by status add the following query param:
    * `filter[status][oeq]=created,active`
    *

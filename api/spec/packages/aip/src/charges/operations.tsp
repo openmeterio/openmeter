@@ -24,6 +24,12 @@ model ListChargesParamsFilter {
    * Filter charges by the ID of their customer.
    */
   customer_id?: Common.ULIDFieldFilter;
+
+  /**
+   * Filter charges by the ID of their subscription. Only charges linked to a
+   * subscription can match, including when using `neq`.
+   */
+  subscription_id?: Common.ULIDFieldFilter;
 }
 
 interface ChargesOperations {
@@ -80,6 +86,9 @@ interface ChargesOperations {
      *
      * To filter charges by customer add the following query param:
      * `filter[customer_id][eq]=<id>` or `filter[customer_id][oeq]=<id>,<id>`.
+     *
+     * To filter charges by subscription, use `filter[subscription_id][eq]=<id>` or
+     * `filter[subscription_id][oeq]=<id>,<id>`.
      *
      * To filter charges by status add the following query param:
      * `filter[status][oeq]=created,active`
