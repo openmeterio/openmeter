@@ -368,6 +368,7 @@ func (s *ListCustomersToAdvanceSuite) TestListChargesSubscriptionIDFilter() {
 		subscriptionIDs = append(subscriptionIDs, subscription.ID)
 		chargeIDs = append(chargeIDs, charge.ID)
 	}
+
 	manualCharge, err := s.newFlatFeeCharge(ns, customerID, meta.ChargeStatusActive).
 		SetManagedBy(billing.ManuallyManagedLine).
 		Save(ctx)
@@ -428,6 +429,7 @@ func (s *ListCustomersToAdvanceSuite) TestListChargesSubscriptionIDFilter() {
 			for _, item := range result.Items {
 				ids = append(ids, item.ID.ID)
 			}
+
 			s.ElementsMatch(tt.wantIDs, ids)
 			s.Equal(tt.wantTotal, result.TotalCount)
 		})
