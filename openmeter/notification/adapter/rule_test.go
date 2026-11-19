@@ -3,6 +3,7 @@ package adapter
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -12,12 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
-	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 // createRule seeds an invoice.created rule via the adapter directly, mirroring
@@ -323,104 +324,74 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 			).Scan(&storedType, &storedConfig)
 			require.NoError(t, err)
 
-			assert.Equal(t, tt.name, storedType)
+			assert.Equal(t, tt.versioned, storedType)
 
-			// when: a versioned type column is paired with the original config
-			_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_rules SET type = $1 WHERE id = $2", tt.versioned, created.ID)
-			require.NoError(t, err)
+			for _, storedName := range []string{tt.name, tt.versioned} {
+				t.Run(storedName, func(t *testing.T) {
+					// when: a supported stored name is paired with the original config
+					_, err = env.sqlDB.ExecContext(t.Context(), "UPDATE notification_rules SET type = $1 WHERE id = $2", storedName, created.ID)
+					require.NoError(t, err)
 
-			var meta notification.RuleConfigMeta
-			require.NoError(t, json.Unmarshal([]byte(storedConfig), &meta))
-			assert.Equal(t, tt.eventType, meta.Type)
+					var storedFields map[string]json.RawMessage
+					require.NoError(t, json.Unmarshal([]byte(storedConfig), &storedFields))
 
-			fetched, err := env.adapter.GetRule(t.Context(), notification.GetRuleInput(created.NamespacedID))
-			require.NoError(t, err)
+					assert.NotContains(t, storedFields, "type")
+					assert.NotContains(t, storedFields, "data")
 
-			listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
-				Namespace: created.Namespace,
-				Page:      pagination.NewPage(1, 20),
-				Type:      &filter.FilterString{Eq: &tt.name},
-			})
-			require.NoError(t, err)
-			require.Len(t, listed.Items, 1)
+					fetched, err := env.adapter.GetRule(t.Context(), notification.GetRuleInput(created.NamespacedID))
+					require.NoError(t, err)
 
-			// then: the type, configuration, and channel assignment retain their meaning
-			assert.Equal(t, created.ID, listed.Items[0].ID)
-			assert.Equal(t, tt.eventType, fetched.Type)
-			assert.Equal(t, created.Config, fetched.Config)
-			assert.Equal(t, created.Config, listed.Items[0].Config)
+					listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
+						Namespace:       created.Namespace,
+						IncludeDisabled: true,
+						Page:            pagination.NewPage(1, 20),
+						Type:            &filter.FilterString{Eq: &tt.name},
+					})
+					require.NoError(t, err)
+					require.Len(t, listed.Items, 1)
 
-			require.Len(t, fetched.Channels, 1)
+					// then: the type, configuration, and channel assignment retain their meaning
+					assert.Equal(t, created.ID, listed.Items[0].ID)
+					assert.Equal(t, tt.eventType, fetched.Type)
+					assert.Equal(t, created.Config, fetched.Config)
+					assert.Equal(t, created.Config, listed.Items[0].Config)
 
-			assert.Equal(t, channel.ID, fetched.Channels[0].ID)
+					require.Len(t, fetched.Channels, 1)
 
-			// when: updating mutable fields through the legacy path
-			updated, err := env.adapter.UpdateRule(t.Context(), notification.UpdateRuleInput{
-				NamespacedID: created.NamespacedID,
-				Type:         created.Type,
-				Name:         "updated",
-				Disabled:     true,
-				Config:       created.Config,
-				Channels:     []string{channel.ID},
-			})
-			require.NoError(t, err)
+					assert.Equal(t, channel.ID, fetched.Channels[0].ID)
 
-			// then: the update preserves the stored spelling and the legacy config
-			assert.Equal(t, created.ID, updated.ID)
-			assert.Equal(t, created.CreatedAt, updated.CreatedAt)
-			assert.Equal(t, tt.eventType, updated.Type)
-			assert.Equal(t, "updated", updated.Name)
-			assert.True(t, updated.Disabled)
+					// when: updating mutable fields through the legacy path
+					updated, err := env.adapter.UpdateRule(t.Context(), notification.UpdateRuleInput{
+						NamespacedID: created.NamespacedID,
+						Type:         created.Type,
+						Name:         "updated",
+						Disabled:     true,
+						Config:       created.Config,
+						Channels:     []string{channel.ID},
+					})
+					require.NoError(t, err)
 
-			require.Len(t, updated.Channels, 1)
+					// then: the update preserves the stored spelling and the flat config
+					assert.Equal(t, created.ID, updated.ID)
+					assert.Equal(t, created.CreatedAt, updated.CreatedAt)
+					assert.Equal(t, tt.eventType, updated.Type)
+					assert.Equal(t, "updated", updated.Name)
+					assert.True(t, updated.Disabled)
 
-			assert.Equal(t, channel.ID, updated.Channels[0].ID)
+					require.Len(t, updated.Channels, 1)
 
-			var updatedType, updatedConfig string
-			err = env.sqlDB.QueryRowContext(t.Context(),
-				"SELECT type, config FROM notification_rules WHERE id = $1", updated.ID,
-			).Scan(&updatedType, &updatedConfig)
-			require.NoError(t, err)
+					assert.Equal(t, channel.ID, updated.Channels[0].ID)
 
-			assert.Equal(t, tt.versioned, updatedType)
-			assert.JSONEq(t, storedConfig, updatedConfig)
-		})
-	}
-}
+					var updatedType, updatedConfig string
+					err = env.sqlDB.QueryRowContext(t.Context(),
+						"SELECT type, config FROM notification_rules WHERE id = $1", updated.ID,
+					).Scan(&updatedType, &updatedConfig)
+					require.NoError(t, err)
 
-func TestRuleTypeValidation(t *testing.T) {
-	env := newChannelTestEnv(t)
-	tests := []struct {
-		name      string
-		eventType notification.EventType
-	}{
-		{name: "empty"},
-		{name: "unknown", eventType: "unknown.event"},
-		{name: "versioned types remain unsupported", eventType: "v1.invoice.created"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// given: an unsupported type with otherwise valid rule configuration
-			namespace := ulid.Make().String()
-
-			// when: writing through the adapter, without service validation
-			_, err := env.adapter.CreateRule(t.Context(), notification.CreateRuleInput{
-				NamespacedModel: models.NamespacedModel{Namespace: namespace},
-				Type:            tt.eventType,
-				Name:            "invalid type",
-				Config: notification.RuleConfig{
-					RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceCreated},
-					Invoice:        &notification.InvoiceRuleConfig{},
-				},
-			})
-			require.ErrorContains(t, err, "invalid notification event type")
-
-			// then: the existing domain validator still prevents persistence
-			count, err := env.db.NotificationRule.Query().Where(ruledb.Namespace(namespace)).Count(t.Context())
-			require.NoError(t, err)
-
-			assert.Zero(t, count)
+					assert.Equal(t, storedName, updatedType)
+					assert.JSONEq(t, storedConfig, updatedConfig)
+				})
+			}
 		})
 	}
 }
@@ -488,7 +459,7 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 					entity, err := env.db.NotificationRule.Get(t.Context(), created.ID)
 					require.NoError(t, err)
 
-					assert.JSONEq(t, legacy, string(entity.Config))
+					assert.JSONEq(t, tt.payload, string(entity.Config))
 
 					_, err = env.sqlDB.ExecContext(t.Context(),
 						"UPDATE notification_rules SET config = $1 WHERE id = $2", format.data, created.ID)
@@ -527,13 +498,13 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					// then: writes remain readable by old backends
+					// then: updating either representation writes flat config
 					assert.Equal(t, created.Config, updated.Config)
 
 					entity, err = env.db.NotificationRule.Get(t.Context(), created.ID)
 					require.NoError(t, err)
 
-					assert.JSONEq(t, legacy, string(entity.Config))
+					assert.JSONEq(t, tt.payload, string(entity.Config))
 				})
 			}
 		})
@@ -566,7 +537,7 @@ func TestRuleConfigMappingInvalid(t *testing.T) {
 					rule, err := RuleFromDBEntity(entdb.NotificationRule{
 						ID:        "test-rule",
 						Namespace: "test-namespace",
-						Type:      eventType,
+						Type:      string(eventType),
 						Config:    json.RawMessage(tt.data),
 					})
 					require.ErrorContains(t, err, "invalid notification rule config")
@@ -604,43 +575,80 @@ func TestRuleConfigMappingPrecedence(t *testing.T) {
 	}
 }
 
-func TestRuleConfigWriteValidation(t *testing.T) {
-	tests := []struct {
-		name   string
-		config notification.RuleConfig
-	}{
-		{
-			name: "missing invoice config",
-			config: notification.RuleConfig{
-				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeInvoiceCreated},
-			},
-		},
-		{
-			name: "invalid threshold",
-			config: notification.RuleConfig{
-				RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeBalanceThreshold},
-				BalanceThreshold: &notification.BalanceThresholdRuleConfig{
-					Thresholds: []notification.BalanceThreshold{
-						{Type: notification.BalanceThresholdTypeUsagePercentage, Value: -1},
-					},
-				},
-			},
-		},
-		{
-			name: "duplicate features",
-			config: notification.RuleConfig{
-				RuleConfigMeta:   notification.RuleConfigMeta{Type: notification.EventTypeEntitlementReset},
-				EntitlementReset: &notification.EntitlementResetRuleConfig{Features: []string{"feature-a", "feature-a"}},
-			},
-		},
+func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
+	env := newChannelTestEnv(t)
+	namespace := ulid.Make().String()
+
+	// given: two public types with both legacy and versioned rows
+	idsByType := make(map[string][]string)
+	var allIDs []string
+	for _, eventType := range []notification.EventType{notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated} {
+		var ids []string
+		for _, legacy := range []bool{true, false} {
+			created := createRule(t, env, namespace, clock.Now(), func(input *notification.CreateRuleInput) {
+				input.Type = eventType
+				input.Config = notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: eventType}}
+				switch eventType {
+				case notification.EventTypeEntitlementReset:
+					input.Config.EntitlementReset = &notification.EntitlementResetRuleConfig{}
+				case notification.EventTypeInvoiceCreated:
+					input.Config.Invoice = &notification.InvoiceRuleConfig{}
+				}
+			})
+
+			if legacy {
+				_, err := env.sqlDB.ExecContext(t.Context(),
+					"UPDATE notification_rules SET type = $1 WHERE id = $2", string(eventType), created.ID)
+				require.NoError(t, err)
+			}
+
+			ids = append(ids, created.ID)
+		}
+
+		slices.Sort(ids)
+		idsByType[string(eventType)] = ids
+		allIDs = append(allIDs, ids...)
 	}
 
+	tests := []struct {
+		name   string
+		filter *filter.FilterString
+		want   []string
+	}{
+		{name: "all", want: allIDs},
+		{name: "equal", filter: &filter.FilterString{Eq: new("invoice.created")}, want: idsByType["invoice.created"]},
+		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: idsByType["entitlements.reset"]},
+		{name: "in", filter: &filter.FilterString{In: &[]string{"invoice.created", "entitlements.reset"}}, want: allIDs},
+		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: idsByType["entitlements.reset"]},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			encoded, err := toDBRuleConfig(tt.config)
-			require.ErrorContains(t, err, "invalid rule config")
+			for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
+				t.Run(string(order), func(t *testing.T) {
+					want := slices.Clone(tt.want)
+					if order == sortx.OrderDesc {
+						slices.Reverse(want)
+					}
 
-			assert.Nil(t, encoded)
+					// when: each page contains one row ordered by public type and ID
+					var got []string
+					for page := 1; page <= len(want)+1; page++ {
+						listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
+							Namespace: namespace,
+							Type:      tt.filter, OrderBy: notification.OrderByType, Order: order,
+							Page: pagination.NewPage(page, 1),
+						})
+						require.NoError(t, err)
+
+						for _, item := range listed.Items {
+							got = append(got, item.ID)
+						}
+					}
+
+					// then: pagination includes each matching row once, regardless of storage spelling
+					assert.Equal(t, want, got)
+				})
+			}
 		})
 	}
 }

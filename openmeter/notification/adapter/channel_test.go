@@ -92,7 +92,7 @@ func TestChannelTypeStorageCompatibility(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// given: a canonical service input written for legacy readers
+			// given: a new Channel stores a lowercase type and flat webhook config
 			channel := createChannel(t, env, ulid.Make().String(), clock.Now(), func(input *notification.CreateChannelInput) {
 				input.Config.WebHook.CustomHeaders = map[string]string{"X-Test": "preserve"}
 				input.Config.WebHook.SigningSecret = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"
@@ -107,16 +107,10 @@ func TestChannelTypeStorageCompatibility(t *testing.T) {
 			).Scan(&columnType, &rawConfig)
 			require.NoError(t, err)
 
-			var legacyConfig struct {
-				Type string                            `json:"type"`
-				Data notification.WebHookChannelConfig `json:"data"`
-			}
+			const flatConfig = `{"url":"https://example.com/hook","custom_headers":{"X-Test":"preserve"},"signing_secret":"whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw"}`
 
-			require.NoError(t, json.Unmarshal([]byte(rawConfig), &legacyConfig))
-
-			assert.Equal(t, "WEBHOOK", columnType)
-			assert.Equal(t, "WEBHOOK", legacyConfig.Type)
-			assert.Equal(t, channel.Config.WebHook, legacyConfig.Data)
+			assert.Equal(t, "webhook", columnType)
+			assert.JSONEq(t, flatConfig, rawConfig)
 
 			// Generated predicates encode canonical operands using the scanner.
 			entity, err := env.db.NotificationChannel.Query().Where(
@@ -128,10 +122,13 @@ func TestChannelTypeStorageCompatibility(t *testing.T) {
 			assert.Equal(t, notification.ChannelTypeWebhook, entity.Type)
 
 			// when: either stored discriminator uses its legacy or canonical spelling
+			legacyData, err := json.Marshal(channel.Config.WebHook)
+			require.NoError(t, err)
+
 			_, err = env.sqlDB.ExecContext(t.Context(), `
 				UPDATE notification_channels
-				SET type = $1, config = jsonb_set(config, '{type}', to_jsonb($2::text))
-				WHERE id = $3`, tt.columnType, tt.configType, channel.ID)
+				SET type = $1, config = jsonb_build_object('type', $2::text, 'data', $3::jsonb)
+				WHERE id = $4`, tt.columnType, tt.configType, string(legacyData), channel.ID)
 			require.NoError(t, err)
 
 			entity, err = env.db.NotificationChannel.Get(t.Context(), channel.ID)
@@ -164,12 +161,10 @@ func TestChannelTypeStorageCompatibility(t *testing.T) {
 				"SELECT type, config FROM notification_channels WHERE id = $1", channel.ID,
 			).Scan(&columnType, &rawConfig)
 			require.NoError(t, err)
-			require.NoError(t, json.Unmarshal([]byte(rawConfig), &legacyConfig))
 
-			// Updates preserve the immutable column and write a legacy-readable config.
+			// Updates preserve the immutable column and write the flat config.
 			assert.Equal(t, tt.columnType, columnType)
-			assert.Equal(t, "WEBHOOK", legacyConfig.Type)
-			assert.Equal(t, channel.Config.WebHook, legacyConfig.Data)
+			assert.JSONEq(t, flatConfig, rawConfig)
 		})
 	}
 }
@@ -182,7 +177,7 @@ func TestListChannels_MixedTypeFormats(t *testing.T) {
 	legacy := createChannel(t, env, namespace, clock.Now(), nil)
 	canonical := createChannel(t, env, namespace, clock.Now(), nil)
 	_, err := env.sqlDB.ExecContext(t.Context(),
-		"UPDATE notification_channels SET type = 'webhook' WHERE id = $1", canonical.ID)
+		"UPDATE notification_channels SET type = 'WEBHOOK' WHERE id = $1", legacy.ID)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -784,7 +779,7 @@ func TestChannelConfigMapping(t *testing.T) {
 			channel, err := ChannelFromDBEntity(row)
 			require.NoError(t, err)
 
-			// then: domain values are preserved and writes remain legacy-readable
+			// then: both formats produce the same settings and flat storage
 			assert.Equal(t, notification.ChannelTypeWebhook, channel.Config.Type)
 			assert.Equal(t, "https://example.com/hook", channel.Config.WebHook.URL)
 			assert.Equal(t, map[string]string{"X-Team": "billing"}, channel.Config.WebHook.CustomHeaders)
@@ -793,7 +788,7 @@ func TestChannelConfigMapping(t *testing.T) {
 			encoded, err := toDBChannelConfig(channel.Config)
 			require.NoError(t, err)
 
-			assert.JSONEq(t, `{"type":"WEBHOOK","data":{"url":"https://example.com/hook","customHeaders":{"X-Team":"billing"},"signingSecret":"original-secret"}}`, string(encoded))
+			assert.JSONEq(t, `{"url":"https://example.com/hook","custom_headers":{"X-Team":"billing"},"signing_secret":"original-secret"}`, string(encoded))
 			assert.JSONEq(t, tt.data, string(row.Config))
 		})
 	}
@@ -955,7 +950,7 @@ func TestChannelConfigStorageCompatibility(t *testing.T) {
 
 			assert.JSONEq(t, tt.data, string(entity.Config))
 
-			t.Run("update preserves settings and writes a legacy envelope", func(t *testing.T) {
+			t.Run("update preserves settings and writes flat config", func(t *testing.T) {
 				// when: updating a channel read from either format
 				updated, err := env.adapter.UpdateChannel(t.Context(), notification.UpdateChannelInput{
 					NamespacedID: channel.NamespacedID, Type: channel.Type,
@@ -969,7 +964,7 @@ func TestChannelConfigStorageCompatibility(t *testing.T) {
 				entity, err := env.db.NotificationChannel.Get(t.Context(), created.ID)
 				require.NoError(t, err)
 
-				assert.JSONEq(t, `{"type":"WEBHOOK","data":{"url":"https://example.com/hook","customHeaders":{"X-Team":"billing"},"signingSecret":"original-secret"}}`, string(entity.Config))
+				assert.JSONEq(t, `{"url":"https://example.com/hook","custom_headers":{"X-Team":"billing"},"signing_secret":"original-secret"}`, string(entity.Config))
 			})
 		})
 	}

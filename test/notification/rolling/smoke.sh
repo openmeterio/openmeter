@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Requires Bash, Docker Compose, curl and jq. From the repository root:
-# OLD_IMAGE=<baseline> CANDIDATE_IMAGE=<candidate> test/notification/rolling/smoke.sh
+# OLD_IMAGE=<beta.237 image> CANDIDATE_IMAGE=<candidate> test/notification/rolling/smoke.sh
 # Images contain both binaries. Override OLD_JOBS_IMAGE/CANDIDATE_JOBS_IMAGE for split builds.
 set -euo pipefail
 
@@ -87,36 +87,44 @@ cross_read() {
 }
 
 stored_format() {
-    local writer=$1 dir="$artifacts/$1" event
+    local writer=$1 expected_channel_type=$2 dir="$artifacts/$1" event
     event=$(id_from "$dir/event")
     sql "SELECT jsonb_build_object('channel', c.type, 'config', c.config, 'rule', r.type, 'ruleConfig', r.config,
             'event', e.type, 'payload', e.payload, 'state', s.state)
          FROM notification_events e JOIN notification_rules r ON r.id=e.rule_id
          JOIN notification_event_delivery_status s ON s.event_id=e.id
          JOIN notification_channels c ON c.id=s.channel_id WHERE e.id='$event'" >"$dir/stored.json"
-    jq -es --slurpfile input "$dir/channel-input" 'length==1 and (.[0] |
-        .channel=="WEBHOOK" and .config=={type:"WEBHOOK",data:($input[0] | {url,customHeaders,signingSecret})} and
-        .rule=="entitlements.reset" and .ruleConfig.type==.rule and (.ruleConfig.data|type)=="object" and
-        .event==.rule and .payload.type==.event and .payload.version==1 and
-        (.payload.entitlementReset|type)=="object" and .state=="PENDING")' "$dir/stored.json" >/dev/null ||
+    jq -es --arg writer "$writer" --arg channel_type "$expected_channel_type" --slurpfile input "$dir/channel-input" --slurpfile rule_input "$dir/rule-input" 'length==1 and (.[0] |
+        .channel==$channel_type and .config==($input[0] | if $writer=="old" then
+            {type:"WEBHOOK",data:{url,customHeaders,signingSecret}}
+        else {url,custom_headers:.customHeaders,signing_secret:.signingSecret} end) and
+        .rule==(if $writer=="old" then "entitlements.reset" else "v1.entitlement.usage_period.reset" end) and
+        .ruleConfig==({features:$rule_input[0].features} |
+            if $writer=="old" then {type:"entitlements.reset",data:.} else . end) and
+        .event==.rule and .payload.type=="entitlements.reset" and .payload.version==1 and
+        (.payload.entitlementReset|type)=="object" and .state==(if $writer=="old" then "PENDING" else "pending" end))' "$dir/stored.json" >/dev/null ||
         fail "$writer stored an incompatible representation"
     echo "Verified $writer stored Channel, Rule, Event and pending delivery formats"
 }
 
 receipts() { dc exec -T receiver cat /tmp/receipts.ndjson; }
 await_delivery() {
-    local reader=$1 writer=$2 wanted=$3 previous=$4 dir="$artifacts/$2" event count deadline
+    local reader=$1 writer=$2 wanted=$3 previous=$4 dir="$artifacts/$2" event count deadline expected_state
+    expected_state=SUCCESS
+    [[ $reader != candidate ]] || expected_state=success
     event=$(id_from "$dir/event")
     deadline=$((SECONDS + 180))
     until (( SECONDS >= deadline )); do
         api "$reader" GET "events/$event" >"$dir/observed.json"
         count=$(sql "SELECT jsonb_array_length(attempts) FROM notification_event_delivery_status
-            WHERE event_id='$event' AND state='SUCCESS' AND jsonb_typeof(attempts)='array'")
+            WHERE event_id='$event' AND state IN ('SUCCESS', 'success') AND jsonb_typeof(attempts)='array'")
         if [[ $count =~ ^[0-9]+$ ]] && (( count > previous )) &&
             jq -e --argjson n "$count" '.deliveryStatus | length==1 and
                 (.[0] | .state=="SUCCESS" and (.attempts|length)==$n)' "$dir/observed.json" >/dev/null &&
             receipts | jq -se --arg path "/$writer" --argjson n "$wanted" --slurpfile e "$dir/event" '
                 map(select(.body.id==$e[0].id)) | length==$n and all(.path==$path and .body==$e[0].payload)' >/dev/null; then
+            [[ $(sql "SELECT state FROM notification_event_delivery_status WHERE event_id='$event'") == "$expected_state" ]] ||
+                fail "$reader wrote an unexpected delivery state"
             echo "$reader reconciled $writer Event: $count stored attempts, $wanted matching receipts"
             return
         fi
@@ -134,13 +142,17 @@ baseline=$(version)
 start_server old
 seed old
 old_event=$(id_from "$artifacts/old/event")
-stored_format old
+stored_format old WEBHOOK
 sql "UPDATE notification_event_delivery_status SET next_attempt_at=now()-interval '1 minute' WHERE event_id='$old_event'"
 pending=$(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'")
 
 dc run --rm -T candidate-jobs >"$artifacts/candidate-migration.log" 2>&1
 upgraded=$(version)
-[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded > baseline )) || fail "Expected migrations after $baseline, got $upgraded"
+[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded >= baseline )) || fail "Expected schema version at least $baseline, got $upgraded"
+# Explicit state writes cannot prove that the jobs image applied the new default.
+[[ $(sql "SELECT column_default FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='notification_event_delivery_status' AND column_name='state'") == "'pending'::character varying" ]] ||
+    fail "Candidate migration did not set the delivery state default to pending"
 [[ $(identity) == "$db" ]] || fail "Database changed during migration"
 [[ $(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'") == "$pending" ]] ||
     fail "Migration changed the in-flight delivery"
@@ -151,7 +163,7 @@ cross_read candidate old
 seed candidate
 event=$(id_from "$artifacts/candidate/event")
 channel=$(id_from "$artifacts/candidate/channel")
-stored_format candidate
+stored_format candidate webhook
 cross_read old candidate
 
 # Defer this destination until rollback. A sentinel detects an old writer clearing an unfamiliar column.
@@ -159,9 +171,25 @@ sql "UPDATE notification_event_delivery_status SET next_attempt_at=now()+interva
 sql "UPDATE notification_channels SET provider_data='{\"smoke\":\"preserve\"}' WHERE id='$channel'"
 jq '.name="updated by old"' "$artifacts/candidate/channel-input" >"$artifacts/old-update"
 api old PUT "channels/$channel" --data-binary "@$artifacts/old-update" >/dev/null
-[[ $(sql "SELECT name || '/' || (provider_data->>'smoke') FROM notification_channels WHERE id='$channel'") == 'updated by old/preserve' ]] ||
-    fail "Old update lost candidate data"
-echo "Old server updated candidate Channel and preserved provider_data"
+[[ $(sql "SELECT name || '/' || type || '/' || (provider_data->>'smoke') FROM notification_channels WHERE id='$channel'") == 'updated by old/webhook/preserve' ]] ||
+    fail "Old update changed the candidate Channel type or lost provider data"
+sql "SELECT config FROM notification_channels WHERE id='$channel'" | jq -e --slurpfile input "$artifacts/old-update" '
+    .=={type:"WEBHOOK",data:($input[0] | {url,customHeaders,signingSecret})}' >/dev/null ||
+    fail "Old update did not preserve the candidate webhook settings in its envelope"
+cross_read candidate candidate
+echo "Old server updated candidate Channel and preserved type, webhook settings and provider_data"
+
+rule=$(id_from "$artifacts/candidate/rule")
+jq '.name="updated by old"' "$artifacts/candidate/rule-input" >"$artifacts/old-rule-update"
+api old PUT "rules/$rule" --data-binary "@$artifacts/old-rule-update" >/dev/null
+sql "SELECT jsonb_build_object('type',type,'config',config) FROM notification_rules WHERE id='$rule'" |
+    jq -e --slurpfile input "$artifacts/old-rule-update" '
+        .type=="v1.entitlement.usage_period.reset" and
+        .config=={type:"entitlements.reset",data:{features:$input[0].features}}' >/dev/null ||
+    fail "Old update changed the candidate Rule type or config values"
+cross_read candidate candidate
+echo "Old server updated candidate Rule and restored its legacy config envelope"
+
 
 # Only one reconciler may deliver during each handoff.
 dc stop old

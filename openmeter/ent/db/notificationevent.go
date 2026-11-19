@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -29,7 +28,7 @@ type NotificationEvent struct {
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// The notification event type.
-	Type notification.EventType `json:"type,omitempty"`
+	Type string `json:"type,omitempty"`
 	// RuleID holds the value of the "rule_id" field.
 	RuleID string `json:"rule_id,omitempty"`
 	// Payload holds the value of the "payload" field.
@@ -137,7 +136,7 @@ func (_m *NotificationEvent) assignValues(columns []string, values []any) error 
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				_m.Type = notification.EventType(value.String)
+				_m.Type = value.String
 			}
 		case notificationevent.FieldRuleID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -219,7 +218,7 @@ func (_m *NotificationEvent) String() string {
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(_m.Type)
 	builder.WriteString(", ")
 	builder.WriteString("rule_id=")
 	builder.WriteString(_m.RuleID)

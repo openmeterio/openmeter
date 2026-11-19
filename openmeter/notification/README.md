@@ -31,18 +31,18 @@ payload compatibility and retention therefore matter for historical data.
 
 The service uses `webhook`; V1 HTTP uses `WEBHOOK`, while V3 uses `webhook`.
 The Ent field scanner reads either stored spelling as the lowercase domain value.
-New Channels still store `WEBHOOK`, and configuration writes retain the legacy
-`{type, data}` envelope with an uppercase discriminator, so older backends can
-read resources written during a rolling deployment. Channel type filters match
-both stored spellings using `in`/`nin`, including exclusions and nested `and`/`or`.
+New Channels store `webhook` in the type column. Updates preserve the stored
+type. Channel type filters match both stored spellings using `in`/`nin`,
+including exclusions and nested `and`/`or`.
 Type filters accept exact comparisons and existence checks; pattern and range
 operators are rejected. Other string filters retain their existing operators.
 
 Ent exposes Channel config as `json.RawMessage`. The adapter decodes it using
 the Channel's type, trying the legacy envelope first and falling back to flat
-config with `custom_headers` and `signing_secret` if envelope decoding fails. Create/update still write the legacy
-envelope and camelCase keys. Reads do not rewrite stored config or rotate secrets.
-Malformed configs propagate errors through Channel, Rule, and Event reads.
+config if envelope decoding fails. Create and update write flat webhook config
+with `url` and optional `custom_headers` and `signing_secret`. Reads preserve
+the stored config and signing secret. Malformed configs propagate errors
+through Channel, Rule, and Event reads.
 
 The nullable `event_type_filter` column is reserved for V4 routing. Current
 operations leave it unset on creation and preserve it on updates; Rule
@@ -63,18 +63,17 @@ are `unknown`, `pending`, `in_sync`, and `error`. Current updates and soft delet
 preserve these fields; they do not activate scheduling or change synchronous
 provider operations. Migration defaults do not establish provider synchronization.
 
-This is the compatibility phase of the [V4 migration](../../notification%20v4%20migration.md).
-No data conversion is required in this phase. Finalization switches writes and
-converts remaining rows only after all active and supported rollback versions
-can read the final format. Temporary storage mappings remain until all writers
-and rows have converged. Already-lowercase rows are readable by the new adapter;
-this does not make those rows readable by an old backend.
+Roll out this writer from v1.0.0-beta.237, which reads both type spellings and both
+config shapes. During rollout or rollback, beta.237 can write an envelope
+when updating a Channel created by the new writer. Backfill legacy types and
+configs after all legacy writers and their in-flight transactions have drained.
 
 ## Rule and Event type storage compatibility
 
-During Phase 1, Rule and Event reads accept both names in each row below.
-Writes, V1/V3 responses, webhook messages, and JSON discriminators use the
-legacy name. A Rule update preserves the existing type column.
+Rule and Event creation writes the versioned names below. Reads accept both
+stored spellings and return the legacy names to the service and V1/V3 APIs.
+Webhook messages and JSON discriminators use the legacy names. Rule updates
+preserve the existing type column.
 
 | V1/V3 name | Versioned storage alias |
 | --- | --- |
@@ -86,15 +85,21 @@ legacy name. A Rule update preserves the existing type column.
 V3 Rule and Event filters accept legacy names. Exact comparisons match either
 stored spelling, and exclusions exclude both. Type sorting uses the V3 name
 and then the resource ID in the same direction before pagination. The aliases
-apply to type columns only. Switching writers and migrating payload or config
-contracts require a separate cutover after all readers are compatible.
+apply to type columns only. Ent stores plain strings. The service validates
+public names before the adapter maps them to storage. Roll out from beta.237,
+which reads both spellings. Historical-row backfills follow in Phase 3
+after all legacy writers have drained. Payload and config conversion are separate
+steps.
 
 Ent exposes Rule config as `json.RawMessage`; the adapter decodes the legacy
 envelope first, then the unwrapped existing contract using the Rule's type.
 Flat configs reject unknown fields so malformed envelopes cannot become empty
 invoice configs. Reads do not rewrite rows or revalidate historical conditions.
-Writes retain the existing config validation and legacy envelope. Decode errors
-propagate through Rule reads and nested Event reads.
+Create and update validate configs in the service and write the type-specific
+object directly. Rule and config types must match, except that the two invoice
+types share the same config contract. Invoice configs are `{}`. The beta.237 reader accepts both
+representations during rollout and rollback. Decode errors propagate through
+Rule reads and nested Event reads.
 
 ## Event storage compatibility
 
@@ -119,9 +124,10 @@ separate from annotations. Current creation paths leave it unset, and existing
 operations preserve stored values. Existing provider identifiers remain
 authoritative; there are no dual writes, backfills, or API exposure yet.
 
-Delivery state uses an Ent string field with the existing
-`EventDeliveryStatusState` validation. Writes use uppercase and omitted states
-default to `PENDING`. The adapter reads either stored spelling as uppercase.
+Delivery state uses a plain Ent string field. The service validates states
+through `UpdateEventDeliveryStatusInput.Validate`. Creates and updates write
+lowercase states, including resend, and omitted states default to `pending`.
+The adapter reads either stored spelling as uppercase.
 Event and delivery filters match both spellings, including the poller's check
 for an active destination whose next attempt is due.
 

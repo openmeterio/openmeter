@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -89,7 +88,7 @@ func (_c *NotificationRuleCreate) SetMetadata(v map[string]string) *Notification
 }
 
 // SetType sets the "type" field.
-func (_c *NotificationRuleCreate) SetType(v notification.EventType) *NotificationRuleCreate {
+func (_c *NotificationRuleCreate) SetType(v string) *NotificationRuleCreate {
 	_c.mutation.SetType(v)
 	return _c
 }
@@ -235,11 +234,6 @@ func (_c *NotificationRuleCreate) check() error {
 	}
 	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "NotificationRule.type"`)}
-	}
-	if v, ok := _c.mutation.GetType(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "NotificationRule.type": %w`, err)}
-		}
 	}
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "NotificationRule.name"`)}

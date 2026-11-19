@@ -206,7 +206,7 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 		// TODO(notification-v4): keep writing a Rule reference until Rule-free
 		// Events are supported by readers, API mappings, and reconciliation.
 		query := a.db.NotificationEvent.Create().
-			SetType(params.Type).
+			SetType(toDBEventType(params.Type)).
 			SetNamespace(params.Namespace).
 			SetRuleID(params.RuleID).
 			SetPayload(payloadJSON).
@@ -268,7 +268,7 @@ func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEve
 					SetNamespace(params.Namespace).
 					SetEventID(eventRow.ID).
 					SetChannelID(channel.ID).
-					SetState(notification.EventDeliveryStatusStatePending).
+					SetState(toDBDeliveryState(notification.EventDeliveryStatusStatePending)).
 					AddEvents(eventRow)
 
 				statusBulkQuery = append(statusBulkQuery, q)

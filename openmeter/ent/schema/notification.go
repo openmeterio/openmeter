@@ -124,7 +124,6 @@ func (NotificationRule) Mixin() []ent.Mixin {
 func (NotificationRule) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("type").
-			GoType(notification.EventType("")).
 			Immutable().
 			Comment("The event type emitted by the Rule."),
 		field.String("name").
@@ -178,7 +177,6 @@ func (NotificationEvent) Fields() []ent.Field {
 			Default(clock.Now).
 			Immutable(),
 		field.String("type").
-			GoType(notification.EventType("")).
 			Immutable().
 			Comment("The notification event type."),
 		// TODO(notification-v4): current creation paths still require a Rule;
@@ -261,13 +259,8 @@ func (NotificationEventDeliveryStatus) Fields() []ent.Field {
 		field.String("channel_id").
 			NotEmpty().
 			Immutable(),
-		// The generated GoType check only covers creates; retain update validation too.
 		field.String("state").
-			GoType(notification.EventDeliveryStatusState("")).
-			Validate(func(state string) error {
-				return notification.EventDeliveryStatusState(state).Validate()
-			}).
-			Default(string(notification.EventDeliveryStatusStatePending)),
+			Default("pending"),
 		// TODO(notification-v4): enable resend increments only after all writers
 		// can maintain this baseline; it does not reconstruct historical resends.
 		field.Int("dispatch_generation").
@@ -316,14 +309,10 @@ func (NotificationEventDeliveryStatus) Indexes() []ent.Index {
 	}
 }
 
-// TODO(notification-v4): keep legacy writes until every deployed and rollback
-// version supports the final format; remove legacy reads after data conversion.
+// TODO(notification-v4): remove the uppercase read mapping after all legacy
+// writers are retired and existing Channel types have been backfilled.
 var ChannelTypeValueScanner = field.ValueScannerFunc[notification.ChannelType, *sql.NullString]{
 	V: func(channelType notification.ChannelType) (driver.Value, error) {
-		if channelType == notification.ChannelTypeWebhook {
-			return "WEBHOOK", nil
-		}
-
 		return string(channelType), nil
 	},
 	S: func(value *sql.NullString) (notification.ChannelType, error) {

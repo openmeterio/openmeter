@@ -98,15 +98,21 @@ func deliveryStateSpellings(state notification.EventDeliveryStatusState) (legacy
 	}
 }
 
-// The Event filter uses strings, while Ent predicates use EventDeliveryStatusState.
-func toDBEventDeliveryStatusStates[T ~string](states ...T) []T {
-	values := make([]T, 0, 2*len(states))
+func toDBDeliveryState(state notification.EventDeliveryStatusState) string {
+	_, lowercase := deliveryStateSpellings(state)
+
+	return string(lowercase)
+}
+
+// Expand domain states and API filter values into both storage spellings.
+func toDBEventDeliveryStatusStates[T ~string](states ...T) []string {
+	values := make([]string, 0, 2*len(states))
 	for _, state := range states {
 		legacy, lowercase := deliveryStateSpellings(notification.EventDeliveryStatusState(state))
-		values = append(values, T(legacy))
+		values = append(values, string(legacy))
 
 		if legacy != lowercase {
-			values = append(values, T(lowercase))
+			values = append(values, string(lowercase))
 		}
 	}
 
@@ -177,7 +183,7 @@ func (a *adapter) UpdateEventDeliveryStatus(ctx context.Context, params notifica
 
 		query := a.db.NotificationEventDeliveryStatus.UpdateOneID(params.ID).
 			Where(statusdb.Namespace(params.Namespace)).
-			SetState(params.State).
+			SetState(toDBDeliveryState(params.State)).
 			SetReason(params.Reason).
 			SetAnnotations(params.Annotations).
 			SetOrClearNextAttemptAt(nextAttempt).

@@ -135,6 +135,25 @@ func (c RuleConfig) Validate() error {
 	}
 }
 
+// ValidateRuleConfigWithEventType checks that the config belongs to the Rule's
+// Event type. Invoice created and updated share the same config contract.
+func ValidateRuleConfigWithEventType(eventType EventType) models.ValidatorFunc[RuleConfig] {
+	return func(config RuleConfig) error {
+		if config.Type == eventType {
+			return nil
+		}
+
+		switch eventType {
+		case EventTypeInvoiceCreated, EventTypeInvoiceUpdated:
+			if config.Type == EventTypeInvoiceCreated || config.Type == EventTypeInvoiceUpdated {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("rule config type %q does not match rule type %q", config.Type, eventType)
+	}
+}
+
 var (
 	_ models.Validator                       = (*ListRulesInput)(nil)
 	_ models.CustomValidator[ListRulesInput] = (*ListRulesInput)(nil)
@@ -276,6 +295,10 @@ func (i CreateRuleInput) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if err := i.Config.ValidateWith(ValidateRuleConfigWithEventType(i.Type)); err != nil {
+		errs = append(errs, err)
+	}
+
 	if len(i.Channels) == 0 {
 		errs = append(errs, errors.New("at least one channel is required"))
 	}
@@ -335,6 +358,10 @@ func (i UpdateRuleInput) Validate() error {
 	}
 
 	if err := i.Config.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if err := i.Config.ValidateWith(ValidateRuleConfigWithEventType(i.Type)); err != nil {
 		errs = append(errs, err)
 	}
 

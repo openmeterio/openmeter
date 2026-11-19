@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -34,7 +33,7 @@ type NotificationRule struct {
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// The event type emitted by the Rule.
-	Type notification.EventType `json:"type,omitempty"`
+	Type string `json:"type,omitempty"`
 	// The name of the rule
 	Name string `json:"name,omitempty"`
 	// Whether the rule is disabled or not
@@ -157,7 +156,7 @@ func (_m *NotificationRule) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				_m.Type = notification.EventType(value.String)
+				_m.Type = value.String
 			}
 		case notificationrule.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -244,7 +243,7 @@ func (_m *NotificationRule) String() string {
 	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(_m.Type)
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

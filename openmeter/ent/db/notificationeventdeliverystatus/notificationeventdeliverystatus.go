@@ -9,7 +9,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
 const (
@@ -102,9 +101,7 @@ var (
 	// ChannelIDValidator is a validator for the "channel_id" field. It is called by the builders before save.
 	ChannelIDValidator func(string) error
 	// DefaultState holds the default value on creation for the "state" field.
-	DefaultState notification.EventDeliveryStatusState
-	// StateValidator is a validator for the "state" field. It is called by the builders before save.
-	StateValidator func(string) error
+	DefaultState string
 	// DefaultDispatchGeneration holds the default value on creation for the "dispatch_generation" field.
 	DefaultDispatchGeneration int
 	// DispatchGenerationValidator is a validator for the "dispatch_generation" field. It is called by the builders before save.

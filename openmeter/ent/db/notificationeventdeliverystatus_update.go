@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/notificationeventdeliverystatus"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -51,13 +50,13 @@ func (_u *NotificationEventDeliveryStatusUpdate) SetUpdatedAt(v time.Time) *Noti
 }
 
 // SetState sets the "state" field.
-func (_u *NotificationEventDeliveryStatusUpdate) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
+func (_u *NotificationEventDeliveryStatusUpdate) SetState(v string) *NotificationEventDeliveryStatusUpdate {
 	_u.mutation.SetState(v)
 	return _u
 }
 
 // SetNillableState sets the "state" field if the given value is not nil.
-func (_u *NotificationEventDeliveryStatusUpdate) SetNillableState(v *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
+func (_u *NotificationEventDeliveryStatusUpdate) SetNillableState(v *string) *NotificationEventDeliveryStatusUpdate {
 	if v != nil {
 		_u.SetState(*v)
 	}
@@ -248,11 +247,6 @@ func (_u *NotificationEventDeliveryStatusUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NotificationEventDeliveryStatusUpdate) check() error {
-	if v, ok := _u.mutation.State(); ok {
-		if err := notificationeventdeliverystatus.StateValidator(string(v)); err != nil {
-			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.DispatchGeneration(); ok {
 		if err := notificationeventdeliverystatus.DispatchGenerationValidator(v); err != nil {
 			return &ValidationError{Name: "dispatch_generation", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.dispatch_generation": %w`, err)}
@@ -413,13 +407,13 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) SetUpdatedAt(v time.Time) *N
 }
 
 // SetState sets the "state" field.
-func (_u *NotificationEventDeliveryStatusUpdateOne) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetState(v string) *NotificationEventDeliveryStatusUpdateOne {
 	_u.mutation.SetState(v)
 	return _u
 }
 
 // SetNillableState sets the "state" field if the given value is not nil.
-func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableState(v *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
+func (_u *NotificationEventDeliveryStatusUpdateOne) SetNillableState(v *string) *NotificationEventDeliveryStatusUpdateOne {
 	if v != nil {
 		_u.SetState(*v)
 	}
@@ -623,11 +617,6 @@ func (_u *NotificationEventDeliveryStatusUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NotificationEventDeliveryStatusUpdateOne) check() error {
-	if v, ok := _u.mutation.State(); ok {
-		if err := notificationeventdeliverystatus.StateValidator(string(v)); err != nil {
-			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.DispatchGeneration(); ok {
 		if err := notificationeventdeliverystatus.DispatchGenerationValidator(v); err != nil {
 			return &ValidationError{Name: "dispatch_generation", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.dispatch_generation": %w`, err)}

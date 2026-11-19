@@ -5080,7 +5080,7 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "event_id", Type: field.TypeString},
 		{Name: "channel_id", Type: field.TypeString},
-		{Name: "state", Type: field.TypeString, Default: "PENDING"},
+		{Name: "state", Type: field.TypeString, Default: "pending"},
 		{Name: "dispatch_generation", Type: field.TypeInt, Default: 1, SchemaType: map[string]string{"postgres": "integer"}},
 		{Name: "dispatch_queued_at", Type: field.TypeTime, Nullable: true},
 		{Name: "reason", Type: field.TypeString, Nullable: true},

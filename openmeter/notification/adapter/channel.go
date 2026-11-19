@@ -8,6 +8,7 @@ import (
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -220,7 +221,7 @@ func (a *adapter) UpdateChannel(ctx context.Context, params notification.UpdateC
 }
 
 // fromDBChannelConfig uses the row's type to decode flat configs, which carry no
-// discriminator. Keep legacy envelope support until Phase 2 conversion is complete.
+// discriminator. Older writers can still store envelopes during rollout.
 func fromDBChannelConfig(channelType notification.ChannelType, data json.RawMessage) (notification.ChannelConfig, error) {
 	config := notification.ChannelConfig{
 		ChannelConfigMeta: notification.ChannelConfigMeta{Type: channelType},
@@ -253,11 +254,7 @@ func fromDBChannelConfig(channelType notification.ChannelType, data json.RawMess
 
 	// Unmarshal ignores missing fields, so a flat config also needs its URL
 	// to distinguish it from an empty object or an invalid envelope.
-	var webhook struct {
-		URL           string            `json:"url"`
-		CustomHeaders map[string]string `json:"custom_headers"`
-		SigningSecret string            `json:"signing_secret"`
-	}
+	var webhook v4.WebhookConfig
 
 	flatErr := json.Unmarshal(data, &webhook)
 	if flatErr == nil && webhook.URL == "" {
@@ -268,11 +265,7 @@ func fromDBChannelConfig(channelType notification.ChannelType, data json.RawMess
 		return notification.ChannelConfig{}, fmt.Errorf("invalid channel config: envelope: %w; flat: %w", legacyErr, flatErr)
 	}
 
-	config.WebHook = notification.WebHookChannelConfig{
-		URL:           webhook.URL,
-		CustomHeaders: webhook.CustomHeaders,
-		SigningSecret: webhook.SigningSecret,
-	}
+	config.WebHook = notification.WebHookChannelConfig(webhook)
 
 	return config, nil
 }
@@ -282,15 +275,7 @@ func toDBChannelConfig(config notification.ChannelConfig) (json.RawMessage, erro
 		return nil, fmt.Errorf("invalid channel type: %s", config.Type)
 	}
 
-	// TODO(notification-v4): switch to flat config writes in Phase 2. Old
-	// backends still require this envelope and its camelCase field names.
-	encoded, err := json.Marshal(struct {
-		Type notification.ChannelType          `json:"type"`
-		Data notification.WebHookChannelConfig `json:"data"`
-	}{
-		Type: "WEBHOOK",
-		Data: config.WebHook,
-	})
+	encoded, err := json.Marshal(v4.WebhookConfig(config.WebHook))
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode webhook config: %w", err)
 	}

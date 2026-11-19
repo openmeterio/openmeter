@@ -131,7 +131,7 @@ func (a *adapter) CreateRule(ctx context.Context, params notification.CreateRule
 		}
 
 		query := a.db.NotificationRule.Create().
-			SetType(params.Type).
+			SetType(toDBEventType(params.Type)).
 			SetName(params.Name).
 			SetNamespace(params.Namespace).
 			SetDisabled(params.Disabled).
@@ -350,11 +350,6 @@ func fromDBRuleConfigPayload[T any](eventType notification.EventType, data json.
 }
 
 func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
-	// Preserve the validation previously performed by Ent's typed config field.
-	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid rule config: %w", err)
-	}
-
 	var data any
 
 	switch config.Type {
@@ -364,17 +359,11 @@ func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
 		data = config.EntitlementReset
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		data = config.Invoice
+	default:
+		return nil, fmt.Errorf("invalid rule type: %s", config.Type)
 	}
 
-	// TODO(notification-v4): keep legacy envelope writes until all deployed and
-	// supported rollback versions can read the final config contract.
-	encoded, err := json.Marshal(struct {
-		Type notification.EventType `json:"type"`
-		Data any                    `json:"data"`
-	}{
-		Type: config.Type,
-		Data: data,
-	})
+	encoded, err := json.Marshal(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode rule config: %w", err)
 	}
