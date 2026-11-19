@@ -535,6 +535,53 @@ func (s *SyncStateTestSuite) TestBillingStartInsideYearlyFee() {
 	})
 }
 
+func (s *SyncStateTestSuite) TestBillingStartInLastSecondOfBillingPeriod() {
+	// Given a yearly in-advance fee on monthly billing. The subscription starts a fraction of a
+	// second after midnight, so its billing periods end there too. Billing starts at midnight on
+	// December 1: off the billing grid, in the last second of the November billing period.
+	ctx := s.T().Context()
+	s.Service = s.ChargeSyncService
+	start := s.mustParseTime("2026-11-01T00:00:00.789Z")
+	billingStartsAt := s.mustParseTime("2026-12-01T00:00:00Z")
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+	view := s.createSyncStateSubscriptionWithBillingStart(start, &billingStartsAt, productcatalog.Phase{
+		PhaseMeta: s.phaseMeta("paid", ""),
+		RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+			RateCardMeta: productcatalog.RateCardMeta{
+				Key:  "yearly-fee",
+				Name: "Yearly fee",
+				Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+					Amount:      alpacadecimal.NewFromInt(120),
+					PaymentTerm: productcatalog.InAdvancePaymentTerm,
+				}),
+			},
+			BillingCadence: lo.ToPtr(datetime.MustParseDuration(s.T(), "P1Y")),
+		}},
+	})
+
+	// When synced at its start.
+	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+	// Then the fee is billed from the billing start in the December billing period. Periods are
+	// at whole seconds, where the November billing period is already over at the billing start
+	// and would leave the fee with an empty billing period.
+	result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:      s.Namespace,
+		SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
+	})
+	s.Require().NoError(err)
+	s.Require().Len(result.Items, 1)
+
+	charge, err := result.Items[0].AsFlatFeeCharge()
+	s.Require().NoError(err)
+
+	intent := charge.Intent.GetBaseIntent()
+	s.Equal(timeutil.ClosedPeriod{From: billingStartsAt, To: s.mustParseTime("2027-11-01T00:00:00Z")}, intent.ServicePeriod)
+	s.Equal(timeutil.ClosedPeriod{From: billingStartsAt, To: s.mustParseTime("2027-01-01T00:00:00Z")}, intent.BillingPeriod)
+	s.Equal(billingStartsAt, intent.InvoiceAt)
+}
+
 func (s *SyncStateTestSuite) TestBillingStartInsideBillingPeriod() {
 	// Given a monthly subscription from November 1 with a fee billed in advance and usage billed
 	// in arrears, billed elsewhere until November 17. Only charges can start billing inside a

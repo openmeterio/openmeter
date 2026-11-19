@@ -88,6 +88,10 @@ Billing periods never begin before the billing start, so fees billed in advance
 are invoiced there at the earliest. Dropped periods keep their index: the first
 billed artifact of a recurring item can be `period[3]`.
 
+Shortening never leaves an empty period. Periods are compared at meter
+resolution (whole seconds), so a billing period that ends within the second of
+the billing start counts as over, and billing starts with the next one.
+
 Recurring artifacts use the stable identity:
 
 ```text

@@ -154,8 +154,8 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 	})
 }
 
-// applyBillingStartToAsOf returns the time to generate upcoming lines for, and the billing period
-// that contains the subscription's billing start.
+// applyBillingStartToAsOf returns the time to generate upcoming lines for, and the first billing
+// period that is billed: the one the subscription's billing start falls in.
 //
 // Items before the billing start are dropped, so we generate from there on. Otherwise the first
 // billed period would not exist until a sync shortly before it.
@@ -164,21 +164,32 @@ func (b Builder) Build(ctx context.Context, input BuildInput) (State, error) {
 // subscription ends by then: nothing is ever billed in that case, so there is no first billing
 // period to provision.
 func applyBillingStartToAsOf(subs subscription.SubscriptionView, asOf time.Time) (time.Time, timeutil.ClosedPeriod, error) {
-	billingStartsAt := subs.Subscription.BillingStartsAt
-	if billingStartsAt == nil {
+	if subs.Subscription.BillingStartsAt == nil {
 		return asOf, timeutil.ClosedPeriod{}, nil
 	}
 
-	if subs.Spec.ActiveTo != nil && !subs.Spec.ActiveTo.After(*billingStartsAt) {
+	// Item periods are at meter resolution, see truncateItemsIfNeeded, so periods are compared there.
+	billingStartsAt := subs.Subscription.BillingStartsAt.Truncate(streaming.MinimumWindowSizeDuration)
+
+	if subs.Spec.ActiveTo != nil && !subs.Spec.ActiveTo.Truncate(streaming.MinimumWindowSizeDuration).After(billingStartsAt) {
 		return asOf, timeutil.ClosedPeriod{}, nil
 	}
 
-	firstBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(*billingStartsAt)
+	firstBillingPeriod, err := subs.Spec.GetAlignedBillingPeriodAt(*subs.Subscription.BillingStartsAt)
 	if err != nil {
 		return time.Time{}, timeutil.ClosedPeriod{}, fmt.Errorf("getting the billing period at billing start: %w", err)
 	}
 
-	return lo.Latest(asOf, *billingStartsAt), firstBillingPeriod, nil
+	// A billing period that ends within the second of the billing start has nothing left to bill
+	// there. Billing starts with the next one, otherwise items would get an empty billing period.
+	if !firstBillingPeriod.To.Truncate(streaming.MinimumWindowSizeDuration).After(billingStartsAt) {
+		firstBillingPeriod, err = subs.Spec.GetAlignedBillingPeriodAt(firstBillingPeriod.To)
+		if err != nil {
+			return time.Time{}, timeutil.ClosedPeriod{}, fmt.Errorf("getting the billing period after billing start: %w", err)
+		}
+	}
+
+	return lo.Latest(asOf, *subs.Subscription.BillingStartsAt, firstBillingPeriod.From), firstBillingPeriod, nil
 }
 
 func resolveSubscriptionItemCurrency(item SubscriptionItemWithPeriods, invoiceCurrency currencyx.Code) (currencies.Currency, error) {

@@ -218,6 +218,10 @@ func TestStartBillingAt(t *testing.T) {
 			require.Equal(t, tc.expected.billingPeriod, got.BillingPeriod)
 			require.Equal(t, tc.expected.invoiceAt, got.GetInvoiceAt())
 
+			// Shortening must leave something to bill.
+			require.Equal(t, tc.servicePeriod.IsEmpty(), got.ServicePeriod.IsEmpty())
+			require.False(t, got.BillingPeriod.IsEmpty())
+
 			// The full service period is what proration is measured against, and the identity
 			// must stay stable across syncs.
 			require.Equal(t, tc.fullServicePeriod, got.FullServicePeriod)
