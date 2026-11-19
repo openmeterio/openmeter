@@ -2665,7 +2665,9 @@ func TestBillingStartsAt(t *testing.T) {
 		}
 	}
 
-	create := func(ctx context.Context, deps testDeps, billingStartsAt time.Time) (subscription.SubscriptionView, error) {
+	create := func(t *testing.T, ctx context.Context, deps testDeps, billingStartsAt time.Time) (subscription.SubscriptionView, error) {
+		t.Helper()
+
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
 		return deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
@@ -2681,23 +2683,31 @@ func TestBillingStartsAt(t *testing.T) {
 	}
 
 	t.Run("is rejected for a namespace that is not on the allowlist", func(t *testing.T) {
+		// given a namespace that is not on the billing start allowlist
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t)
 
-		_, err := create(t.Context(), deps, nextPeriodStart)
+		// when a subscription is created with a billing start
+		_, err := create(t, t.Context(), deps, nextPeriodStart)
+
+		// then the create is rejected
 		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotEnabled)
 	})
 
 	t.Run("is stored when it is the start of a billing period", func(t *testing.T) {
+		// given a namespace on the allowlist
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t)
 
-		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		// when a subscription is created with a billing start on a billing period boundary
+		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
 		require.NoError(t, err)
+
+		// then the billing start is returned and persisted
 		require.Equal(t, &nextPeriodStart, created.Subscription.BillingStartsAt)
 		require.Equal(t, &nextPeriodStart, created.Spec.BillingStartsAt)
 
@@ -2707,22 +2717,30 @@ func TestBillingStartsAt(t *testing.T) {
 	})
 
 	t.Run("is rejected inside a billing period on invoice lines", func(t *testing.T) {
+		// given a namespace on the allowlist whose subscriptions are billed through invoice lines
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t)
 
-		_, err := create(allowed(t.Context()), deps, time.Date(2026, 12, 17, 0, 0, 0, 0, time.UTC))
+		// when the billing start is inside a billing period
+		_, err := create(t, allowed(t.Context()), deps, time.Date(2026, 12, 17, 0, 0, 0, 0, time.UTC))
+
+		// then the create is rejected
 		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotAligned)
 	})
 
 	t.Run("is rejected before the subscription start", func(t *testing.T) {
+		// given a namespace on the allowlist
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t)
 
-		_, err := create(allowed(t.Context()), deps, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
+		// when the billing start is before the subscription start
+		_, err := create(t, allowed(t.Context()), deps, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
+
+		// then the create is rejected
 		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtBeforeSubscriptionStart)
 	})
 
@@ -2733,7 +2751,7 @@ func TestBillingStartsAt(t *testing.T) {
 
 		deps := setup(t)
 
-		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
 		require.NoError(t, err)
 
 		// when the plan is changed on 2026-11-10 by a caller that could not set a billing start itself
@@ -2757,7 +2775,7 @@ func TestBillingStartsAt(t *testing.T) {
 
 		deps := setup(t)
 
-		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
 		require.NoError(t, err)
 
 		// when the plan is changed on 2026-12-10
@@ -2781,7 +2799,7 @@ func TestBillingStartsAt(t *testing.T) {
 
 		deps := setup(t)
 
-		created, err := create(allowed(t.Context()), deps, nextPeriodStart)
+		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
 		require.NoError(t, err)
 
 		// when it is migrated to the next version of its plan on 2026-11-10
