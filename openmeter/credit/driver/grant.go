@@ -81,7 +81,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				}
 			}
 
-			return ListGrantsHandlerRequest{
+			req := ListGrantsHandlerRequest{
 				params: grant.ListParams{
 					Namespace:      ns,
 					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
@@ -98,7 +98,17 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),
 					FeatureIdsOrKeys: convert.DerefHeaderPtr[string](params.Params.Feature),
 				},
-			}, nil
+			}
+
+			// Without either page parameter, the response stays a plain array. With only
+			// one of them, default the other one: a page number of 0 would give the
+			// database a negative offset.
+			if !req.params.Page.IsZero() {
+				req.params.Page.PageNumber = defaultx.IfZero(req.params.Page.PageNumber, commonhttp.DefaultPage)
+				req.params.Page.PageSize = defaultx.IfZero(req.params.Page.PageSize, commonhttp.DefaultPageSize)
+			}
+
+			return req, nil
 		},
 		func(ctx context.Context, request ListGrantsHandlerRequest) (ListGrantsHandlerResponse, error) {
 			// due to backward compatibility, if pagination is not provided we return a simple array
