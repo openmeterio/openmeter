@@ -96,6 +96,7 @@ func (s *service) expandChargesUsage(ctx context.Context, namespace string, char
 			eligibleIndexes = append(eligibleIndexes, idx)
 		}
 	}
+
 	if len(eligible) == 0 {
 		return charges, nil
 	}

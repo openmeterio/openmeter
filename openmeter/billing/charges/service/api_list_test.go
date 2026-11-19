@@ -177,14 +177,17 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 		override          *timeutil.ClosedPeriod
 		overrideDeleted   bool
 		wantRealtimeUsage bool
+		// quantity is distinct per eligible fixture so a result written back to
+		// the wrong charge fails the assertions.
+		quantity float64
 	}
 	fixtures := []chargeFixture{
-		{name: "active", status: usagebased.StatusActive, period: current, wantRealtimeUsage: true},
-		{name: "awaiting payment after period", status: usagebased.StatusActiveAwaitingPaymentSettlement, period: past, wantRealtimeUsage: true},
-		{name: "created at start", status: usagebased.StatusCreated, period: starting, wantRealtimeUsage: true},
+		{name: "active", status: usagebased.StatusActive, period: current, wantRealtimeUsage: true, quantity: 3},
+		{name: "awaiting payment after period", status: usagebased.StatusActiveAwaitingPaymentSettlement, period: past, wantRealtimeUsage: true, quantity: 5},
+		{name: "created at start", status: usagebased.StatusCreated, period: starting, wantRealtimeUsage: true, quantity: 7},
 		{name: "created at end", status: usagebased.StatusCreated, period: ending},
 		{name: "created in future", status: usagebased.StatusCreated, period: future},
-		{name: "override moves into period", status: usagebased.StatusCreated, period: future, override: &overrideCurrent, wantRealtimeUsage: true},
+		{name: "override moves into period", status: usagebased.StatusCreated, period: future, override: &overrideCurrent, wantRealtimeUsage: true, quantity: 11},
 		{name: "override moves out of period", status: usagebased.StatusCreated, period: current, override: &future},
 		{name: "final", status: usagebased.StatusFinal, period: current},
 		{name: "deleted", status: usagebased.StatusDeleted, period: current},
@@ -236,6 +239,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 			if fixture.overrideDeleted {
 				override.IntentDeletedAt = lo.ToPtr(clock.Now())
 			}
+
 			_, err := s.UsageBasedAdapter.CreateChargeOverride(ctx, charge.ChargeBase, override)
 			require.NoError(t, err, fixture.name)
 		}
@@ -243,7 +247,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 		if fixture.wantRealtimeUsage {
 			wantPeriods = append(wantPeriods, effectivePeriod)
 			s.MockStreamingConnector.AddRow(feat.Feature.Key, meter.MeterQueryRow{
-				Value:       3,
+				Value:       fixture.quantity,
 				WindowStart: effectivePeriod.From,
 				WindowEnd:   effectivePeriod.To,
 			})
@@ -261,6 +265,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 			Namespace:      namespace,
 			Page:           pagination.NewPage(1, len(fixtures)),
 			CustomerIDs:    []string{cust.ID},
+			ChargeTypes:    []meta.ChargeType{meta.ChargeTypeUsageBased},
 			IncludeDeleted: true,
 			Expands:        expands,
 		},
@@ -278,6 +283,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 		require.True(t, query.FilterStoredAt.Lt.Equal(now))
 		queriedPeriods = append(queriedPeriods, timeutil.ClosedPeriod{From: query.From.UTC(), To: query.To.UTC()})
 	}
+
 	require.ElementsMatch(t, wantPeriods, queriedPeriods)
 
 	for _, item := range listed.Charges.Items {
@@ -290,12 +296,12 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 
 		if fixture.wantRealtimeUsage {
 			require.NotNil(t, charge.Expands.RealtimeUsage, fixture.name)
-			require.Equal(t, float64(3), charge.Expands.RealtimeUsage.Total.InexactFloat64(), fixture.name)
+			require.Equal(t, fixture.quantity, charge.Expands.RealtimeUsage.Total.InexactFloat64(), fixture.name)
 			require.NotNil(t, charge.Expands.RealtimeQuantity, fixture.name)
-			require.Equal(t, float64(3), charge.Expands.RealtimeQuantity.InexactFloat64(), fixture.name)
+			require.Equal(t, fixture.quantity, charge.Expands.RealtimeQuantity.InexactFloat64(), fixture.name)
 			require.Len(t, item.UsageBasedRealizations, 1, fixture.name)
 			require.NotNil(t, item.UsageBasedRealizations[0].Quantity, fixture.name)
-			require.Equal(t, float64(3), item.UsageBasedRealizations[0].Quantity.InexactFloat64(), fixture.name)
+			require.Equal(t, fixture.quantity, item.UsageBasedRealizations[0].Quantity.InexactFloat64(), fixture.name)
 		} else {
 			require.Nil(t, charge.Expands.RealtimeUsage, fixture.name)
 			require.Nil(t, charge.Expands.RealtimeQuantity, fixture.name)
@@ -306,6 +312,7 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 			}
 		}
 	}
+
 	require.Empty(t, fixturesByID)
 
 	s.Run("direct single reads apply the same period boundary", func() {
