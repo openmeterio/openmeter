@@ -98,10 +98,10 @@ func TestAllSyncsEverySelectedSubscription(t *testing.T) {
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
-	// given: two pages from the due query and one from the deletion cleanup query
+	// given: two pages from the due query and two from the deletion cleanup query
 	spy := &subscriptionSyncSpy{
 		candidatePages: [][]subscriptionsync.SubscriptionToReconcile{{candidate("due-1")}, {candidate("due-2")}},
-		deletedPages:   [][]subscriptionsync.SubscriptionToReconcile{{candidate("deleted")}},
+		deletedPages:   [][]subscriptionsync.SubscriptionToReconcile{{candidate("deleted-1")}, {candidate("deleted-2")}},
 	}
 	r := Reconciler{subscriptionSync: spy, logger: slog.New(slog.DiscardHandler)}
 
@@ -125,7 +125,8 @@ func TestAllSyncsEverySelectedSubscription(t *testing.T) {
 	require.Equal(t, []models.NamespacedID{
 		candidate("due-1").NamespacedID,
 		candidate("due-2").NamespacedID,
-		candidate("deleted").NamespacedID,
+		candidate("deleted-1").NamespacedID,
+		candidate("deleted-2").NamespacedID,
 	}, spy.synced)
 
 	// and: a sync that an event finished after selection is left alone, without
