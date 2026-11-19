@@ -5,7 +5,7 @@ from pathlib import Path
 
 class Receiver(BaseHTTPRequestHandler):
     def do_POST(self):
-        if self.path not in ("/old", "/candidate"):
+        if self.path not in ("/old", "/candidate", "/rollback", "/archived"):
             self.send_error(404)
             return
 

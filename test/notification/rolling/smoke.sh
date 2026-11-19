@@ -52,14 +52,14 @@ api() {
 
 id_from() { jq -er '.id | select(test("^[0-9A-HJKMNP-TV-Z]{26}$"))' "$1"; }
 seed() {
-    local role=$1 dir="$artifacts/$1" channel rule event
+    local role=$1 label=${2:-$1} dir="$artifacts/${2:-$1}" channel rule event
     mkdir "$dir"
-    jq -n --arg role "$role" '{type:"WEBHOOK", name:$role, url:("http://receiver:8080/"+$role),
+    jq -n --arg role "$label" '{type:"WEBHOOK", name:$role, url:("http://receiver:8080/"+$role),
         customHeaders:{"X-Smoke":$role}, signingSecret:"whsec_MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3"}' >"$dir/channel-input"
     api "$role" POST channels --data-binary "@$dir/channel-input" >"$dir/channel"
     channel=$(id_from "$dir/channel")
 
-    jq -n --arg role "$role" --arg id "$channel" '{type:"entitlements.reset",name:$role,channels:[$id]}' >"$dir/rule-input"
+    jq -n --arg role "$label" --arg id "$channel" '{type:"entitlements.reset",name:$role,channels:[$id]}' >"$dir/rule-input"
     api "$role" POST rules --data-binary "@$dir/rule-input" >"$dir/rule"
     rule=$(id_from "$dir/rule")
 
@@ -87,7 +87,7 @@ cross_read() {
 }
 
 stored_format() {
-    local writer=$1 expected_channel_type=$2 dir="$artifacts/$1" event
+    local writer=$1 expected_channel_type=$2 dir="$artifacts/${3:-$1}" event
     event=$(id_from "$dir/event")
     sql "SELECT jsonb_build_object('channel', c.type, 'config', c.config, 'rule', r.type, 'ruleConfig', r.config,
             'event', e.type, 'payload', e.payload, 'state', s.state)
@@ -133,7 +133,10 @@ await_delivery() {
     fail "Timed out waiting for $reader to reconcile $writer Event $event (attempt count must exceed $previous)"
 }
 
-# Each jobs image migrates once. Both APIs have autoMigrate disabled, including on rollback.
+# shellcheck source=convergence.sh
+source ./convergence.sh
+
+# Migrations run through jobs. Both APIs have autoMigrate disabled, including on rollback.
 dc up -d --wait --wait-timeout 180 postgres redis kafka clickhouse svix receiver
 dc run --rm -T old-jobs >"$artifacts/old-migration.log" 2>&1
 db=$(identity)
@@ -143,32 +146,63 @@ start_server old
 seed old
 old_event=$(id_from "$artifacts/old/event")
 stored_format old WEBHOOK
+seed old archived
+archived_channel=$(id_from "$artifacts/archived/channel")
+archived_rule=$(id_from "$artifacts/archived/rule")
+archived_event=$(id_from "$artifacts/archived/event")
+# Mixed storage already exists at cutover. Keep the disabled/deleted fixtures
+# out of dispatch and leave their legacy type columns and Rule config to backfill.
+sql "UPDATE notification_channels SET disabled=true, deleted_at=now(), config=jsonb_build_object(
+        'url',config->'data'->'url', 'custom_headers',config->'data'->'customHeaders',
+        'signing_secret',config->'data'->'signingSecret') WHERE id='$archived_channel';
+     UPDATE notification_rules SET disabled=true, deleted_at=now() WHERE id='$archived_rule';
+     UPDATE notification_event_delivery_status SET state='failed', next_attempt_at=NULL WHERE event_id='$archived_event'"
+archived_before=$(sql "SELECT c.deleted_at,r.deleted_at FROM notification_channels c, notification_rules r
+    WHERE c.id='$archived_channel' AND r.id='$archived_rule' AND c.disabled AND r.disabled")
+[[ -n $archived_before ]] || fail "Missing archived fixtures"
+check_counts baseline 'all(.[]; . > 0)'
 sql "UPDATE notification_event_delivery_status SET next_attempt_at=now()-interval '1 minute' WHERE event_id='$old_event'"
-pending=$(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'")
+pending=$(sql "SELECT jsonb_build_array(id,lower(state),next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'")
 
+dc stop old
 dc run --rm -T candidate-jobs >"$artifacts/candidate-migration.log" 2>&1
 upgraded=$(version)
-[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded >= baseline )) || fail "Expected schema version at least $baseline, got $upgraded"
+[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded >= 20261119152230 && upgraded > baseline )) || fail "Expected all five candidate backfills, got $upgraded"
 # Explicit state writes cannot prove that the jobs image applied the new default.
 [[ $(sql "SELECT column_default FROM information_schema.columns
     WHERE table_schema='public' AND table_name='notification_event_delivery_status' AND column_name='state'") == "'pending'::character varying" ]] ||
     fail "Candidate migration did not set the delivery state default to pending"
 [[ $(identity) == "$db" ]] || fail "Database changed during migration"
-[[ $(sql "SELECT jsonb_build_array(id,state,next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'") == "$pending" ]] ||
+[[ $(sql "SELECT jsonb_build_array(id,lower(state),next_attempt_at) FROM notification_event_delivery_status WHERE event_id='$old_event'") == "$pending" ]] ||
     fail "Migration changed the in-flight delivery"
 echo "PostgreSQL $db migrated from $baseline to $upgraded"
 
+check_counts first-upgrade 'all(.[]; . == 0)'
+[[ $(sql "SELECT c.deleted_at,r.deleted_at FROM notification_channels c, notification_rules r
+    WHERE c.id='$archived_channel' AND r.id='$archived_rule' AND c.disabled AND r.disabled") == "$archived_before" ]] ||
+    fail "Upgrade changed disabled or deleted resources"
 start_server candidate
 cross_read candidate old
 seed candidate
 event=$(id_from "$artifacts/candidate/event")
 channel=$(id_from "$artifacts/candidate/channel")
 stored_format candidate webhook
-cross_read old candidate
+check_counts candidate-writes 'all(.[]; . == 0)'
 
 # Defer this destination until rollback. A sentinel detects an old writer clearing an unfamiliar column.
 sql "UPDATE notification_event_delivery_status SET next_attempt_at=now()+interval '1 day' WHERE event_id='$event'"
 sql "UPDATE notification_channels SET provider_data='{\"smoke\":\"preserve\"}' WHERE id='$channel'"
+
+# Only one reconciler may deliver during each handoff.
+export RECONCILE_INTERVAL=1s
+start_server candidate
+await_delivery candidate old 1 0
+receipts | jq -se 'length==1' >/dev/null || fail "Candidate delivered the held Event"
+check_counts candidate-delivery 'all(.[]; . == 0)'
+
+# During the overlap, keep the old reconciler idle while it edits candidate rows.
+RECONCILE_INTERVAL=1h start_server old
+cross_read old candidate
 jq '.name="updated by old"' "$artifacts/candidate/channel-input" >"$artifacts/old-update"
 api old PUT "channels/$channel" --data-binary "@$artifacts/old-update" >/dev/null
 [[ $(sql "SELECT name || '/' || type || '/' || (provider_data->>'smoke') FROM notification_channels WHERE id='$channel'") == 'updated by old/webhook/preserve' ]] ||
@@ -190,13 +224,6 @@ sql "SELECT jsonb_build_object('type',type,'config',config) FROM notification_ru
 cross_read candidate candidate
 echo "Old server updated candidate Rule and restored its legacy config envelope"
 
-
-# Only one reconciler may deliver during each handoff.
-dc stop old
-export RECONCILE_INTERVAL=1s
-start_server candidate
-await_delivery candidate old 1 0
-receipts | jq -se 'length==1' >/dev/null || fail "Candidate delivered the held Event"
 dc stop candidate
 
 start_server old
@@ -213,4 +240,38 @@ api old POST "events/$event/resend" --data "$(jq -n --arg c "$channel" '{channel
 await_delivery old candidate 2 "$before"
 receipts >"$artifacts/receipts.ndjson"
 jq -se 'length==3' "$artifacts/receipts.ndjson" >/dev/null || fail "Unexpected webhook receipts"
-echo "PASS: rollback to the old server on upgraded PostgreSQL $db (schema $upgraded)"
+# Hold the next Event until the final candidate is ready to reconcile it.
+export RECONCILE_INTERVAL=1h
+start_server old
+seed old rollback
+stored_format old WEBHOOK rollback
+check_counts rollback 'all(.[]; . > 0)'
+dc stop old
+
+dc run --rm -T candidate-jobs >"$artifacts/re-upgrade-jobs.log" 2>&1
+[[ $(identity) == "$db" && $(version) == "$upgraded" ]] || fail "Re-upgrade changed database or schema version"
+check_counts recorded-migrations 'all(.[]; . > 0)'
+# Stop at a migration boundary, then resume from the beginning, as an operator
+# would after a rollback to legacy writers. Each psql invocation is a new session.
+replay "${backfills[@]:0:2}"
+check_counts interrupted '.channel_type == 0 and .channel_config == 0 and .rule_type > 0 and .event_type > 0 and .delivery_state > 0 and .rule_config > 0'
+replay "${backfills[@]:0:4}"
+replay_during_rule_edit "$rule"
+check_counts re-upgrade 'all(.[]; . == 0)'
+row_versions >"$artifacts/versions-before"
+replay "${backfills[@]}"
+row_versions >"$artifacts/versions-after"
+cmp "$artifacts/versions-before" "$artifacts/versions-after" || fail "Repeated backfills rewrote rows"
+
+export RECONCILE_INTERVAL=1s
+start_server candidate
+cross_read candidate rollback
+cross_read candidate candidate
+api candidate GET "channels/$channel" | jq -e '.name=="updated by old"' >/dev/null
+api candidate GET "rules/$rule" | jq -e '.name=="updated by old"' >/dev/null
+await_delivery candidate rollback 1 0
+check_counts final 'all(.[]; . == 0)'
+[[ $(identity) == "$db" && $(version) == "$upgraded" ]] || fail "Database identity or schema version changed"
+receipts >"$artifacts/final-receipts.ndjson"
+jq -se 'length==4' "$artifacts/final-receipts.ndjson" >/dev/null || fail "Unexpected receipts after re-upgrade"
+echo "PASS: all five backfills converge after rollback and re-upgrade on PostgreSQL $db (schema $upgraded)"
