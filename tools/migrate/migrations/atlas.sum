@@ -1,4 +1,4 @@
-h1:m1fzvARUEaEOb5GAT1DDoTfvQ78vE4hhzmE3bLSlclA=
+h1:tVcz2sV67u9ep9kt/JWAGR76EdBsxbBHA5kWR/sRan8=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -331,5 +331,6 @@ h1:m1fzvARUEaEOb5GAT1DDoTfvQ78vE4hhzmE3bLSlclA=
 20261118112157_add_app_stripe_invoice_generation.up.sql h1:GcPNNIZT1Jn/j5jsPho9Yz/ddyUHHfslu9qsquzhj8Y=
 20261118161335_notification_delivery_state_lowercase.up.sql h1:2KUEsMnjhWfgh7OUAs9VITSPqYxtnl9TohNlYUcxulc=
 20261118213749_notification_channel_type_normalization.up.sql h1:Yi/cXY/NXusZ1yOHl9yfp0BdI65r5DX7p8ck1p0QblQ=
-20261119133849_drop_subscription_billing_sync_states.up.sql h1:PRYTm6M8HG8UvhqWD8l39S2hS175fu59XpriCAYRBfI=
-20261119151627_add_subscription_billing_starts_at.up.sql h1:Doav52bDDRZOycxBbtAc+bov/FtVrX9zOAtfNYUfAiM=
+20261118215856_notification_channel_config_normalization.up.sql h1:Hz2s4Tz+8Fpxq6oGCe1FcqxWgu0PY+UkCRosxT+XU8g=
+20261119133849_drop_subscription_billing_sync_states.up.sql h1:WSRDLyM5QFBnI0QP3rijJ0kDa2zl2hh+Hq/sccPzMBY=
+20261119151627_add_subscription_billing_starts_at.up.sql h1:CUm/f5ta+T902GlU/O7P1beOpnk/SRZzooZ02M+wjEA=
