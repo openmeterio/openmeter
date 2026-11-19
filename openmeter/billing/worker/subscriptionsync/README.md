@@ -297,7 +297,11 @@ Known limits of this selection:
 - A subscription created or edited just before a run still shows `new` or
   differing revisions while its event is in flight, so both can sync it. The
   customer billing lock serializes them. If the event gets there first the
-  periodic sync is skipped; otherwise the event syncs it again.
+  periodic sync is skipped; otherwise the event syncs it again. The skip compares
+  the other sync's start time with the selection time, so it misses a sync that
+  was already running when the candidates were selected, and workers whose
+  clocks disagree. Both syncs then run: lines beyond the next billing period are
+  removed and provisioned again as their deadlines come.
 - The deadline lies in the last 5-20% of a billing period, so very short periods
   depend on how often the job runs.
 

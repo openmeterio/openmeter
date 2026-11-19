@@ -154,6 +154,16 @@ func forEachPage(
 			return err
 		}
 
+		// A cursor that does not move forward in (created_at, id) order would list
+		// pages we have already seen, forever. Checked before the page is handed
+		// on, so a repeated page is not synced again.
+		if next := page.NextCursor; next != nil && cursor != nil {
+			advanced := next.Time.After(cursor.Time) || (next.Time.Equal(cursor.Time) && next.ID > cursor.ID)
+			if !advanced {
+				return errors.New("listing subscriptions to reconcile: the pagination cursor did not advance")
+			}
+		}
+
 		if len(page.Items) > 0 {
 			if err := fn(page.Items); err != nil {
 				return err
@@ -162,11 +172,6 @@ func forEachPage(
 
 		if page.NextCursor == nil {
 			return nil
-		}
-
-		// The same cursor would list the same page again, forever.
-		if cursor != nil && page.NextCursor.ID == cursor.ID && page.NextCursor.Time.Equal(cursor.Time) {
-			return errors.New("listing subscriptions to reconcile: the pagination cursor did not advance")
 		}
 
 		cursor = page.NextCursor

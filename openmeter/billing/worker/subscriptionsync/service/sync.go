@@ -211,6 +211,11 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			// Checked under the billing lock, so a sync that was holding it is seen
 			// here. Only a strictly later success counts: one recorded at the selection
 			// instant may be the very state that made the subscription due.
+			//
+			// LastSuccessAt is taken when a sync starts, so a sync that was already
+			// running at selection, or a worker with a slower clock, is not caught and
+			// both syncs run. That window is accepted: nothing is billed wrongly, the
+			// later periods are provisioned again as their deadlines come.
 			if options.SkipIfSyncedSince != nil && len(syncStates) > 0 {
 				state := syncStates[0]
 				if state.LastSuccessAt != nil && state.LastSuccessAt.After(*options.SkipIfSyncedSince) &&

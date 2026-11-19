@@ -216,7 +216,9 @@ func TestAllFailsWhenTheCursorDoesNotAdvance(t *testing.T) {
 		ReconcilerListSubscriptionsInput: ReconcilerListSubscriptionsInput{Lookback: time.Hour},
 	})
 
-	// then: the run ends with an error instead of listing the same page forever
+	// then: the run ends with an error instead of listing the same page forever,
+	// and the repeated page is not synced a second time
 	require.ErrorContains(t, err, "cursor did not advance")
 	require.Len(t, spy.listInputs, 2)
+	require.Equal(t, []models.NamespacedID{candidate("repeated").NamespacedID}, spy.synced)
 }
