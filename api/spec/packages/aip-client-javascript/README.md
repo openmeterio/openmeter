@@ -390,9 +390,10 @@ The full call path, HTTP route, and a short description are listed below.
 
 ### Charges
 
-| Method                | HTTP                     | Description                                                                                                         |
-| --------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `client.charges.list` | `GET /openmeter/charges` | List charges. Returns the charges of every customer that are represented as either flat fee or usage-based charges. |
+| Method                | HTTP                                | Description                                                                                                         |
+| --------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `client.charges.get`  | `GET /openmeter/charges/{chargeId}` | Get a flat fee or usage-based charge by ID. Deleted charges are returned with their status and realization history. |
+| `client.charges.list` | `GET /openmeter/charges`            | List charges. Returns the charges of every customer that are represented as either flat fee or usage-based charges. |
 
 ### Tax
 

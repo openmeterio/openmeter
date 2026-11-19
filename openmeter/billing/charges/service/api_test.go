@@ -132,7 +132,7 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteCreatesOverrideForSupported
 
 	s.Run("then the effective intents are deleted overrides", func() {
 		for _, chargeID := range chargeIDs {
-			deletedCharge, err := s.Charges.GetByID(ctx, charges.GetByIDInput{ChargeID: chargeID})
+			deletedCharge, err := s.Charges.GetCustomerCharge(ctx, charges.GetByIDInput{ChargeID: chargeID})
 			require.NoError(s.T(), err)
 
 			switch deletedCharge.Type() {
@@ -154,6 +154,14 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteCreatesOverrideForSupported
 				s.T().Fatalf("unexpected deleted charge type: %s", deletedCharge.Type())
 			}
 		}
+	})
+
+	s.Run("a charge ID from another namespace is missing", func() {
+		require.NotEmpty(s.T(), chargeIDs)
+		_, err := s.Charges.GetCustomerCharge(ctx, charges.GetByIDInput{
+			ChargeID: meta.ChargeID{Namespace: s.GetUniqueNamespace("other-namespace"), ID: chargeIDs[0].ID},
+		})
+		require.True(s.T(), models.IsGenericNotFoundError(err), "%v", err)
 	})
 }
 
@@ -277,6 +285,11 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteRejectsCreditPurchase() {
 		require.NoError(s.T(), err)
 		require.Equal(s.T(), status, creditPurchase.Status)
 		require.NotNil(s.T(), creditPurchase.Realizations.CreditGrantRealization)
+	})
+
+	s.Run("the customer charge facade treats a credit purchase ID as missing", func() {
+		_, err := s.Charges.GetCustomerCharge(ctx, charges.GetByIDInput{ChargeID: chargeID})
+		require.ErrorIs(s.T(), err, charges.ErrChargeNotFound)
 	})
 }
 
@@ -651,7 +664,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 	})
 
 	s.Run("then paid billing history is retained", func() {
-		charge := s.mustGetChargeByID(chargeID)
+		charge, err := s.Charges.GetCustomerCharge(ctx, charges.GetByIDInput{ChargeID: chargeID})
+		require.NoError(s.T(), err)
 		flatFee, err := charge.AsFlatFeeCharge()
 		require.NoError(s.T(), err)
 		require.Equal(s.T(), flatfee.StatusDeleted, flatFee.Status)
@@ -660,6 +674,9 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 		require.NotNil(s.T(), flatFee.Intent.GetOverrideLayerMutableFields().IntentDeletedAt)
 		require.Nil(s.T(), flatFee.Realizations.CurrentRun)
 		require.Len(s.T(), flatFee.Realizations.PriorRuns, 1)
+		require.Len(s.T(), charge.FlatFeeRealizations, 1)
+		require.NotNil(s.T(), charge.FlatFeeRealizations[0].Run)
+		require.Equal(s.T(), flatFee.Realizations.PriorRuns[0].ID, charge.FlatFeeRealizations[0].Run.ID)
 
 		payment := flatFee.Realizations.PriorRuns[0].Payment
 		require.NotNil(s.T(), payment)

@@ -689,6 +689,18 @@ func (s *Server) ListCreditTransactions(w http.ResponseWriter, r *http.Request, 
 
 // Charges
 
+func (s *Server) GetCharge(w http.ResponseWriter, r *http.Request, chargeId apiv3models.ULID, params apiv3models.GetChargeParams) {
+	if s.chargesHandler == nil {
+		unimplemented.GetCharge(w, r, chargeId, params)
+		return
+	}
+
+	s.chargesHandler.GetCharge().With(chargeshandler.GetChargeParams{
+		ChargeID: chargeId,
+		Params:   params,
+	}).ServeHTTP(w, r)
+}
+
 func (s *Server) ListCharges(w http.ResponseWriter, r *http.Request, params apiv3models.ListChargesParams) {
 	if s.chargesHandler == nil {
 		unimplemented.ListCharges(w, r, params)

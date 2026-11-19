@@ -82,8 +82,7 @@ const (
 	ExpandDetailedLines       Expand = "detailed_lines"
 	ExpandDeletedRealizations Expand = "deleted_realizations"
 
-	// The expands below are resolved only by the customer-charge API facade
-	// (service.ListCustomerCharges); adapters and sub-services ignore them.
+	// The customer-charge API facade resolves the expands below.
 
 	ExpandCustomer           Expand = "customer"
 	ExpandFeature            Expand = "feature"

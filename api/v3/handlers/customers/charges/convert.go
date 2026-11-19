@@ -919,6 +919,19 @@ func convertAPIChargesExpand(e apiv3models.BillingChargesExpand) (meta.Expand, e
 	}
 }
 
+func fromAPIChargesExpands(ctx context.Context, expand *[]apiv3models.BillingChargesExpand) (meta.Expands, error) {
+	if expand == nil {
+		return meta.ExpandNone, nil
+	}
+
+	expands, err := lo.MapErr(*expand, slicesx.WrapMapFn(convertAPIChargesExpand))
+	if err != nil {
+		return nil, newInvalidQueryParamError(ctx, "expand", err)
+	}
+
+	return meta.ExpandNone.With(expands...), nil
+}
+
 func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
 
@@ -1105,17 +1118,9 @@ func fromAPIListChargesParams(ctx context.Context, namespace string, pageQuery *
 			fmt.Errorf("page size must not exceed %d", maxListChargesPageSize))
 	}
 
-	// Realization runs are always required to compute booked totals;
-	// the facade adds that expand itself. The request only carries the
-	// expands the caller asked for.
-	expands := meta.ExpandNone
-	if expand != nil {
-		chargesExpands, err := lo.MapErr(*expand, slicesx.WrapMapFn(convertAPIChargesExpand))
-		if err != nil {
-			return billingcharges.ListCustomerChargesInput{}, newInvalidQueryParamError(ctx, "expand", err)
-		}
-
-		expands = expands.With(chargesExpands...)
+	expands, err := fromAPIChargesExpands(ctx, expand)
+	if err != nil {
+		return billingcharges.ListCustomerChargesInput{}, err
 	}
 
 	req := billingcharges.ListCustomerChargesInput{

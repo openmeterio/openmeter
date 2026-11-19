@@ -11923,6 +11923,22 @@ export const snapshotQuantitiesInvoicePathParams = z.object({
 
 export const snapshotQuantitiesInvoiceResponse = invoice
 
+export const getChargePathParams = z.object({
+  chargeId: ulid,
+})
+
+export const getChargeQueryParams = z.object({
+  expand: z
+    .array(chargesExpand)
+    .optional()
+
+    .describe(
+      'Expand related entities, realization details, or real-time usage.',
+    ),
+})
+
+export const getChargeResponse = charge
+
 export const listChargesQueryParams = z.object({
   page: z
     .object({
@@ -24684,6 +24700,22 @@ export const snapshotQuantitiesInvoicePathParamsWire = z.object({
 })
 
 export const snapshotQuantitiesInvoiceResponseWire = invoiceWire
+
+export const getChargePathParamsWire = z.object({
+  chargeId: ulidWire,
+})
+
+export const getChargeQueryParamsWire = z.object({
+  expand: z
+    .array(chargesExpandWire)
+    .optional()
+
+    .describe(
+      'Expand related entities, realization details, or real-time usage.',
+    ),
+})
+
+export const getChargeResponseWire = chargeWire
 
 export const listChargesQueryParamsWire = z.object({
   page: z

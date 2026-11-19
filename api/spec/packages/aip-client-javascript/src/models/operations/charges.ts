@@ -4,10 +4,29 @@ import { z } from 'zod'
 import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
+  Charge,
   ChargePagePaginatedResponse,
   ListChargesParamsFilter,
   SortQueryInput,
 } from '../types.js'
+
+export interface GetChargeQuery {
+  /** Expand related entities, realization details, or real-time usage. */
+  expand?: (
+    | 'real_time_usage'
+    | 'customer'
+    | 'feature'
+    | 'subscription'
+    | 'realization.invoice'
+    | 'realization.totals'
+    | 'realization.detailed_lines'
+  )[]
+}
+
+export type GetChargeRequest = AcceptDateStrings<
+  GetChargeQuery & { chargeId: string }
+>
+export type GetChargeResponse = Charge
 
 export interface ListChargesQuery {
   /** Determines which page of the collection to retrieve. */
