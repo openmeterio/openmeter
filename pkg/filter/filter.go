@@ -167,6 +167,7 @@ func (f FilterString) SelectWhereExpr(field string, q *sqlbuilder.SelectBuilder)
 		if len(*f.In) == 0 {
 			return q.In(field)
 		}
+
 		return q.In(field, *f.In)
 	case f.Nin != nil:
 		return q.NotIn(field, *f.Nin)
@@ -1053,6 +1054,7 @@ func NewULIDEq(ids ...string) *FilterULID {
 	if len(ids) == 1 {
 		return &FilterULID{FilterString: FilterString{Eq: lo.ToPtr(ids[0])}}
 	}
+
 	return &FilterULID{FilterString: FilterString{In: lo.ToPtr(slices.Clone(ids))}}
 }
 

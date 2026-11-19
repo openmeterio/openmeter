@@ -1003,7 +1003,6 @@ func TestListChargesRoute(t *testing.T) {
 
 		require.Equal(t, http.StatusBadRequest, w.Code)
 	})
-
 }
 
 func TestGetChargeRoute(t *testing.T) {
