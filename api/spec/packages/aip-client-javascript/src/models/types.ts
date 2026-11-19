@@ -9334,21 +9334,6 @@ export interface SubscriptionCreate {
 export interface SubscriptionChange {
   labels?: Labels
   /**
-   * When billing starts for the subscription. Nothing is billed for service before
-   * this time, while access, entitlements and metering start with the subscription.
-   * Use it when the time before was already billed elsewhere, for example when
-   * importing a subscription from another billing system.
-   *
-   * It cannot be before the start of the subscription and cannot be changed later.
-   * On subscriptions billed through invoice lines it must be the start of a billing
-   * period. If not provided, billing starts with the subscription.
-   *
-   * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
-   * fees are billed in full.
-   */
-  billingStartsAt?: Date
-  /**
    * Settlement mode for billing.
    *
    * Values:
@@ -13244,21 +13229,6 @@ export interface SubscriptionCreateInput {
 /** Request for changing a subscription. */
 export interface SubscriptionChangeInput {
   labels?: Labels
-  /**
-   * When billing starts for the subscription. Nothing is billed for service before
-   * this time, while access, entitlements and metering start with the subscription.
-   * Use it when the time before was already billed elsewhere, for example when
-   * importing a subscription from another billing system.
-   *
-   * It cannot be before the start of the subscription and cannot be changed later.
-   * On subscriptions billed through invoice lines it must be the start of a billing
-   * period. If not provided, billing starts with the subscription.
-   *
-   * When billing starts inside a billing period, we recommend enabling price
-   * pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
-   * fees are billed in full.
-   */
-  billingStartsAt?: Date
   /**
    * Settlement mode for billing.
    *

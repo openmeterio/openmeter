@@ -10296,7 +10296,6 @@ export const subscriptionCreate = z.object({
 export const subscriptionChange = z
   .object({
     labels: labels.optional(),
-    billingStartsAt: dateTime.optional(),
     settlementMode: settlementMode.optional(),
     customer: z
       .object({
@@ -22950,7 +22949,6 @@ export const subscriptionCreateWire = z.strictObject({
 export const subscriptionChangeWire = z
   .strictObject({
     labels: labelsWire.optional(),
-    billing_starts_at: dateTimeWire.optional(),
     settlement_mode: settlementModeWire.optional(),
     customer: z
       .strictObject({
