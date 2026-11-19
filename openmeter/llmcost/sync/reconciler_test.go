@@ -223,6 +223,43 @@ func TestReconcilerDefaults(t *testing.T) {
 	})
 }
 
+func TestReconcileRejectsPricesOutsideExactTolerance(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		price     string
+		tolerance float64
+	}{
+		{
+			name:      "zero tolerance rejects unequal prices",
+			price:     "0.99999999999999999",
+			tolerance: 0,
+		},
+		{
+			name:      "one percent tolerance rejects a larger exact difference",
+			price:     "0.98999999999999999",
+			tolerance: 0.01,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: synthetic source prices differ by more than the configured tolerance.
+			adapter := &mockAdapter{}
+			reconciler := NewReconciler(adapter, slog.Default(), 2, tc.tolerance)
+			prices := []llmcost.SourcePrice{
+				makePrice("source_a", "openai", "synthetic", 1, 1),
+				makePrice("source_b", "openai", "synthetic", 1, 1),
+			}
+			prices[1].Pricing.InputPerToken = alpacadecimal.RequireFromString(tc.price)
+
+			// when: source agreement is evaluated and a canonical price may be written.
+			err := reconciler.Reconcile(t.Context(), prices)
+			require.NoError(t, err)
+
+			// then: an intermediate rounded ratio must not admit an out-of-tolerance price.
+			require.Empty(t, adapter.upsertedPrices)
+		})
+	}
+}
+
 func TestDecimalsAgree(t *testing.T) {
 	tolerance := alpacadecimal.NewFromFloat(0.01) // 1%
 
