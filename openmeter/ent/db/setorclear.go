@@ -6350,20 +6350,6 @@ func (u *SubscriptionAddonQuantityUpdateOne) SetOrClearDeletedAt(value *time.Tim
 	return u.SetDeletedAt(*value)
 }
 
-func (u *SubscriptionBillingSyncStateUpdate) SetOrClearNextSyncAfter(value *time.Time) *SubscriptionBillingSyncStateUpdate {
-	if value == nil {
-		return u.ClearNextSyncAfter()
-	}
-	return u.SetNextSyncAfter(*value)
-}
-
-func (u *SubscriptionBillingSyncStateUpdateOne) SetOrClearNextSyncAfter(value *time.Time) *SubscriptionBillingSyncStateUpdateOne {
-	if value == nil {
-		return u.ClearNextSyncAfter()
-	}
-	return u.SetNextSyncAfter(*value)
-}
-
 func (u *SubscriptionCostBasisPinUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionCostBasisPinUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -6700,42 +6686,42 @@ func (u *SubscriptionPhaseUpdateOne) SetOrClearSortHint(value *uint8) *Subscript
 	return u.SetSortHint(*value)
 }
 
-func (u *SubscriptionSyncStateV2Update) SetOrClearDeletedAt(value *time.Time) *SubscriptionSyncStateV2Update {
+func (u *SubscriptionSyncStateUpdate) SetOrClearDeletedAt(value *time.Time) *SubscriptionSyncStateUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *SubscriptionSyncStateV2UpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionSyncStateV2UpdateOne {
+func (u *SubscriptionSyncStateUpdateOne) SetOrClearDeletedAt(value *time.Time) *SubscriptionSyncStateUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
 }
 
-func (u *SubscriptionSyncStateV2Update) SetOrClearLastSuccessAt(value *time.Time) *SubscriptionSyncStateV2Update {
+func (u *SubscriptionSyncStateUpdate) SetOrClearLastSuccessAt(value *time.Time) *SubscriptionSyncStateUpdate {
 	if value == nil {
 		return u.ClearLastSuccessAt()
 	}
 	return u.SetLastSuccessAt(*value)
 }
 
-func (u *SubscriptionSyncStateV2UpdateOne) SetOrClearLastSuccessAt(value *time.Time) *SubscriptionSyncStateV2UpdateOne {
+func (u *SubscriptionSyncStateUpdateOne) SetOrClearLastSuccessAt(value *time.Time) *SubscriptionSyncStateUpdateOne {
 	if value == nil {
 		return u.ClearLastSuccessAt()
 	}
 	return u.SetLastSuccessAt(*value)
 }
 
-func (u *SubscriptionSyncStateV2Update) SetOrClearNextReconciliationAt(value *time.Time) *SubscriptionSyncStateV2Update {
+func (u *SubscriptionSyncStateUpdate) SetOrClearNextReconciliationAt(value *time.Time) *SubscriptionSyncStateUpdate {
 	if value == nil {
 		return u.ClearNextReconciliationAt()
 	}
 	return u.SetNextReconciliationAt(*value)
 }
 
-func (u *SubscriptionSyncStateV2UpdateOne) SetOrClearNextReconciliationAt(value *time.Time) *SubscriptionSyncStateV2UpdateOne {
+func (u *SubscriptionSyncStateUpdateOne) SetOrClearNextReconciliationAt(value *time.Time) *SubscriptionSyncStateUpdateOne {
 	if value == nil {
 		return u.ClearNextReconciliationAt()
 	}

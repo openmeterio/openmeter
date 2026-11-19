@@ -11,7 +11,7 @@ type Adapter interface {
 	ListSubscriptionsToReconcile(context.Context, ListSubscriptionsToReconcileInput) (paginationv2.Result[SubscriptionToReconcile], error)
 	ListDeletedSubscriptionsToReconcile(context.Context, ListDeletedSubscriptionsToReconcileInput) (paginationv2.Result[SubscriptionToReconcile], error)
 
-	SyncStateV2Adapter
+	SyncStateAdapter
 
 	entutils.TxCreator
 }

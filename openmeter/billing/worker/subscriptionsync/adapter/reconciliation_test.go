@@ -85,9 +85,9 @@ func (s *SubscriptionsToReconcileSuite) createRunningSubscription() subscription
 func (s *SubscriptionsToReconcileSuite) recordSettled(subscriptionID models.NamespacedID) {
 	s.T().Helper()
 
-	s.Require().NoError(s.adapter.RecordSyncResultV2(s.T().Context(), subscriptionsync.RecordSyncResultV2Input{
+	s.Require().NoError(s.adapter.RecordSyncResult(s.T().Context(), subscriptionsync.RecordSyncResultInput{
 		SubscriptionID:         subscriptionID,
-		LastSuccessState:       subscriptionsync.SyncStateV2StateActive,
+		LastSuccessState:       subscriptionsync.SyncStateStateActive,
 		LastSuccessAt:          s.now.Add(-time.Hour),
 		NextReconciliationAt:   lo.ToPtr(s.now.Add(24 * time.Hour)),
 		LastSyncedSubsRevision: ulid.Make().String(),
@@ -117,7 +117,7 @@ func (s *SubscriptionsToReconcileSuite) TestSyncStateDecidesWhatIsDue() {
 	tests := []struct {
 		name string
 		// result is the recorded sync outcome; nil leaves the subscription without one.
-		result *subscriptionsync.RecordSyncResultV2Input
+		result *subscriptionsync.RecordSyncResultInput
 		// changed marks a subscription change after the outcome, or creates a new row when there is none.
 		changed bool
 		due     bool
@@ -133,51 +133,51 @@ func (s *SubscriptionsToReconcileSuite) TestSyncStateDecidesWhatIsDue() {
 		},
 		{
 			name:   "active before its deadline",
-			result: &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateActive, NextReconciliationAt: lo.ToPtr(s.now.Add(time.Microsecond))},
+			result: &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateActive, NextReconciliationAt: lo.ToPtr(s.now.Add(time.Microsecond))},
 		},
 		{
 			name:   "active at its deadline",
-			result: &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateActive, NextReconciliationAt: lo.ToPtr(s.now)},
+			result: &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateActive, NextReconciliationAt: lo.ToPtr(s.now)},
 			due:    true,
 		},
 		{
 			name:   "active past its deadline",
-			result: &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateActive, NextReconciliationAt: lo.ToPtr(s.now.Add(-time.Hour))},
+			result: &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateActive, NextReconciliationAt: lo.ToPtr(s.now.Add(-time.Hour))},
 			due:    true,
 		},
 		{
 			name:    "active and changed before its deadline",
-			result:  &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateActive, NextReconciliationAt: lo.ToPtr(s.now.Add(time.Hour))},
+			result:  &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateActive, NextReconciliationAt: lo.ToPtr(s.now.Add(time.Hour))},
 			changed: true,
 			due:     true,
 		},
 		{
 			name:   "no billables",
-			result: &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateNoBillables},
+			result: &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateNoBillables},
 		},
 		{
 			name:    "no billables then changed",
-			result:  &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateNoBillables},
+			result:  &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateNoBillables},
 			changed: true,
 			due:     true,
 		},
 		{
 			name:   "ended",
-			result: &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateEnded},
+			result: &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateEnded},
 		},
 		{
 			name:    "ended then changed",
-			result:  &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateEnded},
+			result:  &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateEnded},
 			changed: true,
 			due:     true,
 		},
 		{
 			name:   "too old",
-			result: &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateTooOld},
+			result: &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateTooOld},
 		},
 		{
 			name:   "customer deleted before start",
-			result: &subscriptionsync.RecordSyncResultV2Input{LastSuccessState: subscriptionsync.SyncStateV2StateCustomerDeletedBefore},
+			result: &subscriptionsync.RecordSyncResultInput{LastSuccessState: subscriptionsync.SyncStateStateCustomerDeletedBefore},
 		},
 	}
 
@@ -190,11 +190,11 @@ func (s *SubscriptionsToReconcileSuite) TestSyncStateDecidesWhatIsDue() {
 			result.SubscriptionID = sub.NamespacedID
 			result.LastSuccessAt = s.now.Add(-time.Hour)
 			result.LastSyncedSubsRevision = ulid.Make().String()
-			s.Require().NoError(s.adapter.RecordSyncResultV2(ctx, result), tc.name)
+			s.Require().NoError(s.adapter.RecordSyncResult(ctx, result), tc.name)
 		}
 
 		if tc.changed {
-			s.Require().NoError(s.adapter.MarkSubscriptionChangedV2(ctx, sub.NamespacedID), tc.name)
+			s.Require().NoError(s.adapter.MarkSubscriptionChanged(ctx, sub.NamespacedID), tc.name)
 		}
 
 		if tc.due {
@@ -277,10 +277,10 @@ func (s *SubscriptionsToReconcileSuite) TestStateFromAnotherNamespaceCountsAsMis
 	// given: a settled state row that carries another namespace than its subscription
 	sub := s.createRunningSubscription()
 	revision := ulid.Make().String()
-	s.Require().NoError(s.db.SubscriptionSyncStateV2.Create().
+	s.Require().NoError(s.db.SubscriptionSyncState.Create().
 		SetNamespace(ulid.Make().String()).
 		SetSubscriptionID(sub.ID).
-		SetLastSuccessState(subscriptionsync.SyncStateV2StateNoBillables).
+		SetLastSuccessState(subscriptionsync.SyncStateStateNoBillables).
 		SetLastSuccessAt(s.now).
 		SetLastSyncedSubsRevision(revision).
 		SetCurrentSubsRevision(revision).
@@ -289,10 +289,10 @@ func (s *SubscriptionsToReconcileSuite) TestStateFromAnotherNamespaceCountsAsMis
 	// when: the worker selects subscriptions to reconcile
 	result, err := s.adapter.ListSubscriptionsToReconcile(ctx, s.listInput())
 
-	// then: the foreign row cannot settle the subscription, matching GetSyncStatesV2
+	// then: the foreign row cannot settle the subscription, matching GetSyncStates
 	s.Require().NoError(err)
 	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: sub.NamespacedID, CustomerID: s.customerID.ID}}, result.Items)
-	states, err := s.adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{sub.NamespacedID})
+	states, err := s.adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{sub.NamespacedID})
 	s.Require().NoError(err)
 	s.Empty(states)
 }
@@ -430,7 +430,7 @@ func TestSubscriptionsToReconcileQuery(t *testing.T) {
 				Limit:    100,
 			},
 			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."customer_id", "subscriptions"."created_at" FROM "subscriptions" WHERE (("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND NOT EXISTS (SELECT "subscription_sync_states_v2"."id" FROM "subscription_sync_states_v2" WHERE "subscription_sync_states_v2"."subscription_id" = "subscriptions"."id" AND "subscription_sync_states_v2"."namespace" = "subscriptions"."namespace" AND "subscription_sync_states_v2"."last_success_state" <> $3 AND "subscription_sync_states_v2"."current_subs_revision" = "subscription_sync_states_v2"."last_synced_subs_revision" AND (NOT ("subscription_sync_states_v2"."last_success_state" = $4 AND "subscription_sync_states_v2"."next_reconciliation_at" <= $5))) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 100`,
-			expectedArgs:  []any{asOf, lookbackStart, subscriptionsync.SyncStateV2StateNew, subscriptionsync.SyncStateV2StateActive, asOf},
+			expectedArgs:  []any{asOf, lookbackStart, subscriptionsync.SyncStateStateNew, subscriptionsync.SyncStateStateActive, asOf},
 		},
 		{
 			name: "customer cursor page in two namespaces",
@@ -443,7 +443,7 @@ func TestSubscriptionsToReconcileQuery(t *testing.T) {
 				Limit:      10,
 			},
 			expectedQuery: `SELECT "subscriptions"."id", "subscriptions"."namespace", "subscriptions"."customer_id", "subscriptions"."created_at" FROM "subscriptions" WHERE ((((("subscriptions"."deleted_at" IS NULL AND "subscriptions"."active_from" < $1) AND ("subscriptions"."active_to" IS NULL OR "subscriptions"."active_to" > $2)) AND "subscriptions"."namespace" IN ($3, $4)) AND "subscriptions"."customer_id" IN ($5)) AND NOT EXISTS (SELECT "subscription_sync_states_v2"."id" FROM "subscription_sync_states_v2" WHERE "subscription_sync_states_v2"."subscription_id" = "subscriptions"."id" AND "subscription_sync_states_v2"."namespace" = "subscriptions"."namespace" AND "subscription_sync_states_v2"."last_success_state" <> $6 AND "subscription_sync_states_v2"."current_subs_revision" = "subscription_sync_states_v2"."last_synced_subs_revision" AND (NOT ("subscription_sync_states_v2"."last_success_state" = $7 AND "subscription_sync_states_v2"."next_reconciliation_at" <= $8)))) AND ("subscriptions"."created_at", "subscriptions"."id") > ($9, $10) ORDER BY "subscriptions"."created_at" ASC, "subscriptions"."id" ASC LIMIT 10`,
-			expectedArgs:  []any{asOf, lookbackStart, "namespace-1", "namespace-2", "customer-1", subscriptionsync.SyncStateV2StateNew, subscriptionsync.SyncStateV2StateActive, asOf, cursor.Time, cursor.ID},
+			expectedArgs:  []any{asOf, lookbackStart, "namespace-1", "namespace-2", "customer-1", subscriptionsync.SyncStateStateNew, subscriptionsync.SyncStateStateActive, asOf, cursor.Time, cursor.ID},
 		},
 		{
 			name: "forced namespace page",

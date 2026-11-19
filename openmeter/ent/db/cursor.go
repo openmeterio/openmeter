@@ -4144,10 +4144,10 @@ func (_m *SubscriptionPhaseQuery) Cursor(ctx context.Context, cursor *pagination
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
-func (_m *SubscriptionSyncStateV2Query) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*SubscriptionSyncStateV2], error) {
+func (_m *SubscriptionSyncStateQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*SubscriptionSyncState], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {
-			return pagination.Result[*SubscriptionSyncStateV2]{}, fmt.Errorf("invalid cursor: %w", err)
+			return pagination.Result[*SubscriptionSyncState]{}, fmt.Errorf("invalid cursor: %w", err)
 		}
 
 		_m.Where(func(s *sql.Selector) {
@@ -4174,14 +4174,14 @@ func (_m *SubscriptionSyncStateV2Query) Cursor(ctx context.Context, cursor *pagi
 
 	items, err := _m.All(ctx)
 	if err != nil {
-		return pagination.Result[*SubscriptionSyncStateV2]{}, err
+		return pagination.Result[*SubscriptionSyncState]{}, err
 	}
 
 	if items == nil {
-		items = make([]*SubscriptionSyncStateV2, 0)
+		items = make([]*SubscriptionSyncState, 0)
 	}
 
-	result := pagination.Result[*SubscriptionSyncStateV2]{
+	result := pagination.Result[*SubscriptionSyncState]{
 		Items: items,
 	}
 

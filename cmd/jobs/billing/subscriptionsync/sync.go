@@ -82,8 +82,8 @@ var AllCmd = func() *cobra.Command {
 	cmd.PersistentFlags().StringSliceVar(&namespaces, "n", nil, "filter by namespaces")
 	cmd.PersistentFlags().StringSliceVar(&customerIDs, "c", nil, "filter by customer ids")
 	cmd.PersistentFlags().DurationVar(&lookback, "l", reconciler.DefaultLookback, "lookback period")
-	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation of every subscription in the lookback regardless of its sync state; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
-	cmd.PersistentFlags().BoolVar(&forceAll, "force-all", false, "force reconciliation of every subscription in the lookback regardless of its sync state or subscription end age; lookback still limits selection; skips deleted subscriptions with completed cleanup (delete their v2 sync-state entry to retry)")
+	cmd.PersistentFlags().BoolVar(&force, "f", false, "force reconciliation of every subscription in the lookback regardless of its sync state; skips deleted subscriptions with completed cleanup (delete their row in subscription_sync_states_v2 to retry)")
+	cmd.PersistentFlags().BoolVar(&forceAll, "force-all", false, "force reconciliation of every subscription in the lookback regardless of its sync state or subscription end age; lookback still limits selection; skips deleted subscriptions with completed cleanup (delete their row in subscription_sync_states_v2 to retry)")
 
 	return cmd
 }

@@ -544,9 +544,6 @@ type SubscriptionAddon func(*sql.Selector)
 // SubscriptionAddonQuantity is the predicate function for subscriptionaddonquantity builders.
 type SubscriptionAddonQuantity func(*sql.Selector)
 
-// SubscriptionBillingSyncState is the predicate function for subscriptionbillingsyncstate builders.
-type SubscriptionBillingSyncState func(*sql.Selector)
-
 // SubscriptionCostBasisPin is the predicate function for subscriptioncostbasispin builders.
 type SubscriptionCostBasisPin func(*sql.Selector)
 
@@ -567,8 +564,8 @@ func SubscriptionItemOrErr(p SubscriptionItem, err error) SubscriptionItem {
 // SubscriptionPhase is the predicate function for subscriptionphase builders.
 type SubscriptionPhase func(*sql.Selector)
 
-// SubscriptionSyncStateV2 is the predicate function for subscriptionsyncstatev2 builders.
-type SubscriptionSyncStateV2 func(*sql.Selector)
+// SubscriptionSyncState is the predicate function for subscriptionsyncstate builders.
+type SubscriptionSyncState func(*sql.Selector)
 
 // TaxCode is the predicate function for dbtaxcode builders.
 type TaxCode func(*sql.Selector)

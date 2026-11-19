@@ -1312,9 +1312,9 @@ func (s *SuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput,
 	return subsView
 }
 
-func (s *SuiteBase) getSyncStateV2(subscriptionID models.NamespacedID) subscriptionsync.SyncStateV2Managed {
+func (s *SuiteBase) getSyncState(subscriptionID models.NamespacedID) subscriptionsync.SyncStateManaged {
 	s.T().Helper()
-	states, err := s.Service.GetSyncStatesV2(s.T().Context(), subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	states, err := s.Service.GetSyncStates(s.T().Context(), subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
 	s.Equal(subscriptionID, states[0].SubscriptionID)
@@ -1327,8 +1327,8 @@ func (s *SuiteBase) getSyncStateV2(subscriptionID models.NamespacedID) subscript
 // period. Subsequent syncs use the returned deadline, including its random offset.
 func (s *SuiteBase) requireActiveDeadline(subscriptionID models.NamespacedID, period timeutil.ClosedPeriod) time.Time {
 	s.T().Helper()
-	state := s.getSyncStateV2(subscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	state := s.getSyncState(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateStateActive, state.LastSuccessState)
 	s.Equal(lo.ToPtr(clock.Now().UTC()), state.LastSuccessAt)
 	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
 	s.Require().NotNil(state.NextReconciliationAt)
@@ -1342,9 +1342,9 @@ func (s *SuiteBase) requireActiveDeadline(subscriptionID models.NamespacedID, pe
 
 // requireUnscheduled checks that the sync that just ran recorded the given state
 // without a next reconciliation deadline. Only active results are scheduled.
-func (s *SuiteBase) requireUnscheduled(subscriptionID models.NamespacedID, want subscriptionsync.SyncStateV2State) {
+func (s *SuiteBase) requireUnscheduled(subscriptionID models.NamespacedID, want subscriptionsync.SyncStateState) {
 	s.T().Helper()
-	state := s.getSyncStateV2(subscriptionID)
+	state := s.getSyncState(subscriptionID)
 	s.Equal(want, state.LastSuccessState)
 	s.Equal(lo.ToPtr(clock.Now().UTC()), state.LastSuccessAt)
 	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)

@@ -130,9 +130,9 @@ func New(config Config) (*Service, error) {
 	}, nil
 }
 
-func (s *Service) GetSyncStatesV2(ctx context.Context, input subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
-	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncStateV2Managed, error) {
-		return s.subscriptionSyncAdapter.GetSyncStatesV2(ctx, input)
+func (s *Service) GetSyncStates(ctx context.Context, input subscriptionsync.GetSyncStatesInput) ([]subscriptionsync.SyncStateManaged, error) {
+	return transaction.Run(ctx, s.subscriptionSyncAdapter, func(ctx context.Context) ([]subscriptionsync.SyncStateManaged, error) {
+		return s.subscriptionSyncAdapter.GetSyncStates(ctx, input)
 	})
 }
 

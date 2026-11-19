@@ -9,7 +9,7 @@ import (
 )
 
 // ListDeletedSubscriptionsToReconcileInput selects subscriptions with non-nil
-// DeletedAt and no successful v2 subscription_deleted result.
+// DeletedAt and no successful subscription_deleted sync result.
 type ListDeletedSubscriptionsToReconcileInput struct {
 	Namespaces []string
 	Customers  []string

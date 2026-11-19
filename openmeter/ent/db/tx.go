@@ -182,16 +182,14 @@ type Tx struct {
 	SubscriptionAddon *SubscriptionAddonClient
 	// SubscriptionAddonQuantity is the client for interacting with the SubscriptionAddonQuantity builders.
 	SubscriptionAddonQuantity *SubscriptionAddonQuantityClient
-	// SubscriptionBillingSyncState is the client for interacting with the SubscriptionBillingSyncState builders.
-	SubscriptionBillingSyncState *SubscriptionBillingSyncStateClient
 	// SubscriptionCostBasisPin is the client for interacting with the SubscriptionCostBasisPin builders.
 	SubscriptionCostBasisPin *SubscriptionCostBasisPinClient
 	// SubscriptionItem is the client for interacting with the SubscriptionItem builders.
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
 	SubscriptionPhase *SubscriptionPhaseClient
-	// SubscriptionSyncStateV2 is the client for interacting with the SubscriptionSyncStateV2 builders.
-	SubscriptionSyncStateV2 *SubscriptionSyncStateV2Client
+	// SubscriptionSyncState is the client for interacting with the SubscriptionSyncState builders.
+	SubscriptionSyncState *SubscriptionSyncStateClient
 	// TaxCode is the client for interacting with the TaxCode builders.
 	TaxCode *TaxCodeClient
 	// UsageReset is the client for interacting with the UsageReset builders.
@@ -411,11 +409,10 @@ func (tx *Tx) init() {
 	tx.Subscription = NewSubscriptionClient(tx.config)
 	tx.SubscriptionAddon = NewSubscriptionAddonClient(tx.config)
 	tx.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(tx.config)
-	tx.SubscriptionBillingSyncState = NewSubscriptionBillingSyncStateClient(tx.config)
 	tx.SubscriptionCostBasisPin = NewSubscriptionCostBasisPinClient(tx.config)
 	tx.SubscriptionItem = NewSubscriptionItemClient(tx.config)
 	tx.SubscriptionPhase = NewSubscriptionPhaseClient(tx.config)
-	tx.SubscriptionSyncStateV2 = NewSubscriptionSyncStateV2Client(tx.config)
+	tx.SubscriptionSyncState = NewSubscriptionSyncStateClient(tx.config)
 	tx.TaxCode = NewTaxCodeClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)
 }

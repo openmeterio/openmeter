@@ -23,7 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
@@ -64,7 +64,7 @@ type failingDeletionSyncStateAdapter struct {
 	err error
 }
 
-func (a failingDeletionSyncStateAdapter) RecordSyncResultV2(context.Context, subscriptionsync.RecordSyncResultV2Input) error {
+func (a failingDeletionSyncStateAdapter) RecordSyncResult(context.Context, subscriptionsync.RecordSyncResultInput) error {
 	return a.err
 }
 
@@ -226,8 +226,8 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionCreationInitializesRevisi
 	view := s.createSubscriptionForRevisionChange(time.Time{})
 
 	// Then the subscription transaction also creates a marker, without claiming a sync result.
-	state := s.getSyncStateV2(view.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateNew, state.LastSuccessState)
+	state := s.getSyncState(view.Subscription.NamespacedID)
+	s.Equal(subscriptionsync.SyncStateStateNew, state.LastSuccessState)
 	s.Nil(state.LastSuccessAt)
 	s.NotEmpty(state.CurrentSubsRevision)
 	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
@@ -240,21 +240,21 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionChangesAdvanceRevision() 
 
 	for _, tc := range s.subscriptionRevisionChanges() {
 		s.Run(tc.name, func() {
-			// Given an existing subscription and its last recorded v2 result.
+			// Given an existing subscription and its last recorded sync result.
 			view := s.createSubscriptionForRevisionChange(tc.activeFrom)
 			if tc.prepare != nil {
 				tc.prepare(view)
 			}
 
-			s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
-				Where(subscriptionsyncstatev2.SubscriptionID(view.Subscription.ID)).
-				SetLastSuccessState(subscriptionsync.SyncStateV2StateTooOld).
+			s.Require().NoError(s.DBClient.SubscriptionSyncState.Update().
+				Where(subscriptionsyncstate.SubscriptionID(view.Subscription.ID)).
+				SetLastSuccessState(subscriptionsync.SyncStateStateTooOld).
 				SetLastSuccessAt(now.Add(-time.Hour)).Exec(s.T().Context()))
-			before := s.getSyncStateV2(view.Subscription.NamespacedID)
+			before := s.getSyncState(view.Subscription.NamespacedID)
 
 			// When the command commits, the old result remains and current advances.
 			s.Require().NoError(tc.mutate(view))
-			after := s.getSyncStateV2(view.Subscription.NamespacedID)
+			after := s.getSyncState(view.Subscription.NamespacedID)
 			s.NotEqual(before.CurrentSubsRevision, after.CurrentSubsRevision)
 			s.Equal(before.LastSyncedSubsRevision, after.LastSyncedSubsRevision)
 			s.Equal(before.LastSuccessState, after.LastSuccessState)
@@ -272,20 +272,20 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionChangesInitializeMissingR
 
 	for _, tc := range s.subscriptionRevisionChanges() {
 		s.Run(tc.name, func() {
-			// Given a subscription created before hooks initialized v2 state.
+			// Given a subscription created before hooks initialized sync state.
 			view := s.createSubscriptionForRevisionChange(tc.activeFrom)
 			if tc.prepare != nil {
 				tc.prepare(view)
 			}
 
-			_, err := s.DBClient.SubscriptionSyncStateV2.Delete().
-				Where(subscriptionsyncstatev2.SubscriptionID(view.Subscription.ID)).Exec(s.T().Context())
+			_, err := s.DBClient.SubscriptionSyncState.Delete().
+				Where(subscriptionsyncstate.SubscriptionID(view.Subscription.ID)).Exec(s.T().Context())
 			s.Require().NoError(err)
 
 			// When any command commits, it initializes state in the same transaction.
 			s.Require().NoError(tc.mutate(view))
-			state := s.getSyncStateV2(view.Subscription.NamespacedID)
-			s.Equal(subscriptionsync.SyncStateV2StateNew, state.LastSuccessState)
+			state := s.getSyncState(view.Subscription.NamespacedID)
+			s.Equal(subscriptionsync.SyncStateStateNew, state.LastSuccessState)
 			s.Nil(state.LastSuccessAt)
 			s.NotEmpty(state.CurrentSubsRevision)
 			s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
@@ -310,7 +310,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionRevisionFailureRollsBackC
 
 			beforeView, err := s.SubscriptionService.GetView(ctx, view.Subscription.NamespacedID)
 			s.Require().NoError(err)
-			before := s.getSyncStateV2(view.Subscription.NamespacedID)
+			before := s.getSyncState(view.Subscription.NamespacedID)
 			const constraintName = "test_subscription_revision_change_failure"
 			_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, fmt.Sprintf(
 				"ALTER TABLE subscription_sync_states_v2 ADD CONSTRAINT %s CHECK (subscription_id <> %s OR current_subs_revision = %s)",
@@ -327,7 +327,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionRevisionFailureRollsBackC
 			afterView, err := s.SubscriptionService.GetView(ctx, view.Subscription.NamespacedID)
 			s.Require().NoError(err)
 			s.Equal(beforeView, afterView)
-			s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
+			s.Equal(before, s.getSyncState(view.Subscription.NamespacedID))
 		})
 	}
 }
@@ -352,11 +352,11 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionCreationRevisionFailureRo
 	spec.CustomerId = newCustomer.ID
 
 	// Keep the template valid while rejecting new rows in this test's namespace.
-	s.Require().NoError(s.DBClient.SubscriptionSyncStateV2.Update().
-		Where(subscriptionsyncstatev2.SubscriptionID(view.Subscription.ID)).
-		SetLastSuccessState(subscriptionsync.SyncStateV2StateTooOld).
+	s.Require().NoError(s.DBClient.SubscriptionSyncState.Update().
+		Where(subscriptionsyncstate.SubscriptionID(view.Subscription.ID)).
+		SetLastSuccessState(subscriptionsync.SyncStateStateTooOld).
 		SetLastSuccessAt(clock.Now()).Exec(ctx))
-	before := s.getSyncStateV2(view.Subscription.NamespacedID)
+	before := s.getSyncState(view.Subscription.NamespacedID)
 	const constraintName = "test_subscription_revision_creation_failure"
 	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, fmt.Sprintf(
 		"ALTER TABLE subscription_sync_states_v2 ADD CONSTRAINT %s CHECK (namespace <> %s OR last_success_state <> 'new')",
@@ -374,7 +374,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionCreationRevisionFailureRo
 	count, err := s.DBClient.Subscription.Query().Where(dbsubscription.CustomerID(newCustomer.ID)).Count(ctx)
 	s.Require().NoError(err)
 	s.Zero(count)
-	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
+	s.Equal(before, s.getSyncState(view.Subscription.NamespacedID))
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupDryRun() {
@@ -386,17 +386,17 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupDryRun() {
 	// given: a deleted subscription with generated billing lines
 	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
-	v2Before := s.getSyncStateV2(subscriptionID)
+	statesBefore := s.getSyncState(subscriptionID)
 
 	// when: deletion cleanup is planned as a dry run
 	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now, subscriptionsync.EnableDryRun()))
 
-	// then: the lines remain unchanged, with no v2 completion record
+	// then: the lines remain unchanged, with no completion record
 	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty())
-	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	states, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
-	s.Equal(v2Before, states[0])
+	s.Equal(statesBefore, states[0])
 }
 
 func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() {
@@ -408,20 +408,20 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRollback() 
 	// given: a deleted subscription whose billing lines still need cleanup
 	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
 	s.Require().NoError(s.SubscriptionService.Delete(ctx, subscriptionID))
-	v2Before := s.getSyncStateV2(subscriptionID)
+	statesBefore := s.getSyncState(subscriptionID)
 	persistErr := errors.New("cannot record deletion cleanup")
 	failingService := *s.Service
 	failingService.subscriptionSyncAdapter = failingDeletionSyncStateAdapter{Adapter: s.Adapter, err: persistErr}
 
-	// when: billing cleanup runs but its v2 completion record cannot be saved
+	// when: billing cleanup runs but its completion record cannot be saved
 	s.Require().ErrorIs(failingService.SyncByID(ctx, subscriptionID, now), persistErr)
 
 	// then: billing changes roll back, and cleanup remains eligible
 	s.Equal(invoice.Lines.OrEmpty(), s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID).Lines.OrEmpty())
-	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	states, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
-	s.Equal(v2Before, states[0])
+	s.Equal(statesBefore, states[0])
 	candidates, err := s.Service.ListDeletedSubscriptionsToReconcile(ctx, subscriptionsync.ListDeletedSubscriptionsToReconcileInput{
 		Namespaces: []string{s.Namespace},
 		Limit:      10,
@@ -443,13 +443,13 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRecordsSucc
 	// when: deletion cleanup successfully reconciles the empty target
 	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, now))
 
-	// then: its lines are removed and v2 completion excludes it from periodic cleanup
+	// then: its lines are removed and the completion record excludes it from periodic cleanup
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	states, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
 	s.Equal(subscriptionID, states[0].SubscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionDeleted, states[0].LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateStateSubscriptionDeleted, states[0].LastSuccessState)
 	s.Equal(lo.ToPtr(now), states[0].LastSuccessAt)
 	s.NotEmpty(states[0].CurrentSubsRevision)
 	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
@@ -485,8 +485,8 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupByPeriodicR
 	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
 	// It has not started yet, so the lookback of the regular list does not cover
 	// it, and its billing deadline is still ahead. Only the cleanup query finds it.
-	state := s.getSyncStateV2(subscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	state := s.getSyncState(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateStateActive, state.LastSuccessState)
 	s.Equal(lo.ToPtr(now), state.LastSuccessAt)
 	s.Require().NotNil(state.NextReconciliationAt)
 	s.True(state.NextReconciliationAt.After(now))
@@ -530,7 +530,7 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationFollowsSyncStat
 	s.Require().NoError(err)
 	s.Empty(pending)
 	s.Require().NoError(periodic.All(ctx, allInput))
-	s.Equal(lo.ToPtr(createdAt), s.getSyncStateV2(subscriptionID).LastSuccessAt, "a subscription that is not due must not be synced")
+	s.Equal(lo.ToPtr(createdAt), s.getSyncState(subscriptionID).LastSuccessAt, "a subscription that is not due must not be synced")
 	forcedInput := listInput
 	forcedInput.ForceSync = true
 	pending, err = periodic.ListSubscriptions(ctx, forcedInput)
@@ -553,8 +553,8 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationFollowsSyncStat
 	s.Require().NoError(periodic.All(ctx, allInput))
 
 	// then: the subscription waits for its end
-	state := s.getSyncStateV2(subscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	state := s.getSyncState(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateStateActive, state.LastSuccessState)
 	s.Equal(canceled.ActiveTo, state.NextReconciliationAt)
 	s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
@@ -576,7 +576,7 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationFollowsSyncStat
 	s.Require().NoError(periodic.All(ctx, allInput))
 
 	// then: the ended subscription drops out, although the lookback still covers it
-	s.Equal(subscriptionsync.SyncStateV2StateEnded, s.getSyncStateV2(subscriptionID).LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateStateEnded, s.getSyncState(subscriptionID).LastSuccessState)
 	pending, err = periodic.ListSubscriptions(ctx, listInput)
 	s.Require().NoError(err)
 	s.Empty(pending)
@@ -591,10 +591,10 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationPicksUpSubscrip
 	clock.FreezeTime(createdAt)
 	defer clock.UnFreeze()
 
-	// given: a running subscription that predates v2 sync state
+	// given: a running subscription that predates sync state
 	subscriptionID, invoice := s.createScheduledSubscriptionWithBillingLines()
-	_, err := s.DBClient.SubscriptionSyncStateV2.Delete().
-		Where(subscriptionsyncstatev2.SubscriptionID(subscriptionID.ID)).Exec(ctx)
+	_, err := s.DBClient.SubscriptionSyncState.Delete().
+		Where(subscriptionsyncstate.SubscriptionID(subscriptionID.ID)).Exec(ctx)
 	s.Require().NoError(err)
 	now := createdAt.Add(25 * time.Hour)
 	clock.FreezeTime(now)
@@ -619,8 +619,8 @@ func (s *SubscriptionHandlerTestSuite) TestPeriodicReconciliationPicksUpSubscrip
 	s.Require().NoError(periodic.All(ctx, allInput))
 
 	// then: the recorded deadline takes over and the existing lines are kept
-	state := s.getSyncStateV2(subscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	state := s.getSyncState(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateStateActive, state.LastSuccessState)
 	s.Equal(lo.ToPtr(now), state.LastSuccessAt)
 	s.Require().NotNil(state.NextReconciliationAt)
 	s.True(state.NextReconciliationAt.After(now))
@@ -678,19 +678,19 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupAheadOfWork
 
 	// then: only the cleanup query selects it, although the regular list's lookback covers it too
 	s.Equal([]subscriptionsync.SubscriptionToReconcile{{NamespacedID: subscriptionID, CustomerID: s.Customer.ID}}, pending)
-	stateBefore := s.getSyncStateV2(subscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, stateBefore.LastSuccessState)
+	stateBefore := s.getSyncState(subscriptionID)
+	s.Equal(subscriptionsync.SyncStateStateActive, stateBefore.LastSuccessState)
 	s.Equal(lo.ToPtr(createdAt), stateBefore.LastSuccessAt)
 	s.NotNil(stateBefore.NextReconciliationAt)
 	s.Require().NoError(periodic.All(ctx, periodicreconciler.ReconcilerAllInput{
 		ReconcilerListSubscriptionsInput: listInput,
 	}))
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
-	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	states, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
 	s.Equal(subscriptionID, states[0].SubscriptionID)
-	s.Equal(subscriptionsync.SyncStateV2StateSubscriptionDeleted, states[0].LastSuccessState)
+	s.Equal(subscriptionsync.SyncStateStateSubscriptionDeleted, states[0].LastSuccessState)
 	s.Equal(lo.ToPtr(now), states[0].LastSuccessAt)
 	s.NotEmpty(states[0].CurrentSubsRevision)
 	s.Equal(states[0].CurrentSubsRevision, states[0].LastSyncedSubsRevision)
@@ -727,7 +727,7 @@ func (s *SubscriptionHandlerTestSuite) TestDeletedSubscriptionCleanupRepeated() 
 	s.Require().NoError(s.Service.SyncByID(ctx, subscriptionID, later))
 
 	// then: the repeated cleanup records its successful completion without recreating lines
-	states, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+	states, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 	s.Require().NoError(err)
 	s.Require().Len(states, 1)
 	s.Equal(lo.ToPtr(later), states[0].LastSuccessAt)
@@ -6035,11 +6035,11 @@ func (s *SubscriptionHandlerTestSuite) TestSyncStateUpdateNoBillables() {
 
 	s.NoError(s.Service.SyncByID(ctx, subsView.Subscription.NamespacedID, clock.Now(), subscriptionsync.WithInvoicePendingLines()))
 
-	s.requireUnscheduled(subsView.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
+	s.requireUnscheduled(subsView.Subscription.NamespacedID, subscriptionsync.SyncStateStateNoBillables)
 
 	// The optimized lookup fetches by globally unique subscription ID, but must
 	// still conceal sync states from callers requesting that ID in another namespace.
-	syncStates, err := s.Adapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{
+	syncStates, err := s.Adapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{
 		{
 			Namespace: "another-namespace",
 			ID:        subsView.Subscription.ID,

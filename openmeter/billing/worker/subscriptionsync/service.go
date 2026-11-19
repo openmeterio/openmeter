@@ -23,7 +23,7 @@ type SyncService interface {
 }
 
 type SyncStateService interface {
-	GetSyncStatesV2(ctx context.Context, input GetSyncStatesV2Input) ([]SyncStateV2Managed, error)
+	GetSyncStates(ctx context.Context, input GetSyncStatesInput) ([]SyncStateManaged, error)
 }
 
 // SubscriptionToReconcile identifies a subscription that needs a sync. The

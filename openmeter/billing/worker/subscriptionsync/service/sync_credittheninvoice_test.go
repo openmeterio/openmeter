@@ -11106,7 +11106,7 @@ func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateNoBillables() {
 	s.assertCharges(ctx, subsView, nil)
 	s.assertCreditThenInvoiceBalances(expectedCreditThenInvoiceBalances{})
 
-	s.requireUnscheduled(subsView.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
+	s.requireUnscheduled(subsView.Subscription.NamespacedID, subscriptionsync.SyncStateStateNoBillables)
 }
 
 func (s *CreditThenInvoiceTestSuite) TestSyncStateUpdateWithFreePhaseActiveInTheFuture() {

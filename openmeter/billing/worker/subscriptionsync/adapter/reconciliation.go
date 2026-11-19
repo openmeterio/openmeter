@@ -10,7 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
@@ -66,7 +66,7 @@ func SubscriptionsToReconcileQuery(dialect string, input subscriptionsync.ListSu
 	asOf := input.AsOf.UTC()
 
 	sub := sql.Table(dbsubscription.Table)
-	state := sql.Table(subscriptionsyncstatev2.Table)
+	state := sql.Table(subscriptionsyncstate.Table)
 	query := sql.Dialect(dialect).Select(
 		sub.C(dbsubscription.FieldID),
 		sub.C(dbsubscription.FieldNamespace),
@@ -101,24 +101,24 @@ func SubscriptionsToReconcileQuery(dialect string, input subscriptionsync.ListSu
 		// PostgreSQL assumes that nearly every row has differing revisions, expects
 		// to fill the page from the first few subscriptions, and probes the state
 		// of every subscription one by one: five times slower in the benchmark.
-		settled := sql.Dialect(dialect).Select(state.C(subscriptionsyncstatev2.FieldID)).From(state).Where(sql.And(
-			sql.ColumnsEQ(state.C(subscriptionsyncstatev2.FieldSubscriptionID), sub.C(dbsubscription.FieldID)),
+		settled := sql.Dialect(dialect).Select(state.C(subscriptionsyncstate.FieldID)).From(state).Where(sql.And(
+			sql.ColumnsEQ(state.C(subscriptionsyncstate.FieldSubscriptionID), sub.C(dbsubscription.FieldID)),
 			// Subscription IDs are globally unique, but a state row must also match
 			// the namespace. One from another namespace counts as missing.
-			sql.ColumnsEQ(state.C(subscriptionsyncstatev2.FieldNamespace), sub.C(dbsubscription.FieldNamespace)),
+			sql.ColumnsEQ(state.C(subscriptionsyncstate.FieldNamespace), sub.C(dbsubscription.FieldNamespace)),
 			// A sync has recorded an outcome. A new row starts with equal revisions,
 			// so the revision check alone would treat it as settled.
-			sql.NEQ(state.C(subscriptionsyncstatev2.FieldLastSuccessState), subscriptionsync.SyncStateV2StateNew),
+			sql.NEQ(state.C(subscriptionsyncstate.FieldLastSuccessState), subscriptionsync.SyncStateStateNew),
 			// The subscription has not changed since. A change also reopens
 			// outcomes such as ended or no_billables.
 			sql.ColumnsEQ(
-				state.C(subscriptionsyncstatev2.FieldCurrentSubsRevision),
-				state.C(subscriptionsyncstatev2.FieldLastSyncedSubsRevision),
+				state.C(subscriptionsyncstate.FieldCurrentSubsRevision),
+				state.C(subscriptionsyncstate.FieldLastSyncedSubsRevision),
 			),
 			// An active subscription has not reached its deadline.
 			sql.Not(sql.And(
-				sql.EQ(state.C(subscriptionsyncstatev2.FieldLastSuccessState), subscriptionsync.SyncStateV2StateActive),
-				sql.LTE(state.C(subscriptionsyncstatev2.FieldNextReconciliationAt), asOf),
+				sql.EQ(state.C(subscriptionsyncstate.FieldLastSuccessState), subscriptionsync.SyncStateStateActive),
+				sql.LTE(state.C(subscriptionsyncstate.FieldNextReconciliationAt), asOf),
 			)),
 		))
 		query.Where(sql.NotExists(settled))

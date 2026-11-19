@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	paginationv2 "github.com/openmeterio/openmeter/pkg/pagination/v2"
 )
@@ -64,21 +64,21 @@ func (a *adapter) ListDeletedSubscriptionsToReconcile(ctx context.Context, input
 // Set POSTGRES_PORT to the local database port. SUBSCRIPTION_SYNC_BENCH_PLAN_DIR
 // saves the SQL and EXPLAIN (ANALYZE, BUFFERS) plans for each benchmark scenario.
 func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync.ListDeletedSubscriptionsToReconcileInput) (string, []any) {
-	completed := []predicate.SubscriptionSyncStateV2{
-		subscriptionsyncstatev2.LastSuccessStateEQ(subscriptionsync.SyncStateV2StateSubscriptionDeleted),
+	completed := []predicate.SubscriptionSyncState{
+		subscriptionsyncstate.LastSuccessStateEQ(subscriptionsync.SyncStateStateSubscriptionDeleted),
 		// Subscription IDs are globally unique, but a cleanup record must also match
 		// the namespace. One from another namespace counts as missing, as it does
 		// for non-deleted subscriptions.
 		func(state *sql.Selector) {
 			state.Where(sql.ColumnsEQ(
-				state.C(subscriptionsyncstatev2.FieldNamespace),
+				state.C(subscriptionsyncstate.FieldNamespace),
 				sql.Table(dbsubscription.Table).C(dbsubscription.FieldNamespace),
 			))
 		},
 	}
 	if len(input.Namespaces) > 0 {
 		// A namespace-scoped worker must not scan every tenant's cleanup records.
-		completed = append(completed, subscriptionsyncstatev2.NamespaceIn(input.Namespaces...))
+		completed = append(completed, subscriptionsyncstate.NamespaceIn(input.Namespaces...))
 	}
 
 	sub := sql.Table(dbsubscription.Table)
@@ -89,7 +89,7 @@ func DeletedSubscriptionsToReconcileQuery(dialect string, input subscriptionsync
 		sub.C(dbsubscription.FieldCreatedAt),
 	).From(sub)
 	dbsubscription.DeletedAtNotNil()(query)
-	dbsubscription.Not(dbsubscription.HasSyncStateV2With(completed...))(query)
+	dbsubscription.Not(dbsubscription.HasSyncStateWith(completed...))(query)
 	if len(input.Namespaces) > 0 {
 		dbsubscription.NamespaceIn(input.Namespaces...)(query)
 	}

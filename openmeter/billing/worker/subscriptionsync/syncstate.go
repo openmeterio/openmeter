@@ -10,45 +10,45 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type SyncStateV2Adapter interface {
-	GetSyncStatesV2(context.Context, GetSyncStatesV2Input) ([]SyncStateV2Managed, error)
-	MarkSubscriptionChangedV2(context.Context, models.NamespacedID) error
-	RecordSyncResultV2(context.Context, RecordSyncResultV2Input) error
+type SyncStateAdapter interface {
+	GetSyncStates(context.Context, GetSyncStatesInput) ([]SyncStateManaged, error)
+	MarkSubscriptionChanged(context.Context, models.NamespacedID) error
+	RecordSyncResult(context.Context, RecordSyncResultInput) error
 }
 
-type SyncStateV2State string
+type SyncStateState string
 
 const (
-	// SyncStateV2StateNew means that no v2 sync result has been recorded yet,
+	// SyncStateStateNew means that no sync result has been recorded yet,
 	// even when the initialized current and last synced revisions are equal.
-	SyncStateV2StateNew SyncStateV2State = "new"
-	// SyncStateV2StateActive records a successful non-terminal reconciliation,
+	SyncStateStateNew SyncStateState = "new"
+	// SyncStateStateActive records a successful non-terminal reconciliation,
 	// including scheduled subscriptions with billable items.
-	SyncStateV2StateActive SyncStateV2State = "active"
-	// SyncStateV2StateNoBillables records successful reconciliation of a subscription
+	SyncStateStateActive SyncStateState = "active"
+	// SyncStateStateNoBillables records successful reconciliation of a subscription
 	// with no billable items in any phase. No periodic reconciliation is scheduled.
-	SyncStateV2StateNoBillables SyncStateV2State = "no_billables"
-	// SyncStateV2StateSubscriptionDeleted records successful reconciliation against
+	SyncStateStateNoBillables SyncStateState = "no_billables"
+	// SyncStateStateSubscriptionDeleted records successful reconciliation against
 	// an empty billing target because the subscription has a non-nil DeletedAt.
-	SyncStateV2StateSubscriptionDeleted SyncStateV2State = "subscription_deleted"
-	// SyncStateV2StateCustomerDeletedBefore records successful reconciliation against
+	SyncStateStateSubscriptionDeleted SyncStateState = "subscription_deleted"
+	// SyncStateStateCustomerDeletedBefore records successful reconciliation against
 	// an empty billing target because the customer was deleted at or before the
 	// non-deleted subscription's ActiveFrom.
-	SyncStateV2StateCustomerDeletedBefore SyncStateV2State = "customer_deleted_before"
-	// SyncStateV2StateEnded records successful billing reconciliation at or after
+	SyncStateStateCustomerDeletedBefore SyncStateState = "customer_deleted_before"
+	// SyncStateStateEnded records successful billing reconciliation at or after
 	// the earlier of subscription ActiveTo and customer deletion, with a sync
 	// horizon that covers that end.
-	SyncStateV2StateEnded SyncStateV2State = "ended"
-	// SyncStateV2StateTooOld records an intentional skip of billing
+	SyncStateStateEnded SyncStateState = "ended"
+	// SyncStateStateTooOld records an intentional skip of billing
 	// reconciliation because ActiveTo is more than 30 days before the worker clock.
-	SyncStateV2StateTooOld SyncStateV2State = "too_old"
+	SyncStateStateTooOld SyncStateState = "too_old"
 )
 
 // validateNextReconciliationAt keeps the deadline in step with the state: an active
 // result without one would silently drop out of reconciliation, and a leftover
 // deadline on any other state would schedule work that is not needed.
-func (s SyncStateV2State) validateNextReconciliationAt(at *time.Time) error {
-	if s != SyncStateV2StateActive {
+func (s SyncStateState) validateNextReconciliationAt(at *time.Time) error {
+	if s != SyncStateStateActive {
 		if at != nil {
 			return errors.New("next reconciliation at is only allowed for an active sync result")
 		}
@@ -63,34 +63,34 @@ func (s SyncStateV2State) validateNextReconciliationAt(at *time.Time) error {
 	return nil
 }
 
-func (SyncStateV2State) Values() []string {
+func (SyncStateState) Values() []string {
 	return []string{
-		string(SyncStateV2StateNew),
-		string(SyncStateV2StateActive),
-		string(SyncStateV2StateNoBillables),
-		string(SyncStateV2StateSubscriptionDeleted),
-		string(SyncStateV2StateCustomerDeletedBefore),
-		string(SyncStateV2StateEnded),
-		string(SyncStateV2StateTooOld),
+		string(SyncStateStateNew),
+		string(SyncStateStateActive),
+		string(SyncStateStateNoBillables),
+		string(SyncStateStateSubscriptionDeleted),
+		string(SyncStateStateCustomerDeletedBefore),
+		string(SyncStateStateEnded),
+		string(SyncStateStateTooOld),
 	}
 }
 
-func (s SyncStateV2State) Validate() error {
+func (s SyncStateState) Validate() error {
 	if !slices.Contains(s.Values(), string(s)) {
-		return fmt.Errorf("invalid sync state v2 state: %q", s)
+		return fmt.Errorf("invalid sync state: %q", s)
 	}
 
 	return nil
 }
 
-// SyncStateV2 keeps subscription changes and the last completed sync outcome,
+// SyncState keeps subscription changes and the last completed sync outcome,
 // including intentional age skips. New rows have no completed outcome yet.
-type SyncStateV2 struct {
+type SyncState struct {
 	SubscriptionID   models.NamespacedID
-	LastSuccessState SyncStateV2State
-	// LastSuccessAt is nil until a v2 sync result has been recorded.
+	LastSuccessState SyncStateState
+	// LastSuccessAt is nil until a sync result has been recorded.
 	LastSuccessAt *time.Time
-	// NextReconciliationAt schedules the next v2 reconciliation. It is required for
+	// NextReconciliationAt schedules the next reconciliation. It is required for
 	// active results and must be nil for every other state.
 	NextReconciliationAt *time.Time
 	// LastSyncedSubsRevision is initialized on new rows and acknowledged by recorded sync results.
@@ -99,16 +99,16 @@ type SyncStateV2 struct {
 	CurrentSubsRevision string
 }
 
-// SyncStateV2Managed includes the sync-state row's identity and timestamps.
-type SyncStateV2Managed struct {
-	SyncStateV2
+// SyncStateManaged includes the sync-state row's identity and timestamps.
+type SyncStateManaged struct {
+	SyncState
 	models.NamespacedID
 	models.ManagedModel
 }
 
-func (s SyncStateV2Managed) Validate() error {
+func (s SyncStateManaged) Validate() error {
 	var errs []error
-	if err := s.SyncStateV2.Validate(); err != nil {
+	if err := s.SyncState.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("sync state: %w", err))
 	}
 
@@ -123,11 +123,11 @@ func (s SyncStateV2Managed) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type GetSyncStatesV2Input = []models.NamespacedID
+type GetSyncStatesInput = []models.NamespacedID
 
-type RecordSyncResultV2Input struct {
+type RecordSyncResultInput struct {
 	SubscriptionID       models.NamespacedID
-	LastSuccessState     SyncStateV2State
+	LastSuccessState     SyncStateState
 	LastSuccessAt        time.Time
 	NextReconciliationAt *time.Time
 	// CurrentSubsRevision is deliberately absent: sync can acknowledge its
@@ -135,9 +135,9 @@ type RecordSyncResultV2Input struct {
 	LastSyncedSubsRevision string
 }
 
-var _ models.Validator = RecordSyncResultV2Input{}
+var _ models.Validator = RecordSyncResultInput{}
 
-func (i SyncStateV2) Validate() error {
+func (i SyncState) Validate() error {
 	var errs []error
 	if err := i.SubscriptionID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("subscription ID: %w", err))
@@ -147,7 +147,7 @@ func (i SyncStateV2) Validate() error {
 		errs = append(errs, fmt.Errorf("last success state: %w", err))
 	}
 
-	if i.LastSuccessState == SyncStateV2StateNew {
+	if i.LastSuccessState == SyncStateStateNew {
 		if i.LastSuccessAt != nil {
 			errs = append(errs, errors.New("new sync state must not have a last success at"))
 		}
@@ -170,7 +170,7 @@ func (i SyncStateV2) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-func (i RecordSyncResultV2Input) Validate() error {
+func (i RecordSyncResultInput) Validate() error {
 	var errs []error
 	if err := i.SubscriptionID.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("subscription ID: %w", err))
@@ -180,7 +180,7 @@ func (i RecordSyncResultV2Input) Validate() error {
 		errs = append(errs, fmt.Errorf("last success state: %w", err))
 	}
 
-	if i.LastSuccessState == SyncStateV2StateNew {
+	if i.LastSuccessState == SyncStateStateNew {
 		errs = append(errs, errors.New("new sync state must be initialized by a subscription change"))
 	}
 
