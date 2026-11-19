@@ -8,6 +8,7 @@ import (
 	"github.com/lib/pq"
 
 	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
+	receiptdb "github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 )
 
@@ -55,14 +56,14 @@ func (q renewPullQuery) SQL() (string, []any) {
 }
 
 type invalidateDemandQuery struct {
-	selectors []rte.DemandSelector
-	at        time.Time
+	input rte.InvalidateInput
+	at    time.Time
 }
 
 func (q invalidateDemandQuery) SQL() (string, []any, error) {
 	pg := sql.Dialect(dialect.Postgres)
 	var selectors []*sql.Predicate
-	for _, selector := range q.selectors {
+	for _, selector := range q.input.Selectors {
 		parts := []*sql.Predicate{
 			sql.EQ(demanddb.FieldNamespace, selector.Namespace),
 			sql.EQ(demanddb.FieldKind, selector.Kind),
@@ -90,7 +91,11 @@ func (q invalidateDemandQuery) SQL() (string, []any, error) {
 
 	matching := pg.Select().From(pg.Table(demanddb.Table))
 	activeDemand(q.at)(matching)
-	update := pg.Update(demanddb.Table).FromSelect(matching).Where(sql.Or(selectors...))
+	receipt := pg.Select(receiptdb.FieldID).From(pg.Table(receiptdb.Table)).Where(sql.And(
+		sql.EQ(receiptdb.FieldSource, q.input.Source),
+		sql.EQ(receiptdb.FieldEventID, q.input.EventID),
+	))
+	update := pg.Update(demanddb.Table).FromSelect(matching).Where(sql.Or(selectors...)).Where(sql.NotExists(receipt))
 	markDemandDirty(update, q.at)
 
 	query, args := update.Query()

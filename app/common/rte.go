@@ -122,7 +122,7 @@ func RTEGroup(ctx context.Context, telemetryServer TelemetryServer, worker rte.W
 
 func RTEProvisionTopics(conf config.RTEConfiguration, events config.EventsConfiguration) []pkgkafka.TopicConfig {
 	var topics []pkgkafka.TopicConfig
-	if conf.DLQ.AutoProvision.Enabled {
+	if conf.DLQ.Enabled && conf.DLQ.AutoProvision.Enabled {
 		topics = append(topics, pkgkafka.TopicConfig{
 			Name:          conf.DLQ.Topic,
 			Partitions:    conf.DLQ.AutoProvision.Partitions,

@@ -12,15 +12,16 @@ make build-rte
 RTE defaults to disabled. The command then exits before opening connections or running migrations.
 With `rte.enabled: true`, `--validate` checks the configuration and requires `credits.enabled`. Startup initializes the
 domain services for both calculators, runs the configured migrations, and starts the Kafka worker
-and telemetry server. The two source topics must have different names. The worker drains its own calculation updates from the shared outbox. Other system events
-continue through their usual publishers. Delivery limits and retries use the
+and telemetry server. If either fails, the command exits with a nonzero status.
+The two source topics must have different names. The worker drains its own calculation updates
+from the shared outbox. Other system events continue through their usual publishers. Delivery limits and retries use the
 [outbox configuration](../../openmeter/watermill/outbox/README.md).
 
 | Setting | Effect |
 | --- | --- |
 | `events.systemEvents.topic`, `events.ingestEvents.topic` | Inputs for calculation requests, domain facts and stored-usage notifications |
 | `rte.consumerGroupName` | Kafka group shared by RTE replicas, default `om_rte` |
-| `rte.retry`, `rte.dlq` | Message-processing retries and dead lettering |
+| `rte.retry`, `rte.dlq` | Message-processing retries and dead lettering. With `rte.dlq.enabled: false`, failed deliveries return to Kafka for redelivery after retries. |
 | `rte.pollInterval` | Wait per idle background slot after an empty or failed claim, default 1s |
 | `rte.calculationConcurrency` | Background calculation slots per process, default 4; does not limit message-handler calculations |
 | `rte.calculationTimeout` | Time budget for one demand calculation, default 30s |

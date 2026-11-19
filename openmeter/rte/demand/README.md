@@ -47,9 +47,9 @@ it synchronously. A freshness call already in progress can finish after
 deactivation.
 
 An invalidation receipt uses the immutable source and event ID. Inserting its
-receipt and marking all matching active keys happen in one transaction. Duplicate
-events do nothing. An independent late event still dirties the key. A selector
-can span a namespace/kind, owners, or exact semantic keys. An empty owner/target
+receipt and marking all matching active keys happen in one transaction. Only facts
+that mark at least one key get a receipt. Redelivery of a recorded fact does nothing.
+An independent late event still dirties the key. A selector can span a namespace/kind, owners, or exact semantic keys. An empty owner/target
 list deliberately selects the entire namespace/kind. Producers must include all
 affected selectors on the first delivery. Keys activated after a fact calculate
 from current sources instead of replaying its receipt.
