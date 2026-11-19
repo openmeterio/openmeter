@@ -527,6 +527,9 @@ type RTECreditBalance func(*sql.Selector)
 // RTEDemand is the predicate function for rtedemand builders.
 type RTEDemand func(*sql.Selector)
 
+// RTEDemandLock is the predicate function for rtedemandlock builders.
+type RTEDemandLock func(*sql.Selector)
+
 // RTEInvalidation is the predicate function for rteinvalidation builders.
 type RTEInvalidation func(*sql.Selector)
 

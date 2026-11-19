@@ -12,12 +12,12 @@ import (
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/lib/pq"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	entitlementdb "github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
+	lockdb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemandlock"
 	receiptdb "github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/rte"
@@ -122,20 +122,21 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 		return false, fmt.Errorf("encode demand key: %w", err)
 	}
 
-	if input.PullTTL > 0 && input.MaxAge == 0 {
+	_, txErr := transaction.GetDriverFromContext(ctx)
+	callerOwnsTransaction := txErr == nil
+	if input.PullTTL > 0 && input.MaxAge == 0 && !callerOwnsTransaction {
 		clean, err := entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (bool, error) {
 			// If another transaction holds the row, the tracking period might expire before
 			// it commits. Let registration recheck the lease after the lock is ours.
-			const query = `UPDATE rte_demands
-				SET pull_until = GREATEST(pull_until, $1), updated_at = $2
-				WHERE id = (SELECT id FROM rte_demands
-				  WHERE namespace = $3 AND kind = $4 AND key_hash = $5 AND key = $6::jsonb
-				    AND deleted_at IS NULL AND NOT push_enabled AND pull_until > $2
-				  FOR UPDATE SKIP LOCKED)
-				RETURNING completed_version = dirty_version AND (next_refresh_at IS NULL OR next_refresh_at > $2)`
-
 			now := sync.OnceValue(clock.Now)
-			rows, err := a.db.QueryContext(ctx, query, pullRenewalTime{now: now, offset: input.PullTTL}, pullRenewalTime{now: now}, identity.Namespace, string(input.Target.Kind), identity.KeyHash, string(encodedKey))
+			query, args := (renewPullQuery{
+				identity: identity,
+				kind:     input.Target.Kind,
+				key:      string(encodedKey),
+				at:       pullRenewalTime{now: now},
+				until:    pullRenewalTime{now: now, offset: input.PullTTL},
+			}).SQL()
+			rows, err := a.db.QueryContext(ctx, query, args...)
 			if err != nil {
 				return false, err
 			}
@@ -151,15 +152,35 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 		}
 	}
 
-	return false, transaction.RunWithNoValue(ctx, r, func(ctx context.Context) error {
-		return entutils.TransactingRepoWithNoValue(ctx, r.adapter, func(ctx context.Context, a *adapter) error {
+	return transaction.Run(ctx, r, func(ctx context.Context) (bool, error) {
+		return entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (bool, error) {
 			now := clock.Now()
-			err := a.db.RTEDemand.Create().SetNamespace(identity.Namespace).SetKind(string(input.Target.Kind)).SetOwnerID(identity.OwnerID).
-				SetKeyHash(identity.KeyHash).SetKey(encodedKey).SetNextAttemptAt(now).
+			pg := sql.Dialect(dialect.Postgres)
+			create := func() *db.RTEDemandCreate {
+				return a.db.RTEDemand.Create().SetNamespace(identity.Namespace).SetKind(string(input.Target.Kind)).
+					SetOwnerID(identity.OwnerID).SetKeyHash(identity.KeyHash).SetKey(encodedKey).
+					SetDirtyVersion(0).SetNextAttemptAt(now)
+			}
+
+			if callerOwnsTransaction {
+				// Registration and targeted calculation can share an outer transaction.
+				// Take locks in the worker's order before renewal writes the demand row.
+				// DO NOTHING also handles two callers registering a new key together.
+				err := create().OnConflict(sql.DoNothing()).Exec(ctx)
+				if err != nil && !errors.Is(err, stdsql.ErrNoRows) {
+					return false, err
+				}
+
+				if _, err := a.db.RTEDemandLock.Query().Where(lockdb.HasDemandWith(condition)).ForUpdate().OnlyID(ctx); err != nil {
+					return false, err
+				}
+			}
+
+			err := create().
 				OnConflict(
 					sql.ConflictColumns(demanddb.FieldNamespace, demanddb.FieldKind, demanddb.FieldKeyHash),
 					sql.ConflictWhere(sql.IsNull(demanddb.FieldDeletedAt)),
-					sql.UpdateWhere(sql.ExprP("rte_demands.key <> excluded.key")),
+					sql.UpdateWhere(sql.ColumnsNEQ(pg.Table(demanddb.Table).C(demanddb.FieldKey), pg.Table("excluded").C(demanddb.FieldKey))),
 				).
 				Update(func(u *db.RTEDemandUpsert) {
 					// Earlier registrations stored the caller's raw JSON. Repair its field
@@ -169,12 +190,12 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 				}).
 				Exec(ctx)
 			if err != nil && !errors.Is(err, stdsql.ErrNoRows) {
-				return fmt.Errorf("create demand: %w", err)
+				return false, fmt.Errorf("create demand: %w", err)
 			}
 
 			row, err := a.db.RTEDemand.Query().Where(condition).ForUpdate().Only(ctx)
 			if err != nil {
-				return err
+				return false, err
 			}
 
 			now = clock.Now()
@@ -182,6 +203,9 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 			update := a.db.RTEDemand.UpdateOneID(row.ID)
 			if input.PushEnabled {
 				update.SetPushEnabled(true)
+				if !row.PushEnabled && row.Attempts == 0 && row.DirtyVersion > row.CompletedVersion {
+					update.SetNextAttemptAt(now)
+				}
 			}
 
 			if input.PullTTL > 0 {
@@ -192,15 +216,22 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 			}
 
 			stale := input.MaxAge > 0 && (row.LastCalculatedAt == nil || !row.LastCalculatedAt.After(now.Add(-input.MaxAge)))
-			if !wasActive || stale {
-				if row.CompletedVersion == row.DirtyVersion {
-					update.AddDirtyVersion(1)
+			clean := row.CompletedVersion == row.DirtyVersion
+			// Reopening tracking must advance even an already dirty key. Its
+			// in-flight calculation may predate changes missed during the gap.
+			if !wasActive || (stale && clean) {
+				update.AddDirtyVersion(1)
+				if row.Attempts == 0 {
+					update.SetNextAttemptAt(now)
 				}
-
-				update.SetNextAttemptAt(now)
+				clean = false
 			}
 
-			return update.Exec(ctx)
+			if err := update.Exec(ctx); err != nil {
+				return false, err
+			}
+
+			return clean && (row.SourceDeleteAt == nil || row.SourceDeleteAt.After(now)), nil
 		})
 	})
 }
@@ -233,52 +264,15 @@ func (r *demandRepository) Invalidate(ctx context.Context, input rte.InvalidateI
 				return rte.InvalidationResult{}, fmt.Errorf("remember invalidation: %w", err)
 			}
 
-			selectors := make([]predicate.RTEDemand, 0, len(input.Selectors))
-			for _, selector := range input.Selectors {
-				parts := []predicate.RTEDemand{demanddb.NamespaceEQ(selector.Namespace), demanddb.KindEQ(string(selector.Kind))}
-				if len(selector.OwnerIDs) > 0 {
-					parts = append(parts, func(s *sql.Selector) {
-						s.Where(sql.P(func(b *sql.Builder) {
-							b.Ident(s.C(demanddb.FieldOwnerID)).WriteString(" = ANY(").Arg(pq.Array(selector.OwnerIDs)).WriteString("::text[])")
-						}))
-					})
-				}
-
-				if len(selector.Targets) > 0 {
-					hashes := make([]string, 0, len(selector.Targets))
-					for _, target := range selector.Targets {
-						identity, err := target.Identity()
-						if err != nil {
-							return rte.InvalidationResult{}, err
-						}
-
-						hashes = append(hashes, identity.KeyHash)
-					}
-
-					// A usage batch can touch more keys than PostgreSQL's parameter
-					// limit. Bind their identities as one array instead of one per key.
-					parts = append(parts, func(s *sql.Selector) {
-						s.Where(sql.P(func(b *sql.Builder) {
-							b.Ident(s.C(demanddb.FieldKeyHash)).WriteString(" = ANY(").Arg(pq.Array(hashes)).WriteString("::text[])")
-						}))
-					})
-				}
-
-				selectors = append(selectors, demanddb.And(parts...))
-			}
-
-			if len(selectors) == 0 {
+			if len(input.Selectors) == 0 {
 				return rte.InvalidationResult{}, nil
 			}
 
-			now := clock.Now()
-			builder := sql.Dialect(dialect.Postgres)
-			matching := builder.Select().From(builder.Table(demanddb.Table))
-			demanddb.And(activeDemand(now), demanddb.Or(selectors...))(matching)
+			query, args, err := (invalidateDemandQuery{selectors: input.Selectors, at: clock.Now()}).SQL()
+			if err != nil {
+				return rte.InvalidationResult{}, err
+			}
 
-			update := builder.Update(demanddb.Table).FromSelect(matching)
-			markDemandDirty(update, now)
-			query, args := update.Query()
 			result, err := a.db.ExecContext(ctx, query, args...)
 			if err != nil {
 				return rte.InvalidationResult{}, err
@@ -291,20 +285,8 @@ func (r *demandRepository) Invalidate(ctx context.Context, input rte.InvalidateI
 	})
 }
 
-// A new fact makes a healthy key immediately eligible for calculation. Failed
-// keys accumulate the same work while keeping their existing retry deadline.
-func markDemandDirty(update *sql.UpdateBuilder, now time.Time) {
-	update.Add(demanddb.FieldDirtyVersion, 1).
-		Set(demanddb.FieldUpdatedAt, now).
-		Set(demanddb.FieldNextAttemptAt, sql.ExprFunc(func(b *sql.Builder) {
-			b.WriteString("CASE WHEN rte_demands.attempts = 0 THEN ").Arg(now).
-				WriteString(" ELSE rte_demands.next_attempt_at END")
-		}))
-}
-
 // A deletion notification can arrive before its effective time. Read the source
-// row under the demand lock so redelivery and changes to a scheduled deletion
-// always use the latest committed deadline.
+// again at processing time in case the writer moved or canceled the deadline.
 func (a *adapter) demandSourceDeletionAt(ctx context.Context, row *db.RTEDemand) (*time.Time, error) {
 	if row.Kind != string(rte.CalculationKindMeteredEntitlement) {
 		return nil, nil
@@ -325,6 +307,65 @@ func (a *adapter) demandSourceDeletionAt(ctx context.Context, row *db.RTEDemand)
 	return source.DeletedAt, nil
 }
 
+func demandDue(now time.Time) predicate.RTEDemand {
+	return demanddb.And(demanddb.DeletedAtIsNil(), demanddb.Or(func(s *sql.Selector) {
+		s.Where(sql.ColumnsGT(s.C(demanddb.FieldDirtyVersion), s.C(demanddb.FieldCompletedVersion)))
+	}, demanddb.SourceDeleteAtLTE(now)))
+}
+
+// Background workers skip busy calculation locks. A pull for a particular key
+// waits for its owner, then checks whether that calculation covered its demand.
+func (a *adapter) claimDemand(ctx context.Context, target *rte.CalculationTarget) (*db.RTEDemand, error) {
+	now := clock.Now()
+	query := a.db.RTEDemand.Query().Where(demandDue(now))
+	query.Where(func(s *sql.Selector) {
+		lock := sql.Dialect(dialect.Postgres).Table(lockdb.Table).As("calc_lock")
+		s.Join(lock).On(s.C(demanddb.FieldID), lock.C(lockdb.FieldID))
+	})
+
+	opts := []sql.LockOption{sql.WithLockTables("calc_lock")}
+	if target == nil {
+		// Match the partial work index even when PostgreSQL uses a generic plan.
+		query.Where(func(s *sql.Selector) { s.Where(sql.IsTrue(s.C(demanddb.FieldPushEnabled))) }, demanddb.NextAttemptAtLTE(now)).
+			Order(demanddb.ByNextAttemptAt(), demanddb.ByID())
+		opts = append(opts, sql.WithLockAction(sql.SkipLocked))
+	} else {
+		_, condition, err := demandIdentity(*target)
+		if err != nil {
+			return nil, err
+		}
+
+		query.Where(condition)
+	}
+
+	id, err := query.ForUpdate(opts...).FirstID(ctx)
+	if db.IsNotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// READ COMMITTED gives this statement a fresh snapshot after waiting
+	// for the calculation lock. Invalidation can still update the demand row.
+	return a.dueDemand(ctx, id, target == nil)
+}
+
+func (a *adapter) dueDemand(ctx context.Context, id int, background bool) (*db.RTEDemand, error) {
+	now := clock.Now()
+	fresh := a.db.RTEDemand.Query().Where(demanddb.IDEQ(id), demandDue(now))
+	if background {
+		fresh.Where(demanddb.PushEnabledEQ(true), demanddb.NextAttemptAtLTE(now))
+	}
+
+	row, err := fresh.Only(ctx)
+	if db.IsNotFound(err) {
+		return nil, nil
+	}
+
+	return row, err
+}
+
 func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandInput, calculate func(context.Context, rte.CalculationTarget) error) (rte.DemandWorkResult, error) {
 	if err := input.Validate(); err != nil {
 		return rte.DemandWorkResult{}, err
@@ -339,49 +380,53 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 	var failedAttempt *db.RTEDemand
 	var retryAt time.Time
 	var calculationFailure error
+	var timing *rte.DemandAttemptTiming
 	result, processErr := transaction.Run(ctx, r, func(ctx context.Context) (rte.DemandWorkResult, error) {
 		return entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (rte.DemandWorkResult, error) {
-			now := clock.Now()
-			due := demanddb.Or(func(s *sql.Selector) {
-				s.Where(sql.ColumnsGT(s.C(demanddb.FieldDirtyVersion), s.C(demanddb.FieldCompletedVersion)))
-			}, demanddb.SourceDeleteAtLTE(now))
-			query := a.db.RTEDemand.Query().Where(demanddb.DeletedAtIsNil(), due).Order(demanddb.ByNextAttemptAt(), demanddb.ByID()).Limit(1)
-			if input.Target == nil {
-				// Keep the push predicate literal so prepared generic plans can
-				// use the partial ready-work index too.
-				query.Where(func(s *sql.Selector) { s.Where(sql.IsTrue(s.C(demanddb.FieldPushEnabled))) }, demanddb.NextAttemptAtLTE(now)).ForUpdate(sql.WithLockAction(sql.SkipLocked))
-			} else {
-				_, condition, err := demandIdentity(*input.Target)
-				if err != nil {
-					return rte.DemandWorkResult{}, err
-				}
-
-				query.Where(condition).ForUpdate()
-			}
-
-			row, err := query.First(ctx)
-			if db.IsNotFound(err) {
-				return rte.DemandWorkResult{}, nil
-			}
-
-			if err != nil {
+			row, err := a.claimDemand(ctx, input.Target)
+			if err != nil || row == nil {
 				return rte.DemandWorkResult{}, err
 			}
 
-			now = clock.Now()
+			now := clock.Now()
+			if input.Target == nil {
+				timing = &rte.DemandAttemptTiming{
+					Kind:      rte.CalculationKind(row.Kind),
+					QueueWait: max(now.Sub(row.NextAttemptAt), 0),
+					StartedAt: time.Now(),
+				}
+			}
 
 			deletedAt, err := a.demandSourceDeletionAt(ctx, row)
 			if err != nil {
 				return rte.DemandWorkResult{}, err
 			}
 
-			if deletedAt != nil && !deletedAt.After(clock.Now()) {
+			for deletedAt != nil && !deletedAt.After(clock.Now()) {
 				// Keep the last successful value readable. Leave this version
 				// outstanding so an explicit pull still sees a deleted source.
-				err := a.db.RTEDemand.UpdateOneID(row.ID).SetDirtyVersion(max(row.DirtyVersion, row.CompletedVersion+1)).
-					SetPushEnabled(false).ClearPullUntil().ClearSourceDeleteAt().SetAttempts(0).Exec(ctx)
+				update := a.db.RTEDemand.Update().Where(demanddb.IDEQ(row.ID), demanddb.DirtyVersionEQ(row.DirtyVersion)).
+					SetPushEnabled(false).ClearPullUntil().ClearSourceDeleteAt().SetAttempts(0)
+				if row.DirtyVersion == row.CompletedVersion {
+					update.AddDirtyVersion(1)
+				}
+
+				retired, err := update.Save(ctx)
 				if err != nil {
 					return rte.DemandWorkResult{}, err
+				}
+
+				if retired == 0 {
+					// A source change won the race. It may have canceled the deletion.
+					row, err = a.dueDemand(ctx, row.ID, input.Target == nil)
+					if err != nil || row == nil {
+						return rte.DemandWorkResult{}, err
+					}
+					deletedAt, err = a.demandSourceDeletionAt(ctx, row)
+					if err != nil {
+						return rte.DemandWorkResult{}, err
+					}
+					continue
 				}
 
 				result := rte.DemandWorkResult{Processed: true, Retired: true}
@@ -395,7 +440,8 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 			if row.DirtyVersion == row.CompletedVersion {
 				// The deletion was moved or canceled, or an older worker set a periodic
 				// deadline. Update the wake-up time without running a clean calculation.
-				update := a.db.RTEDemand.UpdateOneID(row.ID).SetOrClearSourceDeleteAt(deletedAt)
+				update := a.db.RTEDemand.Update().Where(demanddb.IDEQ(row.ID), demanddb.DirtyVersionEQ(row.DirtyVersion)).
+					SetOrClearSourceDeleteAt(deletedAt)
 				if deletedAt != nil {
 					update.SetNextAttemptAt(*deletedAt)
 				}
@@ -434,12 +480,23 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 
 				update.SetAttempts(row.Attempts + 1).SetNextAttemptAt(retryAt)
 			} else {
-				update.SetCompletedVersion(row.DirtyVersion).SetAttempts(0).SetLastCalculatedAt(now).SetNextAttemptAt(clock.Now())
+				// Acknowledge only the claimed version. Concurrent invalidations
+				// leave this key dirty, eligible for another turn after completion.
+				nextAttempt := clock.Now()
 				if deletedAt != nil {
-					update.SetSourceDeleteAt(*deletedAt).SetNextAttemptAt(*deletedAt)
-				} else {
-					update.ClearSourceDeleteAt()
+					current, err := a.db.RTEDemand.Query().Where(demanddb.IDEQ(row.ID)).ForUpdate().Only(ctx)
+					if err != nil {
+						return rte.DemandWorkResult{}, err
+					}
+
+					// Waiting for a future deletion is safe only when there is no newer work.
+					if current.DirtyVersion == row.DirtyVersion {
+						nextAttempt = *deletedAt
+					}
 				}
+
+				update.SetCompletedVersion(row.DirtyVersion).SetAttempts(0).
+					SetLastCalculatedAt(now).SetNextAttemptAt(nextAttempt).SetOrClearSourceDeleteAt(deletedAt)
 			}
 
 			if err := update.Exec(ctx); err != nil {
@@ -449,6 +506,7 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 			return rte.DemandWorkResult{Processed: true, CalculationError: calculationErr}, nil
 		})
 	})
+	result.Timing = timing
 	if processErr != nil && ownsTransaction && failedAttempt != nil && ctx.Err() == nil {
 		// pgx can close the connection when a database read times out, making
 		// rollback-to-savepoint and the retry update impossible. The attempt
@@ -465,10 +523,10 @@ func (r *demandRepository) Process(ctx context.Context, input rte.ProcessDemandI
 			})
 		})
 		if recoveryErr != nil {
-			return rte.DemandWorkResult{}, errors.Join(processErr, fmt.Errorf("recover demand retry: %w", recoveryErr))
+			return result, errors.Join(processErr, fmt.Errorf("recover demand retry: %w", recoveryErr))
 		}
 
-		return rte.DemandWorkResult{Processed: true, CalculationError: errors.Join(calculationFailure, processErr)}, nil
+		return rte.DemandWorkResult{Processed: true, Timing: timing, CalculationError: errors.Join(calculationFailure, processErr)}, nil
 	}
 
 	return result, processErr

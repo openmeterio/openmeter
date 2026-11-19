@@ -5637,6 +5637,24 @@ var (
 			},
 		},
 	}
+	// RteDemandLocksColumns holds the columns for the "rte_demand_locks" table.
+	RteDemandLocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt},
+	}
+	// RteDemandLocksTable holds the schema information for the "rte_demand_locks" table.
+	RteDemandLocksTable = &schema.Table{
+		Name:       "rte_demand_locks",
+		Columns:    RteDemandLocksColumns,
+		PrimaryKey: []*schema.Column{RteDemandLocksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "rte_demand_locks_rte_demands_demand",
+				Columns:    []*schema.Column{RteDemandLocksColumns[0]},
+				RefColumns: []*schema.Column{RteDemandsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// RteInvalidationsColumns holds the columns for the "rte_invalidations" table.
 	RteInvalidationsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -6461,6 +6479,7 @@ var (
 		PlanRateCardsTable,
 		RteCreditBalancesTable,
 		RteDemandsTable,
+		RteDemandLocksTable,
 		RteInvalidationsTable,
 		RteMeteredEntitlementBalancesTable,
 		SubjectsTable,
@@ -6751,6 +6770,7 @@ func init() {
 		"plan_rate_card_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
 		"plan_rate_card_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
 	}
+	RteDemandLocksTable.ForeignKeys[0].RefTable = RteDemandsTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
 	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable
 	SubscriptionAddonsTable.ForeignKeys[0].RefTable = AddonsTable

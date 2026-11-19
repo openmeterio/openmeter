@@ -225,6 +225,10 @@ func (s *service) process(ctx context.Context, target *rte.CalculationTarget) (b
 		outcome = rtemetrics.DemandOutcomeCalculated
 	}
 
+	if result.Timing != nil {
+		s.metrics.BackgroundAttempt(ctx, *result.Timing, outcome)
+	}
+
 	s.metrics.Operation(ctx, rtemetrics.DemandOperationProcess, outcome)
 
 	return result.Processed && err == nil, errors.Join(err, result.CalculationError)

@@ -62,11 +62,16 @@ Size retention to the expected source replay window to avoid that extra work.
 
 ## Concurrent work and retries
 
-A worker locks one key due for background refresh with `FOR UPDATE SKIP LOCKED`. The lock spans
-calculation, stored state, its update outbox entry, and completion. Another worker
-can work on another key. An invalidation arriving during calculation waits for
-the lock, then advances dirtiness after completion. Successful state and
-completion commit together. A crash rolls both back, leaving the work ready.
+Each tracked key has a calculation-lock row. A worker takes that lock, then reads the
+current dirty version. Other background workers skip the key. A targeted pull waits
+and rechecks whether work is still due. Invalidation updates the demand row independently,
+so one slow calculation can coexist with an event that dirties many keys.
+
+On success, state, the update outbox entry and completion of the claimed version commit
+together. A crash rolls them back and PostgreSQL releases the lock. Changes received before
+claim share that pass. Changes received during it share a later pass, which joins the queue
+at completion time. Repeated changes to a waiting key preserve its place. Explicit
+one-time calculations run independently of this demand queue.
 
 Failed attempts roll back their writes to a savepoint and commit bounded
 exponential retry backoff. New input still advances the dirty version during backoff.

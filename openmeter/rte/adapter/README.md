@@ -8,6 +8,7 @@ successful calculation after tracking expires or a caller deactivates the key.
 | Credit balance | Namespace, customer ID, currency identity, feature scope | Calculation start and four decimal amounts |
 | Metered entitlement balance | Namespace and entitlement ID | Calculation start and the complete domain balance as JSON, including per-grant amounts |
 | Demand | Namespace, kind and hash of the semantic key | Decodable key, owner, background tracking, pull expiry, dirty/completed versions, entitlement deletion deadline and retry state |
+| Calculation lock | Demand row ID | One lock shared by all workers processing demand for this key |
 | Invalidation receipt | CloudEvents source and ID | A fact already applied to matching demand |
 
 For either balance store, an atomic upsert accepts a calculation whose start is strictly later
@@ -23,7 +24,9 @@ casing. Registering a key again repairs a previously misencoded row and marks it
 cover changes it may have missed. The worker decodes the stored key after a restart.
 
 When change tracking is active, background refresh is off and `MaxAge=0`,
-one uncontended update extends the tracking period and checks the versions. A clean result skips the work check.
+one uncontended update extends the tracking period and checks the versions. The general registration
+path also checks an optional maximum age. Both paths skip the work check when they confirm a
+clean result with continuous tracking and no due source deletion.
 If the row is busy, registration waits for the lock before checking the old lease and starting the new one. A lease that
 expires during the wait requires a calculation because invalidations may have been skipped.
 
@@ -32,7 +35,8 @@ calculation. A caller that wraps `EnsureFresh` in its own transaction delays vis
 the new lease. If a source fact arrives before commit while the previous lease is absent or
 expired, routing can skip that key. Call `EnsureFresh` outside the transaction when relying on continuous invalidation.
 
-The repository keeps a demand row locked through the callback, including external usage reads.
+The repository locks the separate calculation row through the callback, including external usage reads.
+Invalidations can update the demand row while the calculator runs.
 Background workers skip locked keys. An `EnsureFresh` call for the same target waits for the owner.
 Always propagate the callback context into the calculation so the result, update outbox record and
 completion share the transaction. See [demand processing](../demand/README.md) for timeout,

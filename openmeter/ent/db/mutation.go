@@ -111,6 +111,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemandlock"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
@@ -227,6 +228,7 @@ const (
 	TypePlanRateCard                                     = "PlanRateCard"
 	TypeRTECreditBalance                                 = "RTECreditBalance"
 	TypeRTEDemand                                        = "RTEDemand"
+	TypeRTEDemandLock                                    = "RTEDemandLock"
 	TypeRTEInvalidation                                  = "RTEInvalidation"
 	TypeRTEMeteredEntitlementBalance                     = "RTEMeteredEntitlementBalance"
 	TypeSubject                                          = "Subject"
@@ -121244,6 +121246,343 @@ func (m *RTEDemandMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *RTEDemandMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown RTEDemand edge %s", name)
+}
+
+// RTEDemandLockMutation represents an operation that mutates the RTEDemandLock nodes in the graph.
+type RTEDemandLockMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	clearedFields map[string]struct{}
+	demand        *int
+	cleareddemand bool
+	done          bool
+	oldValue      func(context.Context) (*RTEDemandLock, error)
+	predicates    []predicate.RTEDemandLock
+}
+
+var _ ent.Mutation = (*RTEDemandLockMutation)(nil)
+
+// rtedemandlockOption allows management of the mutation configuration using functional options.
+type rtedemandlockOption func(*RTEDemandLockMutation)
+
+// newRTEDemandLockMutation creates new mutation for the RTEDemandLock entity.
+func newRTEDemandLockMutation(c config, op Op, opts ...rtedemandlockOption) *RTEDemandLockMutation {
+	m := &RTEDemandLockMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRTEDemandLock,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRTEDemandLockID sets the ID field of the mutation.
+func withRTEDemandLockID(id int) rtedemandlockOption {
+	return func(m *RTEDemandLockMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RTEDemandLock
+		)
+		m.oldValue = func(ctx context.Context) (*RTEDemandLock, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RTEDemandLock.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRTEDemandLock sets the old RTEDemandLock of the mutation.
+func withRTEDemandLock(node *RTEDemandLock) rtedemandlockOption {
+	return func(m *RTEDemandLockMutation) {
+		m.oldValue = func(context.Context) (*RTEDemandLock, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RTEDemandLockMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RTEDemandLockMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of RTEDemandLock entities.
+func (m *RTEDemandLockMutation) SetID(id int) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RTEDemandLockMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RTEDemandLockMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RTEDemandLock.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetDemandID sets the "demand" edge to the RTEDemand entity by id.
+func (m *RTEDemandLockMutation) SetDemandID(id int) {
+	m.demand = &id
+}
+
+// ClearDemand clears the "demand" edge to the RTEDemand entity.
+func (m *RTEDemandLockMutation) ClearDemand() {
+	m.cleareddemand = true
+}
+
+// DemandCleared reports if the "demand" edge to the RTEDemand entity was cleared.
+func (m *RTEDemandLockMutation) DemandCleared() bool {
+	return m.cleareddemand
+}
+
+// DemandID returns the "demand" edge ID in the mutation.
+func (m *RTEDemandLockMutation) DemandID() (id int, exists bool) {
+	if m.demand != nil {
+		return *m.demand, true
+	}
+	return
+}
+
+// DemandIDs returns the "demand" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// DemandID instead. It exists only for internal usage by the builders.
+func (m *RTEDemandLockMutation) DemandIDs() (ids []int) {
+	if id := m.demand; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetDemand resets all changes to the "demand" edge.
+func (m *RTEDemandLockMutation) ResetDemand() {
+	m.demand = nil
+	m.cleareddemand = false
+}
+
+// Where appends a list predicates to the RTEDemandLockMutation builder.
+func (m *RTEDemandLockMutation) Where(ps ...predicate.RTEDemandLock) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RTEDemandLockMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RTEDemandLockMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RTEDemandLock, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RTEDemandLockMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RTEDemandLockMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RTEDemandLock).
+func (m *RTEDemandLockMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RTEDemandLockMutation) Fields() []string {
+	fields := make([]string, 0, 0)
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RTEDemandLockMutation) Field(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RTEDemandLockMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	return nil, fmt.Errorf("unknown RTEDemandLock field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTEDemandLockMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown RTEDemandLock field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RTEDemandLockMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RTEDemandLockMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTEDemandLockMutation) AddField(name string, value ent.Value) error {
+	return fmt.Errorf("unknown RTEDemandLock numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RTEDemandLockMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RTEDemandLockMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RTEDemandLockMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RTEDemandLock nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RTEDemandLockMutation) ResetField(name string) error {
+	return fmt.Errorf("unknown RTEDemandLock field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RTEDemandLockMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.demand != nil {
+		edges = append(edges, rtedemandlock.EdgeDemand)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RTEDemandLockMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case rtedemandlock.EdgeDemand:
+		if id := m.demand; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RTEDemandLockMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RTEDemandLockMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RTEDemandLockMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleareddemand {
+		edges = append(edges, rtedemandlock.EdgeDemand)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RTEDemandLockMutation) EdgeCleared(name string) bool {
+	switch name {
+	case rtedemandlock.EdgeDemand:
+		return m.cleareddemand
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RTEDemandLockMutation) ClearEdge(name string) error {
+	switch name {
+	case rtedemandlock.EdgeDemand:
+		m.ClearDemand()
+		return nil
+	}
+	return fmt.Errorf("unknown RTEDemandLock unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RTEDemandLockMutation) ResetEdge(name string) error {
+	switch name {
+	case rtedemandlock.EdgeDemand:
+		m.ResetDemand()
+		return nil
+	}
+	return fmt.Errorf("unknown RTEDemandLock edge %s", name)
 }
 
 // RTEInvalidationMutation represents an operation that mutates the RTEInvalidation nodes in the graph.

@@ -98,7 +98,7 @@ func (i InvalidateInput) Validate() error {
 }
 
 // ProcessDemandInput optionally targets one key. Targeted processing waits for
-// its row lock and ignores retry backoff; background processing skips locked rows.
+// its calculation lock and can retry immediately. Background workers skip busy keys.
 type ProcessDemandInput struct {
 	Target             *CalculationTarget
 	CalculationTimeout time.Duration
@@ -123,7 +123,16 @@ func (i ProcessDemandInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
+// DemandAttemptTiming is set only after a background worker takes the calculation
+// lock and confirms work is due. StartedAt measures elapsed processing locally.
+type DemandAttemptTiming struct {
+	Kind      CalculationKind
+	QueueWait time.Duration
+	StartedAt time.Time
+}
+
 type DemandWorkResult struct {
+	Timing           *DemandAttemptTiming
 	Processed        bool
 	Retired          bool
 	CalculationError error
@@ -158,7 +167,8 @@ func (i PruneInvalidationsInput) Validate() error {
 type DemandRepository interface {
 	Activate(context.Context, CalculationTarget) error
 
-	// EnsurePull returns true when renewal confirms the key is clean. Otherwise the caller must check for work.
+	// EnsurePull returns true when tracking was continuous, the versions match,
+	// the age is acceptable and no source deletion is due.
 	EnsurePull(context.Context, EnsureFreshInput) (clean bool, err error)
 
 	Deactivate(context.Context, CalculationTarget) error

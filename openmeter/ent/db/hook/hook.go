@@ -981,6 +981,18 @@ func (f RTEDemandFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, err
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEDemandMutation", m)
 }
 
+// The RTEDemandLockFunc type is an adapter to allow the use of ordinary
+// function as RTEDemandLock mutator.
+type RTEDemandLockFunc func(context.Context, *db.RTEDemandLockMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTEDemandLockFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTEDemandLockMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEDemandLockMutation", m)
+}
+
 // The RTEInvalidationFunc type is an adapter to allow the use of ordinary
 // function as RTEInvalidation mutator.
 type RTEInvalidationFunc func(context.Context, *db.RTEInvalidationMutation) (db.Value, error)

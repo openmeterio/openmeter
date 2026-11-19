@@ -19,6 +19,8 @@ inside the measured operation.
 | `rte.state.read.duration` | Histogram / s | `kind`, `outcome` | Time spent reading stored state, without refreshing it. |
 | `rte.demand.operations` | Counter | `operation`, `outcome` | Freshness requests, invalidations, processing attempts and receipt maintenance; see outcomes below. |
 | `rte.demand.ensure_fresh.duration` | Histogram / s | `kind`, `outcome` | `EnsureFresh`, including demand registration, lock waits and any required calculation. Outcomes: `cache_hit`, `calculated`, `error`. |
+| `rte.demand.queue_wait.duration` | Histogram / s | `kind`, `outcome` | Time from eligibility to claim. For another pass on the same key, eligibility starts when the previous pass finishes. A retry becomes eligible at its backoff deadline. |
+| `rte.demand.processing.duration` | Histogram / s | `kind`, `outcome` | Elapsed time from the confirmed background claim through processing and transaction completion. Both background histograms record when the attempt returns. Empty polls and targeted pulls contribute no samples. |
 | `rte.demand.invalidated` | Counter | None | Sum of active keys matched by invalidations. Counts matches, not distinct keys or eventual calculations. |
 | `rte.upstream.events` | Counter | `event`, `outcome` | Supported source-event handling: `routed`, `no_target` or `error`. `event` is the event type, never its ID. |
 | `rte.upstream.lag` | Histogram / s | `event` | Time from the CloudEvent's publication timestamp to handling, when that timestamp exists. Does not measure the age of the underlying usage. |
@@ -95,7 +97,7 @@ Keep labels bounded: calculation kinds, supported event types, operations and
 outcomes. Never add customer IDs, namespaces or calculation keys. Instrument
 names, units and labels are an observability contract for dashboards and comparisons.
 
-Calculation, stored-read, freshness and routing histograms share explicit buckets
-from 0.5 ms to 30 s, recorded in seconds. Comparison durations use 0.1–30,000 ms;
+Calculation, stored-read, freshness, background processing and routing histograms share explicit buckets
+from 0.5 ms to 30 s, recorded in seconds. Background queue wait uses 1 ms to 1 hour. Comparison durations use 0.1–30,000 ms;
 comparison lag uses 1–300,000 ms. Upstream lag uses the meter provider's default
 boundaries. Bucket limits do not limit recorded values or operation runtimes.
