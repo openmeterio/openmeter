@@ -9,9 +9,11 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
@@ -79,6 +81,7 @@ func TestDefaultRouter(t *testing.T) {
 	tcs := []struct {
 		Name       string
 		Config     Options
+		DisableDLQ bool
 		SetupMocks func(*mockHandler, *DoneCondition)
 	}{
 		{
@@ -92,6 +95,17 @@ func TestDefaultRouter(t *testing.T) {
 				},
 			},
 			SetupMocks: func(mh *mockHandler, done *DoneCondition) {
+				mh.On("Handle", mock.Anything).Return(nil).Run(done.Done).Once()
+			},
+		},
+		{
+			Name:       "DLQ disabled, broker redelivers after failure",
+			DisableDLQ: true,
+			Config: Options{Config: config.ConsumerConfiguration{
+				Retry: config.RetryConfiguration{InitialInterval: time.Millisecond, MaxInterval: time.Millisecond},
+			}},
+			SetupMocks: func(mh *mockHandler, done *DoneCondition) {
+				mh.On("Handle", mock.Anything).Return(assert.AnError).Once()
 				mh.On("Handle", mock.Anything).Return(nil).Run(done.Done).Once()
 			},
 		},
@@ -215,6 +229,7 @@ func TestDefaultRouter(t *testing.T) {
 			options.Tracer = sdktrace.NewTracerProvider().Tracer("router_test")
 
 			options.Config.DLQ.Topic = "test-dlq"
+			options.Config.DLQ.Enabled = !tc.DisableDLQ
 			options.Config.ConsumerGroupName = "test-group"
 
 			router, err := NewDefaultRouter(options)
@@ -263,4 +278,52 @@ func TestDefaultRouter(t *testing.T) {
 			assert.NoError(t, router.Close())
 		})
 	}
+}
+
+func TestDefaultRouterCloseDuringDelivery(t *testing.T) {
+	// Given a handler still processing a message when the router shuts down.
+	pubsub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NopLogger{})
+	t.Cleanup(func() { assert.NoError(t, pubsub.Close()) })
+
+	router, err := NewDefaultRouter(Options{
+		Subscriber:  pubsub,
+		Publisher:   pubsub,
+		Logger:      slog.New(slog.DiscardHandler),
+		MetricMeter: sdkmetric.NewMeterProvider().Meter("router_test"),
+		Tracer:      sdktrace.NewTracerProvider().Tracer("router_test"),
+		Config: config.ConsumerConfiguration{
+			ConsumerGroupName: "test-group",
+			Retry:             config.RetryConfiguration{InitialInterval: time.Millisecond, MaxInterval: time.Millisecond},
+			DLQ:               config.DLQConfiguration{Enabled: true, Topic: "test-dlq"},
+		},
+	})
+	require.NoError(t, err)
+
+	started := make(chan *message.Message, 1)
+	router.AddConsumerHandler("blocking", "input", pubsub, func(msg *message.Message) error {
+		started <- msg
+		<-msg.Context().Done()
+
+		return errors.New("interrupted during processing")
+	})
+
+	done := make(chan error, 1)
+	go func() { done <- router.Run(t.Context()) }()
+	<-router.Running()
+
+	require.NoError(t, pubsub.Publish("input", message.NewMessage(watermill.NewUUID(), nil)))
+	delivery := <-started
+
+	// When Close cancels the delivery, the failing handler must be able to return.
+	require.NoError(t, router.Close())
+	require.NoError(t, <-done)
+
+	// Then the broker can redeliver. No DLQ publish was attempted.
+	select {
+	case <-delivery.Nacked():
+	default:
+		t.Fatal("interrupted delivery was not nacked")
+	}
+
+	require.NotContains(t, delivery.Metadata, middleware.ReasonForPoisonedKey)
 }

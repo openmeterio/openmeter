@@ -18,6 +18,11 @@ removed, B's attempt count is persisted, and C waits for a later drain. Other
 transactions can progress. Once B reaches `maxAttempts`, it is logged and retained
 for inspection, skipped by future drains, and C can proceed. Raising the limit makes retained rows eligible again.
 
+By default, a worker drains all event types on its configured outbox topics. A worker
+with limited delivery responsibilities can set `Config.DrainEventType`. It can then
+claim a transaction only when every remaining row on those topics has that type.
+Skipping individual rows could deliver a later event ahead of an earlier one.
+
 Acknowledged events are **hard-deleted**. A crash or failed database commit can
 resend them, so consumers must tolerate duplicates. Failed-attempt counts survive
 successful drain commits; crashes or database failures can cause extra attempts.
