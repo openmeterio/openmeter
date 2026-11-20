@@ -258,8 +258,9 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyChangesAfterFail
 
 	// when: the draft is synced to Stripe
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			emptyInvoiceModeFlatFeeLine(namespace, period, 10),
 		}),
@@ -310,8 +311,9 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterFaile
 
 	// when: the draft is synced to Stripe
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			emptyInvoiceModeFlatFeeLine(namespace, period, 10),
 		}),
@@ -362,8 +364,9 @@ func (s *StripeInvoiceTestSuite) TestCreateInvoiceIdempotencyKeyIsKeptAfterLostC
 
 	// when: the draft is synced to Stripe
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			emptyInvoiceModeFlatFeeLine(namespace, period, 10),
 		}),
