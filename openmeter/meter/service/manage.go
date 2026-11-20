@@ -19,13 +19,6 @@ import (
 
 var _ meter.ManageService = (*ManageService)(nil)
 
-// JSONPathValidator reports whether the event store can evaluate a JSONPath. ClickHouse
-// accepts less than the Go JSONPath library, so a path like `$.transaction-count` passes
-// meter validation but fails every query.
-type JSONPathValidator interface {
-	ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error)
-}
-
 type ManageService struct {
 	meter.Service
 	preUpdateHooks     []meter.PreUpdateMeterHook
@@ -33,7 +26,7 @@ type ManageService struct {
 	publisher          eventbus.Publisher
 	namespaceManager   *namespace.Manager
 	eventTypeValidator models.ValidatorFunc[string]
-	jsonPathValidator  JSONPathValidator
+	jsonPathValidator  meter.JSONPathValidator
 }
 
 func NewManage(
@@ -41,7 +34,7 @@ func NewManage(
 	publisher eventbus.Publisher,
 	namespaceManager *namespace.Manager,
 	reservedEventTypes []*meter.EventTypePattern,
-	jsonPathValidator JSONPathValidator,
+	jsonPathValidator meter.JSONPathValidator,
 ) *ManageService {
 	return &ManageService{
 		Service:            New(adapter),
