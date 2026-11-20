@@ -51,8 +51,8 @@ func (dt DateTime) Add(d ISODuration) DateTime {
 	months := d.Months()
 	weeks := d.Weeks()
 	days := d.Days()
-	hours := d.Hours()
-	minutes := d.Minutes()
+	hours, _ := alpacadecimal.NewFromString(d.HoursDecimal().String())
+	minutes, _ := alpacadecimal.NewFromString(d.MinutesDecimal().String())
 	// We can safely ignore this error
 	seconds, _ := alpacadecimal.NewFromString(d.SecondsDecimal().String())
 
@@ -115,13 +115,15 @@ func (d DateTime) AddDays(days int) DateTime {
 }
 
 // AddHours adds some hours to the DateTime.
-func (d DateTime) AddHours(hours int) DateTime {
-	return d.shiftClockTo(d.Time.Add(time.Duration(hours) * time.Hour))
+func (d DateTime) AddHours(hours alpacadecimal.Decimal) DateTime {
+	nano := hours.Mul(alpacadecimal.NewFromInt(int64(time.Hour))).BigInt().Int64()
+	return d.shiftClockTo(d.Time.Add(time.Duration(nano)))
 }
 
 // AddMinutes adds some minutes to the DateTime.
-func (d DateTime) AddMinutes(minutes int) DateTime {
-	return d.shiftClockTo(d.Time.Add(time.Duration(minutes) * time.Minute))
+func (d DateTime) AddMinutes(minutes alpacadecimal.Decimal) DateTime {
+	nano := minutes.Mul(alpacadecimal.NewFromInt(int64(time.Minute))).BigInt().Int64()
+	return d.shiftClockTo(d.Time.Add(time.Duration(nano)))
 }
 
 // AddSeconds adds some seconds to the DateTime.

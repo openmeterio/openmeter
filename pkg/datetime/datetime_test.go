@@ -114,6 +114,24 @@ func TestDateTimeAdd(t *testing.T) {
 			expected: "2025-02-01T12:30:00Z",
 		},
 		{
+			name:     "add 1.5 hours correctly",
+			start:    "2026-01-31T00:00:00Z",
+			duration: MustParseDuration(t, "PT1.5H"),
+			expected: "2026-01-31T01:30:00Z",
+		},
+		{
+			name:     "add 1.5 minutes correctly",
+			start:    "2026-01-31T00:00:00Z",
+			duration: MustParseDuration(t, "PT1.5M"),
+			expected: "2026-01-31T00:01:30Z",
+		},
+		{
+			name:     "add 1 hour and 1.5 minutes correctly",
+			start:    "2026-01-31T00:00:00Z",
+			duration: MustParseDuration(t, "PT1H1.5M"),
+			expected: "2026-01-31T01:01:30Z",
+		},
+		{
 			name:     "add 45 seconds correctly",
 			start:    "2025-02-01T12:00:00Z",
 			duration: MustParseDuration(t, "PT45S"),
