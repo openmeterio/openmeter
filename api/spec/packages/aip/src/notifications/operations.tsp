@@ -429,7 +429,7 @@ interface NotificationEventTypeOperations {
   @extension(Shared.InternalExtension, true)
   @extension(Shared.PrivateExtension, true)
   list(
-    ...Common.PagePaginationQuery,
+    ...Common.CursorPaginationQuery,
 
     /**
      * Filter notification event types returned in the response. Event types are
@@ -443,7 +443,7 @@ interface NotificationEventTypeOperations {
     @query(#{ style: "deepObject", explode: true })
     filter?: ListNotificationEventTypesParamsFilter,
   ):
-    | Shared.PagePaginatedResponse<NotificationEventTypeSummary>
+    | Shared.CursorPaginatedResponse<NotificationEventTypeSummary>
     | Common.ErrorResponses;
 
   /**

@@ -6207,6 +6207,13 @@ export const featureCostQueryResult = z
   })
   .describe('Result of a feature cost query.')
 
+export const notificationEventTypeSummaryPaginatedResponse = z
+  .object({
+    data: z.array(notificationEventTypeSummary),
+    meta: cursorMeta,
+  })
+  .describe('Cursor paginated response.')
+
 export const invalidParameter = z
   .union([
     invalidParameterStandard,
@@ -6227,13 +6234,6 @@ export const meterPagePaginatedResponse = z
 export const costBasisPagePaginatedResponse = z
   .object({
     data: z.array(costBasis),
-    meta: paginatedMeta,
-  })
-  .describe('Page paginated response.')
-
-export const notificationEventTypeSummaryPagePaginatedResponse = z
-  .object({
-    data: z.array(notificationEventTypeSummary),
     meta: paginatedMeta,
   })
   .describe('Page paginated response.')
@@ -12667,30 +12667,13 @@ export const resendBillingNotificationEventBody =
   resendBillingNotificationEventRequest
 
 export const listBillingNotificationEventTypesQueryParams = z.object({
-  page: z
-    .object({
-      size: z.coerce
-        .number()
-        .int()
-        .gte(1)
-        .lte(1000)
-        .optional()
-        .describe('The number of items to include per page.'),
-      number: z.coerce
-        .number()
-        .int()
-        .gte(1)
-        .optional()
-        .describe('The page number.'),
-    })
-    .optional()
-    .describe('Determines which page of the collection to retrieve.'),
+  page: cursorPaginationQueryPage.optional(),
   filter: listNotificationEventTypesParamsFilter.optional(),
 })
 
 export const listBillingNotificationEventTypesResponse = z.object({
   data: z.array(notificationEventTypeSummary),
-  meta: paginatedMeta,
+  meta: cursorMeta,
 })
 
 export const getBillingNotificationEventTypePathParams = z.object({
@@ -18896,6 +18879,13 @@ export const featureCostQueryResultWire = z
   })
   .describe('Result of a feature cost query.')
 
+export const notificationEventTypeSummaryPaginatedResponseWire = z
+  .strictObject({
+    data: z.array(notificationEventTypeSummaryWire),
+    meta: cursorMetaWire,
+  })
+  .describe('Cursor paginated response.')
+
 export const invalidParameterWire = z
   .union([
     invalidParameterStandardWire,
@@ -18916,13 +18906,6 @@ export const meterPagePaginatedResponseWire = z
 export const costBasisPagePaginatedResponseWire = z
   .strictObject({
     data: z.array(costBasisWire),
-    meta: paginatedMetaWire,
-  })
-  .describe('Page paginated response.')
-
-export const notificationEventTypeSummaryPagePaginatedResponseWire = z
-  .strictObject({
-    data: z.array(notificationEventTypeSummaryWire),
     meta: paginatedMetaWire,
   })
   .describe('Page paginated response.')
@@ -25625,30 +25608,13 @@ export const resendBillingNotificationEventBodyWire =
   resendBillingNotificationEventRequestWire
 
 export const listBillingNotificationEventTypesQueryParamsWire = z.object({
-  page: z
-    .strictObject({
-      size: z.coerce
-        .number()
-        .int()
-        .gte(1)
-        .lte(1000)
-        .optional()
-        .describe('The number of items to include per page.'),
-      number: z.coerce
-        .number()
-        .int()
-        .gte(1)
-        .optional()
-        .describe('The page number.'),
-    })
-    .optional()
-    .describe('Determines which page of the collection to retrieve.'),
+  page: cursorPaginationQueryPageWire.optional(),
   filter: listNotificationEventTypesParamsFilterWire.optional(),
 })
 
 export const listBillingNotificationEventTypesResponseWire = z.strictObject({
   data: z.array(notificationEventTypeSummaryWire),
-  meta: paginatedMetaWire,
+  meta: cursorMetaWire,
 })
 
 export const getBillingNotificationEventTypePathParamsWire = z.object({

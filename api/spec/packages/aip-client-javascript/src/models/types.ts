@@ -4794,6 +4794,12 @@ export interface FeatureCostQueryResult {
   data: FeatureCostQueryRow[]
 }
 
+/** Cursor paginated response. */
+export interface NotificationEventTypeSummaryPaginatedResponse {
+  data: NotificationEventTypeSummary[]
+  meta: CursorMeta
+}
+
 /** Page paginated response. */
 export interface MeterPagePaginatedResponse {
   data: Meter[]
@@ -4803,12 +4809,6 @@ export interface MeterPagePaginatedResponse {
 /** Page paginated response. */
 export interface CostBasisPagePaginatedResponse {
   data: CostBasis[]
-  meta: PaginatedMeta
-}
-
-/** Page paginated response. */
-export interface NotificationEventTypeSummaryPagePaginatedResponse {
-  data: NotificationEventTypeSummary[]
   meta: PaginatedMeta
 }
 

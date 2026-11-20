@@ -145,14 +145,14 @@ type NotificationEventTypeSummaryFilter struct {
 }
 
 type NotificationEventTypeSummaryListParams struct {
-	Page   *PageParams
+	Page   *CursorPageParams
 	Filter *NotificationEventTypeSummaryFilter
 }
 
 func (p NotificationEventTypeSummaryListParams) values() url.Values {
 	q := url.Values{}
 
-	addPageParams(q, p.Page)
+	addCursorPageParams(q, p.Page)
 
 	if p.Filter != nil {
 		addStringFilter(q, "filter[type]", p.Filter.Type)
@@ -494,7 +494,7 @@ func (s *NotificationsService) ResendBillingEvent(ctx context.Context, notificat
 
 // List the notification event types, without their JSON Schemas. Event types are
 // the same in every namespace. Deprecated event types stay listed.
-func (s *NotificationsService) ListBillingEventTypes(ctx context.Context, params NotificationEventTypeSummaryListParams) (*NotificationEventTypeSummaryPagePaginatedResponse, error) {
+func (s *NotificationsService) ListBillingEventTypes(ctx context.Context, params NotificationEventTypeSummaryListParams) (*NotificationEventTypeSummaryPaginatedResponse, error) {
 	path := "/openmeter/notification/event-types"
 
 	req, err := s.client.newRequestWithContentType(ctx, http.MethodGet, path, params.values(), nil, "", "application/json")
@@ -502,7 +502,7 @@ func (s *NotificationsService) ListBillingEventTypes(ctx context.Context, params
 		return nil, err
 	}
 
-	var out NotificationEventTypeSummaryPagePaginatedResponse
+	var out NotificationEventTypeSummaryPaginatedResponse
 	if err := s.client.doJSON(req, &out); err != nil {
 		return nil, err
 	}
@@ -512,16 +512,16 @@ func (s *NotificationsService) ListBillingEventTypes(ctx context.Context, params
 
 // ListBillingEventTypesAll returns an iterator over all NotificationEventTypeSummary results, fetching pages of ListBillingEventTypes transparently. Iteration stops at the first error, which is yielded as the second value.
 func (s *NotificationsService) ListBillingEventTypesAll(ctx context.Context, params NotificationEventTypeSummaryListParams) iter.Seq2[NotificationEventTypeSummary, error] {
-	return paginate(params.Page, func(page, size int) ([]NotificationEventTypeSummary, int, error) {
+	return paginateCursor(params.Page, func(after, before *string, size int) ([]NotificationEventTypeSummary, *string, *string, error) {
 		pageParams := params
-		pageParams.Page = &PageParams{Size: Int(size), Number: Int(page)}
+		pageParams.Page = &CursorPageParams{Size: Int(size), After: after, Before: before}
 
 		resp, err := s.ListBillingEventTypes(ctx, pageParams)
 		if err != nil {
-			return nil, 0, err
+			return nil, nil, nil, err
 		}
 
-		return resp.Data, resp.Meta.Page.Total, nil
+		return resp.Data, String(resp.Meta.Page.Next.GetOrEmpty()), String(resp.Meta.Page.Previous.GetOrEmpty()), nil
 	})
 }
 

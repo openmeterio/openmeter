@@ -2,7 +2,7 @@
 
 import { type Client } from '../core.js'
 import { unwrap, type RequestOptions } from '../lib/types.js'
-import { paginatePages } from '../lib/paginate.js'
+import { paginateCursor, paginatePages } from '../lib/paginate.js'
 import { invoiceCustomerCharges } from '../funcs/customers.js'
 import {
   createSubscriptionAddon,
@@ -405,7 +405,7 @@ export class InternalNotifications {
     request?: ListBillingNotificationEventTypesRequest,
     options?: RequestOptions,
   ): AsyncIterable<NotificationEventTypeSummary> {
-    return paginatePages(
+    return paginateCursor(
       (req, opts) => listBillingNotificationEventTypes(this._client, req, opts),
       request ?? {},
       options,

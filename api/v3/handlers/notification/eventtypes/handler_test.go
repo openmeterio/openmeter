@@ -1,12 +1,14 @@
 package eventtypes
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
@@ -32,13 +34,13 @@ func newTestHandler(t *testing.T) Handler {
 func TestListNotificationEventTypes(t *testing.T) {
 	h := newTestHandler(t)
 
-	list := func(t *testing.T, params ListNotificationEventTypesParams) (int, response.PagePaginationResponse[apiv3models.BillingNotificationEventTypeSummary]) {
+	list := func(t *testing.T, params ListNotificationEventTypesParams) (int, response.CursorPaginationResponse[apiv3models.BillingNotificationEventTypeSummary]) {
 		t.Helper()
 
 		rec := httptest.NewRecorder()
 		h.ListNotificationEventTypes().With(params).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 
-		var body response.PagePaginationResponse[apiv3models.BillingNotificationEventTypeSummary]
+		var body response.CursorPaginationResponse[apiv3models.BillingNotificationEventTypeSummary]
 		if rec.Code == http.StatusOK {
 			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 		}
@@ -62,7 +64,8 @@ func TestListNotificationEventTypes(t *testing.T) {
 			"v1.entitlement.balance_threshold.triggered",
 			"v1.entitlement.usage_period.reset",
 		}, types(body.Data))
-		require.Equal(t, 4, lo.FromPtr(body.Meta.Page.Total))
+		require.True(t, body.Meta.Page.Next.IsNull(), "a single page has no next page")
+		require.True(t, body.Meta.Page.Previous.IsNull())
 
 		// The descriptions name the legacy type each one replaces.
 		require.Contains(t, body.Data[0].Description, "`invoice.created`")
@@ -91,27 +94,79 @@ func TestListNotificationEventTypes(t *testing.T) {
 		require.Equal(t, []string{"v1.billing.invoice.updated"}, types(body.Data))
 	})
 
-	t.Run("pages", func(t *testing.T) {
-		code, body := list(t, ListNotificationEventTypesParams{
-			Page: &apiv3models.PagePaginationQuery{Number: lo.ToPtr(2), Size: lo.ToPtr(3)},
-		})
-		require.Equal(t, http.StatusOK, code)
-		require.Equal(t, []string{"v1.entitlement.usage_period.reset"}, types(body.Data))
-		require.Equal(t, 4, lo.FromPtr(body.Meta.Page.Total))
+	cursorOf := func(t *testing.T, c nullable.Nullable[string]) string {
+		t.Helper()
 
-		// A page past the end is empty, not an error.
-		code, body = list(t, ListNotificationEventTypesParams{
-			Page: &apiv3models.PagePaginationQuery{Number: lo.ToPtr(3), Size: lo.ToPtr(3)},
+		value, err := c.Get()
+		require.NoError(t, err, "the cursor must be set")
+
+		return value
+	}
+
+	t.Run("pages forward and back", func(t *testing.T) {
+		code, first := list(t, ListNotificationEventTypesParams{
+			Page: &apiv3models.CursorPaginationQuery{Size: lo.ToPtr(3)},
 		})
 		require.Equal(t, http.StatusOK, code)
-		require.Empty(t, body.Data)
+		require.Equal(t, []string{
+			"v1.billing.invoice.created",
+			"v1.billing.invoice.updated",
+			"v1.entitlement.balance_threshold.triggered",
+		}, types(first.Data))
+		require.True(t, first.Meta.Page.Previous.IsNull())
+
+		code, second := list(t, ListNotificationEventTypesParams{
+			Page: &apiv3models.CursorPaginationQuery{Size: lo.ToPtr(3), After: lo.ToPtr(cursorOf(t, first.Meta.Page.Next))},
+		})
+		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, []string{"v1.entitlement.usage_period.reset"}, types(second.Data))
+		require.True(t, second.Meta.Page.Next.IsNull())
+
+		// Going back from the second page returns the first page again.
+		code, back := list(t, ListNotificationEventTypesParams{
+			Page: &apiv3models.CursorPaginationQuery{Size: lo.ToPtr(3), Before: lo.ToPtr(cursorOf(t, second.Meta.Page.Previous))},
+		})
+		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, types(first.Data), types(back.Data))
+		require.True(t, back.Meta.Page.Previous.IsNull())
+		require.Equal(t, cursorOf(t, first.Meta.Page.Next), cursorOf(t, back.Meta.Page.Next))
 	})
 
-	t.Run("invalid page", func(t *testing.T) {
-		code, _ := list(t, ListNotificationEventTypesParams{
-			Page: &apiv3models.PagePaginationQuery{Number: lo.ToPtr(0)},
+	t.Run("pages with a filter", func(t *testing.T) {
+		filter := &apiv3models.ListNotificationEventTypesParamsFilter{
+			Type: &filters.FilterString{Contains: lo.ToPtr("entitlement")},
+		}
+
+		code, first := list(t, ListNotificationEventTypesParams{
+			Page:   &apiv3models.CursorPaginationQuery{Size: lo.ToPtr(1)},
+			Filter: filter,
 		})
-		require.Equal(t, http.StatusBadRequest, code)
+		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, []string{"v1.entitlement.balance_threshold.triggered"}, types(first.Data))
+
+		code, second := list(t, ListNotificationEventTypesParams{
+			Page:   &apiv3models.CursorPaginationQuery{Size: lo.ToPtr(1), After: lo.ToPtr(cursorOf(t, first.Meta.Page.Next))},
+			Filter: filter,
+		})
+		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, []string{"v1.entitlement.usage_period.reset"}, types(second.Data))
+		require.True(t, second.Meta.Page.Next.IsNull())
+	})
+
+	t.Run("invalid cursors", func(t *testing.T) {
+		for name, page := range map[string]*apiv3models.CursorPaginationQuery{
+			"not base64":         {After: lo.ToPtr("not base64!")},
+			"unknown event type": {After: lo.ToPtr(base64.StdEncoding.EncodeToString([]byte("v1.unknown.type")))},
+			"after and before": {
+				After:  lo.ToPtr(base64.StdEncoding.EncodeToString([]byte("v1.billing.invoice.created"))),
+				Before: lo.ToPtr(base64.StdEncoding.EncodeToString([]byte("v1.billing.invoice.updated"))),
+			},
+		} {
+			t.Run(name, func(t *testing.T) {
+				code, _ := list(t, ListNotificationEventTypesParams{Page: page})
+				require.Equal(t, http.StatusBadRequest, code)
+			})
+		}
 	})
 }
 
