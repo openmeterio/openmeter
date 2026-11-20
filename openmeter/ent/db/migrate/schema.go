@@ -5545,6 +5545,174 @@ var (
 			},
 		},
 	}
+	// RteCreditBalancesColumns holds the columns for the "rte_credit_balances" table.
+	RteCreditBalancesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "currency_key", Type: field.TypeString},
+		{Name: "feature_scope", Type: field.TypeString},
+		{Name: "calculated_at", Type: field.TypeTime},
+		{Name: "booked", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "spendable", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "live", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "pending", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+	}
+	// RteCreditBalancesTable holds the schema information for the "rte_credit_balances" table.
+	RteCreditBalancesTable = &schema.Table{
+		Name:       "rte_credit_balances",
+		Columns:    RteCreditBalancesColumns,
+		PrimaryKey: []*schema.Column{RteCreditBalancesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rtecreditbalance_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{RteCreditBalancesColumns[1]},
+			},
+			{
+				Name:    "rte_credit_balance_scope",
+				Unique:  true,
+				Columns: []*schema.Column{RteCreditBalancesColumns[1], RteCreditBalancesColumns[5], RteCreditBalancesColumns[6], RteCreditBalancesColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
+	// RteDemandsColumns holds the columns for the "rte_demands" table.
+	RteDemandsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "kind", Type: field.TypeString},
+		{Name: "owner_id", Type: field.TypeString},
+		{Name: "key_hash", Type: field.TypeString},
+		{Name: "key", Type: field.TypeJSON},
+		{Name: "push_enabled", Type: field.TypeBool, Default: false},
+		{Name: "pull_until", Type: field.TypeTime, Nullable: true},
+		{Name: "dirty_version", Type: field.TypeInt64, Default: 1},
+		{Name: "completed_version", Type: field.TypeInt64, Default: 0},
+		{Name: "next_refresh_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_calculated_at", Type: field.TypeTime, Nullable: true},
+		{Name: "next_attempt_at", Type: field.TypeTime},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+	}
+	// RteDemandsTable holds the schema information for the "rte_demands" table.
+	RteDemandsTable = &schema.Table{
+		Name:       "rte_demands",
+		Columns:    RteDemandsColumns,
+		PrimaryKey: []*schema.Column{RteDemandsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rtedemand_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{RteDemandsColumns[1]},
+			},
+			{
+				Name:    "rte_demand_identity",
+				Unique:  true,
+				Columns: []*schema.Column{RteDemandsColumns[1], RteDemandsColumns[5], RteDemandsColumns[7]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "rte_demand_owner",
+				Unique:  false,
+				Columns: []*schema.Column{RteDemandsColumns[1], RteDemandsColumns[5], RteDemandsColumns[6]},
+			},
+			{
+				Name:    "rte_demand_work",
+				Unique:  false,
+				Columns: []*schema.Column{RteDemandsColumns[15], RteDemandsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL AND push_enabled AND (dirty_version > completed_version OR next_refresh_at IS NOT NULL)",
+				},
+			},
+		},
+	}
+	// RteDemandLocksColumns holds the columns for the "rte_demand_locks" table.
+	RteDemandLocksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt},
+	}
+	// RteDemandLocksTable holds the schema information for the "rte_demand_locks" table.
+	RteDemandLocksTable = &schema.Table{
+		Name:       "rte_demand_locks",
+		Columns:    RteDemandLocksColumns,
+		PrimaryKey: []*schema.Column{RteDemandLocksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "rte_demand_locks_rte_demands_demand",
+				Columns:    []*schema.Column{RteDemandLocksColumns[0]},
+				RefColumns: []*schema.Column{RteDemandsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
+	// RteInvalidationsColumns holds the columns for the "rte_invalidations" table.
+	RteInvalidationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "source", Type: field.TypeString},
+		{Name: "event_id", Type: field.TypeString},
+	}
+	// RteInvalidationsTable holds the schema information for the "rte_invalidations" table.
+	RteInvalidationsTable = &schema.Table{
+		Name:       "rte_invalidations",
+		Columns:    RteInvalidationsColumns,
+		PrimaryKey: []*schema.Column{RteInvalidationsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rteinvalidation_source_event_id",
+				Unique:  true,
+				Columns: []*schema.Column{RteInvalidationsColumns[4], RteInvalidationsColumns[5]},
+			},
+			{
+				Name:    "rte_invalidation_retention",
+				Unique:  false,
+				Columns: []*schema.Column{RteInvalidationsColumns[1], RteInvalidationsColumns[0]},
+			},
+		},
+	}
+	// RteMeteredEntitlementBalancesColumns holds the columns for the "rte_metered_entitlement_balances" table.
+	RteMeteredEntitlementBalancesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "entitlement_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "calculated_at", Type: field.TypeTime},
+		{Name: "balance", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// RteMeteredEntitlementBalancesTable holds the schema information for the "rte_metered_entitlement_balances" table.
+	RteMeteredEntitlementBalancesTable = &schema.Table{
+		Name:       "rte_metered_entitlement_balances",
+		Columns:    RteMeteredEntitlementBalancesColumns,
+		PrimaryKey: []*schema.Column{RteMeteredEntitlementBalancesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "rtemeteredentitlementbalance_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{RteMeteredEntitlementBalancesColumns[1]},
+			},
+			{
+				Name:    "rte_metered_balance_scope",
+				Unique:  true,
+				Columns: []*schema.Column{RteMeteredEntitlementBalancesColumns[1], RteMeteredEntitlementBalancesColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
+		},
+	}
 	// SubjectsColumns holds the columns for the "subjects" table.
 	SubjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6347,6 +6515,11 @@ var (
 		PlanAddonsTable,
 		PlanPhasesTable,
 		PlanRateCardsTable,
+		RteCreditBalancesTable,
+		RteDemandsTable,
+		RteDemandLocksTable,
+		RteInvalidationsTable,
+		RteMeteredEntitlementBalancesTable,
 		SubjectsTable,
 		SubscriptionsTable,
 		SubscriptionAddonsTable,
@@ -6636,6 +6809,7 @@ func init() {
 		"plan_rate_card_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
 		"plan_rate_card_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
 	}
+	RteDemandLocksTable.ForeignKeys[0].RefTable = RteDemandsTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
 	SubscriptionsTable.ForeignKeys[1].RefTable = PlansTable
 	SubscriptionAddonsTable.ForeignKeys[0].RefTable = AddonsTable

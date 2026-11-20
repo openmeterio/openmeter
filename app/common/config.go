@@ -26,6 +26,8 @@ var Config = wire.NewSet(
 	wire.FieldsOf(new(config.Configuration), "Postgres"),
 	// Entitlement
 	wire.FieldsOf(new(config.Configuration), "Entitlements"),
+	// RTE
+	wire.FieldsOf(new(config.Configuration), "RTE"),
 	// Events
 	wire.FieldsOf(new(config.Configuration), "Events"),
 	wire.FieldsOf(new(config.Configuration), "Dedupe"),

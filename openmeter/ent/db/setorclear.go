@@ -6168,6 +6168,104 @@ func (u *PlanRateCardUpdateOne) SetOrClearFeatureID(value *string) *PlanRateCard
 	return u.SetFeatureID(*value)
 }
 
+func (u *RTECreditBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTECreditBalanceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTECreditBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTECreditBalanceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEDemandUpdate) SetOrClearDeletedAt(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEDemandUpdate) SetOrClearPullUntil(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearPullUntil()
+	}
+	return u.SetPullUntil(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearPullUntil(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearPullUntil()
+	}
+	return u.SetPullUntil(*value)
+}
+
+func (u *RTEDemandUpdate) SetOrClearSourceDeleteAt(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearSourceDeleteAt()
+	}
+	return u.SetSourceDeleteAt(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearSourceDeleteAt(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearSourceDeleteAt()
+	}
+	return u.SetSourceDeleteAt(*value)
+}
+
+func (u *RTEDemandUpdate) SetOrClearLastCalculatedAt(value *time.Time) *RTEDemandUpdate {
+	if value == nil {
+		return u.ClearLastCalculatedAt()
+	}
+	return u.SetLastCalculatedAt(*value)
+}
+
+func (u *RTEDemandUpdateOne) SetOrClearLastCalculatedAt(value *time.Time) *RTEDemandUpdateOne {
+	if value == nil {
+		return u.ClearLastCalculatedAt()
+	}
+	return u.SetLastCalculatedAt(*value)
+}
+
+func (u *RTEInvalidationUpdate) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEInvalidationUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEMeteredEntitlementBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *SubjectUpdate) SetOrClearDeletedAt(value *time.Time) *SubjectUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

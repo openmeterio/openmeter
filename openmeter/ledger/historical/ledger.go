@@ -6,6 +6,7 @@ import (
 	"maps"
 
 	"github.com/openmeterio/openmeter/openmeter/ledger"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -46,21 +47,34 @@ type Ledger struct {
 
 	routingValidator ledger.RoutingValidator
 	writerBuild      WriterBuild
+	publisher        eventbus.AfterCommitPublisher
+}
+
+type Option func(*Ledger)
+
+// WithSourcePublisher reports posting groups after their transaction commits.
+func WithSourcePublisher(publisher eventbus.AfterCommitPublisher) Option {
+	return func(l *Ledger) { l.publisher = publisher }
 }
 
 // NewLedger constructs a Ledger with the given repo and account collaborators.
-func NewLedger(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator) *Ledger {
-	return NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, WriterBuild{})
+func NewLedger(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator, options ...Option) *Ledger {
+	return NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, WriterBuild{}, options...)
 }
 
-func NewLedgerWithWriterBuild(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator, writerBuild WriterBuild) *Ledger {
-	return &Ledger{
+func NewLedgerWithWriterBuild(repo Repo, accountCatalog ledger.AccountCatalog, accountLocker ledger.AccountLocker, routingValidator ledger.RoutingValidator, writerBuild WriterBuild, options ...Option) *Ledger {
+	l := &Ledger{
 		accountCatalog:   accountCatalog,
 		accountLocker:    accountLocker,
 		repo:             repo,
 		routingValidator: routingValidator,
 		writerBuild:      writerBuild,
 	}
+	for _, option := range options {
+		option(l)
+	}
+
+	return l
 }
 
 // ----------------------------------------------------------------------------
@@ -135,6 +149,10 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 			}
 
 			txGroup.transactions = append(txGroup.transactions, tx)
+		}
+
+		if l.publisher != nil {
+			l.publisher(ctx, ledger.TransactionGroupCommittedEvent{Namespace: group.Namespace(), GroupID: txG.ID})
 		}
 
 		return txGroup, nil

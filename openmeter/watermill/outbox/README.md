@@ -25,6 +25,10 @@ and has never failed. On the first send failure it records the attempt and stops
 that batch. Run an unrestricted worker to retry it. This keeps one retry policy
 in charge of when later siblings may pass a failed event.
 
+For example, the RTE performance trial uses this filter for calculation updates so a
+failure in the trial worker cannot consume delivery attempts for a billing event.
+Regular workers can still deliver both types, including mixed transactions in order.
+
 Acknowledged events are **hard-deleted**. A crash or failed database commit can
 resend them, so consumers must tolerate duplicates. Failed-attempt counts survive
 successful drain commits; crashes or database failures can cause extra attempts.

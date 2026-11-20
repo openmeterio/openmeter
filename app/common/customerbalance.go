@@ -15,11 +15,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/fbo"
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
+	"github.com/openmeterio/openmeter/openmeter/rte/shadow"
 )
 
 var CustomerBalance = wire.NewSet(
 	NewCustomerBalanceService,
-	NewCustomerBalanceFacade,
+	NewCustomerBalanceFacadeWithRTEReplay,
 )
 
 func NewCustomerBalanceService(
@@ -74,5 +75,14 @@ func NewCustomerBalanceService(
 }
 
 func NewCustomerBalanceFacade(service customerbalance.Service) (*customerbalance.Facade, error) {
+	return customerbalance.NewFacade(service)
+}
+
+// NewCustomerBalanceFacadeWithRTEReplay records sampled credit reads for the RTE worker to replay.
+func NewCustomerBalanceFacadeWithRTEReplay(service customerbalance.Service, credits config.CreditsConfiguration, recorder *shadow.Recorder) (*customerbalance.Facade, error) {
+	if credits.Enabled && recorder != nil {
+		service = shadow.ObserveCreditReads(service, recorder)
+	}
+
 	return customerbalance.NewFacade(service)
 }

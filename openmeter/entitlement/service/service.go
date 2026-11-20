@@ -366,7 +366,7 @@ func (c *service) GetAccess(ctx context.Context, namespace string, customerId st
 
 	var result sync.Map
 
-	g, ctx := errgroup.WithContext(ctx)
+	g, ctx := errgroup.WithContext(entitlement.CurrentValueOperationRead.WithContext(ctx))
 
 	// Let's limit concurrency
 	const maxConcurrency = 10 // TODO: Make this configurable

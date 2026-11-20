@@ -53,6 +53,7 @@ type Configuration struct {
 	Postgres           PostgresConfig
 	Sink               SinkConfiguration
 	BalanceWorker      BalanceWorkerConfiguration
+	RTE                RTEConfiguration
 	Notification       NotificationConfiguration
 	ProductCatalog     ProductCatalogConfiguration
 	ProgressManager    ProgressManagerConfiguration
@@ -137,6 +138,10 @@ func (c Configuration) Validate() error {
 				"reserved event types",
 			))
 		}
+	}
+
+	if err := c.RTE.Validate(); err != nil {
+		errs = append(errs, errorsx.WithPrefix(err, "rte"))
 	}
 
 	if err := c.BalanceWorker.Validate(); err != nil {
@@ -245,6 +250,7 @@ func SetViperDefaultsWithMetadata(v *viper.Viper, flags *pflag.FlagSet, metadata
 	ConfigureDedupe(v)
 	ConfigurePortal(v)
 	ConfigureEvents(v)
+	ConfigureRTE(v)
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
 	ConfigureBilling(v, flags)

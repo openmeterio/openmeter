@@ -1,0 +1,38 @@
+# Routing source changes
+
+The resolver translates a committed source fact into selectors for active calculation keys. With
+background refresh enabled, a matching change schedules a recalculation. Otherwise, a tracked key
+stays dirty until the next `EnsureFresh`. Resolving a fact does not activate keys.
+
+| Source fact | Candidates |
+| --- | --- |
+| Ingest batch | Metered entitlements and credit balances related to the batch subject, meters and event times |
+| Committed ledger group | Credit balances whose customer accounts and currency were touched by entries in the group, including other feature scopes in that currency |
+| Customer charges created or patched | Credit balances for the affected customer, across currencies and scopes |
+| Entitlement created/deleted, grant created/voided, entitlement reset | The named metered entitlement |
+| Customer or subscription lifecycle | That customer’s credit balances and metered entitlements |
+| Feature or meter lifecycle | Metered entitlements using the feature and credit balances for matching usage-based charges |
+
+Ingest routing uses the customer key or an active subject mapping. It finds meters by the raw
+event types and the reported slugs, then follows those meters to their features. The sink caches
+meter definitions, so a notification can omit the slug of a meter that already counts the usage.
+
+For metered entitlements, usage counts from the measurement start until deletion. The
+by-ID balance calculation includes usage after the entitlement’s scheduled activity end. For
+credits, usage must fall within the charge’s effective service period. Credit candidates
+require an open usage charge settled by credit, the matching currency, and a compatible portfolio
+or feature scope. A batch can span several meters and occurrence times, so selectors can include
+extra work. A selector establishes that the result *may* have changed.
+
+Use occurrence time for period matching. A batch stored today can carry yesterday’s usage.
+Discarding it because an event with a later occurrence time was already seen can leave a balance
+stale. [The worker](../worker/README.md) uses the batch storage time separately to ensure credit
+rating can see the rows.
+
+When adding a source, choose a fact emitted after its effects are durable, or enqueued in the same
+transaction as those effects. A command may be consumed before the mutation it requests has
+happened. Return no selectors when there are no candidates. A selector with just a namespace and
+kind marks **every active key** of that kind. Keep emission coverage explicit. For example, the
+billing [customer charge change event](../../billing/charges/README.md) covers root creates and patches.
+For a balance that can change with time alone, a finite `MaxAge` on `EnsureFresh` bounds reuse
+at the next read. Activated keys have no periodic refresh.

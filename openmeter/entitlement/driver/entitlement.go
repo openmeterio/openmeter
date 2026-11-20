@@ -206,6 +206,7 @@ type GetEntitlementValueHandlerRequest struct {
 	SubjectKey                string
 	Namespace                 string
 	At                        time.Time
+	current                   bool
 }
 type (
 	GetEntitlementValueHandlerResponse = apiv1models.EntitlementValue
@@ -230,6 +231,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
 				At:                        defaultx.WithDefault(params.Params.Time, clock.Now()),
+				current:                   params.Params.Time == nil,
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (apiv1models.EntitlementValue, error) {
@@ -242,6 +244,10 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				return apiv1models.EntitlementValue{}, models.NewGenericPreConditionFailedError(
 					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Namespace, request.SubjectKey),
 				)
+			}
+
+			if request.current {
+				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
 			}
 
 			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)

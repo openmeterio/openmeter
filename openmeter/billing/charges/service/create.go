@@ -309,6 +309,21 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			return nil, err
 		}
 
+		if s.customerChargesChangedPublisher != nil {
+			owners := make([]customer.CustomerID, 0, len(result))
+			for _, charge := range result {
+				owner, err := charge.GetCustomerID()
+				if err != nil {
+					s.logger.WarnContext(ctx, "cannot identify customer for charge change notification", "error", err)
+					continue
+				}
+
+				owners = append(owners, owner)
+			}
+
+			s.publishCustomerChargesChanged(ctx, owners)
+		}
+
 		return &chargesWithInvoiceNowActions{
 			charges:                          result,
 			collectionAlignmentBypassedLines: gatheringLineResult.collectionAlignmentBypassedLines,

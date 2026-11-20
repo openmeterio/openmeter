@@ -193,6 +193,7 @@ func NewBillingRegistry(
 	db *entdb.Client,
 	fsConfig config.BillingFeatureSwitchesConfiguration,
 	creditsConfig config.CreditsConfiguration,
+	customerChargesChangedPublisher eventbus.AfterCommitPublisher,
 	tracer trace.Tracer,
 	taxCodeService taxcode.Service,
 	taxCodeResolver productcatalog.TaxCodeResolver,
@@ -278,6 +279,7 @@ func NewBillingRegistry(
 			fsConfig.NamespaceLockdown,
 			creditsConfig,
 			featureGate,
+			customerChargesChangedPublisher,
 		)
 		if err != nil {
 			return BillingRegistry{}, err

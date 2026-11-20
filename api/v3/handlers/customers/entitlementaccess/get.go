@@ -39,6 +39,7 @@ type (
 type GetCustomerEntitlementValueRequest struct {
 	entitlement.GetCustomerEntitlementAccessInput
 	Expands []apiv3models.BillingEntitlementAccessExpand
+	current bool
 }
 
 func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler {
@@ -50,16 +51,20 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 			}
 
 			return GetCustomerEntitlementValueRequest{
-				CustomerID: customer.CustomerID{
-					Namespace: ns,
-					ID:        params.CustomerID,
+				GetCustomerEntitlementAccessInput: entitlement.GetCustomerEntitlementAccessInput{
+					CustomerID:    customer.CustomerID{Namespace: ns, ID: params.CustomerID},
+					EntitlementID: params.EntitlementID,
+					At:            lo.FromPtrOr(params.At, clock.Now()),
 				},
-				EntitlementID: params.EntitlementID,
-				At:            lo.FromPtrOr(params.At, clock.Now()),
-				Expands:       params.Expand,
+				current: params.At == nil,
+				Expands: params.Expand,
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
+			if request.current {
+				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
+			}
+
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request.GetCustomerEntitlementAccessInput)
 			if err != nil {
 				return GetCustomerEntitlementValueResponse{}, err
@@ -90,10 +95,15 @@ func (h *handler) GetCustomerEntitlementValueByFeatureKey() GetCustomerEntitleme
 					FeatureKey: params.FeatureKey,
 					At:         lo.FromPtrOr(params.At, clock.Now()),
 				},
+				current: params.At == nil,
 				Expands: params.Expand,
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueByFeatureKeyResponse, error) {
+			if request.current {
+				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
+			}
+
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request.GetCustomerEntitlementAccessInput)
 			if err != nil {
 				return GetCustomerEntitlementValueByFeatureKeyResponse{}, err

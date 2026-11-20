@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 type service struct {
@@ -41,7 +42,8 @@ type service struct {
 	customerService     customer.Service
 	subscriptionService charges.SubscriptionService
 
-	fsNamespaceLockdown []string
+	fsNamespaceLockdown             []string
+	customerChargesChangedPublisher eventbus.AfterCommitPublisher
 }
 
 type Config struct {
@@ -65,6 +67,8 @@ type Config struct {
 	SubscriptionService charges.SubscriptionService
 
 	FSNamespaceLockdown []string
+	// CustomerChargesChangedPublisher notifies balance consumers after the charge transaction commits.
+	CustomerChargesChangedPublisher eventbus.AfterCommitPublisher
 }
 
 func (c Config) Validate() error {
@@ -139,21 +143,22 @@ func New(config Config) (*service, error) {
 	}
 
 	svc := &service{
-		logger:                config.Logger,
-		adapter:               config.Adapter,
-		billingService:        config.BillingService,
-		invoiceUpdater:        invoiceUpdater,
-		featureMeterResolver:  config.FeatureMeterResolver,
-		metaAdapter:           config.MetaAdapter,
-		flatFeeService:        config.FlatFeeService,
-		creditPurchaseService: config.CreditPurchaseService,
-		usageBasedService:     config.UsageBasedService,
-		recognizerService:     config.RecognizerService,
-		taxCodeService:        config.TaxCodeService,
-		currencyResolver:      config.CurrencyResolver,
-		customerService:       config.CustomerService,
-		subscriptionService:   config.SubscriptionService,
-		fsNamespaceLockdown:   config.FSNamespaceLockdown,
+		logger:                          config.Logger,
+		adapter:                         config.Adapter,
+		billingService:                  config.BillingService,
+		invoiceUpdater:                  invoiceUpdater,
+		featureMeterResolver:            config.FeatureMeterResolver,
+		metaAdapter:                     config.MetaAdapter,
+		flatFeeService:                  config.FlatFeeService,
+		creditPurchaseService:           config.CreditPurchaseService,
+		usageBasedService:               config.UsageBasedService,
+		recognizerService:               config.RecognizerService,
+		taxCodeService:                  config.TaxCodeService,
+		currencyResolver:                config.CurrencyResolver,
+		customerService:                 config.CustomerService,
+		subscriptionService:             config.SubscriptionService,
+		fsNamespaceLockdown:             config.FSNamespaceLockdown,
+		customerChargesChangedPublisher: config.CustomerChargesChangedPublisher,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{
