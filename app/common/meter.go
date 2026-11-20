@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter/adapter"
 	"github.com/openmeterio/openmeter/openmeter/meter/service"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/filter"
 )
@@ -72,12 +73,14 @@ func NewMeterManageService(
 	namespaceManager *namespace.Manager,
 	publisher eventbus.Publisher,
 	reservedEventTypes []*meter.EventTypePattern,
+	streamingConnector streaming.Connector,
 ) meter.ManageService {
 	return service.NewManage(
 		meterAdapter,
 		publisher,
 		namespaceManager,
 		reservedEventTypes,
+		streamingConnector,
 	)
 }
 

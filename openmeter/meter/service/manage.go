@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -23,6 +26,7 @@ type ManageService struct {
 	publisher          eventbus.Publisher
 	namespaceManager   *namespace.Manager
 	eventTypeValidator models.ValidatorFunc[string]
+	jsonPathValidator  meter.JSONPathValidator
 }
 
 func NewManage(
@@ -30,6 +34,7 @@ func NewManage(
 	publisher eventbus.Publisher,
 	namespaceManager *namespace.Manager,
 	reservedEventTypes []*meter.EventTypePattern,
+	jsonPathValidator meter.JSONPathValidator,
 ) *ManageService {
 	return &ManageService{
 		Service:            New(adapter),
@@ -37,6 +42,7 @@ func NewManage(
 		publisher:          publisher,
 		namespaceManager:   namespaceManager,
 		eventTypeValidator: meter.NewEventTypeValidator(reservedEventTypes),
+		jsonPathValidator:  jsonPathValidator,
 	}
 }
 
@@ -58,6 +64,10 @@ func (s *ManageService) CreateMeter(ctx context.Context, input meter.CreateMeter
 		if err != nil {
 			return meter.Meter{}, models.NewGenericValidationError(fmt.Errorf("invalid event type: %w", err))
 		}
+	}
+
+	if err := s.validateJSONPaths(ctx, input.ValueProperty, input.GroupBy); err != nil {
+		return meter.Meter{}, err
 	}
 
 	// Create the meter
@@ -180,6 +190,10 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 		return meter.Meter{}, models.NewGenericValidationError(err)
 	}
 
+	if err = s.validateJSONPaths(ctx, nil, input.GroupBy); err != nil {
+		return meter.Meter{}, err
+	}
+
 	// Collect group by changes
 	var groupByToDelete []string
 
@@ -234,4 +248,32 @@ func (s *ManageService) UpdateMeter(ctx context.Context, input meter.UpdateMeter
 	}
 
 	return updatedMeter, nil
+}
+
+func (s *ManageService) validateJSONPaths(ctx context.Context, valueProperty *string, groupBy map[string]string) error {
+	pathsByField := make(map[string]string, len(groupBy)+1)
+	if valueProperty != nil {
+		pathsByField["value property"] = *valueProperty
+	}
+
+	for key, path := range groupBy {
+		pathsByField[fmt.Sprintf("group by %s", key)] = path
+	}
+
+	var errs []error
+
+	for _, field := range slices.Sorted(maps.Keys(pathsByField)) {
+		path := pathsByField[field]
+
+		valid, err := s.jsonPathValidator.ValidateJSONPath(ctx, path)
+		if err != nil {
+			return fmt.Errorf("validate %s JSONPath: %w", field, err)
+		}
+
+		if !valid {
+			errs = append(errs, fmt.Errorf("invalid %s JSONPath: %s", field, path))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }

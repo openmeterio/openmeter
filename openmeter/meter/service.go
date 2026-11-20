@@ -39,6 +39,13 @@ type ManageService interface {
 // PreUpdateMeterHook is a hook function to be called before updating a meter.
 type PreUpdateMeterHook = func(context.Context, UpdateMeterInput) error
 
+// JSONPathValidator reports whether the event store can evaluate a JSONPath. ClickHouse
+// accepts less than the Go JSONPath library, so a path like `$.transaction-count` passes
+// meter validation but fails every query.
+type JSONPathValidator interface {
+	ValidateJSONPath(ctx context.Context, jsonPath string) (bool, error)
+}
+
 // GetMeterInput is a parameter object for getting a meter.
 type GetMeterInput struct {
 	Namespace string
