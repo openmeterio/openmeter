@@ -8,7 +8,6 @@ import (
 	"github.com/lib/pq"
 
 	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
-	receiptdb "github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 )
 
@@ -89,16 +88,11 @@ func (q invalidateDemandQuery) SQL() (string, []any, error) {
 		selectors = append(selectors, sql.And(parts...))
 	}
 
-	receipt := pg.Select(receiptdb.FieldID).From(pg.Table(receiptdb.Table)).Where(sql.And(
-		sql.EQ(receiptdb.FieldSource, q.input.Source),
-		sql.EQ(receiptdb.FieldEventID, q.input.EventID),
-	))
-
 	// Events can overlap on several keys. Lock matching demands in the same
 	// order for every event, regardless of how the selectors find them.
 	matching := pg.Select(demanddb.FieldID).From(pg.Table(demanddb.Table))
 	activeDemand(q.at)(matching)
-	matching.Where(sql.Or(selectors...)).Where(sql.NotExists(receipt)).
+	matching.Where(sql.Or(selectors...)).
 		OrderBy(demanddb.FieldID).For(sql.LockNoKeyUpdate)
 
 	update := pg.Update(demanddb.Table).Where(sql.In(demanddb.FieldID, matching))

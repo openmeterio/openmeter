@@ -125,7 +125,7 @@ func TestDemandRegistrationCanonicalizesAndRepairsStoredKey(t *testing.T) {
 	require.Equal(t, clean.DirtyVersion, clean.CompletedVersion)
 }
 
-func TestDemandInvalidationCoalescesDistinctAndDuplicateFacts(t *testing.T) {
+func TestDemandInvalidationCoalescesRepeatedDeliveries(t *testing.T) {
 	// Given a clean key with background change tracking enabled.
 	f := newDemandFixture(t)
 	require.NoError(t, f.repository.Activate(t.Context(), f.target))
@@ -133,12 +133,11 @@ func TestDemandInvalidationCoalescesDistinctAndDuplicateFacts(t *testing.T) {
 	result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
 	require.NoError(t, err)
 	require.True(t, result.Processed)
+
 	before, err := f.client.RTEDemand.Query().Only(t.Context())
 	require.NoError(t, err)
 
 	input := rte.InvalidateInput{
-		Source:  "ledger",
-		EventID: "newer-fact",
 		Selectors: []rte.DemandSelector{{
 			Namespace: f.key.CustomerID.Namespace,
 			Kind:      f.target.Kind,
@@ -150,24 +149,18 @@ func TestDemandInvalidationCoalescesDistinctAndDuplicateFacts(t *testing.T) {
 		}},
 	}
 
-	// When a newer fact arrives twice, then an independent older fact arrives.
-	marked, err := f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-	require.Equal(t, 1, marked.Matched)
-	require.False(t, marked.Duplicate)
-	duplicate, err := f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-	require.True(t, duplicate.Duplicate)
-	require.Zero(t, duplicate.Matched)
-	input.EventID = "older-fact"
-	marked, err = f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-	require.Equal(t, 1, marked.Matched)
+	// When the same fact arrives twice before the worker claims the key.
+	for range 2 {
+		marked, err := f.repository.Invalidate(t.Context(), input)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), marked)
+	}
+
 	row, err := f.client.RTEDemand.Query().Only(t.Context())
 	require.NoError(t, err)
 	require.Equal(t, before.DirtyVersion+2, row.DirtyVersion)
 
-	// Then one calculation consumes both facts, and deactivation stops scheduling.
+	// Then one calculation covers both deliveries, and deactivation stops scheduling.
 	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
 	require.NoError(t, err)
 	require.True(t, result.Processed)
@@ -178,71 +171,15 @@ func TestDemandInvalidationCoalescesDistinctAndDuplicateFacts(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, result.Processed)
 	require.NoError(t, f.repository.Deactivate(t.Context(), f.target))
-	input.EventID = "inactive-fact"
-	marked, err = f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-	require.Zero(t, marked.Matched)
-	receipts, err := f.client.RTEInvalidation.Query().Count(t.Context())
-	require.NoError(t, err)
-	require.Equal(t, 2, receipts, "only the two facts that dirtied active demand need receipts")
 
+	marked, err := f.repository.Invalidate(t.Context(), input)
+	require.NoError(t, err)
+	require.Zero(t, marked)
 	require.NoError(t, f.repository.Activate(t.Context(), f.target))
 
 	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
 	require.NoError(t, err)
 	require.True(t, result.Processed)
-}
-
-func TestConcurrentInvalidationRecordsOneReceipt(t *testing.T) {
-	f := newDemandFixture(t)
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
-	defer cancel()
-
-	require.NoError(t, f.repository.Activate(ctx, f.target))
-	before, err := f.client.RTEDemand.Query().Only(ctx)
-	require.NoError(t, err)
-
-	input := rte.InvalidateInput{
-		Source: "ledger", EventID: "concurrent-delivery",
-		Selectors: []rte.DemandSelector{{Namespace: before.Namespace, Kind: f.target.Kind}},
-	}
-
-	type delivery struct {
-		result rte.InvalidationResult
-		err    error
-	}
-	second := make(chan delivery, 1)
-
-	// Given the first delivery has marked the demand but hasn't committed its receipt.
-	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
-		first, err := f.repository.Invalidate(txCtx, input)
-		require.NoError(t, err)
-		require.Equal(t, 1, first.Matched)
-
-		// When a concurrent copy tries the same update, wait until PostgreSQL
-		// has it blocked on the first transaction before allowing that one to commit.
-		go func() {
-			result, err := f.repository.Invalidate(ctx, input)
-			second <- delivery{result: result, err: err}
-		}()
-		waitForDemandLock(t, ctx, f.client)
-
-		return nil
-	})
-	require.NoError(t, err)
-
-	// Then exactly one increment and its receipt survive.
-	duplicate := <-second
-	require.NoError(t, duplicate.err)
-	require.True(t, duplicate.result.Duplicate)
-	require.Zero(t, duplicate.result.Matched)
-
-	after, err := f.client.RTEDemand.Query().Only(ctx)
-	require.NoError(t, err)
-	require.Equal(t, before.DirtyVersion+1, after.DirtyVersion)
-	count, err := f.client.RTEInvalidation.Query().Count(ctx)
-	require.NoError(t, err)
-	require.Equal(t, 1, count)
 }
 
 func TestOverlappingInvalidationsLockDemandsInIDOrder(t *testing.T) {
@@ -268,8 +205,6 @@ func TestOverlappingInvalidationsLockDemandsInIDOrder(t *testing.T) {
 	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
 		// When one event holds the higher ID and another selects both keys in reverse order.
 		input := rte.InvalidateInput{
-			Source:  "ledger",
-			EventID: "one-key",
 			Selectors: []rte.DemandSelector{{
 				Namespace: secondKey.CustomerID.Namespace,
 				Kind:      secondTarget.Kind,
@@ -278,9 +213,8 @@ func TestOverlappingInvalidationsLockDemandsInIDOrder(t *testing.T) {
 		}
 		result, err := f.repository.Invalidate(txCtx, input)
 		require.NoError(t, err)
-		require.Equal(t, 1, result.Matched)
+		require.Equal(t, int64(1), result)
 
-		input.EventID = "both-keys"
 		input.Selectors[0].Targets = append(input.Selectors[0].Targets, f.target)
 		go func() {
 			_, err := f.repository.Invalidate(ctx, input)
@@ -337,12 +271,10 @@ func TestDemandFailedAttemptRollsBackStateAndPersistsRetry(t *testing.T) {
 
 	// Another source change adds work, but a busy key must respect its retry deadline.
 	invalidation, err := f.repository.Invalidate(t.Context(), rte.InvalidateInput{
-		Source:    "usage",
-		EventID:   "during-retry",
 		Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind}},
 	})
 	require.NoError(t, err)
-	require.Equal(t, 1, invalidation.Matched)
+	require.Equal(t, int64(1), invalidation)
 	dirty, err := f.client.RTEDemand.Get(t.Context(), row.ID)
 	require.NoError(t, err)
 	require.Equal(t, row.DirtyVersion+1, dirty.DirtyVersion)
@@ -442,8 +374,6 @@ func TestDemandConcurrentWorkersAndInvalidationDuringCalculation(t *testing.T) {
 	invalidated := make(chan error, 1)
 	go func() {
 		_, err := f.repository.Invalidate(ctx, rte.InvalidateInput{
-			Source:  "ledger",
-			EventID: "arrived-in-flight",
 			Selectors: []rte.DemandSelector{{
 				Namespace: f.key.CustomerID.Namespace,
 				Kind:      f.target.Kind,
@@ -624,8 +554,6 @@ func TestDemandPullExpiryAgeAndActivation(t *testing.T) {
 	require.False(t, result.Processed)
 
 	_, err = f.repository.Invalidate(t.Context(), rte.InvalidateInput{
-		Source:  "ledger",
-		EventID: "new-fact",
 		Selectors: []rte.DemandSelector{{
 			Namespace: f.key.CustomerID.Namespace,
 			Kind:      f.target.Kind,
@@ -682,10 +610,8 @@ func TestDemandPullOnlyCoalescesWithoutBackgroundCalculations(t *testing.T) {
 	require.True(t, result.Processed)
 
 	// When several facts arrive and background workers poll after every fact.
-	for _, id := range []string{"first", "second", "third"} {
+	for range 3 {
 		marked, err := f.repository.Invalidate(t.Context(), rte.InvalidateInput{
-			Source:  "ledger",
-			EventID: id,
 			Selectors: []rte.DemandSelector{{
 				Namespace: f.key.CustomerID.Namespace,
 				Kind:      f.target.Kind,
@@ -693,7 +619,7 @@ func TestDemandPullOnlyCoalescesWithoutBackgroundCalculations(t *testing.T) {
 			}},
 		})
 		require.NoError(t, err)
-		require.Equal(t, 1, marked.Matched)
+		require.Equal(t, int64(1), marked)
 		result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error {
 			t.Fatal("pull-only key processed in background")
 			return nil
@@ -745,8 +671,6 @@ func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
 	var done <-chan pullResult
 	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
 		marked, err := f.repository.Invalidate(txCtx, rte.InvalidateInput{
-			Source:  "ledger",
-			EventID: "during-renewal",
 			Selectors: []rte.DemandSelector{{
 				Namespace: f.key.CustomerID.Namespace,
 				Kind:      f.target.Kind,
@@ -754,7 +678,7 @@ func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
 			}},
 		})
 		require.NoError(t, err)
-		require.Equal(t, 1, marked.Matched)
+		require.Equal(t, int64(1), marked)
 
 		done = f.startPull(ctx, pull)
 		waitForDemandLock(t, ctx, f.client)
@@ -822,8 +746,6 @@ func TestPullRenewalRechecksTimeAfterWaiting(t *testing.T) {
 				clock.FreezeTime(releasedAt)
 				if releasedAt.After(start.Add(test.initialTTL)) {
 					marked, err := f.repository.Invalidate(ctx, rte.InvalidateInput{
-						Source:  "ledger",
-						EventID: "while-tracking-expired",
 						Selectors: []rte.DemandSelector{{
 							Namespace: f.key.CustomerID.Namespace,
 							Kind:      f.target.Kind,
@@ -831,7 +753,7 @@ func TestPullRenewalRechecksTimeAfterWaiting(t *testing.T) {
 						}},
 					})
 					require.NoError(t, err)
-					require.Zero(t, marked.Matched)
+					require.Zero(t, marked)
 				}
 
 				return nil
@@ -942,57 +864,6 @@ func (f demandFixture) startPull(ctx context.Context, pull rte.EnsureFreshInput)
 	return done
 }
 
-func TestDemandReceiptRetentionBoundsDeletionAndAllowsSafeReplay(t *testing.T) {
-	// Given two old receipts and a recent receipt for an active calculation.
-	f := newDemandFixture(t)
-	now := time.Date(2026, time.November, 11, 12, 0, 0, 0, time.UTC)
-	clock.FreezeTime(now.Add(-8 * 24 * time.Hour))
-	defer clock.UnFreeze()
-	require.NoError(t, f.repository.Activate(t.Context(), f.target))
-
-	input := rte.InvalidateInput{
-		Source: "ledger",
-		Selectors: []rte.DemandSelector{{
-			Namespace: f.key.CustomerID.Namespace,
-			Kind:      f.target.Kind,
-			Targets:   []rte.CalculationTarget{f.target},
-		}},
-	}
-	for _, id := range []string{"old-first", "old-second"} {
-		input.EventID = id
-		_, err := f.repository.Invalidate(t.Context(), input)
-		require.NoError(t, err)
-	}
-
-	clock.FreezeTime(now)
-	input.EventID = "recent"
-	_, err := f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-
-	// When maintenance prunes only one expired receipt.
-	pruned, err := f.repository.PruneInvalidations(t.Context(), rte.PruneInvalidationsInput{Before: now.Add(-7 * 24 * time.Hour), Limit: 1})
-	require.NoError(t, err)
-	require.Equal(t, 1, pruned)
-	count, err := f.client.RTEInvalidation.Query().Count(t.Context())
-	require.NoError(t, err)
-	require.Equal(t, 2, count)
-	input.EventID = "recent"
-	duplicate, err := f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-	require.True(t, duplicate.Duplicate)
-	input.EventID = "old-second"
-	duplicate, err = f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-	require.True(t, duplicate.Duplicate)
-
-	// Then replaying the deleted receipt schedules extra work without losing state.
-	input.EventID = "old-first"
-	marked, err := f.repository.Invalidate(t.Context(), input)
-	require.NoError(t, err)
-	require.False(t, marked.Duplicate)
-	require.Equal(t, 1, marked.Matched)
-}
-
 func TestDemandLargeInvalidationUsesArrayBindings(t *testing.T) {
 	// Given one active key selected by more identities than PostgreSQL's bind limit.
 	f := newDemandFixture(t)
@@ -1007,14 +878,12 @@ func TestDemandLargeInvalidationUsesArrayBindings(t *testing.T) {
 
 	// When the large selector reaches the real PostgreSQL adapter.
 	result, err := f.repository.Invalidate(t.Context(), rte.InvalidateInput{
-		Source:    "usage",
-		EventID:   "large-fanout",
 		Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind, OwnerIDs: owners, Targets: targets}},
 	})
 
 	// Then the key is marked once, without one bind parameter per identity.
 	require.NoError(t, err)
-	require.Equal(t, 1, result.Matched)
+	require.Equal(t, int64(1), result)
 }
 
 func TestDemandAttemptTimeoutPreservesRetryAndOtherReadyKeys(t *testing.T) {
@@ -1136,8 +1005,6 @@ func TestDemandTimeoutRecoveryRetainsConcurrentSuccess(t *testing.T) {
 	require.NoError(t, err)
 	clock.FreezeTime(now.Add(time.Minute))
 	_, err = f.repository.Invalidate(t.Context(), rte.InvalidateInput{
-		Source:  "ledger",
-		EventID: "new-fact",
 		Selectors: []rte.DemandSelector{{
 			Namespace: f.key.CustomerID.Namespace,
 			Kind:      f.target.Kind,
@@ -1202,17 +1069,17 @@ func TestDemandQueuePositionAcrossCalculation(t *testing.T) {
 	defer clock.UnFreeze()
 	require.NoError(t, f.repository.Activate(ctx, b))
 
-	invalidate := func(id string, targets ...rte.CalculationTarget) {
+	invalidate := func(targets ...rte.CalculationTarget) {
 		t.Helper()
-		result, err := f.repository.Invalidate(ctx, rte.InvalidateInput{Source: "test", EventID: id, Selectors: []rte.DemandSelector{{
+		result, err := f.repository.Invalidate(ctx, rte.InvalidateInput{Selectors: []rte.DemandSelector{{
 			Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind, Targets: targets,
 		}}})
 		require.NoError(t, err)
-		require.Equal(t, len(targets), result.Matched)
+		require.Equal(t, int64(len(targets)), result)
 	}
 	clock.FreezeTime(now.Add(2 * time.Second))
 	defer clock.UnFreeze()
-	invalidate("still-waiting", f.target)
+	invalidate(f.target)
 
 	// When A is calculating, one event affects both keys and another affects A.
 	// The callback holds the calculation lock until those invalidations commit.
@@ -1244,8 +1111,8 @@ func TestDemandQueuePositionAcrossCalculation(t *testing.T) {
 
 	clock.FreezeTime(now.Add(3 * time.Second))
 	defer clock.UnFreeze()
-	invalidate("fan-out", f.target, b)
-	invalidate("coalesced", f.target)
+	invalidate(f.target, b)
+	invalidate(f.target)
 
 	clock.FreezeTime(now.Add(4 * time.Second))
 	defer clock.UnFreeze()

@@ -54,24 +54,12 @@ type DemandSelector struct {
 	Targets   []CalculationTarget
 }
 
-// InvalidateInput identifies one immutable fact by Source and EventID, across all
-// selectors and redeliveries. Reusing that identity for a different fact suppresses it.
 type InvalidateInput struct {
-	Source    string
-	EventID   string
 	Selectors []DemandSelector
 }
 
 func (i InvalidateInput) Validate() error {
 	var errs []error
-	if i.Source == "" {
-		errs = append(errs, errors.New("source is required"))
-	}
-
-	if i.EventID == "" {
-		errs = append(errs, errors.New("event ID is required"))
-	}
-
 	for n, selector := range i.Selectors {
 		if selector.Namespace == "" {
 			errs = append(errs, fmt.Errorf("selector %d: namespace is required", n))
@@ -138,29 +126,6 @@ type DemandWorkResult struct {
 	CalculationError error
 }
 
-type InvalidationResult struct {
-	Matched   int
-	Duplicate bool
-}
-
-type PruneInvalidationsInput struct {
-	Before time.Time
-	Limit  int
-}
-
-func (i PruneInvalidationsInput) Validate() error {
-	var errs []error
-	if i.Before.IsZero() {
-		errs = append(errs, errors.New("receipt retention boundary is required"))
-	}
-
-	if i.Limit <= 0 {
-		errs = append(errs, errors.New("receipt prune limit must be positive"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
 // DemandRepository keeps the work lock, successful state/outbox writes and
 // completion atomic. A failed callback rolls back to a savepoint before durable
 // retry bookkeeping; a process crash rolls back the entire attempt.
@@ -172,7 +137,6 @@ type DemandRepository interface {
 	EnsurePull(context.Context, EnsureFreshInput) (clean bool, err error)
 
 	Deactivate(context.Context, CalculationTarget) error
-	Invalidate(context.Context, InvalidateInput) (InvalidationResult, error)
-	PruneInvalidations(context.Context, PruneInvalidationsInput) (int, error)
+	Invalidate(context.Context, InvalidateInput) (matched int64, err error)
 	Process(context.Context, ProcessDemandInput, func(context.Context, CalculationTarget) error) (DemandWorkResult, error)
 }

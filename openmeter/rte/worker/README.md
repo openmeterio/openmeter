@@ -7,7 +7,7 @@ handlers run alongside background slots that poll PostgreSQL for pending demand.
 | --- | --- |
 | Calculation request | Run the requested calculator. With a freshness policy, first check whether a stored result satisfies it. An unconditional request may execute again on redelivery. |
 | Comparison request | Replay the sampled operation and record paired durations on success. Observations expire after one minute. |
-| Supported source event | Resolve affected keys and invalidate active demand using the original CloudEvents source and ID. |
+| Supported source event | Resolve affected keys and mark matching active demand dirty on each delivery. |
 | Calculation update | No further calculation. This event tells downstream consumers that RTE accepted a result. |
 
 ## Background polling

@@ -97,7 +97,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemandlock"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -285,8 +284,6 @@ type Client struct {
 	RTEDemand *RTEDemandClient
 	// RTEDemandLock is the client for interacting with the RTEDemandLock builders.
 	RTEDemandLock *RTEDemandLockClient
-	// RTEInvalidation is the client for interacting with the RTEInvalidation builders.
-	RTEInvalidation *RTEInvalidationClient
 	// RTEMeteredEntitlementBalance is the client for interacting with the RTEMeteredEntitlementBalance builders.
 	RTEMeteredEntitlementBalance *RTEMeteredEntitlementBalanceClient
 	// Subject is the client for interacting with the Subject builders.
@@ -405,7 +402,6 @@ func (c *Client) init() {
 	c.RTECreditBalance = NewRTECreditBalanceClient(c.config)
 	c.RTEDemand = NewRTEDemandClient(c.config)
 	c.RTEDemandLock = NewRTEDemandLockClient(c.config)
-	c.RTEInvalidation = NewRTEInvalidationClient(c.config)
 	c.RTEMeteredEntitlementBalance = NewRTEMeteredEntitlementBalanceClient(c.config)
 	c.Subject = NewSubjectClient(c.config)
 	c.Subscription = NewSubscriptionClient(c.config)
@@ -593,7 +589,6 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		RTECreditBalance:                                 NewRTECreditBalanceClient(cfg),
 		RTEDemand:                                        NewRTEDemandClient(cfg),
 		RTEDemandLock:                                    NewRTEDemandLockClient(cfg),
-		RTEInvalidation:                                  NewRTEInvalidationClient(cfg),
 		RTEMeteredEntitlementBalance:                     NewRTEMeteredEntitlementBalanceClient(cfg),
 		Subject:                                          NewSubjectClient(cfg),
 		Subscription:                                     NewSubscriptionClient(cfg),
@@ -708,7 +703,6 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		RTECreditBalance:                                 NewRTECreditBalanceClient(cfg),
 		RTEDemand:                                        NewRTEDemandClient(cfg),
 		RTEDemandLock:                                    NewRTEDemandLockClient(cfg),
-		RTEInvalidation:                                  NewRTEInvalidationClient(cfg),
 		RTEMeteredEntitlementBalance:                     NewRTEMeteredEntitlementBalanceClient(cfg),
 		Subject:                                          NewSubjectClient(cfg),
 		Subscription:                                     NewSubscriptionClient(cfg),
@@ -780,10 +774,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.RTECreditBalance, c.RTEDemand, c.RTEDemandLock,
-		c.RTEInvalidation, c.RTEMeteredEntitlementBalance, c.Subject, c.Subscription,
-		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionBillingSyncState, c.SubscriptionCostBasisPin, c.SubscriptionItem,
-		c.SubscriptionPhase, c.SubscriptionSyncStateV2, c.TaxCode, c.UsageReset,
+		c.RTEMeteredEntitlementBalance, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
+		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase,
+		c.SubscriptionSyncStateV2, c.TaxCode, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -823,10 +817,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.RTECreditBalance, c.RTEDemand, c.RTEDemandLock,
-		c.RTEInvalidation, c.RTEMeteredEntitlementBalance, c.Subject, c.Subscription,
-		c.SubscriptionAddon, c.SubscriptionAddonQuantity,
-		c.SubscriptionBillingSyncState, c.SubscriptionCostBasisPin, c.SubscriptionItem,
-		c.SubscriptionPhase, c.SubscriptionSyncStateV2, c.TaxCode, c.UsageReset,
+		c.RTEMeteredEntitlementBalance, c.Subject, c.Subscription, c.SubscriptionAddon,
+		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
+		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase,
+		c.SubscriptionSyncStateV2, c.TaxCode, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -999,8 +993,6 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.RTEDemand.mutate(ctx, m)
 	case *RTEDemandLockMutation:
 		return c.RTEDemandLock.mutate(ctx, m)
-	case *RTEInvalidationMutation:
-		return c.RTEInvalidation.mutate(ctx, m)
 	case *RTEMeteredEntitlementBalanceMutation:
 		return c.RTEMeteredEntitlementBalance.mutate(ctx, m)
 	case *SubjectMutation:
@@ -16494,139 +16486,6 @@ func (c *RTEDemandLockClient) mutate(ctx context.Context, m *RTEDemandLockMutati
 	}
 }
 
-// RTEInvalidationClient is a client for the RTEInvalidation schema.
-type RTEInvalidationClient struct {
-	config
-}
-
-// NewRTEInvalidationClient returns a client for the RTEInvalidation from the given config.
-func NewRTEInvalidationClient(c config) *RTEInvalidationClient {
-	return &RTEInvalidationClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `rteinvalidation.Hooks(f(g(h())))`.
-func (c *RTEInvalidationClient) Use(hooks ...Hook) {
-	c.hooks.RTEInvalidation = append(c.hooks.RTEInvalidation, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `rteinvalidation.Intercept(f(g(h())))`.
-func (c *RTEInvalidationClient) Intercept(interceptors ...Interceptor) {
-	c.inters.RTEInvalidation = append(c.inters.RTEInvalidation, interceptors...)
-}
-
-// Create returns a builder for creating a RTEInvalidation entity.
-func (c *RTEInvalidationClient) Create() *RTEInvalidationCreate {
-	mutation := newRTEInvalidationMutation(c.config, OpCreate)
-	return &RTEInvalidationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of RTEInvalidation entities.
-func (c *RTEInvalidationClient) CreateBulk(builders ...*RTEInvalidationCreate) *RTEInvalidationCreateBulk {
-	return &RTEInvalidationCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *RTEInvalidationClient) MapCreateBulk(slice any, setFunc func(*RTEInvalidationCreate, int)) *RTEInvalidationCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &RTEInvalidationCreateBulk{err: fmt.Errorf("calling to RTEInvalidationClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*RTEInvalidationCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &RTEInvalidationCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for RTEInvalidation.
-func (c *RTEInvalidationClient) Update() *RTEInvalidationUpdate {
-	mutation := newRTEInvalidationMutation(c.config, OpUpdate)
-	return &RTEInvalidationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *RTEInvalidationClient) UpdateOne(_m *RTEInvalidation) *RTEInvalidationUpdateOne {
-	mutation := newRTEInvalidationMutation(c.config, OpUpdateOne, withRTEInvalidation(_m))
-	return &RTEInvalidationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *RTEInvalidationClient) UpdateOneID(id int) *RTEInvalidationUpdateOne {
-	mutation := newRTEInvalidationMutation(c.config, OpUpdateOne, withRTEInvalidationID(id))
-	return &RTEInvalidationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for RTEInvalidation.
-func (c *RTEInvalidationClient) Delete() *RTEInvalidationDelete {
-	mutation := newRTEInvalidationMutation(c.config, OpDelete)
-	return &RTEInvalidationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *RTEInvalidationClient) DeleteOne(_m *RTEInvalidation) *RTEInvalidationDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *RTEInvalidationClient) DeleteOneID(id int) *RTEInvalidationDeleteOne {
-	builder := c.Delete().Where(rteinvalidation.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &RTEInvalidationDeleteOne{builder}
-}
-
-// Query returns a query builder for RTEInvalidation.
-func (c *RTEInvalidationClient) Query() *RTEInvalidationQuery {
-	return &RTEInvalidationQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeRTEInvalidation},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a RTEInvalidation entity by its id.
-func (c *RTEInvalidationClient) Get(ctx context.Context, id int) (*RTEInvalidation, error) {
-	return c.Query().Where(rteinvalidation.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *RTEInvalidationClient) GetX(ctx context.Context, id int) *RTEInvalidation {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *RTEInvalidationClient) Hooks() []Hook {
-	return c.hooks.RTEInvalidation
-}
-
-// Interceptors returns the client interceptors.
-func (c *RTEInvalidationClient) Interceptors() []Interceptor {
-	return c.inters.RTEInvalidation
-}
-
-func (c *RTEInvalidationClient) mutate(ctx context.Context, m *RTEInvalidationMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&RTEInvalidationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&RTEInvalidationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&RTEInvalidationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&RTEInvalidationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("db: unknown RTEInvalidation mutation op: %q", m.Op())
-	}
-}
-
 // RTEMeteredEntitlementBalanceClient is a client for the RTEMeteredEntitlementBalance schema.
 type RTEMeteredEntitlementBalanceClient struct {
 	config
@@ -19132,11 +18991,10 @@ type (
 		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
 		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard,
-		RTECreditBalance, RTEDemand, RTEDemandLock, RTEInvalidation,
-		RTEMeteredEntitlementBalance, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionBillingSyncState,
-		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase,
-		SubscriptionSyncStateV2, TaxCode, UsageReset []ent.Hook
+		RTECreditBalance, RTEDemand, RTEDemandLock, RTEMeteredEntitlementBalance,
+		Subject, Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionBillingSyncState, SubscriptionCostBasisPin, SubscriptionItem,
+		SubscriptionPhase, SubscriptionSyncStateV2, TaxCode, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -19165,7 +19023,7 @@ type (
 		LedgerSubAccountRoute, LedgerTransaction, LedgerTransactionGroup, Meter,
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
 		NotificationRule, OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase,
-		PlanRateCard, RTECreditBalance, RTEDemand, RTEDemandLock, RTEInvalidation,
+		PlanRateCard, RTECreditBalance, RTEDemand, RTEDemandLock,
 		RTEMeteredEntitlementBalance, Subject, Subscription, SubscriptionAddon,
 		SubscriptionAddonQuantity, SubscriptionBillingSyncState,
 		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase,
