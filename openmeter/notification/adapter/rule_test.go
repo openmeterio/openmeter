@@ -623,7 +623,11 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 		{name: "all", want: allIDs},
 		{name: "equal", filter: &filter.FilterString{Eq: new("invoice.created")}, want: idsByType["invoice.created"]},
 		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: excludingInvoiceCreated},
-		{name: "in", filter: &filter.FilterString{In: &[]string{"entitlements.balance.threshold", "entitlements.reset", "invoice.created", "invoice.updated"}}, want: allIDs},
+		{
+			name:   "in",
+			filter: &filter.FilterString{In: &[]string{"entitlements.reset", "invoice.created"}},
+			want:   slices.Concat(idsByType["entitlements.reset"], idsByType["invoice.created"]),
+		},
 		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: excludingInvoiceCreated},
 	}
 	for _, stage := range []struct {
