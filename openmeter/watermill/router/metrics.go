@@ -94,8 +94,9 @@ type NewDLQTelemetryOptions struct {
 	MetricMeter metric.Meter
 	Prefix      string
 	Logger      *slog.Logger
-	Router      *message.Router
-	Tracer      trace.Tracer
+	// Deprecated: delivery cancellation is read from the message context.
+	Router *message.Router
+	Tracer trace.Tracer
 }
 
 func (o *NewDLQTelemetryOptions) Validate() error {
@@ -107,10 +108,6 @@ func (o *NewDLQTelemetryOptions) Validate() error {
 
 	if o.Logger == nil {
 		errs = append(errs, errors.New("logger is required"))
-	}
-
-	if o.Router == nil {
-		errs = append(errs, errors.New("router is required"))
 	}
 
 	if o.Tracer == nil {
@@ -167,31 +164,36 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 
 				resMsg, err := h(msg)
 				if err != nil {
-					if opts.Router.IsClosed() {
-						opts.Logger.WarnContext(msg.Context(), "Message processing failed, router is closing", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
-					} else {
-						logger := opts.Logger.ErrorContext
-						if _, ok := lo.ErrorsAs[*WarningLogSeverityError](err); ok {
-							logger = opts.Logger.WarnContext
-						}
-
-						logger(msg.Context(), "Failed to process message, message is going to DLQ", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
-
-						meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
-							meterAttributeCEType,
-							meterAttributeStatusFailed,
-						))
-						meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
-							meterAttributeCEType,
-							meterAttributeStatusFailed,
-						))
+					// Router.Close holds the IsClosed lock while waiting for handlers.
+					// Check the original delivery context here so shutdown can finish.
+					// A handler timeout can still exhaust its retries and go to the DLQ.
+					if origCtx.Err() != nil {
+						opts.Logger.WarnContext(origCtx, "Message delivery canceled", "error", err, "message.metadata", msg.Metadata)
+						return resMsg, errors.Join(errDeliveryCanceled, err)
 					}
 
-					return resMsg, err
+					logger := opts.Logger.ErrorContext
+					if _, ok := lo.ErrorsAs[*WarningLogSeverityError](err); ok {
+						logger = opts.Logger.WarnContext
+					}
+
+					logger(msg.Context(), "Failed to process message after retries", "error", err, "message.metadata", msg.Metadata, "message.payload", string(msg.Payload))
+
+					meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
+						meterAttributeCEType,
+						meterAttributeStatusFailed,
+					))
+					meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
+						meterAttributeCEType,
+						meterAttributeStatusFailed,
+					))
 				}
 
 				return resMsg, err
 			})
+			if err != nil {
+				return resMsg, err
+			}
 
 			meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
 				meterAttributeCEType,

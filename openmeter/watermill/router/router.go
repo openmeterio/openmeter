@@ -13,6 +13,9 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 )
 
+// A canceled delivery must be Nacked so the broker can redeliver after shutdown.
+var errDeliveryCanceled = errors.New("message delivery canceled")
+
 type Options struct {
 	Subscriber  message.Subscriber
 	Publisher   message.Publisher
@@ -21,6 +24,23 @@ type Options struct {
 	Tracer      trace.Tracer
 
 	Config config.ConsumerConfiguration
+}
+
+// The telemetry and timeout middleware restore the broker delivery context before
+// the poison queue runs. Check it at the send boundary because a publisher can
+// still send on a canceled context.
+type dlqPublisher struct {
+	message.Publisher
+}
+
+func (p dlqPublisher) Publish(topic string, messages ...*message.Message) error {
+	for _, msg := range messages {
+		if err := msg.Context().Err(); err != nil {
+			return err
+		}
+	}
+
+	return p.Publisher.Publish(topic, messages...)
 }
 
 func (o *Options) Validate() error {
@@ -63,38 +83,24 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 		return nil, err
 	}
 
-	// This should be the outermost middleware, to catch failures including the ones caused by Recoverer
+	if opts.Config.DLQ.Enabled {
+		// The outermost middleware sees the final error after retries and panic recovery.
+		poisonQueue, err := middleware.PoisonQueueWithFilter(
+			dlqPublisher{opts.Publisher},
+			opts.Config.DLQ.Topic,
+			func(err error) bool { return !errors.Is(err, errDeliveryCanceled) },
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	// If retry queue is not enabled, we can directly push messages to the DLQ
-	poisionQueue, err := middleware.PoisonQueueWithFilter(
-		opts.Publisher,
-		opts.Config.DLQ.Topic,
-		func(err error) bool {
-			// If the router is closed, we don't want to push to the DLQ as Close() will cancel the context almost
-			// immediately.
-			//
-			// Propagating the error (skipping from poision queue) means that the message will be NAcked, meaning that
-			// it will be retried at least for Kafka.
-			if router.IsClosed() {
-				return false
-			}
-
-			return true
-		},
-	)
-	if err != nil {
-		return nil, err
+		router.AddMiddleware(poisonQueue)
 	}
-
-	router.AddMiddleware(
-		poisionQueue,
-	)
 
 	dlqMetrics, err := NewDLQTelemetryMiddleware(NewDLQTelemetryOptions{
 		MetricMeter: opts.MetricMeter,
 		Prefix:      "consumer",
 		Logger:      opts.Logger,
-		Router:      router,
 		Tracer:      opts.Tracer,
 	})
 	if err != nil {

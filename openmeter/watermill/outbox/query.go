@@ -2,9 +2,11 @@ package outbox
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db/eventoutbox"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 // pendingTransactionQuery makes the oldest pending row the claim for its entire
@@ -13,6 +15,7 @@ type pendingTransactionQuery struct {
 	Topics               []string
 	MaxAttempts          int
 	ExcludedTransactions []string
+	EventType            string
 }
 
 // Equivalent claim SQL, including the ordering, limit, and lock added by drain:
@@ -27,15 +30,29 @@ type pendingTransactionQuery struct {
 //	      AND earlier.attempts < :max_attempts
 //	      AND earlier.id < e.id
 //	  )
+//	  AND e.metadata @> :type_header
+//	  AND NOT EXISTS (
+//	    SELECT 1 FROM event_outboxes sibling
+//	    WHERE sibling.transaction_id = e.transaction_id AND sibling.topic IN (:topics)
+//	      AND (sibling.attempts > 0 OR NOT (sibling.metadata @> :type_header))
+//	  )
 //	  AND e.transaction_id NOT IN (:excluded_transactions)
 //	ORDER BY e.id LIMIT 1 FOR UPDATE SKIP LOCKED;
 //
-// The NOT IN clause is omitted when there are no excluded transactions.
+// Scoped claims use e.attempts = 0 and both type-header predicates.
+// Excluded transactions are optional for either worker.
 func (q pendingTransactionQuery) Apply(s *sql.Selector) {
+	headAttempts := sql.LT(s.C(eventoutbox.FieldAttempts), q.MaxAttempts)
+	if q.EventType != "" {
+		// Postgres rechecks the locked row if a concurrent drain changed it.
+		// The sibling subquery can still see the old attempt count.
+		headAttempts = sql.EQ(s.C(eventoutbox.FieldAttempts), 0)
+	}
+
 	earlier := sql.Table(eventoutbox.Table).As("earlier_outbox")
 	s.Where(sql.And(
 		sql.In(s.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
-		sql.LT(s.C(eventoutbox.FieldAttempts), q.MaxAttempts),
+		headAttempts,
 		sql.NotExists(sql.Select(earlier.C(eventoutbox.FieldID)).From(earlier).Where(sql.And(
 			sql.LT(earlier.C(eventoutbox.FieldAttempts), q.MaxAttempts),
 			sql.In(earlier.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
@@ -43,6 +60,24 @@ func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 			sql.ColumnsLT(earlier.C(eventoutbox.FieldID), s.C(eventoutbox.FieldID)),
 		))),
 	))
+	if q.EventType != "" {
+		// The unrestricted worker owns retries for the whole transaction. Otherwise
+		// workers with different limits could deliver siblings in different orders.
+		header := map[string]string{marshaler.CloudEventsHeaderType: q.EventType}
+		sibling := sql.Table(eventoutbox.Table).As("sibling_outbox")
+		s.Where(sql.And(
+			sqljson.ValueContains(s.C(eventoutbox.FieldMetadata), header),
+			sql.NotExists(sql.Select(sibling.C(eventoutbox.FieldID)).From(sibling).Where(sql.And(
+				sql.ColumnsEQ(sibling.C(eventoutbox.FieldTransactionID), s.C(eventoutbox.FieldTransactionID)),
+				sql.In(sibling.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
+				sql.Or(
+					sql.GT(sibling.C(eventoutbox.FieldAttempts), 0),
+					sql.Not(sqljson.ValueContains(sibling.C(eventoutbox.FieldMetadata), header)),
+				),
+			))),
+		))
+	}
+
 	if len(q.ExcludedTransactions) > 0 {
 		s.Where(sql.NotIn(s.C(eventoutbox.FieldTransactionID), lo.ToAnySlice(q.ExcludedTransactions)...))
 	}
