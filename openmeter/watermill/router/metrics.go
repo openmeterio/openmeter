@@ -10,8 +10,10 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/samber/lo"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
@@ -150,7 +152,10 @@ func NewDLQTelemetryMiddleware(opts NewDLQTelemetryOptions) (func(message.Handle
 				metadataAsString = []byte("failed-to-marshal-metadata")
 			}
 
-			span := tracex.Start[[]*message.Message](msg.Context(), opts.Tracer, "watermill.router.full_message_processing", trace.WithAttributes(
+			// Continue the publisher's trace when the message carries a trace context.
+			parentCtx := otel.GetTextMapPropagator().Extract(msg.Context(), propagation.MapCarrier(msg.Metadata))
+
+			span := tracex.Start[[]*message.Message](parentCtx, opts.Tracer, "watermill.router.full_message_processing", trace.WithAttributes(
 				meterAttributeCEType,
 				attribute.String("message.metadata", string(metadataAsString)),
 				attribute.String("message.payload", string(msg.Payload)),
