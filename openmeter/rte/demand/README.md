@@ -18,8 +18,10 @@ the gap. A zero maximum age allows any age while the key is continuously tracked
 ## Claims and queue order
 
 A key is dirty while `dirty_version > completed_version`. An invalidation increments the dirty
-version for matching active keys. It stores a receipt for the CloudEvents source and ID in the
-same transaction if at least one key matched. Duplicate delivery then leaves those keys alone.
+version for matching active keys. It locks demand rows in ascending primary-key order so
+overlapping invalidations acquire shared rows in the same order. If at least one key matched,
+it stores a receipt for the CloudEvents source and ID in the same transaction. Duplicate delivery
+then leaves those keys alone.
 A distinct event for earlier usage still counts. A selector containing only namespace and kind
 matches every active key of that kind.
 
