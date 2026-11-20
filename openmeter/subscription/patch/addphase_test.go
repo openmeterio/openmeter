@@ -3,6 +3,7 @@ package patch_test
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -75,6 +76,50 @@ func TestAddPhase(t *testing.T) {
 							PhaseKey:   "appended_phase",
 							StartAfter: datetime.MustParseDuration(t, "P6M"),
 							Name:       "Appended",
+						},
+						ItemsByKey: make(map[string][]*subscription.SubscriptionItemSpec),
+					}
+
+					return *s
+				},
+			},
+			{
+				// Regression: a zero shift is a valid shift. Inserting a P5D
+				// phase at P5D ends exactly where test_phase_2 starts, so no
+				// later phase may move. The old code used diff.IsZero() as the
+				// "found the next phase" flag, so it kept searching and shifted
+				// test_phase_3 backwards by the gap to it.
+				Name: "Should not shift later phases when the shift is zero",
+				Patch: patch.PatchAddPhase{
+					PhaseKey: "inserted_phase",
+					CreateInput: subscription.CreateSubscriptionPhaseInput{
+						Duration: lo.ToPtr(datetime.MustParseDuration(t, "P5D")),
+						CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+							PhaseKey:   "inserted_phase",
+							StartAfter: datetime.MustParseDuration(t, "P5D"),
+							Name:       "Inserted",
+						},
+					},
+				},
+				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
+					s, _ := getDefaultSpec(t, now)
+					// Re-space the phases in days so the insert lands before
+					// two of them: P5D ends exactly at test_phase_2's start.
+					s.Phases["test_phase_2"].StartAfter = datetime.MustParseDuration(t, "P10D")
+					s.Phases["test_phase_3"].StartAfter = datetime.MustParseDuration(t, "P20D")
+
+					return s
+				},
+				Ctx: subscription.ApplyContext{CurrentTime: now},
+				GetExpectedSpec: func(t *testing.T) subscription.SubscriptionSpec {
+					s, _ := getDefaultSpec(t, now)
+					s.Phases["test_phase_2"].StartAfter = datetime.MustParseDuration(t, "P10D")
+					s.Phases["test_phase_3"].StartAfter = datetime.MustParseDuration(t, "P20D")
+					s.Phases["inserted_phase"] = &subscription.SubscriptionPhaseSpec{
+						CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+							PhaseKey:   "inserted_phase",
+							StartAfter: datetime.MustParseDuration(t, "P5D"),
+							Name:       "Inserted",
 						},
 						ItemsByKey: make(map[string][]*subscription.SubscriptionItemSpec),
 					}

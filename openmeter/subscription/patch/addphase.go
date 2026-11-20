@@ -73,11 +73,14 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 
 	sortedPhases := spec.GetSortedPhases()
 	var diff datetime.ISODuration
+	// diff.IsZero() can't mark "found": a zero shift is a valid shift, so
+	// finding the next phase needs its own flag.
+	found := false
 
 	for i := range sortedPhases {
 		p := sortedPhases[i]
 		// We use !.Before() cause we might insert the phase at the same time another one starts
-		if v, _ := p.StartAfter.AddTo(spec.ActiveFrom); !v.Before(vST) && diff.IsZero() {
+		if v, _ := p.StartAfter.AddTo(spec.ActiveFrom); !v.Before(vST) && !found {
 			// The new phase sits before an existing one, so its span must be bounded to
 			// know where that following phase now starts. A nil duration means the phase
 			// is open-ended (only valid as the last phase); a duration is required here,
@@ -95,6 +98,8 @@ func (a PatchAddPhase) ApplyTo(spec *subscription.SubscriptionSpec, actx subscri
 			if err != nil {
 				return fmt.Errorf("failed to calculate difference between phases: %w", err)
 			}
+
+			found = true
 		}
 
 		// Once we've reached the next phase lets increment the StartAfter by diff
