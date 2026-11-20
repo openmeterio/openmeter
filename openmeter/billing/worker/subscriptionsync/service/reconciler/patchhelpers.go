@@ -8,6 +8,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/persistedstate"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync/service/reconciler/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -29,7 +30,7 @@ func shouldSkipLinePatch(existingLine billing.GenericInvoiceLine, expectedLine b
 	return false
 }
 
-func shouldSkipHierarchyPatch(existingHierarchy *billing.SplitLineHierarchy, expectedLine billing.GatheringLine) bool {
+func shouldSkipHierarchyPatch(existingHierarchy *splitlinegroup.SplitLineHierarchy, expectedLine billing.GatheringLine) bool {
 	if expectedLine.Annotations.GetBool(billing.AnnotationSubscriptionSyncIgnore) {
 		return true
 	}

@@ -142,6 +142,7 @@ func (s *ReconciliationTestSuite) SetupSuite() {
 	s.Require().NoError(s.SubscriptionService.RegisterHook(syncHook))
 	s.Service, err = syncservice.New(syncservice.Config{
 		BillingService:          s.BillingService,
+		SplitLineGroupService:   s.SplitLineGroupService,
 		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
 		ChargesService:          s.Charges,
 		SubscriptionService:     s.SubscriptionService,

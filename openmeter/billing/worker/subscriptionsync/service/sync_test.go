@@ -1200,7 +1200,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		// split group
 		s.Require().NotNil(gatheringLine.SplitLineGroupID)
-		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+		hierarchy, err := s.SplitLineGroupService.GetSplitLineGroup(ctx, models.NamespacedID{
 			Namespace: gatheringLine.Namespace,
 			ID:        *gatheringLine.SplitLineGroupID,
 		})
@@ -1264,7 +1264,7 @@ func (s *SubscriptionHandlerTestSuite) TestSubscriptionHappyPath() {
 
 		// split group
 		s.Require().NotNil(gatheringLine.SplitLineGroupID)
-		hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+		hierarchy, err := s.SplitLineGroupService.GetSplitLineGroup(ctx, models.NamespacedID{
 			Namespace: gatheringLine.Namespace,
 			ID:        *gatheringLine.SplitLineGroupID,
 		})
@@ -4819,7 +4819,7 @@ func (s *SubscriptionHandlerTestSuite) TestSplitLineManualDeleteSync() {
 	}, line.Period)
 
 	s.Require().NotNil(line.SplitLineGroupID)
-	hierarchy, err := s.BillingAdapter.GetSplitLineGroup(ctx, billing.GetSplitLineGroupInput{
+	hierarchy, err := s.SplitLineGroupService.GetSplitLineGroup(ctx, models.NamespacedID{
 		Namespace: line.Namespace,
 		ID:        *line.SplitLineGroupID,
 	})

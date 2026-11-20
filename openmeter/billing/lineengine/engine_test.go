@@ -15,6 +15,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	featuremeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -29,7 +30,7 @@ func TestConfigValidateReturnsAllErrors(t *testing.T) {
 	err := (Config{}).Validate()
 
 	require.True(t, models.IsGenericValidationError(err))
-	require.ErrorContains(t, err, "split line group adapter is required")
+	require.ErrorContains(t, err, "split line group service is required")
 	require.ErrorContains(t, err, "rating service is required")
 	require.ErrorContains(t, err, "feature meter resolver is required")
 	require.ErrorContains(t, err, "streaming connector is required")
@@ -204,8 +205,8 @@ func TestSnapshotLineQuantitiesUsesExplicitHierarchy(t *testing.T) {
 			require.Equal(t, 20.0, line.UsageBased.MeteredQuantity.InexactFloat64())
 			require.Zero(t, line.UsageBased.MeteredPreLinePeriodQuantity.InexactFloat64())
 
-			lines[0].hierarchy = &billing.SplitLineHierarchy{
-				Group: billing.SplitLineGroup{SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: fullPeriod}},
+			lines[0].hierarchy = &splitlinegroup.SplitLineHierarchy{
+				Group: splitlinegroup.SplitLineGroup{SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{ServicePeriod: fullPeriod}},
 			}
 			err = engine.snapshotLineQuantities(t.Context(), quantitySnapshotTestInvoice(), lines)
 

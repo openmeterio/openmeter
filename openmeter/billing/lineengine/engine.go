@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingfeaturemeterservice "github.com/openmeterio/openmeter/openmeter/billing/featuremeter/service"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -19,7 +20,7 @@ import (
 var _ billing.LineEngine = (*Engine)(nil)
 
 type Config struct {
-	SplitLineGroupAdapter        SplitLineGroupAdapter
+	SplitLineGroupService        splitlinegroup.Service
 	RatingService                rating.Service
 	FeatureMeterResolver         *billingfeaturemeterservice.Resolver
 	StreamingConnector           streaming.Connector
@@ -29,8 +30,8 @@ type Config struct {
 func (c Config) Validate() error {
 	var errs []error
 
-	if c.SplitLineGroupAdapter == nil {
-		errs = append(errs, errors.New("split line group adapter is required"))
+	if c.SplitLineGroupService == nil {
+		errs = append(errs, errors.New("split line group service is required"))
 	}
 
 	if c.RatingService == nil {
@@ -53,7 +54,7 @@ func (c Config) Validate() error {
 }
 
 type Engine struct {
-	adapter                      SplitLineGroupAdapter
+	splitLineGroupService        splitlinegroup.Service
 	ratingService                rating.Service
 	featureMeterResolver         *billingfeaturemeterservice.Resolver
 	streamingConnector           streaming.Connector
@@ -66,7 +67,7 @@ func New(config Config) (*Engine, error) {
 	}
 
 	return &Engine{
-		adapter:                      config.SplitLineGroupAdapter,
+		splitLineGroupService:        config.SplitLineGroupService,
 		ratingService:                config.RatingService,
 		featureMeterResolver:         config.FeatureMeterResolver,
 		streamingConnector:           config.StreamingConnector,

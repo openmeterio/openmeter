@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -16,20 +17,20 @@ func TestNormalizePersistedHierarchyPeriodsAndInvoiceAt(t *testing.T) {
 	start := time.Date(2026, 10, 1, 0, 0, 0, 123456789, time.UTC)
 	end := start.AddDate(0, 1, 0)
 	period := timeutil.ClosedPeriod{From: start, To: end}
-	hierarchy := billing.SplitLineHierarchy{
-		Group: billing.SplitLineGroup{
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: period},
+	hierarchy := splitlinegroup.SplitLineHierarchy{
+		Group: splitlinegroup.SplitLineGroup{
+			SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{ServicePeriod: period},
 		},
-		Lines: []billing.SplitLineHierarchyLine{
+		Lines: []splitlinegroup.SplitLineHierarchyLine{
 			{
 				LineID:        billing.LineID{Namespace: "ns", ID: "line"},
-				Invoice:       billing.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeGathering},
+				Invoice:       splitlinegroup.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeGathering},
 				ServicePeriod: period,
 				InvoiceAt:     end.Add(time.Second),
 			},
 			{
 				LineID:        billing.LineID{Namespace: "ns", ID: "standard"},
-				Invoice:       billing.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeStandard},
+				Invoice:       splitlinegroup.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeStandard},
 				ServicePeriod: period,
 				InvoiceAt:     end.Add(time.Second),
 			},
@@ -60,15 +61,15 @@ func TestNormalizePersistedHierarchyPeriodsAndInvoiceAt(t *testing.T) {
 func TestHierarchyOwnershipUsesFirstLiveChildAtGroupEnd(t *testing.T) {
 	// Given three children ending on November 1: a deleted line, a subscription-managed line, and a manual line.
 	end := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
-	hierarchy := &billing.SplitLineHierarchy{
-		Group: billing.SplitLineGroup{
-			SplitLineGroupMutableFields: billing.SplitLineGroupMutableFields{ServicePeriod: timeutil.ClosedPeriod{To: end}},
+	hierarchy := &splitlinegroup.SplitLineHierarchy{
+		Group: splitlinegroup.SplitLineGroup{
+			SplitLineGroupMutableFields: splitlinegroup.SplitLineGroupMutableFields{ServicePeriod: timeutil.ClosedPeriod{To: end}},
 		},
-		Lines: []billing.SplitLineHierarchyLine{
+		Lines: []splitlinegroup.SplitLineHierarchyLine{
 			{LineID: billing.LineID{ID: "deleted"}, ServicePeriod: timeutil.ClosedPeriod{To: end}, DeletedAt: &end},
 			{
 				LineID:        billing.LineID{ID: "first"},
-				Invoice:       billing.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeStandard, Status: billing.StandardInvoiceStatusDeleted},
+				Invoice:       splitlinegroup.SplitLineHierarchyInvoice{Type: billing.InvoiceTypeStandard, Status: billing.StandardInvoiceStatusDeleted},
 				ServicePeriod: timeutil.ClosedPeriod{To: end},
 				ManagedBy:     billing.SubscriptionManagedLine,
 				Annotations:   models.Annotations{billing.AnnotationSubscriptionSyncIgnore: true},

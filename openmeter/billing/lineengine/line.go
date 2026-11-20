@@ -7,6 +7,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/invoicing/legacy/splitlinegroup"
 	"github.com/openmeterio/openmeter/openmeter/billing/rating"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -35,7 +36,7 @@ func (lines linesWithHierarchy) MapStandardLines() billing.StandardLines {
 
 type lineWithHierarchy struct {
 	*billing.StandardLine
-	hierarchy *billing.SplitLineHierarchy
+	hierarchy *splitlinegroup.SplitLineHierarchy
 }
 
 var _ rating.LegacyProgressivelyBillableLineAccessor = lineWithHierarchy{}
@@ -61,5 +62,5 @@ func (l lineWithHierarchy) GetPreviouslyBilledAmount() (alpacadecimal.Decimal, e
 		return alpacadecimal.Zero, fmt.Errorf("line[%s] does not have a progressive line hierarchy, but is a progressive billed line", l.ID)
 	}
 
-	return l.hierarchy.SumNetAmount(billing.SumNetAmountInput{PeriodEndLTE: l.Period.From})
+	return l.hierarchy.SumNetAmount(splitlinegroup.SumNetAmountInput{PeriodEndLTE: l.Period.From})
 }

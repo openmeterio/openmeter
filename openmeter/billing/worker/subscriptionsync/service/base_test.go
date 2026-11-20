@@ -78,6 +78,7 @@ func (s *SuiteBase) SetupSuite() {
 	service, err := New(Config{
 		BillingService:          s.BillingService,
 		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
+		SplitLineGroupService:   s.SplitLineGroupService,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
 		SubscriptionSyncAdapter: adapter,
@@ -102,6 +103,7 @@ func (s *SuiteBase) setupChargesService(config chargestestutils.Config) {
 	service, err := New(Config{
 		BillingService:          s.BillingService,
 		LegacyBillingLineEngine: s.LegacyBillingLineEngine,
+		SplitLineGroupService:   s.SplitLineGroupService,
 		ChargesService:          s.Charges,
 		Logger:                  slog.Default(),
 		Tracer:                  noop.NewTracerProvider().Tracer("test"),
@@ -1237,7 +1239,7 @@ func (s *SuiteBase) populateChildIDsFromParents(invoice billing.GenericInvoice) 
 
 	for idx, line := range genericLines {
 		if line.GetChildUniqueReferenceID() == nil && line.GetSplitLineGroupID() != nil {
-			splitLineGroup, err := s.BillingAdapter.GetSplitLineGroup(s.T().Context(), billing.GetSplitLineGroupInput{
+			splitLineGroup, err := s.SplitLineGroupService.GetSplitLineGroup(s.T().Context(), models.NamespacedID{
 				Namespace: invoice.GetInvoiceID().Namespace,
 				ID:        *line.GetSplitLineGroupID(),
 			})
