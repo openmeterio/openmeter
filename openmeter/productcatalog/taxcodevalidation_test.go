@@ -28,7 +28,7 @@ func (s *stubTaxCodeResolver) Resolve(context.Context, string, string) (*taxcode
 	return nil, errors.New("not implemented")
 }
 
-func (s *stubTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (s *stubTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (productcatalog.TaxCodesByID, error) {
 	s.calls = append(s.calls, ids)
 
 	if s.err != nil {

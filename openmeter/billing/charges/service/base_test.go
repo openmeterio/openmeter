@@ -317,8 +317,10 @@ func (s *BaseSuite) SetupSuite() {
 		UsageBasedService:     usageBasedService,
 		RecognizerService:     recognizerService,
 
-		BillingService:      s.BillingService,
-		TaxCodeService:      s.TaxCodeEnv.Service,
+		BillingService: s.BillingService,
+		TaxCodeService: s.TaxCodeEnv.Service,
+		// Same by-ID resolver production wires; the request Tax Code check needs it.
+		TaxCodeResolver:     s.TaxCodeResolver,
 		CurrencyResolver:    currencyResolver,
 		CustomerService:     s.CustomerService,
 		SubscriptionService: s.SubscriptionService,
@@ -538,7 +540,8 @@ func (s *BaseSuite) grantPromotionalCredits(ctx context.Context, customerID cust
 	})
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: customerID.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    customerID.Namespace,
 		Intents: charges.NewCreateChargeIntents(
 			intent,
 		),

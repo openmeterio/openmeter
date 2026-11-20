@@ -33,6 +33,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	subscriptionrepo "github.com/openmeterio/openmeter/openmeter/subscription/repo"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
@@ -290,6 +291,11 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		return nil, fmt.Errorf("creating currency resolver: %w", err)
 	}
 
+	taxCodeResolver, err := taxcoderesolver.New(config.TaxCodeService)
+	if err != nil {
+		return nil, fmt.Errorf("creating tax code resolver: %w", err)
+	}
+
 	chargesService, err := chargesservice.New(chargesservice.Config{
 		Logger:                logger,
 		Adapter:               rootAdapter,
@@ -301,6 +307,7 @@ func NewServices(t testing.TB, config Config) (*Services, error) {
 		RecognizerService:     config.RecognizerService,
 		BillingService:        config.BillingService,
 		TaxCodeService:        config.TaxCodeService,
+		TaxCodeResolver:       taxCodeResolver,
 		CurrencyResolver:      currencyResolver,
 		CustomerService:       config.CustomerService,
 		SubscriptionService:   config.SubscriptionService,

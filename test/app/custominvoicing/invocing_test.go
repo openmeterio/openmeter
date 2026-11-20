@@ -132,8 +132,9 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowHooksEnabled() {
 	s.Run("gathering invoice can be created", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.HUF),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.HUF),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},
@@ -300,8 +301,9 @@ func (s *CustomInvoicingTestSuite) TestInvoicingFlowPaymentStatusOnly() {
 	s.Run("gathering invoice can be created", func() {
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
 			billing.CreatePendingInvoiceLinesInput{
-				Customer: customerEntity.GetID(),
-				Currency: currencyx.FiatCode(currency.HUF),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     customerEntity.GetID(),
+				Currency:     currencyx.FiatCode(currency.HUF),
 				Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 					billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 						Period: timeutil.ClosedPeriod{From: periodStart, To: periodEnd},

@@ -33,7 +33,8 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoicePurchaseRoundingToZeroI
 	s.Require().NotNil(created.GatheringLineToCreate)
 	s.Nil(created.Charge.State.ResolvedCostBasis)
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: fixture.customerID, Currency: currencyx.FiatCode(fixture.settlementCurrency),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     fixture.customerID, Currency: currencyx.FiatCode(fixture.settlementCurrency),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{*created.GatheringLineToCreate}),
 	})
 	s.Require().NoError(err)

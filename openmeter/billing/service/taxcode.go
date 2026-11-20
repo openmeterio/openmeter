@@ -3,10 +3,13 @@ package billingservice
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
@@ -20,11 +23,12 @@ type resolveTaxCodesInput struct {
 }
 
 // resolveTaxCodes prepares the tax inputs of invoice calculation: the invoice's default tax config
-// in the legacy line shape, the default's Tax Code by ID, and the Tax Codes of the other Stripe codes
-// the lines reference, keyed by Stripe code.
+// in the legacy line shape, the Tax Codes referenced by ID, and the Tax Codes of the Stripe codes
+// lines reference without an ID, keyed by Stripe code.
 //
-// The default is loaded by ID only, deleted included: the invoice inherited it from the profile.
-// Resolving it by Stripe mapping would skip the deleted code and create or pick another one.
+// Everything referenced by ID — the invoice default and any line's own TaxCodeID — is loaded in
+// one batch, deleted included: re-resolving those by Stripe mapping could create or pick another
+// Tax Code. Only lines that identify their tax code purely by Stripe code use the by-mapping lookup.
 func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.StandardInvoiceCalculatorDependencies, error) {
 	namespace := in.Namespace
 	invoice := in.Invoice
@@ -34,46 +38,72 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 
 	result := make(invoicecalc.TaxCodes)
 	// Unique Stripe codes to resolve by mapping.
-	seen := make(map[string]struct{})
+	stripeCodes := make(map[string]struct{})
+
+	// Unique Tax Code IDs to resolve by ID: the default's and the lines' own.
+	taxCodeIDs := make(map[string]struct{})
+
+	if cfg := invoice.Workflow.Config.Invoicing.DefaultTaxConfig; cfg != nil && cfg.TaxCodeID != "" {
+		taxCodeIDs[cfg.TaxCodeID] = struct{}{}
+	}
+
+	for _, line := range invoice.Lines.OrEmpty() {
+		cfg := line.TaxConfig
+		if cfg == nil {
+			continue
+		}
+
+		if cfg.TaxCodeID != nil && *cfg.TaxCodeID != "" {
+			taxCodeIDs[*cfg.TaxCodeID] = struct{}{}
+
+			continue
+		}
+
+		if cfg.Stripe == nil || cfg.Stripe.Code == "" {
+			continue
+		}
+
+		stripeCodes[cfg.Stripe.Code] = struct{}{}
+	}
+
+	var taxCodesByID productcatalog.TaxCodesByID
+	if len(taxCodeIDs) > 0 {
+		var err error
+
+		taxCodesByID, err = s.taxCodeResolver.BatchResolve(ctx, namespace, slices.Collect(maps.Keys(taxCodeIDs))...)
+		if err != nil {
+			return deps, fmt.Errorf("resolving tax codes by ID: %w", err)
+		}
+	}
 
 	if cfg := invoice.Workflow.Config.Invoicing.DefaultTaxConfig; cfg != nil {
 		var defaultTaxCodes map[string]*taxcode.TaxCode
 
 		if cfg.TaxCodeID != "" {
-			var err error
-
-			defaultTaxCodes, err = s.taxCodeResolver.BatchResolve(ctx, namespace, cfg.TaxCodeID)
-			if err != nil {
-				return deps, fmt.Errorf("resolving default tax code %q: %w", cfg.TaxCodeID, err)
-			}
-
 			// A row pointing at a Tax Code outside the namespace (or a missing one) is corrupt.
-			if defaultTaxCodes[cfg.TaxCodeID] == nil {
+			if taxCodesByID[cfg.TaxCodeID] == nil {
 				return deps, taxcode.NewTaxCodeNotFoundError(cfg.TaxCodeID)
 			}
 
-			deps.DefaultTaxCode = defaultTaxCodes[cfg.TaxCodeID]
+			deps.DefaultTaxCode = taxCodesByID[cfg.TaxCodeID]
+
+			defaultTaxCodes = map[string]*taxcode.TaxCode{cfg.TaxCodeID: deps.DefaultTaxCode}
 		}
 
 		legacyDefault := cfg.ToLegacyTaxConfig(defaultTaxCodes)
 		deps.DefaultTaxConfig = billing.FromProductCatalog(&legacyDefault)
 	}
 
-	for _, line := range invoice.Lines.OrEmpty() {
-		cfg := line.TaxConfig
-		if cfg == nil || cfg.Stripe == nil || cfg.Stripe.Code == "" {
-			continue
+	if len(taxCodeIDs) > 0 {
+		deps.TaxCodesByID = make(productcatalog.TaxCodesByID, len(taxCodeIDs))
+		for id := range taxCodeIDs {
+			// An ID missing from the result keeps the ID with no TaxCode attached, same as on
+			// read. Calculation must not fail over a stored reference that no longer resolves.
+			deps.TaxCodesByID[id] = taxCodesByID[id]
 		}
-
-		// Lines that already inherited the default get its Tax Code by ID.
-		if deps.DefaultTaxCode != nil && cfg.TaxCodeID != nil && *cfg.TaxCodeID == deps.DefaultTaxCode.ID {
-			continue
-		}
-
-		seen[cfg.Stripe.Code] = struct{}{}
 	}
 
-	for stripeCode := range seen {
+	for stripeCode := range stripeCodes {
 		if readOnly {
 			tc, err := s.taxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 				Namespace: namespace,

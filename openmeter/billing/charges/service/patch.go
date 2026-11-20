@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/invoiceupdater"
 	"github.com/openmeterio/openmeter/openmeter/customer"
@@ -38,9 +39,12 @@ func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesIn
 
 		if len(input.Creates) > 0 {
 			// Charge creation is the last step as patches might delete a charge whose UniqueReferenceID is used in the creation.
+			// The creates come from stored subscription data, so their Tax Code may have
+			// been deleted since.
 			_, err := s.Create(ctx, charges.CreateInput{
-				Namespace: input.CustomerID.Namespace,
-				Intents:   input.Creates,
+				Namespace:    input.CustomerID.Namespace,
+				Intents:      input.Creates,
+				ChangeSource: billing.ChangeSourceSystem,
 			})
 			if err != nil {
 				return err

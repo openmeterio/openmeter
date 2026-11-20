@@ -84,7 +84,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateResolvesFeatureIDsForUsageBasedAndM
 	clock.SetTime(servicePeriod.From)
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -164,7 +165,8 @@ func (s *ChargeFeatureIDTestSuite) TestUsageBasedActivationRecalculatesFeatureID
 	clock.SetTime(servicePeriod.From.Add(-time.Hour))
 
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -460,7 +462,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateFlatFeeWithUnresolvableFeatureKeyRe
 	defer clock.UnFreeze()
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -514,7 +517,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedWithUnresolvableFeatureKe
 	defer clock.UnFreeze()
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -572,7 +576,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedRequiresFeatureMeterBefor
 	defer clock.UnFreeze()
 
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -641,7 +646,8 @@ func (s *ChargeFeatureIDTestSuite) TestCreateUsageBasedReturnsAllFeatureValidati
 	// when:
 	// - both charges are created in one request
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),

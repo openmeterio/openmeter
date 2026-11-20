@@ -81,7 +81,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteCreatesOverrideForSupported
 		feature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
@@ -195,7 +196,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteEnforcesCustomerOwnership()
 		otherCustomerID = s.CreateTestCustomer(namespace, "other").ID
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       owner.GetID(),
 				currency:       USD,
@@ -332,7 +334,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 		}
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
@@ -417,7 +420,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 		)
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          customer.GetID(),
 				currency:          USD,
@@ -520,7 +524,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentRemo
 		}
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
@@ -619,7 +624,8 @@ func (s *CustomerChargeAPIDeleteTestSuite) TestDeleteWithNoPaymentAdjustmentPres
 		s.FlatFeeTestHandler.onPaymentSettled = settledCallback.Handler(s.T())
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
@@ -743,7 +749,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetCreatesReplacesAndClearsO
 		feature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
@@ -951,7 +958,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetDeleteOrdering() {
 		}
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
@@ -1204,7 +1212,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestClearOverrideAppliesHiddenBa
 		}
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customerNamespacedID,
@@ -1361,7 +1370,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearValidateOwnership
 		feature := s.SetupApiRequestsTotalFeature(ctx, namespace)
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
@@ -1550,7 +1560,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearReconcileRealized
 		}
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
@@ -1658,7 +1669,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearUpdateInvoiceBack
 		}
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       customer.GetID(),
@@ -1825,7 +1837,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestClearFlatFeeInvoiceOverrideP
 		s.FlatFeeTestHandler.onPaymentSettled = newCountedLedgerTransactionCallback[flatfee.OnPaymentSettledInput]().Handler(s.T())
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       customer.GetID(),
 				currency:       USD,
@@ -1955,7 +1968,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRebuildUsageBased
 		)
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          customer.GetID(),
 				currency:          USD,
@@ -2123,7 +2137,8 @@ func (s *CustomerChargeAPISetOverrideTestSuite) TestSetAndClearRejectUsageBasedI
 		)
 
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          customer.GetID(),
 				currency:          USD,

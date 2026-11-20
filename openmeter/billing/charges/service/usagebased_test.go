@@ -93,7 +93,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 		// then:
 		// - the usage-based charge is returned
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(usagebased.Intent{
 				Intent: meta.Intent{
 					ManagedBy:         billing.SubscriptionManagedLine,
@@ -437,7 +438,8 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyFiatOverageAfter
 
 	s.Run("given a collected invoice with gross fiat overage", func() {
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(usagebased.Intent{
 				Intent: meta.Intent{
 					ManagedBy:         billing.SubscriptionManagedLine,
@@ -849,7 +851,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCustomCurrencyCreditThenInvoi
 			Amount: alpacadecimal.NewFromInt(2),
 		})
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(usagebased.Intent{
 				Intent: meta.Intent{
 					ManagedBy:         billing.SubscriptionManagedLine,
@@ -1429,7 +1432,8 @@ func (s *UsageBasedChargesTestSuite) runUsageBasedCustomCurrencyCreditThenInvoic
 				})
 
 				created, err := s.Charges.Create(ctx, charges.CreateInput{
-					Namespace: ns,
+					ChangeSource: billing.ChangeSourceSystem,
+					Namespace:    ns,
 					Intents: charges.NewCreateChargeIntents(usagebased.Intent{
 						Intent: meta.Intent{
 							ManagedBy:         billing.SubscriptionManagedLine,
@@ -1902,7 +1906,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePartialInvoi
 		// then:
 		// - it starts in created status without realization runs
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:          cust.GetID(),
@@ -2341,7 +2346,8 @@ func (s *UsageBasedChargesTestSuite) TestUsageBasedCreditThenInvoicePendingParti
 		// then:
 		// - it starts in created status
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
