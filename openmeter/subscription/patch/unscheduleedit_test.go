@@ -171,6 +171,46 @@ func TestUnscheduleEdit(t *testing.T) {
 					return *s
 				},
 			},
+			{
+				// Regression: when no item is active right now (the current
+				// version already ended and the next one hasn't started),
+				// unscheduling must only drop the future edit. The served
+				// history stays, with its scheduled end intact.
+				Name:  "Should keep served history when no item is active now",
+				Patch: patch.PatchUnscheduleEdit{},
+				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
+					s := getSpec(t)
+
+					phase := s.Phases["test_phase_1"]
+					items := phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+
+					// End the current version after 1 day, schedule the next one from day 3.
+					// At day 2 no version is active.
+					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
+
+					futureItem := *items[0]
+					futureItem.ActiveFromOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P3D"))
+					futureItem.ActiveToOverrideRelativeToPhaseStart = nil
+					items = append(items, &futureItem)
+
+					phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey] = items
+
+					return s
+				},
+				Ctx: subscription.ApplyContext{CurrentTime: now.AddDate(0, 0, 2)},
+				GetExpectedSpec: func(t *testing.T) subscription.SubscriptionSpec {
+					s := getSpec(t)
+
+					phase := s.Phases["test_phase_1"]
+					items := phase.ItemsByKey[subscriptiontestutils.ExampleFeatureKey]
+					items[0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
+
+					// The future edit is removed; the ended version stays with its end intact.
+					require.Len(t, s.Phases["test_phase_1"].ItemsByKey[subscriptiontestutils.ExampleFeatureKey], 1)
+
+					return *s
+				},
+			},
 		},
 	}
 
