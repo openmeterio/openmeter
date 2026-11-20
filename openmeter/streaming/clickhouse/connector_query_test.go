@@ -383,3 +383,20 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 func TestConnector(t *testing.T) {
 	suite.Run(t, new(ConnectorTestSuite))
 }
+
+func (s *ConnectorTestSuite) TestConnectorValidateJSONPath() {
+	ctx := s.T().Context()
+
+	for _, tc := range []struct {
+		jsonPath string
+		valid    bool
+	}{
+		{jsonPath: "$.value", valid: true},
+		{jsonPath: "$['transaction-count']", valid: true},
+		{jsonPath: "$.transaction-count", valid: false},
+	} {
+		valid, err := s.Connector.ValidateJSONPath(ctx, tc.jsonPath)
+		s.NoError(err, tc.jsonPath)
+		s.Equal(tc.valid, valid, tc.jsonPath)
+	}
+}

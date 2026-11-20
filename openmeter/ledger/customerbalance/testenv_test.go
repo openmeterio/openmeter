@@ -141,6 +141,7 @@ func newTestEnv(t *testing.T) *testEnv {
 		publisher,
 		namespaceManager,
 		nil,
+		streaming,
 	)
 
 	featureRepo := pcadapter.NewPostgresFeatureRepo(base.DB, logger)
