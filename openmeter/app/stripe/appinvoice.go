@@ -172,11 +172,11 @@ func (a appOperations) FinalizeStandardInvoice(ctx context.Context, invoice bill
 func (a appOperations) resolveLinesTaxCodes(ctx context.Context, namespace string, lines []billing.DetailedLineWithResolvedTaxConfig) (productcatalog.TaxCodesByID, error) {
 	ids := make(map[string]struct{}, len(lines))
 	for _, line := range lines {
-		if line.TaxConfig == nil || line.TaxConfig.TaxCodeID == nil || *line.TaxConfig.TaxCodeID == "" {
+		if line.TaxConfig == nil || line.TaxConfig.TaxCodeID == "" {
 			continue
 		}
 
-		ids[*line.TaxConfig.TaxCodeID] = struct{}{}
+		ids[line.TaxConfig.TaxCodeID] = struct{}{}
 	}
 
 	if len(ids) == 0 {
@@ -711,13 +711,13 @@ func getCreditStripeAddInvoiceItemParams(calculator StripeCalculator, line billi
 // not from the stored Stripe config: the mapping lives on the Tax Code and a re-sync must send
 // its current value. Tax Codes without a Stripe mapping (e.g. the provider default) leave the
 // code unset, so Stripe applies its own default.
-func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, taxConfig *billing.TaxConfig, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
+func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, taxConfig *productcatalog.TaxCodeConfig, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
 	if taxConfig != nil && !lo.IsEmpty(taxConfig) {
 		if taxConfig.Behavior != nil {
 			add.TaxBehavior = getStripeTaxBehavior(taxConfig.Behavior)
 		}
 
-		if tc, ok := taxCodes.Get(lo.FromPtr(taxConfig.TaxCodeID)); ok {
+		if tc, ok := taxCodes.Get(taxConfig.TaxCodeID); ok {
 			if mapping, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
 				add.TaxCode = stripe.String(mapping.TaxCode)
 			}

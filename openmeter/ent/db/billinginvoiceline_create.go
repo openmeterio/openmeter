@@ -132,13 +132,13 @@ func (_c *BillingInvoiceLineCreate) SetCurrency(v currencyx.FiatCode) *BillingIn
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_c *BillingInvoiceLineCreate) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingInvoiceLineCreate {
 	_c.mutation.SetTaxConfig(v)
 	return _c
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineCreate {
+func (_c *BillingInvoiceLineCreate) SetNillableTaxConfig(v *billing.StoredLineTaxConfig) *BillingInvoiceLineCreate {
 	if v != nil {
 		_c.SetTaxConfig(*v)
 	}
@@ -765,11 +765,6 @@ func (_c *BillingInvoiceLineCreate) check() error {
 	if v, ok := _c.mutation.Currency(); ok {
 		if err := billinginvoiceline.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.currency": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
 		}
 	}
 	if v, ok := _c.mutation.TaxBehavior(); ok {
@@ -1487,7 +1482,7 @@ func (u *BillingInvoiceLineUpsert) ClearDescription() *BillingInvoiceLineUpsert 
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsert) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsert {
+func (u *BillingInvoiceLineUpsert) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldTaxConfig, v)
 	return u
 }
@@ -2145,7 +2140,7 @@ func (u *BillingInvoiceLineUpsertOne) ClearDescription() *BillingInvoiceLineUpse
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsertOne {
+func (u *BillingInvoiceLineUpsertOne) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -3054,7 +3049,7 @@ func (u *BillingInvoiceLineUpsertBulk) ClearDescription() *BillingInvoiceLineUps
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpsertBulk {
+func (u *BillingInvoiceLineUpsertBulk) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})

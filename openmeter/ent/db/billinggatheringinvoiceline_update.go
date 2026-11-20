@@ -152,13 +152,13 @@ func (_u *BillingGatheringInvoiceLineUpdate) SetNillableServicePeriodEnd(v *time
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingGatheringInvoiceLineUpdate) SetTaxConfig(v billing.TaxConfig) *BillingGatheringInvoiceLineUpdate {
+func (_u *BillingGatheringInvoiceLineUpdate) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpdate {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingGatheringInvoiceLineUpdate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingGatheringInvoiceLineUpdate {
+func (_u *BillingGatheringInvoiceLineUpdate) SetNillableTaxConfig(v *billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpdate {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}
@@ -617,11 +617,6 @@ func (_u *BillingGatheringInvoiceLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingGatheringInvoiceLineUpdate) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingGatheringInvoiceLine.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.PriceType(); ok {
 		if err := billinggatheringinvoiceline.PriceTypeValidator(v); err != nil {
 			return &ValidationError{Name: "price_type", err: fmt.Errorf(`db: validator failed for field "BillingGatheringInvoiceLine.price_type": %w`, err)}
@@ -1122,13 +1117,13 @@ func (_u *BillingGatheringInvoiceLineUpdateOne) SetNillableServicePeriodEnd(v *t
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingGatheringInvoiceLineUpdateOne) SetTaxConfig(v billing.TaxConfig) *BillingGatheringInvoiceLineUpdateOne {
+func (_u *BillingGatheringInvoiceLineUpdateOne) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpdateOne {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingGatheringInvoiceLineUpdateOne) SetNillableTaxConfig(v *billing.TaxConfig) *BillingGatheringInvoiceLineUpdateOne {
+func (_u *BillingGatheringInvoiceLineUpdateOne) SetNillableTaxConfig(v *billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpdateOne {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}
@@ -1600,11 +1595,6 @@ func (_u *BillingGatheringInvoiceLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingGatheringInvoiceLineUpdateOne) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingGatheringInvoiceLine.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.PriceType(); ok {
 		if err := billinggatheringinvoiceline.PriceTypeValidator(v); err != nil {
 			return &ValidationError{Name: "price_type", err: fmt.Errorf(`db: validator failed for field "BillingGatheringInvoiceLine.price_type": %w`, err)}

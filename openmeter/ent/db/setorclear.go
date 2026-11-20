@@ -764,14 +764,14 @@ func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearDescription(value *stri
 	return u.SetDescription(*value)
 }
 
-func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingGatheringInvoiceLineUpdate {
+func (u *BillingGatheringInvoiceLineUpdate) SetOrClearTaxConfig(value *billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingGatheringInvoiceLineUpdateOne {
+func (u *BillingGatheringInvoiceLineUpdateOne) SetOrClearTaxConfig(value *billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
@@ -1534,14 +1534,14 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearDescription(value *string) *Bill
 	return u.SetDescription(*value)
 }
 
-func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingInvoiceLineUpdate {
+func (u *BillingInvoiceLineUpdate) SetOrClearTaxConfig(value *billing.StoredLineTaxConfig) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}
 	return u.SetTaxConfig(*value)
 }
 
-func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *billing.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (u *BillingInvoiceLineUpdateOne) SetOrClearTaxConfig(value *billing.StoredLineTaxConfig) *BillingInvoiceLineUpdateOne {
 	if value == nil {
 		return u.ClearTaxConfig()
 	}

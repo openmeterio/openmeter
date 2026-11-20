@@ -134,13 +134,13 @@ func (_c *BillingGatheringInvoiceLineCreate) SetServicePeriodEnd(v time.Time) *B
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_c *BillingGatheringInvoiceLineCreate) SetTaxConfig(v billing.TaxConfig) *BillingGatheringInvoiceLineCreate {
+func (_c *BillingGatheringInvoiceLineCreate) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineCreate {
 	_c.mutation.SetTaxConfig(v)
 	return _c
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_c *BillingGatheringInvoiceLineCreate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingGatheringInvoiceLineCreate {
+func (_c *BillingGatheringInvoiceLineCreate) SetNillableTaxConfig(v *billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineCreate {
 	if v != nil {
 		_c.SetTaxConfig(*v)
 	}
@@ -497,11 +497,6 @@ func (_c *BillingGatheringInvoiceLineCreate) check() error {
 	}
 	if _, ok := _c.mutation.ServicePeriodEnd(); !ok {
 		return &ValidationError{Name: "service_period_end", err: errors.New(`db: missing required field "BillingGatheringInvoiceLine.service_period_end"`)}
-	}
-	if v, ok := _c.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingGatheringInvoiceLine.tax_config": %w`, err)}
-		}
 	}
 	if _, ok := _c.mutation.PriceType(); !ok {
 		return &ValidationError{Name: "price_type", err: errors.New(`db: missing required field "BillingGatheringInvoiceLine.price_type"`)}
@@ -998,7 +993,7 @@ func (u *BillingGatheringInvoiceLineUpsert) UpdateServicePeriodEnd() *BillingGat
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingGatheringInvoiceLineUpsert) SetTaxConfig(v billing.TaxConfig) *BillingGatheringInvoiceLineUpsert {
+func (u *BillingGatheringInvoiceLineUpsert) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpsert {
 	u.Set(billinggatheringinvoiceline.FieldTaxConfig, v)
 	return u
 }
@@ -1519,7 +1514,7 @@ func (u *BillingGatheringInvoiceLineUpsertOne) UpdateServicePeriodEnd() *Billing
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingGatheringInvoiceLineUpsertOne) SetTaxConfig(v billing.TaxConfig) *BillingGatheringInvoiceLineUpsertOne {
+func (u *BillingGatheringInvoiceLineUpsertOne) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingGatheringInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})
@@ -2264,7 +2259,7 @@ func (u *BillingGatheringInvoiceLineUpsertBulk) UpdateServicePeriodEnd() *Billin
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (u *BillingGatheringInvoiceLineUpsertBulk) SetTaxConfig(v billing.TaxConfig) *BillingGatheringInvoiceLineUpsertBulk {
+func (u *BillingGatheringInvoiceLineUpsertBulk) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingGatheringInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingGatheringInvoiceLineUpsert) {
 		s.SetTaxConfig(v)
 	})

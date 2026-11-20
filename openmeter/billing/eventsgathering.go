@@ -1,17 +1,35 @@
 package billing
 
-import "github.com/openmeterio/openmeter/openmeter/event/metadata"
+import (
+	"github.com/openmeterio/openmeter/openmeter/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+)
 
+// GatheringInvoiceCreatedEvent must be built with its constructor, which loads the lines' Tax
+// Codes. A payload decoded from JSON cannot be marshaled again, because the Tax Codes are not
+// part of it.
 type GatheringInvoiceCreatedEvent struct {
 	Invoice GatheringInvoice `json:"gatheringInvoice"`
+
+	// taxCodes are used only to render the legacy taxOverrides payload.
+	taxCodes productcatalog.TaxCodesByID
 }
 
 func (e GatheringInvoiceCreatedEvent) Validate() error {
 	return e.Invoice.Validate()
 }
 
-func NewGatheringInvoiceCreatedEvent(invoice GatheringInvoice) GatheringInvoiceCreatedEvent {
-	return GatheringInvoiceCreatedEvent{Invoice: invoice}
+func NewGatheringInvoiceCreatedEvent(invoice GatheringInvoice, taxCodes productcatalog.TaxCodesByID) (GatheringInvoiceCreatedEvent, error) {
+	configs := make([]*productcatalog.TaxCodeConfig, 0, len(invoice.Lines.OrEmpty()))
+	for _, line := range invoice.Lines.OrEmpty() {
+		configs = append(configs, line.TaxConfig)
+	}
+
+	if err := validateTaxCodesPresent(configs, taxCodes); err != nil {
+		return GatheringInvoiceCreatedEvent{}, err
+	}
+
+	return GatheringInvoiceCreatedEvent{Invoice: invoice, taxCodes: taxCodes}, nil
 }
 
 func (e GatheringInvoiceCreatedEvent) EventName() string {

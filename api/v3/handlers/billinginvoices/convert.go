@@ -384,9 +384,7 @@ func mapRateCard(line *billing.StandardLine) (apiv3models.BillingInvoiceLineRate
 		Price:      price,
 		FeatureKey: lo.EmptyableToPtr(line.UsageBased.FeatureKey),
 		Discounts:  toAPIRateCardDiscounts(line.RateCardDiscounts),
-		// Invoice lines still carry the legacy TaxConfig; the v3 shape only has the Tax Code ID and
-		// behavior, so dropping the Stripe code here loses nothing.
-		TaxConfig: tax.ToAPITaxCodeConfig(lo.ToPtr(productcatalog.TaxCodeConfigFrom(line.TaxConfig.ToProductCatalog()))),
+		TaxConfig:  tax.ToAPITaxCodeConfig(line.TaxConfig),
 	}
 
 	if uc := line.GetUnitConfig(); uc != nil {
@@ -811,7 +809,7 @@ func mergeStandardLineFromAPI(existing *billing.StandardLine, line apiv3models.U
 // mapRateCardFromAPI maps an update request's rate card onto its domain price, tax config,
 // feature key, and discounts. Feature key requiredness relative to the price type is enforced
 // by billing.UsageBasedLine.Validate downstream, not here.
-func mapRateCardFromAPI(rc apiv3models.UpdateInvoiceLineRateCard) (*productcatalog.Price, *billing.TaxConfig, string, productcatalog.Discounts, error) {
+func mapRateCardFromAPI(rc apiv3models.UpdateInvoiceLineRateCard) (*productcatalog.Price, *productcatalog.TaxCodeConfig, string, productcatalog.Discounts, error) {
 	price, err := plans.FromAPIBillingPrice(apiv3models.BillingPrice(rc.Price), nil)
 	if err != nil {
 		return nil, nil, "", productcatalog.Discounts{}, fmt.Errorf("mapping price: %w", err)
@@ -838,13 +836,7 @@ func mapRateCardFromAPI(rc apiv3models.UpdateInvoiceLineRateCard) (*productcatal
 		}
 	}
 
-	// Invoice lines still store the legacy TaxConfig, so convert the Tax Code reference back.
-	var taxConfig *billing.TaxConfig
-	if pcTaxConfig != nil {
-		taxConfig = billing.FromProductCatalog(lo.ToPtr(pcTaxConfig.ToTaxConfig()))
-	}
-
-	return price, taxConfig, lo.FromPtrOr(rc.FeatureKey, ""), discounts, nil
+	return price, pcTaxConfig, lo.FromPtrOr(rc.FeatureKey, ""), discounts, nil
 }
 
 func fromAPIUpdateTaxCodeConfig(taxConfig *apiv3models.UpdateTaxCodeConfig) *apiv3models.TaxCodeConfig {

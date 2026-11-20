@@ -194,11 +194,8 @@ func (s *InvoicingTaxTestSuite) TestInvoiceDefaultTaxCodeFrozenOnStripeRemap() {
 		lines := invoice.Lines.OrEmpty()
 		s.Require().Len(lines, 1)
 		s.Require().NotNil(lines[0].TaxConfig)
-		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, lines[0].TaxConfig.Stripe)
-		s.Equal(lo.ToPtr(taxCode.ID), lines[0].TaxConfig.TaxCodeID)
+		s.Equal(taxCode.ID, lines[0].TaxConfig.TaxCodeID)
 		s.Equal(lo.ToPtr(productcatalog.InclusiveTaxBehavior), lines[0].TaxConfig.Behavior)
-		s.Require().NotNil(lines[0].TaxConfig.TaxCode)
-		s.Equal(taxCode.ID, lines[0].TaxConfig.TaxCode.ID)
 	})
 
 	s.Run("when: the tax code is remapped to another Stripe code", func() {
@@ -307,11 +304,9 @@ func (s *InvoicingTaxTestSuite) generateDraftInvoiceWithTaxCodeID(ctx context.Co
 		ChangeSource: billing.ChangeSourceSystem,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines, err := invoice.Lines.MapWithErr(func(line *billing.StandardLine) (*billing.StandardLine, error) {
-				line.TaxConfig = &billing.TaxConfig{
-					TaxConfig: productcatalog.TaxConfig{
-						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-						TaxCodeID: lo.ToPtr(taxCodeID),
-					},
+				line.TaxConfig = &productcatalog.TaxCodeConfig{
+					Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+					TaxCodeID: taxCodeID,
 				}
 
 				return line, nil
@@ -358,9 +353,6 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 	s.Run("then: the invoice inherits the deleted default and its lines reference it", func() {
 		s.Equal(deleted.ID, invoice.Workflow.Config.Invoicing.DefaultTaxCodeID())
 		s.requireLinesReferenceTaxCode(invoice, deleted.ID)
-
-		lines := invoice.Lines.OrEmpty()
-		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, lines[0].TaxConfig.Stripe)
 
 		s.Equal(taxCodesBefore, s.countTaxCodes(ctx, namespace), "calculation must not create a tax code")
 	})
@@ -450,7 +442,7 @@ func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherit
 	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
 
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
-	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}, billing.ChangeSourceSystem))
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID}, billing.ChangeSourceSystem))
 	s.Require().NoError(err)
 	s.Require().Len(res.Lines, 1)
 
@@ -475,7 +467,7 @@ func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherit
 		editedLine, ok := edited.Lines.GetByID(res.Lines[0].ID)
 		s.Require().True(ok)
 		s.Require().NotNil(editedLine.TaxConfig)
-		s.Equal(lo.ToPtr(deleted.ID), editedLine.TaxConfig.TaxCodeID)
+		s.Equal(deleted.ID, editedLine.TaxConfig.TaxCodeID)
 	})
 
 	s.Run("when: an API edit repoints the line at another deleted tax code", func() {
@@ -493,7 +485,7 @@ func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherit
 					return fmt.Errorf("line[%s] not found", res.Lines[0].ID)
 				}
 
-				line.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(otherDeleted.ID)}
+				line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: otherDeleted.ID}
 
 				return invoice.Lines.ReplaceByID(line)
 			},
@@ -515,7 +507,7 @@ func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherit
 					return fmt.Errorf("line[%s] not found", res.Lines[0].ID)
 				}
 
-				line.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(live.ID)}
+				line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: live.ID}
 
 				return invoice.Lines.ReplaceByID(line)
 			},
@@ -526,7 +518,7 @@ func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherit
 		editedLine, ok := edited.Lines.GetByID(res.Lines[0].ID)
 		s.Require().True(ok)
 		s.Require().NotNil(editedLine.TaxConfig)
-		s.Equal(lo.ToPtr(live.ID), editedLine.TaxConfig.TaxCodeID)
+		s.Equal(live.ID, editedLine.TaxConfig.TaxCodeID)
 	})
 }
 
@@ -573,7 +565,7 @@ func (s *InvoicingTaxTestSuite) TestPendingLinesTaxCodeAuthoredVsInherited() {
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
 	s.Run("when: an API create references the deleted tax code", func() {
-		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}, billing.ChangeSourceAPIRequest)
+		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID}, billing.ChangeSourceAPIRequest)
 
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, input)
 
@@ -584,7 +576,7 @@ func (s *InvoicingTaxTestSuite) TestPendingLinesTaxCodeAuthoredVsInherited() {
 	})
 
 	s.Run("when: an API create references a missing tax code", func() {
-		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(ulid.Make().String())}, billing.ChangeSourceAPIRequest)
+		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxCodeConfig{TaxCodeID: ulid.Make().String()}, billing.ChangeSourceAPIRequest)
 
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, input)
 
@@ -594,7 +586,7 @@ func (s *InvoicingTaxTestSuite) TestPendingLinesTaxCodeAuthoredVsInherited() {
 	})
 
 	s.Run("when: a system create references the deleted tax code", func() {
-		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}, billing.ChangeSourceSystem)
+		input := s.newTaxedPendingLinesInput(namespace, cust.GetID(), now, &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID}, billing.ChangeSourceSystem)
 
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, input)
 
@@ -602,13 +594,13 @@ func (s *InvoicingTaxTestSuite) TestPendingLinesTaxCodeAuthoredVsInherited() {
 		s.Require().NoError(err)
 		s.Require().Len(res.Lines, 1)
 		s.Require().NotNil(res.Lines[0].TaxConfig)
-		s.Equal(lo.ToPtr(deleted.ID), res.Lines[0].TaxConfig.TaxCodeID)
+		s.Equal(deleted.ID, res.Lines[0].TaxConfig.TaxCodeID)
 	})
 }
 
 // newTaxedPendingLinesInput builds a one-line pending-lines create request whose line carries
 // the given tax config.
-func (s *InvoicingTaxTestSuite) newTaxedPendingLinesInput(namespace string, customerID customer.CustomerID, now time.Time, taxConfig *productcatalog.TaxConfig, changeSource billing.ChangeSource) billing.CreatePendingInvoiceLinesInput {
+func (s *InvoicingTaxTestSuite) newTaxedPendingLinesInput(namespace string, customerID customer.CustomerID, now time.Time, taxConfig *productcatalog.TaxCodeConfig, changeSource billing.ChangeSource) billing.CreatePendingInvoiceLinesInput {
 	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 		Namespace:     namespace,
 		Period:        timeutil.ClosedPeriod{From: now, To: now.Add(24 * time.Hour)},
@@ -654,7 +646,7 @@ func (s *InvoicingTaxTestSuite) TestCalculationResolvesDeletedTaxCodeByID() {
 		PerUnitAmount: alpacadecimal.NewFromFloat(100),
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 	})
-	deletedLine.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)}
+	deletedLine.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID}
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
 		Customer:     cust.GetID(),
 		Currency:     currencyx.FiatCode(currency.USD),
@@ -690,9 +682,7 @@ func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.Sta
 
 	for _, line := range lines {
 		s.Require().NotNil(line.TaxConfig)
-		s.Equal(lo.ToPtr(taxCodeID), line.TaxConfig.TaxCodeID)
-		s.Require().NotNil(line.TaxConfig.TaxCode)
-		s.Equal(taxCodeID, line.TaxConfig.TaxCode.ID)
+		s.Equal(taxCodeID, line.TaxConfig.TaxCodeID)
 	}
 }
 
@@ -784,11 +774,10 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, now.Add(-time.Minute))
 	defer s.MockStreamingConnector.Reset()
 
-	taxConfig := &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
+	stripeTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	taxConfig := &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: stripeTaxCode.ID,
 	}
 
 	res, err := s.BillingService.CreatePendingInvoiceLines(ctx,
@@ -829,15 +818,15 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.NoError(err)
 	s.Len(res.Lines, 1)
 	s.Require().NotNil(res.Lines[0].TaxConfig)
-	s.Require().NotNil(res.Lines[0].TaxConfig.TaxCodeID, "TaxCodeID must be resolved before the gathering line is persisted")
+	s.Require().NotEmpty(res.Lines[0].TaxConfig.TaxCodeID, "TaxCodeID must be resolved before the gathering line is persisted")
 
 	createdTC, err := s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: namespace,
 		AppType:   app.AppTypeStripe,
-		TaxCode:   taxConfig.Stripe.Code,
+		TaxCode:   "txcd_10000000",
 	})
 	s.Require().NoError(err, "TaxCode entity must exist before invoice advancement")
-	s.Equal(createdTC.ID, *res.Lines[0].TaxConfig.TaxCodeID)
+	s.Equal(createdTC.ID, res.Lines[0].TaxConfig.TaxCodeID)
 
 	dbLine, err := s.DBClient.BillingInvoiceLine.Query().
 		Where(billinginvoicelinedb.ID(res.Lines[0].GetID())).
@@ -869,12 +858,9 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.NotNil(ubpSplitLine.SplitLineGroupID, "the line is a split line")
 	s.Require().NotNil(ubpSplitLine.TaxConfig, "tax config is retained")
 	s.Equal(taxConfig.Behavior, ubpSplitLine.TaxConfig.Behavior, "tax config behavior is retained")
-	s.Equal(taxConfig.Stripe, ubpSplitLine.TaxConfig.Stripe, "tax config stripe is retained")
-	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID is stamped during advancement")
+	s.Require().NotEmpty(ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID is stamped during advancement")
 
-	s.Equal(createdTC.ID, *ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID must match the DB entity")
-	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCode, "TaxCode entity must be stamped on line")
-	s.Equal(createdTC.ID, ubpSplitLine.TaxConfig.TaxCode.ID, "stamped TaxCode entity must match the DB entity")
+	s.Equal(createdTC.ID, ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID must match the DB entity")
 
 	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
 	s.Len(ubpSplitLineDetailedLines, 1)

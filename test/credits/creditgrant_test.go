@@ -591,10 +591,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantPropagatesTaxConfigTo
 	s.Require().NotNil(line.TaxConfig, "standard invoice line TaxConfig must be set from grant TaxConfig")
 	s.Require().NotNil(line.TaxConfig.Behavior, "TaxBehavior must propagate to invoice line")
 	s.Equal(productcatalog.InclusiveTaxBehavior, *line.TaxConfig.Behavior)
-	s.Require().NotNil(line.TaxConfig.TaxCodeID, "TaxCodeID must propagate to invoice line")
-	s.Equal(tc.ID, *line.TaxConfig.TaxCodeID)
-	s.Require().NotNil(line.TaxConfig.Stripe, "Stripe.Code must be backfilled on invoice line via TaxCode edge")
-	s.Equal("txcd_40000001", line.TaxConfig.Stripe.Code)
+	s.Equal(tc.ID, line.TaxConfig.TaxCodeID)
 }
 
 // TestCreateInvoiceFundedGrantNilTaxConfigAppliesCreditGrantDefault verifies that when
@@ -645,8 +642,7 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCr
 	lines := standardInvoices.Items[0].Lines.OrEmpty()
 	s.Require().Len(lines, 1)
 	s.Require().NotNil(lines[0].TaxConfig, "standard invoice line TaxConfig must be populated with namespace default credit-grant tax code")
-	s.Require().NotNil(lines[0].TaxConfig.TaxCodeID)
-	s.Equal(defaults.CreditGrantTaxCodeID, *lines[0].TaxConfig.TaxCodeID, "standard invoice line must reference the namespace default credit-grant tax code")
+	s.Equal(defaults.CreditGrantTaxCodeID, lines[0].TaxConfig.TaxCodeID, "standard invoice line must reference the namespace default credit-grant tax code")
 }
 
 // TestCreateGrantWithDeletedTaxCodeIsRejected verifies the credit grant create path rejects a

@@ -18,15 +18,15 @@ import (
 // resolveLineTaxConfig resolves one line's v1 tax config inside the request's transaction,
 // replacing the input's stripe.code with the referenced Tax Code's ID. The input's stripe.code
 // is dropped: the stored config references the Tax Code, and responses render stripe.code from
-// its current mapping. raw is the config as the request mapper produced it.
-func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, raw *productcatalog.TaxConfig) (*productcatalog.TaxConfig, error) {
+// its current mapping. raw is the config as the request sent it.
+func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, raw *apiv1models.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
 	if raw == nil {
 		return nil, nil
 	}
 
 	// FromAPITaxConfig carries the stripe.code format check, the empty-ID rejection and
 	// taxCodeId-wins; non-resolution errors keep the 400 class through the wrapper below.
-	cfg, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, namespace, productcataloghttp.FromTaxConfig(*raw))
+	cfg, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, namespace, *raw)
 	if err != nil {
 		if isTaxCodeResolutionError(err) {
 			return nil, err
@@ -35,14 +35,7 @@ func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBa
 		return nil, billing.ValidationError{Err: err}
 	}
 
-	// cfg is nil only for a config with no behavior, ID or code; keep it as the request sent it.
-	if cfg == nil {
-		return raw, nil
-	}
-
-	out := cfg.ToTaxConfig()
-
-	return &out, nil
+	return cfg, nil
 }
 
 // isTaxCodeResolutionError reports whether the error is a resolution failure (a 500), not bad
@@ -67,8 +60,8 @@ func lineTaxConfig(rateCard *apiv1models.InvoiceUsageBasedRateCard, taxConfig *a
 // resolveUpdateLineTaxConfigs resolves every edited line's tax config up front, so the update's
 // EditFn (which has no context) can apply the already-resolved IDs. The result has one entry per
 // request line, in the same order; an entry is nil when the line sent no tax config.
-func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxConfig, error) {
-	resolved := make([]*productcatalog.TaxConfig, 0, len(lines))
+func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxCodeConfig, error) {
+	resolved := make([]*productcatalog.TaxCodeConfig, 0, len(lines))
 
 	for _, line := range lines {
 		raw := lineTaxConfig(line.RateCard, line.TaxConfig)
@@ -78,8 +71,7 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 			continue
 		}
 
-		rawConfig := productcataloghttp.AsTaxConfig(*raw)
-		cfg, err := resolveLineTaxConfig(ctx, resolver, namespace, &rawConfig)
+		cfg, err := resolveLineTaxConfig(ctx, resolver, namespace, raw)
 		if err != nil {
 			return nil, err
 		}

@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	dbcustomer "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
-	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -36,12 +35,6 @@ const appUsageReferenceLimit = 10
 func workflowConfigInNamespace(namespace string) func(*db.BillingWorkflowConfigQuery) {
 	return func(q *db.BillingWorkflowConfigQuery) {
 		q.Where(billingworkflowconfig.Namespace(namespace))
-	}
-}
-
-func taxCodeInNamespace(namespace string) func(*db.TaxCodeQuery) {
-	return func(q *db.TaxCodeQuery) {
-		q.Where(taxcodedb.Namespace(namespace))
 	}
 }
 

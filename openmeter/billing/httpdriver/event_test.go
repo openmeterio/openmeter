@@ -42,7 +42,7 @@ func TestMapEventInvoiceToAPIDefaultTaxConfig(t *testing.T) {
 		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{
 			newEventInvoiceLineWithTaxCode("01JLINE0000000000000000000A", taxCode),
 		}),
-	})
+	}, map[string]*taxcode.TaxCode{taxCode.ID: taxCode})
 	require.NoError(t, err)
 
 	t.Run("the event carries the tax code ID but no Stripe code", func(t *testing.T) {
@@ -88,11 +88,9 @@ func newEventInvoiceLineWithTaxCode(id string, taxCode *taxcode.TaxCode) *billin
 			}),
 			ManagedBy: billing.ManuallyManagedLine,
 			Engine:    billing.LineEngineTypeInvoice,
-			TaxConfig: &billing.TaxConfig{
-				TaxConfig: productcatalog.TaxConfig{
-					Behavior:  &behavior,
-					TaxCodeID: lo.ToPtr(taxCode.ID),
-				},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				Behavior:  &behavior,
+				TaxCodeID: taxCode.ID,
 			},
 		},
 		UsageBased: &billing.UsageBasedLine{

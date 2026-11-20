@@ -6,6 +6,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -36,9 +38,16 @@ func (a InvoiceApps) Validate() error {
 	return errors.Join(errs...)
 }
 
+// EventStandardInvoice must be built with the event constructors, which load the lines' Tax
+// Codes. A payload decoded from JSON cannot be marshaled again, because the Tax Codes are not
+// part of it.
 type EventStandardInvoice struct {
 	Invoice StandardInvoice `json:"invoice"`
 	Apps    InvoiceApps     `json:"apps,omitempty"`
+
+	// taxCodes are the Tax Codes referenced by the lines, used only to render the legacy
+	// taxOverrides payload. Unexported, so it is never serialized as a field.
+	taxCodes productcatalog.TaxCodesByID
 }
 
 func (e EventStandardInvoice) Validate() error {
@@ -55,7 +64,16 @@ func (e EventStandardInvoice) Validate() error {
 	return errors.Join(errs...)
 }
 
-func NewEventStandardInvoice(invoice StandardInvoice) (EventStandardInvoice, error) {
+func NewEventStandardInvoice(invoice StandardInvoice, taxCodes productcatalog.TaxCodesByID) (EventStandardInvoice, error) {
+	configs := make([]*productcatalog.TaxCodeConfig, 0, len(invoice.Lines.OrEmpty()))
+	for _, line := range invoice.Lines.OrEmpty() {
+		configs = append(configs, line.TaxConfig)
+	}
+
+	if err := validateTaxCodesPresent(configs, taxCodes); err != nil {
+		return EventStandardInvoice{}, err
+	}
+
 	// This causes a stack overflow
 	payload, err := invoice.RemoveCircularReferences()
 	if err != nil {
@@ -88,8 +106,9 @@ func NewEventStandardInvoice(invoice StandardInvoice) (EventStandardInvoice, err
 	}
 
 	return EventStandardInvoice{
-		Invoice: payload,
-		Apps:    apps,
+		Invoice:  payload,
+		Apps:     apps,
+		taxCodes: taxCodes,
 	}, nil
 }
 
@@ -97,8 +116,8 @@ type StandardInvoiceCreatedEvent struct {
 	EventStandardInvoice `json:",inline"`
 }
 
-func NewStandardInvoiceCreatedEvent(invoice StandardInvoice) (StandardInvoiceCreatedEvent, error) {
-	eventInvoice, err := NewEventStandardInvoice(invoice)
+func NewStandardInvoiceCreatedEvent(invoice StandardInvoice, taxCodes productcatalog.TaxCodesByID) (StandardInvoiceCreatedEvent, error) {
+	eventInvoice, err := NewEventStandardInvoice(invoice, taxCodes)
 	if err != nil {
 		return StandardInvoiceCreatedEvent{}, err
 	}
@@ -130,14 +149,39 @@ type StandardInvoiceUpdatedEvent struct {
 	New EventStandardInvoice `json:"new"`
 }
 
-func NewStandardInvoiceUpdatedEvent(new StandardInvoice, old EventStandardInvoice) (StandardInvoiceUpdatedEvent, error) {
-	newEventInvoice, err := NewEventStandardInvoice(new)
+type StandardInvoiceUpdatedEventInput struct {
+	New StandardInvoice
+	Old EventStandardInvoice
+	// TaxCodes must cover the lines of the new invoice.
+	TaxCodes productcatalog.TaxCodesByID
+}
+
+func (i StandardInvoiceUpdatedEventInput) Validate() error {
+	var errs []error
+
+	if i.New.ID == "" {
+		errs = append(errs, errors.New("new invoice is required"))
+	}
+
+	if i.Old.Invoice.ID == "" {
+		errs = append(errs, errors.New("old invoice is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+func NewStandardInvoiceUpdatedEvent(input StandardInvoiceUpdatedEventInput) (StandardInvoiceUpdatedEvent, error) {
+	if err := input.Validate(); err != nil {
+		return StandardInvoiceUpdatedEvent{}, err
+	}
+
+	newEventInvoice, err := NewEventStandardInvoice(input.New, input.TaxCodes)
 	if err != nil {
 		return StandardInvoiceUpdatedEvent{}, err
 	}
 
 	return StandardInvoiceUpdatedEvent{
-		Old: old,
+		Old: input.Old,
 		New: newEventInvoice,
 	}, nil
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	stdinvoicesanity "github.com/openmeterio/openmeter/openmeter/billing/stdinvoice/sanity"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -539,6 +540,23 @@ func (m *InvoiceStateMachine) calculateAvailableActionDetails(ctx context.Contex
 	}, nil
 }
 
+// invoiceTaxCodes loads the Tax Codes referenced by the current lines of the invoice.
+func (m *InvoiceStateMachine) invoiceTaxCodes(ctx context.Context) (productcatalog.TaxCodesByID, error) {
+	return m.Service.lineTaxCodes(ctx, m.Invoice.Namespace, lo.Map(m.Invoice.Lines.OrEmpty(), func(l *billing.StandardLine, _ int) *productcatalog.TaxCodeConfig {
+		return l.TaxConfig
+	})...)
+}
+
+// newEventInvoice snapshots the current invoice state as an event payload.
+func (m *InvoiceStateMachine) newEventInvoice(ctx context.Context) (billing.EventStandardInvoice, error) {
+	taxCodes, err := m.invoiceTaxCodes(ctx)
+	if err != nil {
+		return billing.EventStandardInvoice{}, err
+	}
+
+	return billing.NewEventStandardInvoice(m.Invoice, taxCodes)
+}
+
 func (m *InvoiceStateMachine) requireDBSave(ctx context.Context) error {
 	m.NeedsDBSave = true
 
@@ -547,7 +565,7 @@ func (m *InvoiceStateMachine) requireDBSave(ctx context.Context) error {
 
 func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error {
 	for {
-		preAdvanceState, err := billing.NewEventStandardInvoice(m.Invoice)
+		preAdvanceState, err := m.newEventInvoice(ctx)
 		if err != nil {
 			return err
 		}
@@ -588,7 +606,16 @@ func (m *InvoiceStateMachine) AdvanceUntilStateStable(ctx context.Context) error
 		}
 
 		// Let's emit an event for the transition
-		event, err := billing.NewStandardInvoiceUpdatedEvent(m.Invoice, preAdvanceState)
+		taxCodes, err := m.invoiceTaxCodes(ctx)
+		if err != nil {
+			return fmt.Errorf("error creating invoice updated event: %w", err)
+		}
+
+		event, err := billing.NewStandardInvoiceUpdatedEvent(billing.StandardInvoiceUpdatedEventInput{
+			New:      m.Invoice,
+			Old:      preAdvanceState,
+			TaxCodes: taxCodes,
+		})
 		if err != nil {
 			return fmt.Errorf("error creating invoice updated event: %w", err)
 		}
@@ -792,7 +819,7 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 		return fmt.Errorf("trigger invoice ID does not match the current invoice ID")
 	}
 
-	preAdvanceState, err := billing.NewEventStandardInvoice(m.Invoice)
+	preAdvanceState, err := m.newEventInvoice(ctx)
 	if err != nil {
 		return err
 	}
@@ -802,7 +829,16 @@ func (m *InvoiceStateMachine) HandleInvoiceTrigger(ctx context.Context, trigger 
 		return err
 	}
 
-	event, err := billing.NewStandardInvoiceUpdatedEvent(m.Invoice, preAdvanceState)
+	taxCodes, err := m.invoiceTaxCodes(ctx)
+	if err != nil {
+		return err
+	}
+
+	event, err := billing.NewStandardInvoiceUpdatedEvent(billing.StandardInvoiceUpdatedEventInput{
+		New:      m.Invoice,
+		Old:      preAdvanceState,
+		TaxCodes: taxCodes,
+	})
 	if err != nil {
 		return err
 	}
@@ -854,7 +890,6 @@ func (m *InvoiceStateMachine) calculateInvoice(ctx context.Context) error {
 	calculatorDeps, err := m.Service.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: m.Invoice.Namespace,
 		Invoice:   &m.Invoice,
-		ReadOnly:  false,
 	})
 	if err != nil {
 		return fmt.Errorf("resolving tax codes: %w", err)
