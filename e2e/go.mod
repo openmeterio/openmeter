@@ -67,7 +67,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/oapi-codegen/nullable v1.2.0 // indirect
-	github.com/oapi-codegen/runtime v1.8.0 // indirect
+	github.com/oapi-codegen/runtime v1.9.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/oliveagle/jsonpath v0.1.4 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
