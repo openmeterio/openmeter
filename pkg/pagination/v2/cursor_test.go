@@ -1,10 +1,12 @@
 package pagination
 
 import (
+	"encoding/base64"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewCursor(t *testing.T) {
@@ -147,10 +149,32 @@ func TestRoundTripWithDifferentTimes(t *testing.T) {
 			decoded, err := DecodeCursor(encoded)
 
 			assert.NoError(t, err)
-			assert.Equal(t, cursor.Time.Format(time.RFC3339), decoded.Time.Format(time.RFC3339),
-				"Times should match after round trip (case %d)", i)
+			assert.True(t, cursor.Time.Equal(decoded.Time),
+				"Times should match after round trip, including fractional seconds (case %d)", i)
 		})
 	}
+}
+
+func TestEncodeFormat(t *testing.T) {
+	encoded := func(tm time.Time) string {
+		raw, err := base64.StdEncoding.DecodeString(NewCursor(tm, "id").Encode())
+		require.NoError(t, err)
+
+		return string(raw)
+	}
+
+	// Whole seconds encode exactly as before fractional seconds were kept, so
+	// cursors already handed out stay the same.
+	assert.Equal(t, "2023-05-15T12:30:00Z,id", encoded(time.Date(2023, 5, 15, 12, 30, 0, 0, time.UTC)))
+	assert.Equal(t, "2023-05-15T12:30:00.123456Z,id", encoded(time.Date(2023, 5, 15, 12, 30, 0, 123456000, time.UTC)))
+}
+
+func TestDecodeWholeSecondCursor(t *testing.T) {
+	// A cursor issued before fractional seconds were kept.
+	decoded, err := DecodeCursor(base64.StdEncoding.EncodeToString([]byte("2023-05-15T12:30:00Z,id")))
+	require.NoError(t, err)
+	assert.True(t, time.Date(2023, 5, 15, 12, 30, 0, 0, time.UTC).Equal(decoded.Time))
+	assert.Equal(t, "id", decoded.ID)
 }
 
 func TestTextMarshalUnmarshal(t *testing.T) {
