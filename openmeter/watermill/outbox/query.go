@@ -34,7 +34,7 @@ type pendingTransactionQuery struct {
 //	  AND NOT EXISTS (
 //	    SELECT 1 FROM event_outboxes sibling
 //	    WHERE sibling.transaction_id = e.transaction_id AND sibling.topic IN (:topics)
-//	      AND NOT (sibling.metadata @> :type_header)
+//	      AND (sibling.attempts > 0 OR NOT (sibling.metadata @> :type_header))
 //	  )
 //	  AND e.transaction_id NOT IN (:excluded_transactions)
 //	ORDER BY e.id LIMIT 1 FOR UPDATE SKIP LOCKED;
@@ -53,9 +53,8 @@ func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 		))),
 	))
 	if q.EventType != "" {
-		// A scoped worker never decides when to skip an unrelated event, even
-		// if it has a lower maxAttempts than the worker that owns that event.
-		// Leave mixed transactions to a regular worker that can send them in order.
+		// The unrestricted worker owns retries for the whole transaction. Otherwise
+		// workers with different limits could deliver siblings in different orders.
 		header := map[string]string{marshaler.CloudEventsHeaderType: q.EventType}
 		sibling := sql.Table(eventoutbox.Table).As("sibling_outbox")
 		s.Where(sql.And(
@@ -63,7 +62,10 @@ func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 			sql.NotExists(sql.Select(sibling.C(eventoutbox.FieldID)).From(sibling).Where(sql.And(
 				sql.ColumnsEQ(sibling.C(eventoutbox.FieldTransactionID), s.C(eventoutbox.FieldTransactionID)),
 				sql.In(sibling.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
-				sql.Not(sqljson.ValueContains(sibling.C(eventoutbox.FieldMetadata), header)),
+				sql.Or(
+					sql.GT(sibling.C(eventoutbox.FieldAttempts), 0),
+					sql.Not(sqljson.ValueContains(sibling.C(eventoutbox.FieldMetadata), header)),
+				),
 			))),
 		))
 	}

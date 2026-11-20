@@ -28,8 +28,8 @@ type Config struct {
 	OutboxTopics []string
 
 	// DrainEventType limits which transactions this worker may claim. Every
-	// remaining row on its outbox topics must match, preserving transaction
-	// order for other workers. Empty allows all event types.
+	// remaining row on its outbox topics must match and have zero failures.
+	// An unrestricted worker (empty type) handles retries.
 	DrainEventType string
 
 	Logger     *slog.Logger
@@ -262,7 +262,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 						return fmt.Errorf("record failed delivery attempt: %w", err)
 					}
 
-					if row.Attempts+1 >= p.cfg.MaxAttempts {
+					if p.cfg.DrainEventType == "" && row.Attempts+1 >= p.cfg.MaxAttempts {
 						exhausted = append(exhausted, row.MessageID)
 						continue
 					}

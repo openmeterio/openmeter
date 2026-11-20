@@ -76,3 +76,44 @@ func TestScopedDrainPreservesBusinessEventsAndTransactionOrder(t *testing.T) {
 	require.Equal(t, []string{"standalone-update", "independent-business", "first-update", "mixed-business", "last-update"}, raw.deliveredIDs())
 	eventuallyRowCount(t, client, 0)
 }
+
+func TestScopedDrainHandsFailedTransactionToUnrestrictedWorker(t *testing.T) {
+	// Given two matching updates in the same transaction.
+	p, client, raw := newManualTestPublisher(t)
+	p.cfg.DrainEventType = "balance.updated"
+	p.cfg.MaxAttempts = 1
+
+	require.NoError(t, transaction.RunWithNoValue(t.Context(), enttx.NewCreator(client), func(ctx context.Context) error {
+		for _, id := range []string{"A", "B"} {
+			msg := testMessage(ctx, id, "shared")
+			msg.Metadata.Set(marshaler.CloudEventsHeaderType, p.cfg.DrainEventType)
+			if err := p.Publish(testTopic, msg); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}))
+
+	// When the scoped worker hits its limit on A, neither this pass nor its
+	// next claim may send B ahead of the unrestricted worker's retry.
+	sendErr := errors.New("send failed")
+	raw.setOnSend(func(publishedMessage) error { return sendErr })
+	require.ErrorIs(t, p.drain(t.Context()), sendErr)
+	raw.setOnSend(nil)
+	require.NoError(t, p.drain(t.Context()))
+
+	rows, err := client.EventOutbox.Query().Order(eventoutbox.ByID()).All(t.Context())
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+	require.Equal(t, 1, rows[0].Attempts)
+	require.Zero(t, rows[1].Attempts)
+	require.Len(t, raw.attemptsFor("A"), 1)
+	require.Empty(t, raw.attemptsFor("B"))
+
+	// Then the unrestricted worker retries A and delivers both in order.
+	p.cfg.DrainEventType = ""
+	p.cfg.MaxAttempts = 10
+	require.NoError(t, p.drain(t.Context()))
+	require.Equal(t, []string{"A", "B"}, raw.deliveredIDs())
+}

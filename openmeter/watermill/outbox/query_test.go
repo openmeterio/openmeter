@@ -26,9 +26,9 @@ func TestScopedTransactionClaimQuery(t *testing.T) {
 				AND "earlier_outbox"."id" < "event_outboxes"."id"))
 		AND ("event_outboxes"."metadata" @> $5 AND NOT EXISTS (SELECT "sibling_outbox"."id" FROM "event_outboxes" AS "sibling_outbox"
 			WHERE "sibling_outbox"."transaction_id" = "event_outboxes"."transaction_id"
-			AND "sibling_outbox"."topic" IN ($6) AND (NOT ("sibling_outbox"."metadata" @> $7))))`
+			AND "sibling_outbox"."topic" IN ($6) AND ("sibling_outbox"."attempts" > $7 OR (NOT ("sibling_outbox"."metadata" @> $8)))))`
 	require.Equal(t, strings.Join(strings.Fields(expected), " "), query)
 
 	const header = `{"ce_type":"balance.updated"}`
-	require.Equal(t, []any{"system", 10, 10, "system", header, "system", header}, args)
+	require.Equal(t, []any{"system", 10, 10, "system", header, "system", 0, header}, args)
 }
