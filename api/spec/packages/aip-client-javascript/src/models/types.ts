@@ -777,6 +777,48 @@ export interface NotificationEventV1InvoiceAppExternalIds {
 }
 
 /**
+ * A versioned kind of notification event. Its contract covers the payload and,
+ * when rules can produce it, the rule configuration.
+ */
+export interface NotificationEventTypeSummary {
+  /**
+   * The canonical event type, `v<version>.<name>`, for example
+   * `v1.billing.invoice.created`.
+   */
+  type: string
+  /** What the event type means, including the legacy name it replaces, if any. */
+  description: string
+  /**
+   * The event type that replaces this one. Deprecated event types stay usable.
+   * Absent when the event type is not deprecated.
+   */
+  deprecatedBy?: string
+}
+
+/** A notification event type with the JSON Schemas of its contract. */
+export interface NotificationEventTypeDefinition {
+  /**
+   * The canonical event type, `v<version>.<name>`, for example
+   * `v1.billing.invoice.created`.
+   */
+  type: string
+  /** What the event type means, including the legacy name it replaces, if any. */
+  description: string
+  /**
+   * The event type that replaces this one. Deprecated event types stay usable.
+   * Absent when the event type is not deprecated.
+   */
+  deprecatedBy?: string
+  /** The JSON Schema (draft 2020-12) of the event payload. */
+  payloadJsonSchema: Record<string, unknown>
+  /**
+   * The JSON Schema (draft 2020-12) of the rule configuration. Absent when no rule
+   * can produce the event type.
+   */
+  ruleConfigJsonSchema?: Record<string, unknown>
+}
+
+/**
  * A query filter for an integer attribute. Operators are mutually exclusive, only
  * one operator is allowed at a time.
  */
@@ -1329,6 +1371,11 @@ export interface ListLlmCostPricesParamsFilter {
   currency?: StringFieldFilter
   /** Filter by source. e.g. ?filter[source][eq]=system */
   source?: StringFieldFilter
+}
+
+/** Filter options for listing notification event types. */
+export interface ListNotificationEventTypesParamsFilter {
+  type?: StringFieldFilter
 }
 
 /**
@@ -4747,6 +4794,12 @@ export interface FeatureCostQueryResult {
   data: FeatureCostQueryRow[]
 }
 
+/** Cursor paginated response. */
+export interface NotificationEventTypeSummaryPaginatedResponse {
+  data: NotificationEventTypeSummary[]
+  meta: CursorMeta
+}
+
 /** Page paginated response. */
 export interface MeterPagePaginatedResponse {
   data: Meter[]
@@ -8063,8 +8116,11 @@ export interface NotificationEventV1BillingWorkflowCollectionSettings {
 }
 
 /**
- * Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
- * `entitlements.balance.threshold` Event type.
+ * A metered entitlement's balance crossed one of the thresholds configured on the
+ * Rule. The payload carries the entitlement, its feature, subject, customer and
+ * value, and the threshold that was crossed.
+ *
+ * Legacy name: `entitlements.balance.threshold`.
  */
 export interface EntitlementBalanceThresholdTriggeredV1Payload {
   /** Entitlement. */
@@ -8082,8 +8138,10 @@ export interface EntitlementBalanceThresholdTriggeredV1Payload {
 }
 
 /**
- * Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
- * Event type.
+ * A metered entitlement's usage period was reset. The payload carries the
+ * entitlement, its feature, subject, customer and value.
+ *
+ * Legacy name: `entitlements.reset`.
  */
 export interface EntitlementUsagePeriodResetV1Payload {
   /** Entitlement. */
@@ -9539,8 +9597,9 @@ export interface UpdateInvoiceStandardRequest {
 }
 
 /**
- * Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
- * type: the invoice as it was created.
+ * An invoice was created. The payload is the invoice as it was created.
+ *
+ * Legacy name: `invoice.created`.
  */
 export interface InvoiceCreatedV1Payload {
   /** A unique identifier for the resource. */
@@ -9670,8 +9729,9 @@ export interface InvoiceCreatedV1Payload {
 }
 
 /**
- * Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
- * type: the invoice after the update.
+ * An invoice was updated. The payload is the invoice after the update.
+ *
+ * Legacy name: `invoice.updated`.
  */
 export interface InvoiceUpdatedV1Payload {
   /** A unique identifier for the resource. */

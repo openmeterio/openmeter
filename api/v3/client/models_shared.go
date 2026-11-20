@@ -1104,6 +1104,16 @@ type CursorMetaPage struct {
 	Size int64 `json:"size"`
 }
 
+// Determines which page of the collection to retrieve.
+type CursorPaginationQueryPage struct {
+	// The number of items to include per page.
+	Size *int64 `json:"size,omitempty"`
+	// Request the next page of data, starting with the item after this parameter.
+	After *string `json:"after,omitempty"`
+	// Request the previous page of data, starting with the item before this parameter.
+	Before *string `json:"before,omitempty"`
+}
+
 // Customers can be individuals or organizations that can subscribe to plans and
 // have access to features.
 type Customer struct {

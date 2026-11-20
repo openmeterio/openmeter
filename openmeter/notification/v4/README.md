@@ -51,13 +51,19 @@ list.
 An `EventTypeDefinition` binds an Event type to its contracts:
 
 - **Payload schema** is required.
-- **Rule** is nil when no Rule can produce the type, as for system Events such
-  as `v1.billing.invoice.created`. Otherwise it carries the Rule configuration
-  schema.
+- **Description** explains the type to API users and names the legacy type it
+  replaces, if any. It comes from the payload's doc comment. It is not part of
+  the contract: `Equal` and the fingerprint ignore it.
+- **Rule** is nil when no Rule can produce the type, as for system Events.
+  Otherwise it carries the Rule configuration schema.
 - **DeprecatedBy** names the immediate replacement and is advisory. Deprecated
   types stay registered and usable; existing Events and Rules are never
   migrated. A type cannot replace itself, and following replacements must end
   at a type that is not deprecated.
+
+The v3 API serves the registry at `/openmeter/notification/event-types`: the
+list returns type, description and replacement, and getting one type also
+returns its schemas.
 
 `Validate` checks a definition on its own; references to other definitions are
 checked by the registry. Callers with stricter needs, such as requiring a

@@ -3802,6 +3802,81 @@ paths:
       tags:
         - OpenMeter Notifications
       x-unstable: true
+  /openmeter/notification/event-types:
+    get:
+      operationId: list-billing-notification-event-types
+      summary: List notification event types
+      description: |-
+        List the notification event types, without their JSON Schemas. Event types are
+        the same in every namespace. Deprecated event types stay listed.
+      parameters:
+        - $ref: '#/components/parameters/CursorPaginationQuery'
+        - name: filter
+          in: query
+          required: false
+          description: |-
+            Filter notification event types returned in the response. Event types are
+            ordered by version, then name.
+
+            Examples:
+
+            - `filter[type]=v1.billing.invoice.created`
+            - `filter[type][contains]=entitlement`
+          schema:
+            $ref: '#/components/schemas/ListNotificationEventTypesParamsFilter'
+          style: deepObject
+      responses:
+        '200':
+          description: Cursor paginated response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationEventTypeSummaryPaginatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
+  /openmeter/notification/event-types/{notificationEventType}:
+    get:
+      operationId: get-billing-notification-event-type
+      summary: Get notification event type
+      description: |-
+        Get a notification event type with the JSON Schemas of its payload and rule
+        configuration.
+      parameters:
+        - name: notificationEventType
+          in: path
+          required: true
+          description: The canonical event type, for example `v1.billing.invoice.created`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: NotificationEventTypeDefinition response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingNotificationEventTypeDefinition'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - OpenMeter Notifications
+      x-private: true
+      x-internal: true
+      x-unstable: true
   /openmeter/notification/events:
     get:
       operationId: list-billing-notification-events
@@ -10680,8 +10755,9 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
-        type: the invoice as it was created.
+        An invoice was created. The payload is the invoice as it was created.
+
+        Legacy name: `invoice.created`.
     BillingInvoiceCustomer:
       type: object
       required:
@@ -11620,8 +11696,9 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
-        type: the invoice after the update.
+        An invoice was updated. The payload is the invoice after the update.
+
+        Legacy name: `invoice.updated`.
     BillingInvoiceUsageQuantityDetail:
       type: object
       required:
@@ -12180,6 +12257,69 @@ components:
       description: |-
         The type of a notification event. It determines which payload variant the event
         carries.
+    BillingNotificationEventTypeDefinition:
+      type: object
+      required:
+        - type
+        - description
+        - payload_json_schema
+      properties:
+        type:
+          type: string
+          description: |-
+            The canonical event type, `v<version>.<name>`, for example
+            `v1.billing.invoice.created`.
+          readOnly: true
+        description:
+          type: string
+          description: What the event type means, including the legacy name it replaces, if any.
+          readOnly: true
+        deprecated_by:
+          type: string
+          description: |-
+            The event type that replaces this one. Deprecated event types stay usable.
+            Absent when the event type is not deprecated.
+          readOnly: true
+        payload_json_schema:
+          type: object
+          additionalProperties: {}
+          description: The JSON Schema (draft 2020-12) of the event payload.
+          readOnly: true
+        rule_config_json_schema:
+          type: object
+          additionalProperties: {}
+          description: |-
+            The JSON Schema (draft 2020-12) of the rule configuration. Absent when no rule
+            can produce the event type.
+          readOnly: true
+      additionalProperties: false
+      description: A notification event type with the JSON Schemas of its contract.
+    BillingNotificationEventTypeSummary:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          description: |-
+            The canonical event type, `v<version>.<name>`, for example
+            `v1.billing.invoice.created`.
+          readOnly: true
+        description:
+          type: string
+          description: What the event type means, including the legacy name it replaces, if any.
+          readOnly: true
+        deprecated_by:
+          type: string
+          description: |-
+            The event type that replaces this one. Deprecated event types stay usable.
+            Absent when the event type is not deprecated.
+          readOnly: true
+      additionalProperties: false
+      description: |-
+        A versioned kind of notification event. Its contract covers the payload and,
+        when rules can produce it, the rule configuration.
     BillingNotificationEventV1Address:
       type: object
       properties:
@@ -20730,8 +20870,11 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
-        `entitlements.balance.threshold` Event type.
+        A metered entitlement's balance crossed one of the thresholds configured on the
+        Rule. The payload carries the entitlement, its feature, subject, customer and
+        value, and the threshold that was crossed.
+
+        Legacy name: `entitlements.balance.threshold`.
     EntitlementFeatureAccess:
       type: object
       required:
@@ -20860,8 +21003,10 @@ components:
           readOnly: true
       additionalProperties: false
       description: |-
-        Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
-        Event type.
+        A metered entitlement's usage period was reset. The payload carries the
+        entitlement, its feature, subject, customer and value.
+
+        Legacy name: `entitlements.reset`.
     ExternalResourceKey:
       type: string
       minLength: 1
@@ -21707,6 +21852,13 @@ components:
           $ref: '#/components/schemas/DateTimeFieldFilter'
       additionalProperties: false
       description: Filter options for listing notification channels.
+    ListNotificationEventTypesParamsFilter:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/StringFieldFilter'
+      additionalProperties: false
+      description: Filter options for listing notification event types.
     ListNotificationEventsParamsFilter:
       type: object
       properties:
@@ -22272,6 +22424,20 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
+    NotificationEventTypeSummaryPaginatedResponse:
+      type: object
+      required:
+        - data
+        - meta
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillingNotificationEventTypeSummary'
+        meta:
+          $ref: '#/components/schemas/CursorMeta'
+      additionalProperties: false
+      description: Cursor paginated response.
     NotificationRulePagePaginatedResponse:
       type: object
       required:

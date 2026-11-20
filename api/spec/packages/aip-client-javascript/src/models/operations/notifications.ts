@@ -5,13 +5,17 @@ import * as schemas from '../schemas.js'
 import type { AcceptDateStrings } from '../../lib/wire.js'
 import type {
   CreateNotificationChannelRequestInput,
+  CursorPaginationQueryPage,
   ListNotificationChannelsParamsFilter,
+  ListNotificationEventTypesParamsFilter,
   ListNotificationEventsParamsFilter,
   ListNotificationRulesParamsFilter,
   NotificationChannel,
   NotificationChannelPagePaginatedResponse,
   NotificationEvent,
   NotificationEventPagePaginatedResponse,
+  NotificationEventTypeDefinition,
+  NotificationEventTypeSummaryPaginatedResponse,
   NotificationRule,
   NotificationRulePagePaginatedResponse,
   NotificationRuleRequestInput,
@@ -170,3 +174,28 @@ export type ResendBillingNotificationEventRequest = AcceptDateStrings<{
   body: ResendBillingNotificationEventRequestBody
 }>
 export type ResendBillingNotificationEventResponse = void
+
+export interface ListBillingNotificationEventTypesQuery {
+  page?: CursorPaginationQueryPage
+  /**
+   * Filter notification event types returned in the response. Event types are
+   * ordered by version, then name.
+   *
+   * Examples:
+   *
+   * - `filter[type]=v1.billing.invoice.created`
+   * - `filter[type][contains]=entitlement`
+   */
+  filter?: ListNotificationEventTypesParamsFilter
+}
+
+export type ListBillingNotificationEventTypesRequest =
+  AcceptDateStrings<ListBillingNotificationEventTypesQuery>
+export type ListBillingNotificationEventTypesResponse =
+  NotificationEventTypeSummaryPaginatedResponse
+
+export type GetBillingNotificationEventTypeRequest = {
+  notificationEventType: string
+}
+export type GetBillingNotificationEventTypeResponse =
+  NotificationEventTypeDefinition
