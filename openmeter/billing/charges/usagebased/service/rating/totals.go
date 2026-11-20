@@ -66,23 +66,59 @@ func (s *service) GetTotalsForUsage(ctx context.Context, in GetTotalsForUsageInp
 		return GetTotalsForUsageResult{}, fmt.Errorf("get snapshot quantity: %w", err)
 	}
 
+	intent := usagebased.RateableIntent{
+		Intent:        in.Charge.Intent.GetEffectiveIntent(),
+		MeterValue:    snapshotQuantity,
+		ServicePeriod: in.Charge.Intent.GetEffectiveServicePeriod(),
+	}
+
+	// Always query the complete quantity first, including late usage and
+	// corrections. Only the pure rating step can be reused.
+	reuse, _ := ctx.Value(totalsReuseContextKey{}).(totalsReuseContext)
+	var reuseInputs string
+	var reusable bool
+	reuseKey := totalsReuseChargeKey{service: s, charge: in.Charge.GetChargeID()}
+	if reuse.reuse != nil {
+		reuseInputs, reusable = totalsReuseInputs(intent, in.IgnoreMinimumCommitment)
+		var previous totalsReuseEntry
+		var hit bool
+		if reusable {
+			var found bool
+			previous, found = reuse.reuse.entries.Get(reuseKey)
+			hit = found && previous.inputs == reuseInputs
+		}
+
+		if reuse.onLookup != nil {
+			reuse.onLookup(ctx, hit)
+		}
+
+		if hit {
+			return previous.result, nil
+		}
+	}
+
 	var opts []billingrating.GenerateDetailedLinesOption
 	if in.IgnoreMinimumCommitment {
 		opts = append(opts, billingrating.WithMinimumCommitmentIgnored())
 	}
 
-	ratingResult, err := s.ratingService.GenerateDetailedLines(usagebased.RateableIntent{
-		Intent:        in.Charge.Intent.GetEffectiveIntent(),
-		MeterValue:    snapshotQuantity,
-		ServicePeriod: in.Charge.Intent.GetEffectiveServicePeriod(),
-	}, opts...)
+	ratingResult, err := s.ratingService.GenerateDetailedLines(intent, opts...)
 	recorder := billing.ValidationIssueRecorder{}
 	if err := recorder.Record(err); err != nil {
 		return GetTotalsForUsageResult{}, fmt.Errorf("rating totals: %w", err)
 	}
 
-	return GetTotalsForUsageResult{
+	result := GetTotalsForUsageResult{
 		Totals:          ratingResult.Totals,
 		MeteredQuantity: snapshotQuantity,
-	}, recorder.ErrorsOrNil()
+	}
+	if err := recorder.ErrorsOrNil(); err != nil {
+		return result, err
+	}
+
+	if reusable {
+		reuse.reuse.entries.Add(reuseKey, totalsReuseEntry{inputs: reuseInputs, result: result})
+	}
+
+	return result, nil
 }
