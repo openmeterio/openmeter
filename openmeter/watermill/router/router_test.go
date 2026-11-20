@@ -9,7 +9,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
+
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -280,50 +280,97 @@ func TestDefaultRouter(t *testing.T) {
 	}
 }
 
-func TestDefaultRouterCloseDuringDelivery(t *testing.T) {
-	// Given a handler still processing a message when the router shuts down.
-	pubsub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NopLogger{})
-	t.Cleanup(func() { assert.NoError(t, pubsub.Close()) })
+// Pause at the final failure log so the test can shut the router down after
+// retries and before the poison queue takes over.
+type pauseOnFailureLog struct {
+	slog.Handler
+	started chan struct{}
+}
 
-	router, err := NewDefaultRouter(Options{
-		Subscriber:  pubsub,
-		Publisher:   pubsub,
-		Logger:      slog.New(slog.DiscardHandler),
-		MetricMeter: sdkmetric.NewMeterProvider().Meter("router_test"),
-		Tracer:      sdktrace.NewTracerProvider().Tracer("router_test"),
-		Config: config.ConsumerConfiguration{
-			ConsumerGroupName: "test-group",
-			Retry:             config.RetryConfiguration{InitialInterval: time.Millisecond, MaxInterval: time.Millisecond},
-			DLQ:               config.DLQConfiguration{Enabled: true, Topic: "test-dlq"},
-		},
-	})
-	require.NoError(t, err)
+func (l pauseOnFailureLog) Enabled(context.Context, slog.Level) bool { return true }
 
-	started := make(chan *message.Message, 1)
-	router.AddConsumerHandler("blocking", "input", pubsub, func(msg *message.Message) error {
-		started <- msg
-		<-msg.Context().Done()
-
-		return errors.New("interrupted during processing")
-	})
-
-	done := make(chan error, 1)
-	go func() { done <- router.Run(t.Context()) }()
-	<-router.Running()
-
-	require.NoError(t, pubsub.Publish("input", message.NewMessage(watermill.NewUUID(), nil)))
-	delivery := <-started
-
-	// When Close cancels the delivery, the failing handler must be able to return.
-	require.NoError(t, router.Close())
-	require.NoError(t, <-done)
-
-	// Then the broker can redeliver. No DLQ publish was attempted.
-	select {
-	case <-delivery.Nacked():
-	default:
-		t.Fatal("interrupted delivery was not nacked")
+func (l pauseOnFailureLog) Handle(ctx context.Context, r slog.Record) error {
+	if r.Message == "Failed to process message after retries" {
+		close(l.started)
+		<-ctx.Done()
 	}
 
-	require.NotContains(t, delivery.Metadata, middleware.ReasonForPoisonedKey)
+	return nil
+}
+
+type countingDLQPublisher struct {
+	message.Publisher
+	calls int
+}
+
+func (p *countingDLQPublisher) Publish(topic string, messages ...*message.Message) error {
+	p.calls++
+	return p.Publisher.Publish(topic, messages...)
+}
+
+func TestDefaultRouterCloseDuringDelivery(t *testing.T) {
+	for _, phase := range []string{"handler", "final telemetry"} {
+		t.Run(phase, func(t *testing.T) {
+			// Given a delivery that fails while the router is shutting down.
+			pubsub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NopLogger{})
+			t.Cleanup(func() { assert.NoError(t, pubsub.Close()) })
+			dlq := &countingDLQPublisher{Publisher: pubsub}
+			var logger slog.Handler = slog.DiscardHandler
+			inTelemetry := make(chan struct{})
+			if phase == "final telemetry" {
+				logger = pauseOnFailureLog{Handler: slog.DiscardHandler, started: inTelemetry}
+			}
+
+			router, err := NewDefaultRouter(Options{
+				Subscriber:  pubsub,
+				Publisher:   dlq,
+				Logger:      slog.New(logger),
+				MetricMeter: sdkmetric.NewMeterProvider().Meter("router_test"),
+				Tracer:      sdktrace.NewTracerProvider().Tracer("router_test"),
+				Config: config.ConsumerConfiguration{
+					ConsumerGroupName: "test-group",
+					Retry:             config.RetryConfiguration{InitialInterval: time.Millisecond, MaxInterval: time.Millisecond},
+					DLQ:               config.DLQConfiguration{Enabled: true, Topic: "test-dlq"},
+				},
+			})
+			require.NoError(t, err)
+
+			started := make(chan *message.Message, 1)
+			router.AddConsumerHandler("blocking", "input", pubsub, func(msg *message.Message) error {
+				started <- msg
+				if phase == "handler" {
+					<-msg.Context().Done()
+				}
+
+				return errors.New("handler failed")
+			})
+
+			done := make(chan error, 1)
+			go func() { done <- router.Run(t.Context()) }()
+			<-router.Running()
+			require.NoError(t, pubsub.Publish("input", message.NewMessage(watermill.NewUUID(), nil)))
+			delivery := <-started
+
+			// When shutdown interrupts this phase of the delivery.
+			if phase == "final telemetry" {
+				select {
+				case <-inTelemetry:
+				case <-time.After(5 * time.Second):
+					t.Fatal("router did not reach final failure telemetry")
+				}
+			}
+
+			require.NoError(t, router.Close())
+			require.NoError(t, <-done)
+
+			// Then the broker can redeliver the message and the DLQ received no send.
+			select {
+			case <-delivery.Nacked():
+			default:
+				t.Fatal("interrupted delivery was not nacked")
+			}
+
+			require.Zero(t, dlq.calls)
+		})
+	}
 }

@@ -26,6 +26,23 @@ type Options struct {
 	Config config.ConsumerConfiguration
 }
 
+// The telemetry and timeout middleware restore the broker delivery context before
+// the poison queue runs. Check it at the send boundary because a publisher can
+// still send on a canceled context.
+type dlqPublisher struct {
+	message.Publisher
+}
+
+func (p dlqPublisher) Publish(topic string, messages ...*message.Message) error {
+	for _, msg := range messages {
+		if err := msg.Context().Err(); err != nil {
+			return err
+		}
+	}
+
+	return p.Publisher.Publish(topic, messages...)
+}
+
 func (o *Options) Validate() error {
 	if o.Subscriber == nil {
 		return errors.New("subscriber is required")
@@ -69,7 +86,7 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 	if opts.Config.DLQ.Enabled {
 		// The outermost middleware sees the final error after retries and panic recovery.
 		poisonQueue, err := middleware.PoisonQueueWithFilter(
-			opts.Publisher,
+			dlqPublisher{opts.Publisher},
 			opts.Config.DLQ.Topic,
 			func(err error) bool { return !errors.Is(err, errDeliveryCanceled) },
 		)
