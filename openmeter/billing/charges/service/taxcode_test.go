@@ -1700,10 +1700,9 @@ func (s *TaxCodePersistenceTestSuite) TestCreateChargeWithDuplicateReferenceIsCo
 	s.True(models.IsGenericConflictError(err), "a duplicate charge reference must be a conflict error, got: %v", err)
 }
 
-// TestCreateCustomerChargeWithDeletedTaxCode covers the customer-charge API facade: the caller
-// authors the tax config it sends, so a deleted Tax Code ID is rejected with the shared
-// deleted-specific validation error (400-class), while a missing ID stays a plain not-found
-// rejection.
+// TestCreateCustomerChargeWithDeletedTaxCode covers the customer-charge API facade: a deleted
+// Tax Code ID in the request is rejected with the shared deleted-specific validation error
+// (400-class), while a missing ID stays a plain not-found rejection.
 func (s *TaxCodePersistenceTestSuite) TestCreateCustomerChargeWithDeletedTaxCode() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("customer-charge-deleted-tax-code")
@@ -1781,8 +1780,6 @@ func (s *TaxCodePersistenceTestSuite) TestCreateCustomerChargeWithDeletedTaxCode
 	})
 }
 
-// newCustomerChargeFlatFeeInput builds the flat-fee part of a CreateCustomerChargeInput over
-// the given service period.
 func (s *TaxCodePersistenceTestSuite) newCustomerChargeFlatFeeInput(servicePeriod timeutil.ClosedPeriod) *charges.CreateCustomerChargeFlatFeeInput {
 	return &charges.CreateCustomerChargeFlatFeeInput{
 		IntentMutableFields: flatfee.IntentMutableFields{

@@ -36,7 +36,7 @@ type service struct {
 	recognizerService     recognizer.Service
 	taxCodeService        taxcode.Service
 	// taxCodeResolver looks Tax Codes up by ID including soft-deleted ones, so the
-	// authored-reference check can name deleted codes with the shared billing error.
+	// request check can tell a deleted Tax Code from a missing one.
 	taxCodeResolver  productcatalog.TaxCodeResolver
 	currencyResolver currencies.CurrencyResolver
 
@@ -63,7 +63,7 @@ type Config struct {
 	BillingService billing.Service
 
 	TaxCodeService taxcode.Service
-	// TaxCodeResolver is the by-ID lookup the authored-tax-code check uses.
+	// TaxCodeResolver looks Tax Codes up by ID, soft-deleted ones included.
 	TaxCodeResolver  productcatalog.TaxCodeResolver
 	CurrencyResolver currencies.CurrencyResolver
 

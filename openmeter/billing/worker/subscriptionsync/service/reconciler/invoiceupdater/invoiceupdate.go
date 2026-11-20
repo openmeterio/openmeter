@@ -334,8 +334,8 @@ func (u *Updater) provisionUpcomingLines(ctx context.Context, customerID custome
 					BypassFeatureMeterValidation: true,
 				}
 			}),
-			// Sync re-creates lines from stored subscription items, whose tax code
-			// references may point at a Tax Code deleted since.
+			// Lines are re-created from stored subscription items, whose Tax Code may have
+			// been deleted since.
 			ChangeSource: billing.ChangeSourceSystem,
 		})
 		if err != nil {

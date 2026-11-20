@@ -89,8 +89,8 @@ func TestValidateTaxCodeID(t *testing.T) {
 	})
 }
 
-// An empty ID is a reference with no Tax Code: it is skipped, never reported as not found, even
-// when it is validated together with real IDs.
+// An empty ID means no Tax Code: it is skipped, never reported as not found, even when validated
+// together with real IDs.
 func TestValidateRequestTaxCodeIDsSkipsEmptyIDs(t *testing.T) {
 	const (
 		namespace = "ns"

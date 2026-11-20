@@ -319,7 +319,7 @@ func (s *BaseSuite) SetupSuite() {
 
 		BillingService: s.BillingService,
 		TaxCodeService: s.TaxCodeEnv.Service,
-		// Same by-ID resolver production wires; needed by the authored tax code check.
+		// Same by-ID resolver production wires; the request Tax Code check needs it.
 		TaxCodeResolver:     s.TaxCodeResolver,
 		CurrencyResolver:    currencyResolver,
 		CustomerService:     s.CustomerService,

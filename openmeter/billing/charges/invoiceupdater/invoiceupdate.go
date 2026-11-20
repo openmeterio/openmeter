@@ -329,8 +329,8 @@ func (u *updater) provisionUpcomingLines(ctx context.Context, customerID custome
 			Customer: customerID,
 			Currency: currency,
 			Lines:    billing.NewCreatePendingInvoiceLines(lines),
-			// Sync re-creates lines from stored charges, whose tax code references
-			// may point at a Tax Code deleted since.
+			// Lines are re-created from stored charges, whose Tax Code may have been
+			// deleted since.
 			ChangeSource: billing.ChangeSourceSystem,
 		})
 		if err != nil {

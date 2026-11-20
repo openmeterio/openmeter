@@ -650,8 +650,8 @@ func (s *CreditGrantTestSuite) TestCreateInvoiceFundedGrantNilTaxConfigAppliesCr
 }
 
 // TestCreateGrantWithDeletedTaxCodeIsRejected verifies the credit grant create path rejects a
-// caller-authored Tax Code ID referencing a soft-deleted Tax Code with the shared billing
-// deleted-specific validation error, before any defaults are applied.
+// soft-deleted Tax Code ID sent by the caller with the shared billing deleted-specific
+// validation error, before any defaults are applied.
 func (s *CreditGrantTestSuite) TestCreateGrantWithDeletedTaxCodeIsRejected() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("creditgrant-deleted-tax-code")

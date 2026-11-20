@@ -182,10 +182,9 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 
 	defaultTaxCodeResolvers := s.defaultTaxCodeResolversForInvoiceUpdate(after)
 	if source == billing.ChangeSourceAPIRequest {
-		// Both sides are sanitized with deleted codes allowed: the diff must compare the
-		// persisted and requested states in the same resolved representation, and an edit
-		// that leaves a line's Tax Code untouched is allowed to keep referencing a deleted
-		// one. Newly authored deleted references are rejected below.
+		// Sanitize both sides with deleted codes allowed so the diff compares the same
+		// resolved representation, and an edit that leaves a line's Tax Code untouched can
+		// keep a deleted one. Deleted codes the edit newly sets are rejected below.
 		var err error
 		before, err = s.invoiceWithSanitizedTaxConfigForDiff(
 			ctx,
@@ -207,8 +206,7 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 			return mutableInvoiceLineDiff{}, fmt.Errorf("sanitizing expected invoice line tax configs for diff: %w", err)
 		}
 
-		// after keeps its sanitized lines below; the deleted-ID check runs against the
-		// same normalized state the diff compares.
+		// Check against the same sanitized state the diff compares.
 		if err := s.validateChangedLineTaxCodes(ctx, before, after); err != nil {
 			return mutableInvoiceLineDiff{}, err
 		}
@@ -334,8 +332,8 @@ func (s *Service) sanitizeTaxConfigForDiff(
 	}
 
 	if sanitized.TaxCodeID == nil && (sanitized.Stripe == nil || sanitized.Stripe.Code == "") {
-		// A new API line without tax identity gets the provider default, which counts as
-		// authored by the edit; fine, because the provider default cannot be deleted today.
+		// A new API line without tax identity gets the provider default. It is not checked
+		// for deletion, which is fine because the provider default cannot be deleted today.
 		providerDefaultTaxCode, err := s.taxCodeService.GetTaxCodeByKey(ctx, taxcode.GetTaxCodeByKeyInput{
 			Namespace: namespace,
 			Key:       taxcode.ProviderDefaultTaxCodeKey,
@@ -376,19 +374,16 @@ func validateTaxConfigTaxCodeIDResolvedForDiff(taxConfig *billing.TaxConfig) err
 	}
 }
 
-// validateChangedLineTaxCodes checks the lines of an API edit whose Tax Code ID is new or differs
-// from the stored invoice, and rejects the edit if one points at a deleted (or missing) Tax Code.
-// Lines that keep their stored Tax Code ID, or that the edit leaves alone, are not checked: that
-// reference is inherited and may point at a code deleted since. Both invoice states were
-// sanitized with deleted codes included, so the comparison is on the resolved TaxCodeID.
+// validateChangedLineTaxCodes rejects an API edit that sets a line's Tax Code ID to a deleted (or
+// missing) Tax Code. Lines that keep their stored Tax Code ID are not checked: it may point at a
+// code deleted since. Both states are already sanitized, so IDs are compared as resolved.
 func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after billing.GenericInvoiceReader) error {
 	afterLines := after.GetGenericLines().OrEmpty()
 	beforeByLineID := lo.KeyBy(before.GetGenericLines().OrEmpty(), func(line billing.GenericInvoiceLine) string {
 		return line.GetID()
 	})
 
-	// Collect the distinct changed Tax Code IDs, so they are checked with one batch lookup and
-	// a deleted code is named by ID in the issue.
+	// Distinct changed IDs, resolved in one batch.
 	changedTaxCodeIDs := make(map[string]string) // tax code ID -> first line ID referencing it
 	for _, afterLine := range afterLines {
 		taxCodeID := taxCodeIDFromTaxConfig(afterLine.GetTaxConfig())
@@ -411,8 +406,8 @@ func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after
 		return nil
 	}
 
-	// The sanitizer already rejects IDs the namespace cannot resolve, so the batched
-	// check here only ever fires its deleted classification.
+	// The sanitizer already rejects IDs the namespace cannot resolve, so only the
+	// deleted case can fail here.
 	refs := make([]billing.RequestTaxCodeRef, 0, len(changedTaxCodeIDs))
 	for taxCodeID, lineID := range changedTaxCodeIDs {
 		refs = append(refs, billing.RequestTaxCodeRef{
@@ -432,8 +427,8 @@ func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after
 	return nil
 }
 
-// taxCodeIDFromTaxConfig reads the resolved Tax Code ID the edit diff compares on. Nil and
-// empty mean "no tax code", which the sanitizer already normalized on both sides.
+// taxCodeIDFromTaxConfig returns "" for no Tax Code; the sanitizer already normalized nil and
+// empty IDs the same way on both sides.
 func taxCodeIDFromTaxConfig(taxConfig *billing.TaxConfig) string {
 	if taxConfig == nil || taxConfig.TaxCodeID == nil {
 		return ""

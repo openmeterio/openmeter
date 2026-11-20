@@ -26,10 +26,9 @@ type resolveTaxCodesInput struct {
 // in the legacy line shape, the Tax Codes referenced by ID, and the Tax Codes of the Stripe codes
 // lines reference without an ID, keyed by Stripe code.
 //
-// Everything referenced by ID — the inherited default and any line's own TaxCodeID — is loaded in
-// one batch, deleted included: these references were validated when they were authored, and
-// re-resolving them by Stripe mapping could create or pick another Tax Code. Only lines that
-// identify their tax code purely by Stripe code keep the by-mapping lookup.
+// Everything referenced by ID — the invoice default and any line's own TaxCodeID — is loaded in
+// one batch, deleted included: re-resolving those by Stripe mapping could create or pick another
+// Tax Code. Only lines that identify their tax code purely by Stripe code use the by-mapping lookup.
 func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.StandardInvoiceCalculatorDependencies, error) {
 	namespace := in.Namespace
 	invoice := in.Invoice
@@ -98,10 +97,8 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 	if len(taxCodeIDs) > 0 {
 		deps.TaxCodesByID = make(productcatalog.TaxCodesByID, len(taxCodeIDs))
 		for id := range taxCodeIDs {
-			// A line ID missing from the result keeps the ID with no TaxCode attached: the
-			// read side applies the same rule, and a missing row here means the reference
-			// cannot be resolved (outside the namespace or gone), not that calculation
-			// should fail for inherited history.
+			// An ID missing from the result keeps the ID with no TaxCode attached, same as on
+			// read. Calculation must not fail over a stored reference that no longer resolves.
 			deps.TaxCodesByID[id] = taxCodesByID[id]
 		}
 	}

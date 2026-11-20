@@ -312,7 +312,7 @@ func (s *ReconciliationTestSuite) createSubscriptionForReconciliation(in reconci
 
 // createTaxedSubscriptionForReconciliation creates a subscription whose only rate card carries a
 // Tax Code by ID, without an initial sync. The caller deletes the Tax Code before syncing so the
-// created lines and charges inherit the deleted reference.
+// created lines and charges copy the deleted reference.
 func (s *ReconciliationTestSuite) createTaxedSubscriptionForReconciliation(taxCodeID string) subscription.SubscriptionView {
 	s.T().Helper()
 	ctx := s.T().Context()
@@ -387,8 +387,8 @@ func (s *ReconciliationTestSuite) createTaxedSubscriptionForReconciliation(taxCo
 
 // TestSyncKeepsDeletedTaxCodeOnLinesAndCharges verifies that a subscription sync after the
 // subscription item's Tax Code was soft-deleted still provisions invoice lines (and, in the
-// charges mode, charges) referencing the deleted Tax Code ID: the sync's references are
-// inherited, not authored by this request.
+// charges mode, charges) referencing the deleted Tax Code ID: sync copies the reference from
+// stored data and must not reject it.
 func (s *ReconciliationTestSuite) TestSyncKeepsDeletedTaxCodeOnLinesAndCharges() {
 	ctx := s.T().Context()
 	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
