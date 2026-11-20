@@ -6,6 +6,11 @@ in only the system-events topic. Savepoints share the outer transaction ID;
 rollbacks discard their events. `Publish` means stored, not delivered to Kafka.
 Other topics still publish directly.
 
+Message metadata is stored with the row and published unchanged. The event bus
+puts the trace context of the publishing span into that metadata, so a consumer
+continues the trace of the operation that enqueued the event, not of the drain
+worker.
+
 ## Delivery and ordering
 
 After commit, workers drain the shared queue. They also retry periodically

@@ -8,10 +8,15 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
+	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -104,4 +109,53 @@ func TestCustomerLifecycleThroughEventBus(t *testing.T) {
 			eventuallyRowCount(t, client, 0)
 		})
 	}
+}
+
+type tracedEvent struct{}
+
+func (tracedEvent) EventName() string {
+	return "io.openmeter.test.v1.traced"
+}
+
+func (tracedEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{Source: "//openmeter.io/test"}
+}
+
+func (tracedEvent) Validate() error {
+	return nil
+}
+
+func TestEventBusKeepsTraceContextThroughOutbox(t *testing.T) {
+	previousPropagator := otel.GetTextMapPropagator()
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	t.Cleanup(func() { otel.SetTextMapPropagator(previousPropagator) })
+
+	// Given an event bus that publishes through the outbox.
+	raw := newRecordingPublisher()
+	publisher, client := newTestPublisher(t, raw)
+	bus, err := eventbus.New(eventbus.Options{
+		Publisher: publisher,
+		TopicMapping: eventbus.TopicMapping{
+			SystemEventsTopic: testTopic, IngestEventsTopic: "ingest", BalanceWorkerEventsTopic: "balance",
+		},
+		Logger: testutils.NewDiscardLogger(t),
+	})
+	require.NoError(t, err)
+
+	// When an event is published inside a span and a transaction.
+	ctx, span := sdktrace.NewTracerProvider().Tracer("outbox_test").Start(t.Context(), "request")
+	require.NoError(t, transaction.RunWithNoValue(ctx, enttx.NewCreator(client), func(ctx context.Context) error {
+		return bus.Publish(ctx, tracedEvent{})
+	}))
+	span.End()
+
+	// Then the message drained to the broker still carries the span's trace context.
+	attempt := nextAttempt(t, raw)
+	delivered := trace.SpanContextFromContext(
+		otel.GetTextMapPropagator().Extract(t.Context(), propagation.MapCarrier(attempt.metadata)),
+	)
+	require.Equal(t, span.SpanContext().TraceID(), delivered.TraceID())
+	require.Equal(t, span.SpanContext().SpanID(), delivered.SpanID())
+
+	eventuallyRowCount(t, client, 0)
 }
