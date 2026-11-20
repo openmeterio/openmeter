@@ -340,6 +340,115 @@ describe('paginateCursor (cursor pagination)', () => {
     }
   })
 
+  // Records each page request and serves pages keyed by the cursor it carries.
+  function cursorPages(
+    pages: Record<string, { ids: string[]; next?: string; previous?: string }>,
+  ) {
+    const requests: { page?: { after?: string; before?: string } }[] = []
+    const fetchPage = async (req: {
+      page?: { after?: string; before?: string; size?: number }
+    }): Promise<
+      Result<{
+        data: string[]
+        meta: { page: { next: string | null; previous: string | null } }
+      }>
+    > => {
+      requests.push(req)
+      const key = req.page?.after ?? req.page?.before ?? ''
+      const page = pages[key]!
+      return {
+        ok: true,
+        value: {
+          data: page.ids,
+          meta: {
+            page: { next: page.next ?? null, previous: page.previous ?? null },
+          },
+        },
+      }
+    }
+    return { requests, fetchPage }
+  }
+
+  it('walks backward through meta.page.previous when the request starts with page.before', async () => {
+    const { requests, fetchPage } = cursorPages({
+      'cursor-7': { ids: ['5', '6'], next: 'cursor-6', previous: 'cursor-5' },
+      'cursor-5': { ids: ['3', '4'], next: 'cursor-4', previous: 'cursor-3' },
+      'cursor-3': { ids: ['1', '2'], next: 'cursor-2' },
+    })
+
+    const ids: string[] = []
+    for await (const id of paginateCursor(fetchPage, {
+      page: { before: 'cursor-7', size: 2 },
+    })) {
+      ids.push(id)
+    }
+
+    expect(ids).toEqual(['5', '6', '3', '4', '1', '2'])
+    expect(requests.map((r) => r.page)).toEqual([
+      { before: 'cursor-7', size: 2 },
+      { before: 'cursor-5', size: 2 },
+      { before: 'cursor-3', size: 2 },
+    ])
+  })
+
+  it('never sends page.after and page.before together', async () => {
+    const forward = cursorPages({
+      'cursor-1': { ids: ['2'], next: 'cursor-2', previous: 'cursor-0' },
+      'cursor-2': { ids: ['3'], previous: 'cursor-1' },
+    })
+    for await (const _ of paginateCursor(forward.fetchPage, {
+      page: { after: 'cursor-1' },
+    })) {
+      // drain
+    }
+
+    const backward = cursorPages({
+      'cursor-3': { ids: ['2'], next: 'cursor-2', previous: 'cursor-1' },
+      'cursor-1': { ids: ['1'], next: 'cursor-0' },
+    })
+    for await (const _ of paginateCursor(backward.fetchPage, {
+      page: { before: 'cursor-3' },
+    })) {
+      // drain
+    }
+
+    for (const req of [...forward.requests, ...backward.requests]) {
+      expect(
+        req.page?.after !== undefined && req.page?.before !== undefined,
+      ).toBe(false)
+    }
+    expect(forward.requests).toHaveLength(2)
+    expect(backward.requests).toHaveLength(2)
+  })
+
+  it('throws before fetching when the request carries both page.after and page.before', async () => {
+    const { requests, fetchPage } = cursorPages({})
+
+    await expect(async () => {
+      for await (const _ of paginateCursor(fetchPage, {
+        page: { after: 'cursor-1', before: 'cursor-3' },
+      })) {
+        // drain
+      }
+    }).rejects.toThrow('cannot use both page.after and page.before')
+    expect(requests).toHaveLength(0)
+  })
+
+  it('stops on an empty page even when the server returns a cursor', async () => {
+    const { requests, fetchPage } = cursorPages({
+      '': { ids: ['1'], next: 'cursor-1' },
+      'cursor-1': { ids: [], next: 'cursor-2' },
+    })
+
+    const ids: string[] = []
+    for await (const id of paginateCursor(fetchPage, {})) {
+      ids.push(id)
+    }
+
+    expect(ids).toEqual(['1'])
+    expect(requests).toHaveLength(2)
+  })
+
   it('throws PaginationLimitExceededError instead of looping forever on a server that never stops returning a next cursor', async () => {
     let calls = 0
     const fetchPage = async (): Promise<

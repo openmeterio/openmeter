@@ -62,7 +62,7 @@ export async function* paginatePages<TItem, TReq extends PageNumberRequest>(
 
 interface CursorEnvelope<TItem> {
   data: TItem[]
-  meta: { page: { next: string | null } }
+  meta: { page: { next: string | null; previous?: string | null } }
 }
 
 interface CursorRequest {
@@ -70,12 +70,17 @@ interface CursorRequest {
 }
 
 /**
- * Iterates every item of a cursor-paginated list operation, following
- * `meta.page.next` until the server stops returning one. Despite carrying a
- * `format: uri` annotation in the spec, `next` is the opaque cursor token the
- * API expects back verbatim in `page.after` on the following request — not a
- * URI to fetch directly. Every other field on `request` is sent unchanged on
- * every page fetch; only `page.after` advances.
+ * Iterates every item of a cursor-paginated list operation. Despite carrying a
+ * `format: uri` annotation in the spec, `next` and `previous` are the opaque
+ * cursor tokens the API expects back verbatim in `page.after` or
+ * `page.before` on the following request — not URIs to fetch directly.
+ *
+ * The caller's request picks the direction. With `page.before`, the walk goes
+ * backward: it follows `meta.page.previous` through `page.before`, so it never
+ * returns items past the caller's bound. Otherwise it follows `meta.page.next`
+ * through `page.after`. A page request never carries both cursors, which the
+ * API rejects; a request that starts with both throws before any fetch. Every
+ * other field on `request` is sent unchanged on every page fetch.
  */
 export async function* paginateCursor<TItem, TReq extends CursorRequest>(
   fetchPage: (
@@ -85,15 +90,26 @@ export async function* paginateCursor<TItem, TReq extends CursorRequest>(
   request: TReq,
   options?: RequestOptions,
 ): AsyncGenerator<TItem, void, undefined> {
+  if (request.page?.after !== undefined && request.page?.before !== undefined) {
+    throw new Error(
+      'cursor pagination cannot use both page.after and page.before',
+    )
+  }
+  const backward = request.page?.before !== undefined
   let req = request
   for (let page = 0; page < MAX_PAGINATION_PAGES; page++) {
     const res = unwrap(await fetchPage(req, options))
     yield* res.data
-    const next = res.meta.page.next
-    if (!next) {
+    const cursor = backward ? res.meta.page.previous : res.meta.page.next
+    if (!cursor || res.data.length === 0) {
       return
     }
-    req = { ...req, page: { ...req.page, after: next } } as TReq
+    req = {
+      ...req,
+      page: backward
+        ? { ...req.page, before: cursor }
+        : { ...req.page, after: cursor },
+    } as TReq
   }
   throw new PaginationLimitExceededError(MAX_PAGINATION_PAGES)
 }
