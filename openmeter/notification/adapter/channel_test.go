@@ -1483,7 +1483,7 @@ func TestChannelTypeNormalizationMigration(t *testing.T) {
 			// when: applying the actual migration SQL, including repeated runs and rollback
 			migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
 				migrate.OMMigrationsConfig.FSPath,
-				"20261118213749_notification_channel_type_normalization."+step.direction+".sql",
+				"20261119151700_notification_channel_type_normalization."+step.direction+".sql",
 			))
 			require.NoError(t, err)
 
@@ -1540,7 +1540,7 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 	for _, direction := range []string{"up", "down"} {
 		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
 			migrate.OMMigrationsConfig.FSPath,
-			"20261118215856_notification_channel_config_normalization."+direction+".sql",
+			"20261119151800_notification_channel_config_normalization."+direction+".sql",
 		))
 		require.NoError(t, err)
 
@@ -1932,8 +1932,8 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 				assert.Contains(t, err.Error(), "Repair this row's config")
 				assert.Contains(t, err.Error(), "customHeaders/signingSecret inside data")
 				assert.Contains(t, err.Error(), "flat config with url and optional custom_headers/signing_secret")
-				assert.Contains(t, err.Error(), "If schema_om shows version 20261118215856 as dirty")
-				assert.Contains(t, err.Error(), "force 20261118213749 (the previous successful version), then rerun the migration")
+				assert.Contains(t, err.Error(), "If schema_om shows version 20261119151800 as dirty")
+				assert.Contains(t, err.Error(), "force 20261119151700 (the previous successful version), then rerun the migration")
 				assert.NotContains(t, err.Error(), tc.config)
 				assert.NotContains(t, err.Error(), "must-stay-private")
 
