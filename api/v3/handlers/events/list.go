@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/meterevent"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -40,37 +41,24 @@ func (h *handler) ListMeteringEvents() ListMeteringEventsHandler {
 				Namespace: ns,
 			}
 
-			pageSize := defaultListMeteringEventsPageSize
-			if params.Page != nil {
-				if params.Page.Before != nil {
-					return ListMeteringEventsRequest{}, apierrors.NewBadRequestError(ctx, errors.New("page[before] is not supported"), apierrors.InvalidParameters{
-						{
-							Field:  "page[before]",
-							Reason: "backward pagination is not supported",
-							Source: apierrors.InvalidParamSourceQuery,
-						},
-					})
-				}
-
-				if params.Page.After != nil {
-					cursor, err := pagination.DecodeCursor(*params.Page.After)
-					if err != nil {
-						return ListMeteringEventsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-							{
-								Field:  "page[after]",
-								Reason: err.Error(),
-								Source: apierrors.InvalidParamSourceQuery,
-							},
-						})
-					}
-
-					req.Cursor = cursor
-				}
-
-				if params.Page.Size != nil {
-					pageSize = *params.Page.Size
-				}
+			page, err := request.ParseCursorPage(ctx, (*apiv3models.CursorPaginationQueryPage)(params.Page), defaultListMeteringEventsPageSize, pagination.DecodeCursor)
+			if err != nil {
+				return ListMeteringEventsRequest{}, err
 			}
+
+			// The events adapter only pages forward.
+			if page.Before != nil {
+				return ListMeteringEventsRequest{}, apierrors.NewBadRequestError(ctx, errors.New("page[before] is not supported"), apierrors.InvalidParameters{
+					{
+						Field:  "page[before]",
+						Reason: "backward pagination is not supported",
+						Source: apierrors.InvalidParamSourceQuery,
+					},
+				})
+			}
+
+			req.Cursor = page.After
+			pageSize := page.Size
 
 			if pageSize < 1 || pageSize > meterevent.MaximumLimit {
 				return ListMeteringEventsRequest{}, apierrors.NewBadRequestError(ctx, fmt.Errorf("page[size] must be between 1 and %d", meterevent.MaximumLimit), apierrors.InvalidParameters{
