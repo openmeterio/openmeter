@@ -199,7 +199,8 @@ func (s *CustomerChargeAPIListTestSuite) TestListCustomerChargesRealtimeUsage() 
 	var wantPeriods []timeutil.ClosedPeriod
 	for _, fixture := range fixtures {
 		created, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: namespace,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    namespace,
 			Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
 				currency:          USD,

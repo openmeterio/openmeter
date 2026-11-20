@@ -419,8 +419,8 @@ func (s *ReconciliationTestSuite) TestSyncKeepsDeletedTaxCodeOnLinesAndCharges()
 	// and: in the charges mode the charge carries the deleted Tax Code ID too
 	if s.UseCharges {
 		chargeList, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
-			Namespace:       s.Namespace,
-			SubscriptionIDs: []string{view.Subscription.NamespacedID.ID},
+			Namespace:      s.Namespace,
+			SubscriptionID: filter.NewULIDIn(view.Subscription.NamespacedID.ID),
 		})
 		s.Require().NoError(err)
 		s.Require().NotEmpty(chargeList.Items)
