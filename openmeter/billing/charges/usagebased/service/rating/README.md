@@ -20,3 +20,9 @@ The cache holds only successful results and retains one input/result pair per en
 currency implementation, input encoding failure or encoded inputs larger than 64 KiB use ordinary
 rating. A miss, eviction or restart costs another rating calculation. A reported hit covers the
 rating step alone, even though usage and charge inputs were read afresh.
+
+Comparing inputs costs time even on a hit. Unit prices can be cheaper to rate
+directly. For graduated prices the potential saving depends on how many tiers
+the quantity reaches and how often that charge's rating inputs stay the same.
+Use `BenchmarkGetTotalsForUsageReuse` to compare full rating and reuse at
+different hit rates before enabling it for a workload.

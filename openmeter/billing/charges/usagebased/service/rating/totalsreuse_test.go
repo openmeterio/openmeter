@@ -3,6 +3,7 @@ package rating
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -301,68 +302,114 @@ func (s *countingTotalsStreaming) QueryMeter(ctx context.Context, namespace stri
 	return s.Connector.QueryMeter(ctx, namespace, m, params)
 }
 
+// The benchmark controls the quantity returned by each fresh meter read. This
+// keeps query latency and a growing mock query history out of the comparison.
+type benchmarkMeter struct {
+	streaming.Connector
+	quantity float64
+}
+
+func (m *benchmarkMeter) QueryMeter(context.Context, string, meter.Meter, streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+	return []meter.MeterQueryRow{{Value: m.quantity}}, nil
+}
+
 func BenchmarkGetTotalsForUsageReuse(b *testing.B) {
-	tiers := make([]productcatalog.PriceTier, 10)
-	for idx := range tiers {
-		tiers[idx].UnitPrice = &productcatalog.PriceTierUnitPrice{Amount: alpacadecimal.NewFromInt(int64(10 - idx))}
-		if idx < len(tiers)-1 {
-			upTo := alpacadecimal.NewFromInt(int64(idx + 1))
-			tiers[idx].UpToAmount = &upTo
+	type workload struct {
+		name     string
+		price    *productcatalog.Price
+		quantity float64
+	}
+
+	workloads := []workload{
+		{"unit", productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(3)}), 12},
+	}
+	for _, mode := range []productcatalog.TieredPriceMode{productcatalog.GraduatedTieredPrice, productcatalog.VolumeTieredPrice} {
+		for _, size := range []int{2, 5, 10} {
+			tiers := make([]productcatalog.PriceTier, size)
+			for i := range tiers {
+				tiers[i].UnitPrice = &productcatalog.PriceTierUnitPrice{Amount: alpacadecimal.NewFromInt(int64(size - i))}
+				if i < size-1 {
+					upTo := alpacadecimal.NewFromInt(int64(10 * (i + 1)))
+					tiers[i].UpToAmount = &upTo
+				}
+			}
+
+			price := productcatalog.NewPriceFrom(productcatalog.TieredPrice{Mode: mode, Tiers: tiers})
+			name := fmt.Sprintf("%s_%d", mode, size)
+			workloads = append(workloads, workload{name + "/first_tier", price, 3}, workload{name + "/last_tier", price, float64(10 * size)})
 		}
 	}
 
-	for _, tariff := range []struct {
-		name  string
-		price *productcatalog.Price
-	}{
-		{name: "unit", price: productcatalog.NewPriceFrom(productcatalog.UnitPrice{Amount: alpacadecimal.NewFromInt(3)})},
-		{name: "graduated_10_tiers", price: productcatalog.NewPriceFrom(productcatalog.TieredPrice{Mode: productcatalog.GraduatedTieredPrice, Tiers: tiers})},
-	} {
-		for _, enabled := range []bool{false, true} {
-			name := "full_rating"
-			if enabled {
-				name = "reuse_rating"
-			}
-
-			b.Run(tariff.name+"/"+name, func(b *testing.B) {
-				period := timeutil.ClosedPeriod{
-					From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
-					To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
-				}
-				stream := streamingtestutils.NewMockStreamingConnector(b)
-				stream.AddSimpleEvent("meter-1", 12, period.From.Add(time.Minute))
-				svc, err := New(Config{
-					StreamingConnector:   stream,
-					RatingService:        billingratingservice.New(billingratingservice.Config{}),
-					DetailedLinesFetcher: passthroughDetailedLinesFetcher,
-				})
-				require.NoError(b, err)
-				charge := newDetailedRatingTestCharge(b, period, nil)
-				require.NoError(b, charge.Intent.MutateEffective(func(fields *usagebased.IntentMutableFields) error {
-					fields.Price = *tariff.price.Clone()
-					return nil
-				}))
-				input := GetTotalsForUsageInput{
-					Charge: charge, Customer: newDetailedRatingTestCustomer(),
-					FeatureMeter: newDetailedRatingTestFeatureMeter(), StoredAtLT: period.To,
-				}
-				ctx := b.Context()
+	for _, w := range workloads {
+		for _, hitPercent := range []int{0, 50, 75, 100} {
+			for _, enabled := range []bool{false, true} {
+				path := "full_rating"
 				if enabled {
-					reuse, err := NewTotalsReuse(256)
-					require.NoError(b, err)
-					ctx = WithTotalsReuse(ctx, reuse, nil)
+					path = "reuse_rating"
 				}
 
-				_, err = svc.GetTotalsForUsage(ctx, input)
-				require.NoError(b, err)
-				b.ReportAllocs()
-				b.ResetTimer()
-				for b.Loop() {
-					if _, err := svc.GetTotalsForUsage(ctx, input); err != nil {
-						b.Fatal(err)
-					}
-				}
-			})
+				b.Run(fmt.Sprintf("%s/hits_%d/%s", w.name, hitPercent, path), func(b *testing.B) {
+					benchmarkRatingSequence(b, w.price, w.quantity, hitPercent, enabled)
+				})
+			}
 		}
+	}
+}
+
+func benchmarkRatingSequence(b *testing.B, price *productcatalog.Price, quantity float64, hitPercent int, enabled bool) {
+	period := timeutil.ClosedPeriod{
+		From: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2025, 2, 1, 0, 0, 0, 0, time.UTC),
+	}
+	stream := &benchmarkMeter{quantity: quantity}
+	svc, err := New(Config{
+		StreamingConnector:   stream,
+		RatingService:        billingratingservice.New(billingratingservice.Config{}),
+		DetailedLinesFetcher: passthroughDetailedLinesFetcher,
+	})
+	require.NoError(b, err)
+	charge := newDetailedRatingTestCharge(b, period, nil)
+	require.NoError(b, charge.Intent.MutateEffective(func(fields *usagebased.IntentMutableFields) error {
+		fields.Price = *price.Clone()
+		return nil
+	}))
+	input := GetTotalsForUsageInput{
+		Charge: charge, Customer: newDetailedRatingTestCustomer(),
+		FeatureMeter: newDetailedRatingTestFeatureMeter(), StoredAtLT: period.To,
+	}
+	ctx := b.Context()
+	hits := 0
+	if enabled {
+		reuse, err := NewTotalsReuse(256)
+		require.NoError(b, err)
+		ctx = WithTotalsReuse(ctx, reuse, func(_ context.Context, hit bool) {
+			if hit {
+				hits++
+			}
+		})
+	}
+
+	_, err = svc.GetTotalsForUsage(ctx, input)
+	require.NoError(b, err)
+	var iterations, expectedHits int
+	b.ReportAllocs()
+	for b.Loop() {
+		// Change the quantity on 0, 1, 2 or 4 reads per group of four.
+		if iterations%4 < hitPercent/25 {
+			expectedHits++
+		} else if stream.quantity == quantity {
+			stream.quantity = quantity + 1
+		} else {
+			stream.quantity = quantity
+		}
+
+		if _, err := svc.GetTotalsForUsage(ctx, input); err != nil {
+			b.Fatal(err)
+		}
+		iterations++
+	}
+
+	if enabled {
+		require.Equal(b, expectedHits, hits)
 	}
 }
