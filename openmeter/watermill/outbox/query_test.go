@@ -19,7 +19,7 @@ func TestScopedTransactionClaimQuery(t *testing.T) {
 	query, args := selector.Query()
 	const expected = `
 		SELECT "event_outboxes"."id" FROM "event_outboxes"
-		WHERE ("event_outboxes"."topic" IN ($1) AND "event_outboxes"."attempts" < $2
+		WHERE ("event_outboxes"."topic" IN ($1) AND "event_outboxes"."attempts" = $2
 			AND NOT EXISTS (SELECT "earlier_outbox"."id" FROM "event_outboxes" AS "earlier_outbox"
 				WHERE "earlier_outbox"."attempts" < $3 AND "earlier_outbox"."topic" IN ($4)
 				AND "earlier_outbox"."transaction_id" = "event_outboxes"."transaction_id"
@@ -30,5 +30,5 @@ func TestScopedTransactionClaimQuery(t *testing.T) {
 	require.Equal(t, strings.Join(strings.Fields(expected), " "), query)
 
 	const header = `{"ce_type":"balance.updated"}`
-	require.Equal(t, []any{"system", 10, 10, "system", header, "system", 0, header}, args)
+	require.Equal(t, []any{"system", 0, 10, "system", header, "system", 0, header}, args)
 }
