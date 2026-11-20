@@ -205,6 +205,40 @@ func (s *PendingLineTaxConfigTestSuite) TestCreatePendingLineTaxCodeIDWins() {
 	}, created.Lines[0].TaxConfig)
 }
 
+// The create response renders the whole gathering invoice, so lines an earlier request added
+// with another Tax Code must render too.
+func (s *PendingLineTaxConfigTestSuite) TestCreatePendingLineRendersEarlierLinesTaxCodes() {
+	// given: a gathering invoice holding a line with one tax code
+	s.ProvisionBillingProfile(s.T().Context(), s.namespace, s.appID)
+	cust := s.CreateTestCustomer(s.namespace, "create-renders-earlier-lines")
+	firstTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_30000000")
+	secondTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_30000001")
+
+	firstRec := s.createPendingLines(cust.ID, []apiv1models.InvoicePendingLineCreate{
+		s.flatLine("first", &apiv1models.TaxConfig{TaxCodeId: lo.ToPtr(firstTaxCode.ID)}),
+	})
+	s.Require().Equal(http.StatusCreated, firstRec.Code, firstRec.Body.String())
+
+	// when: another request adds a line with a different tax code
+	secondRec := s.createPendingLines(cust.ID, []apiv1models.InvoicePendingLineCreate{
+		s.flatLine("second", &apiv1models.TaxConfig{TaxCodeId: lo.ToPtr(secondTaxCode.ID)}),
+	})
+	s.Require().Equal(http.StatusCreated, secondRec.Code, secondRec.Body.String())
+
+	// then: the invoice in the response renders both lines with their own tax codes
+	created := s.createResponse(secondRec)
+	s.Require().NotNil(created.Invoice.Lines)
+
+	stripeCodes := map[string]string{}
+	for _, line := range *created.Invoice.Lines {
+		s.Require().NotNil(line.TaxConfig, line.Name)
+		s.Require().NotNil(line.TaxConfig.Stripe, line.Name)
+		stripeCodes[line.Name] = line.TaxConfig.Stripe.Code
+	}
+
+	s.Equal(map[string]string{"first": "txcd_30000000", "second": "txcd_30000001"}, stripeCodes)
+}
+
 func (s *PendingLineTaxConfigTestSuite) TestUpdateInvoiceResolvesStripeCode() {
 	ctx := s.T().Context()
 
