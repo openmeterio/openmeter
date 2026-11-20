@@ -53,6 +53,28 @@ func TestModelPricingValidate(t *testing.T) {
 		}
 		require.Error(t, p.Validate())
 	})
+
+	t.Run("negative optional prices", func(t *testing.T) {
+		negative := alpacadecimal.NewFromFloat(-0.001)
+		valid := alpacadecimal.NewFromFloat(0.001)
+
+		for name, p := range map[string]ModelPricing{
+			"cache read":  {CacheReadPerToken: &negative},
+			"cache write": {CacheWritePerToken: &negative},
+			"reasoning":   {ReasoningPerToken: &negative},
+		} {
+			t.Run(name, func(t *testing.T) {
+				require.Error(t, p.Validate())
+			})
+		}
+
+		p := ModelPricing{
+			CacheReadPerToken:  &valid,
+			CacheWritePerToken: &valid,
+			ReasoningPerToken:  &valid,
+		}
+		assert.NoError(t, p.Validate())
+	})
 }
 
 func TestPriceValidate(t *testing.T) {
