@@ -1284,6 +1284,19 @@ func (s *SuiteBase) createSubscriptionFromPlan(planInput plan.CreatePlanInput) s
 }
 
 func (s *SuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput, startAt time.Time) subscription.SubscriptionView {
+	return s.createSubscriptionFromPlanWithInput(planInput, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{
+				Custom: lo.ToPtr(startAt),
+			},
+			Name: "subs-1",
+		},
+	})
+}
+
+// createSubscriptionFromPlanWithInput creates the plan and a subscription for the suite's customer from it.
+// The namespace and the customer of the input are set here.
+func (s *SuiteBase) createSubscriptionFromPlanWithInput(planInput plan.CreatePlanInput, input subscriptionworkflow.CreateSubscriptionWorkflowInput) subscription.SubscriptionView {
 	ctx := s.T().Context()
 
 	plan, err := s.PlanService.CreatePlan(ctx, planInput)
@@ -1295,16 +1308,10 @@ func (s *SuiteBase) createSubscriptionFromPlanAt(planInput plan.CreatePlanInput,
 	})
 	s.NoError(err)
 
-	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
-		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
-			Timing: subscription.Timing{
-				Custom: lo.ToPtr(startAt),
-			},
-			Name: "subs-1",
-		},
-		Namespace:  s.Namespace,
-		CustomerID: s.Customer.ID,
-	}, subscriptionPlan)
+	input.Namespace = s.Namespace
+	input.CustomerID = s.Customer.ID
+
+	subsView, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, input, subscriptionPlan)
 
 	s.NoError(err)
 	s.NotNil(subsView)

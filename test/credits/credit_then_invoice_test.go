@@ -2,6 +2,7 @@ package credits
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -25,11 +26,18 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	pcfeature "github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
+	productcatalogsubscription "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
@@ -6642,4 +6650,264 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedChargeInsideServicePeriodIsSc
 		s.True(servicePeriod.To.Equal(*active.State.AdvanceAfter))
 		s.NotNil(active.State.ResolvedCostBasis)
 	})
+}
+
+// A seat-based subscription is moved from another billing system in the middle of a period that
+// was already paid there. The plan fee covers the first seat and a seat add-on carries the rest,
+// so every invoice has two lines.
+func (s *CreditThenInvoiceTestSuite) TestSubscriptionBillingStartProratesSeats() {
+	// Given a Team subscription at $16 per seat per month, billed in advance, with 10 seats: the
+	// plan fee and 9 add-on seats. It starts on November 25 and bills on the 1st of each month.
+	// The service until December 17 was paid elsewhere, so billing starts there, inside a billing
+	// period. The seat count changes while the service is still unbilled.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("subscription-billing-start-seats")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID(), billingtest.WithManualApproval())
+	cust := s.CreateLedgerBackedCustomer(ns, "test-subject")
+
+	start := time.Date(2026, 11, 25, 0, 0, 0, 0, time.UTC)
+	billingAnchor := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
+	billingStartsAt := time.Date(2026, 12, 17, 0, 0, 0, 0, time.UTC)
+	january := time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)
+	february := time.Date(2027, 2, 1, 0, 0, 0, 0, time.UTC)
+
+	// The catalog exists before the subscription: an add-on can only be attached once it is active.
+	catalogPublishedAt := start.Add(-time.Hour)
+	clock.FreezeTime(catalogPublishedAt)
+	defer clock.UnFreeze()
+
+	monthly := datetime.MustParseDuration(s.T(), "P1M")
+	seatPrice := productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+		Amount:      alpacadecimal.NewFromInt(16),
+		PaymentTerm: productcatalog.InAdvancePaymentTerm,
+	})
+
+	seats, err := s.AddonService.CreateAddon(ctx, addon.CreateAddonInput{
+		NamespacedModel: models.NamespacedModel{Namespace: ns},
+		Addon: productcatalog.Addon{
+			AddonMeta: productcatalog.AddonMeta{
+				Name:         "Seats",
+				Key:          "seats",
+				Version:      1,
+				Currency:     currencies.NewCurrencyReference(USD),
+				InstanceType: productcatalog.AddonInstanceTypeMultiple,
+			},
+			RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+				RateCardMeta:   productcatalog.RateCardMeta{Key: "seat", Name: "Seats", Price: seatPrice},
+				BillingCadence: &monthly,
+			}},
+		},
+	})
+	s.Require().NoError(err)
+
+	seats, err = s.AddonService.PublishAddon(ctx, addon.PublishAddonInput{
+		NamespacedID:    seats.NamespacedID,
+		EffectivePeriod: productcatalog.EffectivePeriod{EffectiveFrom: &catalogPublishedAt},
+	})
+	s.Require().NoError(err)
+
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	team, err := s.PlanService.CreatePlan(ctx, plan.CreatePlanInput{
+		NamespacedModel: models.NamespacedModel{Namespace: ns},
+		Plan: productcatalog.Plan{
+			PlanMeta: productcatalog.PlanMeta{
+				Name:           "Team",
+				Key:            "team",
+				Version:        1,
+				Currency:       currencies.NewCurrencyReference(USD),
+				BillingCadence: monthly,
+				SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+				ProRatingConfig: productcatalog.ProRatingConfig{
+					Enabled: true,
+					Mode:    productcatalog.ProRatingModeProratePrices,
+				},
+			},
+			Phases: []productcatalog.Phase{{
+				PhaseMeta: productcatalog.PhaseMeta{Key: "paid", Name: "Paid"},
+				RateCards: productcatalog.RateCards{&productcatalog.FlatFeeRateCard{
+					RateCardMeta:   productcatalog.RateCardMeta{Key: "team-plan-fee", Name: "Team plan fee", Price: seatPrice},
+					BillingCadence: &monthly,
+				}},
+			}},
+		},
+	})
+	s.Require().NoError(err)
+
+	_, err = s.PlanAddonService.CreatePlanAddon(ctx, planaddon.CreatePlanAddonInput{
+		NamespacedModel: models.NamespacedModel{Namespace: ns},
+		PlanID:          team.ID,
+		AddonID:         seats.ID,
+		FromPlanPhase:   "paid",
+	})
+	s.Require().NoError(err)
+
+	subscriptionPlan, err := s.SubscriptionPlanAdapter.GetVersion(ctx, ns, productcatalogsubscription.PlanRefInput{
+		Key:     team.Key,
+		Version: lo.ToPtr(1),
+	})
+	s.Require().NoError(err)
+
+	view, err := s.SubscriptionWorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
+			Timing: subscription.Timing{Custom: &start},
+			Name:   "Team",
+		},
+		Namespace:       ns,
+		CustomerID:      cust.ID,
+		BillingAnchor:   &billingAnchor,
+		BillingStartsAt: &billingStartsAt,
+	}, subscriptionPlan)
+	s.Require().NoError(err)
+
+	_, seatAddon, err := s.SubscriptionWorkflowService.AddAddon(ctx, view.Subscription.NamespacedID, subscriptionworkflow.AddAddonWorkflowInput{
+		AddonID:         seats.ID,
+		InitialQuantity: 9,
+		Timing:          subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+	})
+	s.Require().NoError(err)
+
+	type billedFee struct {
+		Name          string
+		ServicePeriod timeutil.ClosedPeriod
+		InvoiceAt     time.Time
+		Amount        float64
+	}
+
+	restOfDecember := timeutil.ClosedPeriod{From: billingStartsAt, To: january}
+	fullJanuary := timeutil.ClosedPeriod{From: january, To: february}
+
+	// provisionedFees returns the fees the subscription has charges for.
+	provisionedFees := func() []billedFee {
+		result, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{
+			Namespace:      ns,
+			SubscriptionID: filter.NewULIDIn(view.Subscription.ID),
+		})
+		s.Require().NoError(err)
+
+		fees := make([]billedFee, 0, len(result.Items))
+		for _, item := range result.Items {
+			charge, err := item.AsFlatFeeCharge()
+			s.Require().NoError(err)
+
+			intent := charge.Intent.GetBaseIntent()
+			fees = append(fees, billedFee{
+				Name:          intent.Name,
+				ServicePeriod: intent.ServicePeriod,
+				InvoiceAt:     intent.InvoiceAt,
+				Amount:        charge.State.AmountAfterProration.InexactFloat64(),
+			})
+		}
+
+		return fees
+	}
+
+	// When the subscription is synced at its start.
+	s.Require().NoError(s.SubscriptionSync.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+
+	// Then nothing exists for the service paid elsewhere. December is billed from the billing
+	// start only, 15 of its 31 days, and January in full.
+	s.ElementsMatch([]billedFee{
+		{Name: "Team plan fee", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 7.74},
+		{Name: "Seats", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 69.68},
+		{Name: "Team plan fee", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 16},
+		{Name: "Seats", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 144},
+	}, provisionedFees())
+
+	// changeSeats sets the number of add-on seats at the given time and syncs the subscription.
+	changeSeats := func(at time.Time, quantity int) {
+		clock.FreezeTime(at)
+		defer clock.UnFreeze()
+
+		_, _, err := s.SubscriptionWorkflowService.ChangeAddonQuantity(ctx, view.Subscription.NamespacedID, subscriptionworkflow.ChangeAddonQuantityWorkflowInput{
+			SubscriptionAddonID: seatAddon.NamespacedID,
+			Quantity:            quantity,
+			Timing:              subscription.Timing{Enum: lo.ToPtr(subscription.TimingImmediate)},
+		})
+		s.Require().NoError(err)
+
+		s.Require().NoError(s.SubscriptionSync.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
+	}
+
+	// When 2 seats are removed in the short first billing period, before billing starts.
+	changeSeats(time.Date(2026, 11, 28, 0, 0, 0, 0, time.UTC), 7)
+
+	// Then the change adds no fee for the time before the billing start, and the seat fees from
+	// the billing start follow the 7 add-on seats.
+	s.ElementsMatch([]billedFee{
+		{Name: "Team plan fee", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 7.74},
+		{Name: "Seats", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 54.19},
+		{Name: "Team plan fee", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 16},
+		{Name: "Seats", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 112},
+	}, provisionedFees())
+
+	// When 7 seats are added in December, still before billing starts.
+	changeSeats(time.Date(2026, 12, 5, 0, 0, 0, 0, time.UTC), 14)
+
+	// Then there is still no fee for the time before the billing start. The seat fees follow the
+	// 14 add-on seats in effect at the billing start, and December is prorated to 15 of 31 days.
+	decemberFees := []billedFee{
+		{Name: "Team plan fee", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 7.74},
+		{Name: "Seats", ServicePeriod: restOfDecember, InvoiceAt: billingStartsAt, Amount: 108.39},
+	}
+	januaryFees := []billedFee{
+		{Name: "Team plan fee", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 16},
+		{Name: "Seats", ServicePeriod: fullJanuary, InvoiceAt: january, Amount: 224},
+	}
+	s.ElementsMatch(slices.Concat(decemberFees, januaryFees), provisionedFees())
+
+	// invoiceDueFees invoices what is due at the given time and returns the fees on the invoice.
+	invoiceDueFees := func(at time.Time) (billing.StandardInvoice, []billedFee) {
+		clock.FreezeTime(at)
+		defer clock.UnFreeze()
+
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     &at,
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+
+		fees := lo.Map(invoices[0].Lines.OrEmpty(), func(line *billing.StandardLine, _ int) billedFee {
+			return billedFee{
+				Name:          line.Name,
+				ServicePeriod: line.Period,
+				InvoiceAt:     line.InvoiceAt,
+				Amount:        line.Totals.Total.InexactFloat64(),
+			}
+		})
+
+		return invoices[0], fees
+	}
+
+	// When invoicing is attempted a second before the billing start.
+	justBeforeBillingStart := billingStartsAt.Add(-time.Second)
+	clock.FreezeTime(justBeforeBillingStart)
+	defer clock.UnFreeze()
+
+	_, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &justBeforeBillingStart,
+	})
+
+	// Then there is nothing to invoice yet.
+	s.Require().ErrorIs(err, billing.ErrInvoiceCreateNoLines)
+
+	// When the billing start arrives.
+	firstInvoice, firstFees := invoiceDueFees(billingStartsAt)
+
+	// Then the first invoice has the two fees for the rest of December and nothing for the seats
+	// held before the billing start.
+	s.ElementsMatch(decemberFees, firstFees)
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 116.13, Total: 116.13}, firstInvoice.Totals)
+
+	// When January starts.
+	secondInvoice, secondFees := invoiceDueFees(january)
+
+	// Then the full month is invoiced for all 15 seats.
+	s.ElementsMatch(januaryFees, secondFees)
+	s.RequireTotals(billingtest.ExpectedTotals{Amount: 240, Total: 240}, secondInvoice.Totals)
 }

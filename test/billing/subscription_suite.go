@@ -27,6 +27,7 @@ import (
 	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	meteradapter "github.com/openmeterio/openmeter/openmeter/meter/mockadapter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/addon"
 	addonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/adapter"
 	addonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/addon/service"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
@@ -34,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/plan"
 	planadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/adapter"
 	planservice "github.com/openmeterio/openmeter/openmeter/productcatalog/plan/service"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon"
 	planaddonrepo "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/adapter"
 	planaddonservice "github.com/openmeterio/openmeter/openmeter/productcatalog/planaddon/service"
 	subscriptiontestutils "github.com/openmeterio/openmeter/openmeter/productcatalog/subscription/testutils"
@@ -51,12 +53,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
 type SubscriptionMixin struct {
 	PlanService                 plan.Service
+	AddonService                addon.Service
+	PlanAddonService            planaddon.Service
 	SubscriptionService         subscription.Service
 	SubscriptionAddonService    subscriptionaddon.Service
 	SubscriptionPlanAdapter     subscriptiontestutils.PlanSubscriptionAdapter
@@ -156,6 +161,7 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 
 	ffService := ffx.NewStaticService(ffx.AccessConfig{
 		subscription.MultiSubscriptionEnabledFF: true,
+		subscription.BillingStartsAtEnabledFF:   true,
 	})
 	s.SubscriptionService, err = subscriptionservice.New(subscriptionservice.ServiceConfig{
 		SubscriptionRepo:      subsRepo,
@@ -176,6 +182,14 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Lockr:              lockr,
 		FeatureFlags:       ffService,
 		CostBasisService:   currencyService,
+		// Credits are enabled for every namespace, like in the sync services the suites build.
+		ChargesConfig: subscription.ChargesConfig{
+			Enabled:                 true,
+			EnableCreditThenInvoice: true,
+			FeatureGate: featuregate.NewFeatureGateChecker(featuregate.NewNoop(), featuregate.Flags{
+				featuregate.CtxKeyCredits: string(featuregate.CtxKeyCredits),
+			}, map[featuregate.FeatureFlag]bool{featuregate.CtxKeyCredits: true}),
+		},
 		// events
 		Publisher: publisher,
 	})
@@ -197,6 +211,8 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 	})
 	require.NoError(t, err)
 
+	s.AddonService = addonService
+
 	planAddonRepo, err := planaddonrepo.New(planaddonrepo.Config{
 		Client: deps.DBClient,
 		Logger: slog.Default(),
@@ -211,6 +227,8 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 		Publisher: publisher,
 	})
 	require.NoError(t, err)
+
+	s.PlanAddonService = planAddonService
 
 	subAddRepo := subscriptionaddonrepo.NewSubscriptionAddonRepo(deps.DBClient)
 	subAddQtyRepo := subscriptionaddonrepo.NewSubscriptionAddonQuantityRepo(deps.DBClient)
