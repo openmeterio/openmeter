@@ -895,7 +895,8 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 				assert.Contains(t, err.Error(), namespace)
 				assert.Contains(t, err.Error(), invalidID)
 				assert.Contains(t, err.Error(), `expected type "invoice.created"`)
-				assert.Contains(t, err.Error(), "then rerun the migration")
+				assert.Contains(t, err.Error(), "If schema_om shows version 20261119152230 as dirty")
+				assert.Contains(t, err.Error(), "force 20261119143941 (the previous successful version), then rerun the migration")
 
 				// then: both original configs survive and neither Rule gains a backup
 				var preserved int
