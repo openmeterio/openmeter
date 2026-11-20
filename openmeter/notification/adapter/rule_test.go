@@ -686,7 +686,6 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 
 func TestRuleConfigNormalizationMigration(t *testing.T) {
 	env := newChannelTestEnv(t)
-	const backupKey = "dbmigration.notification.rule.config.normalization.original"
 
 	migrations := make(map[string]string)
 	for _, direction := range []string{"up", "down"} {
@@ -704,7 +703,6 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 			data        string
 			flat        bool
 			annotations string
-			withBackup  string
 			disabled    bool
 			deleted     bool
 		}
@@ -717,12 +715,9 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 			{
 				storedType: "entitlements.reset", legacyType: "entitlements.reset", data: `{"features":null}`, deleted: true,
 				annotations: `{"keep":9007199254740993}`,
-				withBackup:  `{"keep":9007199254740993,"` + backupKey + `":{"type":"entitlements.reset","data":{"features":null}}}`,
 			},
 			{
 				storedType: "invoice.created", legacyType: "invoice.created", data: `{}`,
-				annotations: `{"` + backupKey + `":{"earlier":"backup"}}`,
-				withBackup:  `{"` + backupKey + `":{"earlier":"backup"}}`,
 			},
 			{storedType: "entitlements.balance.threshold", legacyType: "entitlements.balance.threshold", data: `{"thresholds":[]}`},
 			{storedType: "v1.entitlement.usage_period.reset", legacyType: "entitlements.reset", data: `{"features":[]}`},
@@ -734,7 +729,7 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 
 		for _, f := range fixtures {
 			t.Run(f.storedType, func(t *testing.T) {
-				// given: a persisted Rule and the complete row outside the two migrated columns
+				// given: a persisted Rule and the fields that must survive config conversion
 				tx, err := env.sqlDB.BeginTx(t.Context(), nil)
 				require.NoError(t, err)
 
@@ -757,25 +752,15 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 					id, ulid.Make().String(), f.storedType, original, f.annotations, f.disabled, f.deleted).Scan(&otherFields)
 				require.NoError(t, err)
 
-				withBackup := f.withBackup
-				if withBackup == "" {
-					withBackup = fmt.Sprintf(`{%q:%s}`, backupKey, envelope)
-				}
-
-				annotations := f.annotations
 				for _, direction := range []string{"up", "up", "down", "down", "up"} {
 					// when: applying the same migration twice, rolling back, then upgrading again
 					_, err := tx.ExecContext(t.Context(), migrations[direction])
 					require.NoError(t, err)
 
-					// then: only the shape and the first backup may change
+					// then: only the config representation changes
 					wantConfig := f.data
 					if f.legacyType != "" && direction == "down" {
 						wantConfig = envelope
-					}
-
-					if f.legacyType != "" && direction == "up" && original == envelope {
-						annotations = withBackup
 					}
 
 					var configMatches, annotationsMatch bool
@@ -783,22 +768,20 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 					err = tx.QueryRowContext(t.Context(), `
 						SELECT config = $2::jsonb, annotations IS NOT DISTINCT FROM NULLIF($3, '')::jsonb,
 							(to_jsonb(r) - 'config' - 'annotations')::text
-						FROM notification_rules AS r WHERE id = $1`, id, wantConfig, annotations).
+						FROM notification_rules AS r WHERE id = $1`, id, wantConfig, f.annotations).
 						Scan(&configMatches, &annotationsMatch, &currentFields)
 					require.NoError(t, err)
 
 					assert.True(t, configMatches, "%s config", direction)
 					assert.True(t, annotationsMatch, "%s annotations", direction)
 					assert.Equal(t, otherFields, currentFields)
-
-					original = wantConfig
 				}
 			})
 		}
 	})
 
 	t.Run("rollback wraps the latest config and newly created Rules", func(t *testing.T) {
-		// given: a threshold Rule with an original config backed up by the migration
+		// given: a threshold Rule with a legacy config envelope
 		namespace := ulid.Make().String()
 		channel := createChannel(t, env, namespace, clock.Now(), nil)
 		rule := createRule(t, env, namespace, clock.Now(), func(input *notification.CreateRuleInput) {
@@ -812,16 +795,15 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 			input.Channels = []string{channel.ID}
 		})
 
-		var original string
-		err := env.sqlDB.QueryRowContext(t.Context(), `
+		_, err := env.sqlDB.ExecContext(t.Context(), `
 			UPDATE notification_rules SET config = jsonb_build_object('type', 'entitlements.balance.threshold', 'data', config)
-			WHERE id = $1 RETURNING config::text`, rule.ID).Scan(&original)
+			WHERE id = $1`, rule.ID)
 		require.NoError(t, err)
 
 		_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
 		require.NoError(t, err)
 
-		// when: changing the threshold while retaining the stored annotations, then creating another Rule
+		// when: changing the threshold after upgrade and creating another Rule
 		current, err := env.adapter.GetRule(t.Context(), notification.GetRuleInput(rule.NamespacedID))
 		require.NoError(t, err)
 
@@ -831,7 +813,6 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 			Type:         current.Type,
 			Name:         current.Name,
 			Config:       current.Config,
-			Annotations:  current.Annotations,
 			Channels:     []string{channel.ID},
 		})
 		require.NoError(t, err)
@@ -841,16 +822,15 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 		_, err = env.sqlDB.ExecContext(t.Context(), migrations["down"])
 		require.NoError(t, err)
 
-		// then: both Rules have legacy envelopes, and the edited Rule keeps its first backup
-		var discriminator, threshold, backup string
+		// then: both Rules have legacy envelopes and the edited threshold is preserved
+		var discriminator, threshold string
 		err = env.sqlDB.QueryRowContext(t.Context(), `
-			SELECT config->>'type', config #>> '{data,thresholds,0,value}', (annotations->$2::text)::text
-			FROM notification_rules WHERE id = $1`, rule.ID, backupKey).Scan(&discriminator, &threshold, &backup)
+			SELECT config->>'type', config #>> '{data,thresholds,0,value}'
+			FROM notification_rules WHERE id = $1`, rule.ID).Scan(&discriminator, &threshold)
 		require.NoError(t, err)
 
 		assert.Equal(t, "entitlements.balance.threshold", discriminator)
 		assert.Equal(t, "80", threshold)
-		assert.JSONEq(t, original, backup)
 
 		var config string
 		err = env.sqlDB.QueryRowContext(t.Context(), "SELECT config::text FROM notification_rules WHERE id = $1", created.ID).Scan(&config)
@@ -862,12 +842,11 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 		require.NoError(t, err)
 
 		err = env.sqlDB.QueryRowContext(t.Context(), `
-			SELECT config #>> '{thresholds,0,value}', (annotations->$2::text)::text
-			FROM notification_rules WHERE id = $1`, rule.ID, backupKey).Scan(&threshold, &backup)
+			SELECT config #>> '{thresholds,0,value}'
+			FROM notification_rules WHERE id = $1`, rule.ID).Scan(&threshold)
 		require.NoError(t, err)
 
 		assert.Equal(t, "80", threshold)
-		assert.JSONEq(t, original, backup)
 	})
 
 	t.Run("invalid envelopes abort all conversions", func(t *testing.T) {
@@ -902,7 +881,7 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 				assert.Contains(t, err.Error(), "If schema_om shows version 20261119152230 as dirty")
 				assert.Contains(t, err.Error(), "force 20261119152000 (the previous successful version), then rerun the migration")
 
-				// then: both original configs survive and neither Rule gains a backup
+				// then: the failed migration preserves both rows
 				var preserved int
 				err = env.sqlDB.QueryRowContext(t.Context(), `
 					SELECT count(*) FROM notification_rules WHERE namespace = $1 AND annotations IS NULL

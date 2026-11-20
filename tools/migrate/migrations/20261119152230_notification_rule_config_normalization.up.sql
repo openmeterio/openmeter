@@ -1,5 +1,4 @@
 -- Apply once all writers of legacy Rule configs and their transactions have drained.
--- Retain the original envelope for recovery and leave already-flat configs alone.
 DO $$
 DECLARE
     rule RECORD;
@@ -24,10 +23,7 @@ BEGIN
         END IF;
 
         UPDATE notification_rules
-        SET config = rule.config->'data',
-            -- Existing keys win so a second upgrade preserves the first backup.
-            annotations = jsonb_build_object('dbmigration.notification.rule.config.normalization.original', rule.config)
-                || COALESCE(NULLIF(annotations, 'null'::jsonb), '{}'::jsonb)
+        SET config = rule.config->'data'
         WHERE id = rule.id AND namespace = rule.namespace;
     END LOOP;
 END $$;
