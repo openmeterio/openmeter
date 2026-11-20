@@ -406,6 +406,7 @@ func benchmarkRatingSequence(b *testing.B, price *productcatalog.Price, quantity
 		if _, err := svc.GetTotalsForUsage(ctx, input); err != nil {
 			b.Fatal(err)
 		}
+
 		iterations++
 	}
 
