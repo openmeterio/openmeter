@@ -9,7 +9,6 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -315,7 +314,7 @@ func TestDefaultRouterCloseDuringDelivery(t *testing.T) {
 			pubsub := gochannel.NewGoChannel(gochannel.Config{}, watermill.NopLogger{})
 			t.Cleanup(func() { assert.NoError(t, pubsub.Close()) })
 			dlq := &countingDLQPublisher{Publisher: pubsub}
-			var logger slog.Handler = slog.DiscardHandler
+			logger := slog.DiscardHandler
 			inTelemetry := make(chan struct{})
 			if phase == "final telemetry" {
 				logger = pauseOnFailureLog{Handler: slog.DiscardHandler, started: inTelemetry}
