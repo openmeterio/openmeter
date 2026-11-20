@@ -289,6 +289,39 @@ func TestDeliveryStatusStateNormalizationMigration(t *testing.T) {
 			assert.Equal(t, "'pending'::character varying", defaultState)
 		})
 	}
+
+	t.Run("rollback under Turkish collation", func(t *testing.T) {
+		// given: Turkish uppercasing would turn the i in failed into a dotted capital İ
+		ctx := t.Context()
+		tx, err := env.sqlDB.BeginTx(ctx, nil)
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		var hasCollation bool
+		err = tx.QueryRowContext(ctx, `SELECT to_regcollation('pg_catalog."tr-x-icu"') IS NOT NULL`).Scan(&hasCollation)
+		require.NoError(t, err)
+
+		if !hasCollation {
+			t.Skip("PostgreSQL does not provide the Turkish ICU collation")
+		}
+
+		_, err = tx.ExecContext(ctx, `CREATE TEMP TABLE notification_event_delivery_status (state text COLLATE "tr-x-icu")`)
+		require.NoError(t, err)
+
+		_, err = tx.ExecContext(ctx, `INSERT INTO notification_event_delivery_status (state) VALUES ('failed')`)
+		require.NoError(t, err)
+
+		// when: rolling back the stored state
+		_, err = tx.ExecContext(ctx, migrations["down"])
+		require.NoError(t, err)
+
+		// then: legacy readers get the exact ASCII enum value
+		var state string
+		err = tx.QueryRowContext(ctx, `SELECT state FROM notification_event_delivery_status`).Scan(&state)
+		require.NoError(t, err)
+
+		assert.Equal(t, "FAILED", state)
+	})
 }
 
 func TestDeliveryStatusStateDefault(t *testing.T) {
