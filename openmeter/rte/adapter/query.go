@@ -89,13 +89,19 @@ func (q invalidateDemandQuery) SQL() (string, []any, error) {
 		selectors = append(selectors, sql.And(parts...))
 	}
 
-	matching := pg.Select().From(pg.Table(demanddb.Table))
-	activeDemand(q.at)(matching)
 	receipt := pg.Select(receiptdb.FieldID).From(pg.Table(receiptdb.Table)).Where(sql.And(
 		sql.EQ(receiptdb.FieldSource, q.input.Source),
 		sql.EQ(receiptdb.FieldEventID, q.input.EventID),
 	))
-	update := pg.Update(demanddb.Table).FromSelect(matching).Where(sql.Or(selectors...)).Where(sql.NotExists(receipt))
+
+	// Events can overlap on several keys. Lock matching demands in the same
+	// order for every event, regardless of how the selectors find them.
+	matching := pg.Select(demanddb.FieldID).From(pg.Table(demanddb.Table))
+	activeDemand(q.at)(matching)
+	matching.Where(sql.Or(selectors...)).Where(sql.NotExists(receipt)).
+		OrderBy(demanddb.FieldID).For(sql.LockNoKeyUpdate)
+
+	update := pg.Update(demanddb.Table).Where(sql.In(demanddb.FieldID, matching))
 	markDemandDirty(update, q.at)
 
 	query, args := update.Query()

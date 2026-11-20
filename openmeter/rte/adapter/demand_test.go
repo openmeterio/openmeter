@@ -245,6 +245,67 @@ func TestConcurrentInvalidationRecordsOneReceipt(t *testing.T) {
 	require.Equal(t, 1, count)
 }
 
+func TestOverlappingInvalidationsLockDemandsInIDOrder(t *testing.T) {
+	f := newDemandFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	// Given two demands, renew the older one last so its latest row version
+	// and its ID need not appear in the same order.
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+	secondKey := f.key
+	secondKey.CustomerID.ID = ulid.Make().String()
+	secondTarget, err := rte.NewCalculationTarget(secondKey)
+	require.NoError(t, err)
+	require.NoError(t, f.repository.Activate(ctx, secondTarget))
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+
+	before, err := f.client.RTEDemand.Query().Order(demanddb.ByID()).All(ctx)
+	require.NoError(t, err)
+	require.Len(t, before, 2)
+
+	waiting := make(chan error, 1)
+	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
+		// When one event holds the higher ID and another selects both keys in reverse order.
+		input := rte.InvalidateInput{
+			Source:  "ledger",
+			EventID: "one-key",
+			Selectors: []rte.DemandSelector{{
+				Namespace: secondKey.CustomerID.Namespace,
+				Kind:      secondTarget.Kind,
+				Targets:   []rte.CalculationTarget{secondTarget},
+			}},
+		}
+		result, err := f.repository.Invalidate(txCtx, input)
+		require.NoError(t, err)
+		require.Equal(t, 1, result.Matched)
+
+		input.EventID = "both-keys"
+		input.Selectors[0].Targets = append(input.Selectors[0].Targets, f.target)
+		go func() {
+			_, err := f.repository.Invalidate(ctx, input)
+			waiting <- err
+		}()
+		waitForDemandLock(t, ctx, f.client)
+
+		// Then the waiting invalidation must already hold the lower ID.
+		available, err := f.client.RTEDemand.Query().Where(demanddb.IDEQ(before[0].ID)).
+			ForUpdate(sql.WithLockAction(sql.SkipLocked)).IDs(ctx)
+		require.NoError(t, err)
+		require.Empty(t, available)
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, <-waiting)
+
+	after, err := f.client.RTEDemand.Query().Order(demanddb.ByID()).All(ctx)
+	require.NoError(t, err)
+	require.Len(t, after, 2)
+	require.Equal(t, before[0].DirtyVersion+1, after[0].DirtyVersion)
+	require.Equal(t, before[1].DirtyVersion+2, after[1].DirtyVersion)
+}
+
 func TestDemandFailedAttemptRollsBackStateAndPersistsRetry(t *testing.T) {
 	// Given a demanded balance whose calculator fails after writing its result.
 	f := newDemandFixture(t)
