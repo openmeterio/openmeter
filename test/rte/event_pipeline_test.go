@@ -77,7 +77,7 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 			t.Error("RTE test worker did not stop")
 		}
 	})
-	service, err := common.NewRTEService(s.DBClient, s.CustomerBalanceSvc, s.Entitlements, logger, config.CreditsConfiguration{Enabled: true}, bus, metricnoop.NewMeterProvider().Meter("test"))
+	service, err := common.NewRTEService(s.DBClient, s.CustomerBalanceSvc, s.Entitlements, logger, config.CreditsConfiguration{Enabled: true}, config.RTEConfiguration{}, bus, metricnoop.NewMeterProvider().Meter("test"))
 	require.NoError(t, err)
 
 	observed, err := transport.Subscribe(ctx, events.SystemEvents.Topic)

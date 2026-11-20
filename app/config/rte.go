@@ -13,6 +13,7 @@ type RTEConfiguration struct {
 	CalculationTimeout     time.Duration
 	CalculationConcurrency int
 	Enabled                bool
+	ReuseRatingTotals      bool
 	ShadowSamplePercent    int
 }
 
@@ -46,6 +47,7 @@ func ConfigureRTE(v *viper.Viper) {
 	v.SetDefault("rte.calculationTimeout", 30*time.Second)
 	v.SetDefault("rte.calculationConcurrency", 4)
 	v.SetDefault("rte.enabled", false)
+	v.SetDefault("rte.reuseRatingTotals", false)
 	v.SetDefault("rte.shadowSamplePercent", 10)
 	v.SetDefault("rte.dlq.topic", "om_sys.rte_dlq")
 	v.SetDefault("rte.consumerGroupName", "om_rte")
