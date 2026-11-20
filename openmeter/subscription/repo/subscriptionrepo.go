@@ -17,6 +17,7 @@ import (
 	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -160,7 +161,8 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetNillableDescription(sub.Description).
 			SetMetadata(sub.Metadata).
 			SetAnnotations(sub.Annotations).
-			SetBillingAnchor(sub.BillingAnchor.UTC())
+			SetBillingAnchor(sub.BillingAnchor.UTC()).
+			SetNillableBillingStartsAt(convert.SafeToUTC(sub.BillingStartsAt))
 
 		if sub.ActiveTo != nil {
 			command = command.SetActiveTo(*sub.ActiveTo)

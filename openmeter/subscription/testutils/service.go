@@ -211,6 +211,7 @@ func NewService(t *testing.T, dbDeps *DBDeps) SubscriptionDependencies {
 
 	ffService := ffx.NewTestContextService(ffx.AccessConfig{
 		subscription.MultiSubscriptionEnabledFF: false,
+		subscription.BillingStartsAtEnabledFF:   false,
 	})
 
 	svc, err := service.New(service.ServiceConfig{

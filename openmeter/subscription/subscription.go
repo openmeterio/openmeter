@@ -35,6 +35,7 @@ type Subscription struct {
 
 	BillingCadence  datetime.ISODuration           `json:"billing_cadence"`
 	BillingAnchor   time.Time                      `json:"billingAnchor"`
+	BillingStartsAt *time.Time                     `json:"billingStartsAt,omitempty"`
 	ProRatingConfig productcatalog.ProRatingConfig `json:"pro_rating_config"`
 	SettlementMode  productcatalog.SettlementMode  `json:"settlement_mode"`
 
@@ -57,6 +58,7 @@ func (s Subscription) AsEntityInput() CreateSubscriptionEntityInput {
 		CostBasisMode:   s.CostBasisMode,
 		BillingCadence:  s.BillingCadence,
 		BillingAnchor:   s.BillingAnchor,
+		BillingStartsAt: s.BillingStartsAt,
 		ProRatingConfig: s.ProRatingConfig,
 		SettlementMode:  s.SettlementMode,
 	}

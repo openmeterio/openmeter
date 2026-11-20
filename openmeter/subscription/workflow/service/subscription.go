@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/subscription/patch"
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -29,6 +30,23 @@ import (
 )
 
 func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
+	if inp.BillingStartsAt != nil {
+		enabled, err := s.FeatureFlags.IsFeatureEnabled(ctx, subscription.BillingStartsAtEnabledFF)
+		if err != nil {
+			return subscription.SubscriptionView{}, fmt.Errorf("failed to check if billing starts at is enabled: %w", err)
+		}
+
+		if !enabled {
+			return subscription.SubscriptionView{}, subscription.ErrSubscriptionBillingStartsAtNotEnabled
+		}
+	}
+
+	return s.createFromPlan(ctx, inp, plan)
+}
+
+// createFromPlan skips the check that the namespace may set BillingStartsAt: a plan change has to keep
+// the value of the subscription it replaces even if the namespace can no longer set new ones.
+func (s *service) createFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
 
@@ -89,6 +107,7 @@ func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.C
 			Name:            lo.CoalesceOrEmpty(inp.Name, plan.GetName()),
 			Description:     inp.Description,
 			BillingAnchor:   billingAnchor,
+			BillingStartsAt: convert.SafeToUTC(inp.BillingStartsAt),
 			Annotations:     inp.Annotations,
 		})
 
@@ -404,12 +423,20 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 			return res{}, fmt.Errorf("failed to set previous subscription ID: %w", err)
 		}
 
+		// Billing has to start at the same time as on the replaced subscription. Once that time has passed
+		// there is nothing left to skip, and the new subscription could not hold a value before its own start.
+		billingStartsAt := curr.BillingStartsAt
+		if billingStartsAt != nil && curr.ActiveTo != nil && billingStartsAt.Before(*curr.ActiveTo) {
+			billingStartsAt = nil
+		}
+
 		// Third, let's create a new subscription with the new plan
-		new, err := s.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		new, err := s.createFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,
 			CustomerID:                      curr.CustomerId,
 			BillingAnchor:                   lo.ToPtr(lo.FromPtrOr(inp.BillingAnchor, curr.BillingAnchor)), // We default to the current anchor
+			BillingStartsAt:                 billingStartsAt,
 			Annotations:                     createInputAnnotations,
 		}, plan)
 		if err != nil {

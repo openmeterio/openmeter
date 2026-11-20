@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/wire"
 
+	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -31,6 +32,7 @@ import (
 	subscriptionworkflow "github.com/openmeterio/openmeter/openmeter/subscription/workflow"
 	subscriptionworkflowservice "github.com/openmeterio/openmeter/openmeter/subscription/workflow/service"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/ffx"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
@@ -67,6 +69,8 @@ func NewSubscriptionServices(
 	lockr *lockr.Locker,
 	featureFlags ffx.Service,
 	taxCodeResolver productcatalog.TaxCodeResolver,
+	creditsConfig config.CreditsConfiguration,
+	featureGate *featuregate.FeatureGateChecker,
 ) (SubscriptionServiceWithWorkflow, error) {
 	featureResolver, err := featureresolver.New(featureConnector)
 	if err != nil {
@@ -100,6 +104,11 @@ func NewSubscriptionServices(
 		FeatureFlags:          featureFlags,
 		Lockr:                 lockr,
 		CostBasisService:      currencyService,
+		ChargesConfig: subscription.ChargesConfig{
+			Enabled:                 creditsConfig.Enabled,
+			EnableCreditThenInvoice: creditsConfig.EnableCreditThenInvoice,
+			FeatureGate:             featureGate,
+		},
 	})
 	if err != nil {
 		return SubscriptionServiceWithWorkflow{}, err

@@ -380,7 +380,11 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	ffxService := ffx.NewContextService()
-	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, currenciesService, currencyResolver, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxCodeResolver)
+	creditsConfiguration := conf.Credits
+	gate := featuregate.NewNoop()
+	featureGateConfiguration := conf.FeatureGate
+	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
+	subscriptionServiceWithWorkflow, err := common.NewSubscriptionServices(logger, client, featureConnector, entitlement, customerService, currenciesService, currencyResolver, planService, planaddonService, addonService, eventbusPublisher, locker, ffxService, taxCodeResolver, creditsConfiguration, featureGateChecker)
 	if err != nil {
 		cleanup8()
 		cleanup7()
@@ -394,7 +398,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	validator := subscriptionServiceWithWorkflow.ItemReferenceValidator
 	billingFeatureSwitchesConfiguration := billingConfiguration.FeatureSwitches
-	creditsConfiguration := conf.Credits
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
 	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker)
@@ -419,9 +422,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	gate := featuregate.NewNoop()
-	featureGateConfiguration := conf.FeatureGate
-	featureGateChecker := common.NewFeatureGateChecker(gate, featureGateConfiguration, creditsConfiguration)
 	billingRegistry, err := common.NewBillingRegistry(logger, appService, billingAdapter, ratingService, customerService, featureConnector, service, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, validator, client, billingFeatureSwitchesConfiguration, creditsConfiguration, tracer, taxcodeService, taxCodeResolver, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup8()

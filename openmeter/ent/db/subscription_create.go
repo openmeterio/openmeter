@@ -193,6 +193,20 @@ func (_c *SubscriptionCreate) SetBillingAnchor(v time.Time) *SubscriptionCreate 
 	return _c
 }
 
+// SetBillingStartsAt sets the "billing_starts_at" field.
+func (_c *SubscriptionCreate) SetBillingStartsAt(v time.Time) *SubscriptionCreate {
+	_c.mutation.SetBillingStartsAt(v)
+	return _c
+}
+
+// SetNillableBillingStartsAt sets the "billing_starts_at" field if the given value is not nil.
+func (_c *SubscriptionCreate) SetNillableBillingStartsAt(v *time.Time) *SubscriptionCreate {
+	if v != nil {
+		_c.SetBillingStartsAt(*v)
+	}
+	return _c
+}
+
 // SetBillingCadence sets the "billing_cadence" field.
 func (_c *SubscriptionCreate) SetBillingCadence(v datetime.ISODurationString) *SubscriptionCreate {
 	_c.mutation.SetBillingCadence(v)
@@ -636,6 +650,10 @@ func (_c *SubscriptionCreate) createSpec() (*Subscription, *sqlgraph.CreateSpec,
 	if value, ok := _c.mutation.BillingAnchor(); ok {
 		_spec.SetField(subscription.FieldBillingAnchor, field.TypeTime, value)
 		_node.BillingAnchor = value
+	}
+	if value, ok := _c.mutation.BillingStartsAt(); ok {
+		_spec.SetField(subscription.FieldBillingStartsAt, field.TypeTime, value)
+		_node.BillingStartsAt = &value
 	}
 	if value, ok := _c.mutation.BillingCadence(); ok {
 		_spec.SetField(subscription.FieldBillingCadence, field.TypeString, value)
@@ -1102,6 +1120,9 @@ func (u *SubscriptionUpsertOne) UpdateNewValues() *SubscriptionUpsertOne {
 		if _, exists := u.create.mutation.CostBasisMode(); exists {
 			s.SetIgnore(subscription.FieldCostBasisMode)
 		}
+		if _, exists := u.create.mutation.BillingStartsAt(); exists {
+			s.SetIgnore(subscription.FieldBillingStartsAt)
+		}
 		if _, exists := u.create.mutation.SettlementMode(); exists {
 			s.SetIgnore(subscription.FieldSettlementMode)
 		}
@@ -1535,6 +1556,9 @@ func (u *SubscriptionUpsertBulk) UpdateNewValues() *SubscriptionUpsertBulk {
 			}
 			if _, exists := b.mutation.CostBasisMode(); exists {
 				s.SetIgnore(subscription.FieldCostBasisMode)
+			}
+			if _, exists := b.mutation.BillingStartsAt(); exists {
+				s.SetIgnore(subscription.FieldBillingStartsAt)
 			}
 			if _, exists := b.mutation.SettlementMode(); exists {
 				s.SetIgnore(subscription.FieldSettlementMode)

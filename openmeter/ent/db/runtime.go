@@ -3228,7 +3228,7 @@ func init() {
 		}
 	}()
 	// subscriptionDescProRatingConfig is the schema descriptor for pro_rating_config field.
-	subscriptionDescProRatingConfig := subscriptionFields[8].Descriptor()
+	subscriptionDescProRatingConfig := subscriptionFields[9].Descriptor()
 	// subscription.DefaultProRatingConfig holds the default value on creation for the pro_rating_config field.
 	subscription.DefaultProRatingConfig = subscriptionDescProRatingConfig.Default.(func() productcatalog.ProRatingConfig)
 	subscription.ValueScanner.ProRatingConfig = subscriptionDescProRatingConfig.ValueScanner.(field.TypeValueScanner[productcatalog.ProRatingConfig])

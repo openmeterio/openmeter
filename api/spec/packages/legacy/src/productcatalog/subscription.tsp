@@ -169,6 +169,14 @@ model Subscription {
   billingAnchor: DateTime;
 
   /**
+   * When billing starts for the subscription. Nothing is billed for service before this time.
+   * If not set, billing starts with the subscription.
+   */
+  @visibility(Lifecycle.Read)
+  @summary("Billing starts at")
+  billingStartsAt?: DateTime;
+
+  /**
    * The settlement mode of the subscription.
    * - credit_then_invoice: credits from the previous billing period are applied first, then the remaining balance is invoiced.
    * - credit_only: only credits from the previous billing period are generated and applied. No invoices are generated for the subscription.
@@ -445,6 +453,19 @@ model CustomSubscriptionCreate {
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
    */
   billingAnchor?: DateTime;
+
+  /**
+   * When billing starts for the subscription. Nothing is billed for service before this time, while access,
+   * entitlements and metering start with the subscription. Use it when the time before was already billed elsewhere,
+   * for example when importing a subscription from another billing system.
+   *
+   * It cannot be before the start of the subscription and cannot be changed later. On subscriptions billed through
+   * invoice lines it must be the start of a billing period. If not provided, billing starts with the subscription.
+   *
+   * When billing starts inside a billing period, we recommend enabling price pro-rating (`prorate_prices`) on the
+   * plan. Without it that billing period's flat fees are billed in full.
+   */
+  billingStartsAt?: DateTime;
 }
 
 /**
@@ -511,6 +532,19 @@ model PlanSubscriptionCreate {
    * The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
    */
   billingAnchor?: DateTime;
+
+  /**
+   * When billing starts for the subscription. Nothing is billed for service before this time, while access,
+   * entitlements and metering start with the subscription. Use it when the time before was already billed elsewhere,
+   * for example when importing a subscription from another billing system.
+   *
+   * It cannot be before the start of the subscription and cannot be changed later. On subscriptions billed through
+   * invoice lines it must be the start of a billing period. If not provided, billing starts with the subscription.
+   *
+   * When billing starts inside a billing period, we recommend enabling price pro-rating (`prorate_prices`) on the
+   * plan. Without it that billing period's flat fees are billed in full.
+   */
+  billingStartsAt?: DateTime;
 }
 
 /**

@@ -3,6 +3,7 @@ package subscriptions
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -66,6 +67,27 @@ func TestFromAPIBillingSubscriptionCreateCostBasisMode(t *testing.T) {
 	// - the mode survives the API boundary
 	require.NoError(t, err)
 	require.Equal(t, subscription.CostBasisModePinned, result.CostBasisMode)
+}
+
+func TestFromAPIBillingSubscriptionCreateBillingStartsAt(t *testing.T) {
+	// given:
+	// - a v3 create request for a subscription whose billing starts later than the subscription
+	billingStartsAt := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
+	request := apiv3models.BillingSubscriptionCreate{BillingStartsAt: &billingStartsAt}
+
+	// when:
+	// - the request is mapped to the subscription workflow input
+	result, err := FromAPIBillingSubscriptionCreate(
+		"default",
+		customer.CustomerID{ID: "customer_1", Namespace: "default"},
+		"Subscription",
+		request,
+	)
+
+	// then:
+	// - the billing start survives the API boundary
+	require.NoError(t, err)
+	require.Equal(t, &billingStartsAt, result.BillingStartsAt)
 }
 
 // TestFromAPIBillingSubscriptionCreateTiming verifies the create request's optional
@@ -146,6 +168,7 @@ func TestToAPIBillingSubscriptionViewRoundtrip(t *testing.T) {
 		InvoiceCurrency: "USD",
 		ActiveFrom:      currentTime,
 		BillingAnchor:   currentTime,
+		BillingStartsAt: &currentTime,
 		Name:            "Test Subscription",
 		Annotations:     models.Annotations{},
 	})
@@ -165,6 +188,7 @@ func TestToAPIBillingSubscriptionViewRoundtrip(t *testing.T) {
 	require.Equal(t, sub.ID, result.Id)
 	require.Equal(t, cust.ID, result.CustomerId)
 	require.Equal(t, "USD", result.InvoiceCurrency)
+	require.Equal(t, &currentTime, result.BillingStartsAt)
 
 	// then: the phases roundtrip, each carrying resolved items with rate cards
 	require.NotEmpty(t, result.Phases, "expected phases on the expanded subscription")

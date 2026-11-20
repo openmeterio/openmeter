@@ -5627,6 +5627,7 @@ var (
 		{Name: "currency", Type: field.TypeString, Size: 3},
 		{Name: "cost_basis_mode", Type: field.TypeEnum, Enums: []string{"dynamic", "pinned"}, Default: "dynamic"},
 		{Name: "billing_anchor", Type: field.TypeTime},
+		{Name: "billing_starts_at", Type: field.TypeTime, Nullable: true},
 		{Name: "billing_cadence", Type: field.TypeString},
 		{Name: "pro_rating_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "settlement_mode", Type: field.TypeEnum, Enums: []string{"credit_then_invoice", "credit_only"}, Default: "credit_then_invoice"},
@@ -5641,13 +5642,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "subscriptions_customers_subscription",
-				Columns:    []*schema.Column{SubscriptionsColumns[17]},
+				Columns:    []*schema.Column{SubscriptionsColumns[18]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "subscriptions_plans_subscriptions",
-				Columns:    []*schema.Column{SubscriptionsColumns[18]},
+				Columns:    []*schema.Column{SubscriptionsColumns[19]},
 				RefColumns: []*schema.Column{PlansColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -5681,7 +5682,7 @@ var (
 			{
 				Name:    "subscription_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[17]},
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[18]},
 			},
 			{
 				Name:    "subscription_deleted_reconciliation_cursor",

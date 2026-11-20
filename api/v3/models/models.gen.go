@@ -10158,6 +10158,20 @@ type BillingSubscription struct {
 	// `P1Y` (annually).
 	BillingCadence ISO8601Duration `json:"billing_cadence"`
 
+	// BillingStartsAt When billing starts for the subscription. Nothing is billed for service before
+	// this time, while access, entitlements and metering start with the subscription.
+	// Use it when the time before was already billed elsewhere, for example when
+	// importing a subscription from another billing system.
+	//
+	// It cannot be before the start of the subscription and cannot be changed later.
+	// On subscriptions billed through invoice lines it must be the start of a billing
+	// period. If not provided, billing starts with the subscription.
+	//
+	// When billing starts inside a billing period, we recommend enabling price
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
+	BillingStartsAt *DateTime `json:"billing_starts_at,omitempty"`
+
 	// CostBasisMode Controls whether custom-currency cost bases are resolved dynamically or pinned
 	// when their currency pair is introduced to the subscription.
 	CostBasisMode BillingSubscriptionCostBasisMode `json:"cost_basis_mode"`
@@ -10260,6 +10274,20 @@ type BillingSubscriptionBase struct {
 	// often the customer is billed. Examples: `P1M` (monthly), `P3M` (quarterly),
 	// `P1Y` (annually).
 	BillingCadence ISO8601Duration `json:"billing_cadence"`
+
+	// BillingStartsAt When billing starts for the subscription. Nothing is billed for service before
+	// this time, while access, entitlements and metering start with the subscription.
+	// Use it when the time before was already billed elsewhere, for example when
+	// importing a subscription from another billing system.
+	//
+	// It cannot be before the start of the subscription and cannot be changed later.
+	// On subscriptions billed through invoice lines it must be the start of a billing
+	// period. If not provided, billing starts with the subscription.
+	//
+	// When billing starts inside a billing period, we recommend enabling price
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
+	BillingStartsAt *DateTime `json:"billing_starts_at,omitempty"`
 
 	// CostBasisMode Controls whether custom-currency cost bases are resolved dynamically or pinned
 	// when their currency pair is introduced to the subscription.
@@ -10453,6 +10481,20 @@ type BillingSubscriptionCreate struct {
 	// If not provided, the subscription will be created with the subscription's
 	// creation time as the billing anchor.
 	BillingAnchor *DateTime `json:"billing_anchor,omitempty"`
+
+	// BillingStartsAt When billing starts for the subscription. Nothing is billed for service before
+	// this time, while access, entitlements and metering start with the subscription.
+	// Use it when the time before was already billed elsewhere, for example when
+	// importing a subscription from another billing system.
+	//
+	// It cannot be before the start of the subscription and cannot be changed later.
+	// On subscriptions billed through invoice lines it must be the start of a billing
+	// period. If not provided, billing starts with the subscription.
+	//
+	// When billing starts inside a billing period, we recommend enabling price
+	// pro-rating (`prorate_prices`) on the plan. Without it that billing period's flat
+	// fees are billed in full.
+	BillingStartsAt *DateTime `json:"billing_starts_at,omitempty"`
 
 	// CostBasisMode Controls how custom-currency cost bases are selected for the subscription.
 	CostBasisMode *BillingSubscriptionCostBasisMode `json:"cost_basis_mode,omitempty"`

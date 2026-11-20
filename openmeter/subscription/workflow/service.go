@@ -49,8 +49,9 @@ type CreateSubscriptionWorkflowInput struct {
 	Namespace  string
 	CustomerID string
 
-	BillingAnchor *time.Time `json:"billingAnchor,omitempty"`
-	Annotations   models.Annotations
+	BillingAnchor   *time.Time `json:"billingAnchor,omitempty"`
+	BillingStartsAt *time.Time `json:"billingStartsAt,omitempty"`
+	Annotations     models.Annotations
 }
 
 type ChangeSubscriptionWorkflowInput struct {

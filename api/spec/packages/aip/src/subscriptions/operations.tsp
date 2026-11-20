@@ -33,9 +33,12 @@ model SubscriptionChange {
   // `timing` is omitted from the spread and redeclared as required below: on
   // create it is an optional scheduling hint, but a change must always say when it
   // takes effect.
+  //
+  // `billing_starts_at` is omitted because it can only be set on create: the
+  // replacement subscription inherits it from the one being changed.
   ...OmitProperties<
     SubscriptionCreate,
-    "customer_id" | "customer_key" | "timing"
+    "customer_id" | "customer_key" | "timing" | "billing_starts_at"
   >;
 
   /**

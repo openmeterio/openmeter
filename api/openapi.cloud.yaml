@@ -15161,6 +15161,20 @@ components:
           format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
           example: '2023-01-01T01:01:01.001Z'
+        billingStartsAt:
+          type: string
+          format: date-time
+          description: |-
+            When billing starts for the subscription. Nothing is billed for service before this time, while access,
+            entitlements and metering start with the subscription. Use it when the time before was already billed elsewhere,
+            for example when importing a subscription from another billing system.
+
+            It cannot be before the start of the subscription and cannot be changed later. On subscriptions billed through
+            invoice lines it must be the start of a billing period. If not provided, billing starts with the subscription.
+
+            When billing starts inside a billing period, we recommend enabling price pro-rating (`prorate_prices`) on the
+            plan. Without it that billing period's flat fees are billed in full.
+          example: '2023-01-01T01:01:01.001Z'
       description: Create a custom subscription.
       title: Create custom
     Customer:
@@ -22720,6 +22734,20 @@ components:
           format: date-time
           description: The billing anchor of the subscription. The provided date will be normalized according to the billing cadence to the nearest recurrence before start time. If not provided, the subscription start time will be used.
           example: '2023-01-01T01:01:01.001Z'
+        billingStartsAt:
+          type: string
+          format: date-time
+          description: |-
+            When billing starts for the subscription. Nothing is billed for service before this time, while access,
+            entitlements and metering start with the subscription. Use it when the time before was already billed elsewhere,
+            for example when importing a subscription from another billing system.
+
+            It cannot be before the start of the subscription and cannot be changed later. On subscriptions billed through
+            invoice lines it must be the start of a billing period. If not provided, billing starts with the subscription.
+
+            When billing starts inside a billing period, we recommend enabling price pro-rating (`prorate_prices`) on the
+            plan. Without it that billing period's flat fees are billed in full.
+          example: '2023-01-01T01:01:01.001Z'
       description: Create subscription based on plan.
       title: Create from plan
     PortalToken:
@@ -24075,6 +24103,15 @@ components:
           example: '2023-01-01T01:01:01.001Z'
           title: Billing anchor
           readOnly: true
+        billingStartsAt:
+          type: string
+          format: date-time
+          description: |-
+            When billing starts for the subscription. Nothing is billed for service before this time.
+            If not set, billing starts with the subscription.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Billing starts at
+          readOnly: true
         settlementMode:
           allOf:
             - $ref: '#/components/schemas/BillingSettlementMode'
@@ -24710,6 +24747,15 @@ components:
           description: The normalizedbilling anchor of the subscription.
           example: '2023-01-01T01:01:01.001Z'
           title: Billing anchor
+          readOnly: true
+        billingStartsAt:
+          type: string
+          format: date-time
+          description: |-
+            When billing starts for the subscription. Nothing is billed for service before this time.
+            If not set, billing starts with the subscription.
+          example: '2023-01-01T01:01:01.001Z'
+          title: Billing starts at
           readOnly: true
         settlementMode:
           allOf:

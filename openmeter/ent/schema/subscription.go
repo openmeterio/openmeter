@@ -49,6 +49,11 @@ func (Subscription) Fields() []ent.Field {
 			Default("dynamic").
 			Immutable(),
 		field.Time("billing_anchor"),
+		field.Time("billing_starts_at").
+			Optional().
+			Nillable().
+			Immutable().
+			Comment("Nothing is billed for service before this time. Unset means billing starts with the subscription."),
 		field.String("billing_cadence").
 			GoType(datetime.ISODurationString("")).
 			Comment("The default billing cadence for subscriptions."),

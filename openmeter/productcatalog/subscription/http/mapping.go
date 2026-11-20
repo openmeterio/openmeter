@@ -217,8 +217,9 @@ func MapSubscriptionToAPI(sub subscription.Subscription) apiv1models.Subscriptio
 		Alignment: &apiv1models.Alignment{
 			BillablesMustAlign: lo.ToPtr(true), // TODO(OM-1249): this field is deprecated on API, we'll get rid of it eventually
 		},
-		BillingCadence: sub.BillingCadence.String(),
-		BillingAnchor:  sub.BillingAnchor,
+		BillingCadence:  sub.BillingCadence.String(),
+		BillingAnchor:   sub.BillingAnchor,
+		BillingStartsAt: sub.BillingStartsAt,
 		ProRatingConfig: &apiv1models.ProRatingConfig{
 			Enabled: sub.ProRatingConfig.Enabled,
 			Mode:    apiv1models.ProRatingMode(sub.ProRatingConfig.Mode),
@@ -470,6 +471,7 @@ func MapSubscriptionViewToAPI(view subscription.SubscriptionView, taxCodes map[s
 		Annotations:     apiSub.Annotations,
 		ProRatingConfig: apiSub.ProRatingConfig,
 		BillingAnchor:   apiSub.BillingAnchor,
+		BillingStartsAt: apiSub.BillingStartsAt,
 		BillingCadence:  apiSub.BillingCadence,
 		Name:            apiSub.Name,
 		Phases:          nil,

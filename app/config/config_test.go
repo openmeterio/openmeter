@@ -386,6 +386,9 @@ func TestComplete(t *testing.T) {
 				MultiSubscriptionNamespaces: []string{
 					"multi-subscription",
 				},
+				BillingStartsAtNamespaces: []string{
+					"billing-starts-at",
+				},
 			},
 		},
 		Notification: NotificationConfiguration{

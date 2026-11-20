@@ -168,6 +168,8 @@ productCatalog:
   subscription:
     multiSubscriptionNamespaces:
       - "multi-subscription"
+    billingStartsAtNamespaces:
+      - "billing-starts-at"
 
 taxcode:
   seeds:

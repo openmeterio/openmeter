@@ -41,6 +41,9 @@ type CreateSubscriptionEntityInput struct {
 
 	// BillingAnchor is the time the subscription will be billed.
 	BillingAnchor time.Time `json:"billingAnchor"`
+
+	// BillingStartsAt is the time before which no service is billed.
+	BillingStartsAt *time.Time `json:"billingStartsAt,omitempty"`
 }
 
 type SubscriptionRepository interface {

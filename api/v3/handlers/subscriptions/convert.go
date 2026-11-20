@@ -66,6 +66,7 @@ func subscriptionBaseFields(sub subscription.Subscription, now time.Time) apiv3m
 		CostBasisPins:   costBasisPins,
 		BillingCadence:  sub.BillingCadence.ISOString().String(),
 		BillingAnchor:   sub.BillingAnchor,
+		BillingStartsAt: sub.BillingStartsAt,
 		ProRatingConfig: &apiv3models.BillingSubscriptionProRatingConfig{
 			Enabled: sub.ProRatingConfig.Enabled,
 			Mode:    apiv3models.BillingRateCardProrationMode(sub.ProRatingConfig.Mode),
@@ -121,6 +122,7 @@ func mapSubscriptionBaseToFull(fields apiv3models.BillingSubscriptionBase) apiv3
 		CostBasisPins:   fields.CostBasisPins,
 		BillingCadence:  fields.BillingCadence,
 		BillingAnchor:   fields.BillingAnchor,
+		BillingStartsAt: fields.BillingStartsAt,
 		ProRatingConfig: fields.ProRatingConfig,
 		SettlementMode:  fields.SettlementMode,
 		Status:          fields.Status,
@@ -340,9 +342,10 @@ func FromAPIBillingSubscriptionCreate(
 	}
 
 	workflowInput := subscriptionworkflow.CreateSubscriptionWorkflowInput{
-		Namespace:     namespace,
-		CustomerID:    customerID.ID,
-		BillingAnchor: createSubscriptionRequest.BillingAnchor,
+		Namespace:       namespace,
+		CustomerID:      customerID.ID,
+		BillingAnchor:   createSubscriptionRequest.BillingAnchor,
+		BillingStartsAt: createSubscriptionRequest.BillingStartsAt,
 		ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 			Name:          subscriptionName,
 			CostBasisMode: subscription.CostBasisMode(lo.FromPtr(createSubscriptionRequest.CostBasisMode)),

@@ -110,6 +110,33 @@ var ErrSubscriptionBillingAnchorIsRequired = models.NewValidationIssue(
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
+const ErrCodeSubscriptionBillingStartsAtBeforeSubscriptionStart models.ErrorCode = "subscription_billing_starts_at_before_subscription_start"
+
+var ErrSubscriptionBillingStartsAtBeforeSubscriptionStart = models.NewValidationIssue(
+	ErrCodeSubscriptionBillingStartsAtBeforeSubscriptionStart,
+	"billing cannot start before the subscription starts",
+	models.WithFieldString("billingStartsAt"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
+const ErrCodeSubscriptionBillingStartsAtNotEnabled models.ErrorCode = "subscription_billing_starts_at_not_enabled"
+
+var ErrSubscriptionBillingStartsAtNotEnabled = models.NewValidationIssue(
+	ErrCodeSubscriptionBillingStartsAtNotEnabled,
+	"setting the billing start is not enabled for this organization",
+	models.WithFieldString("billingStartsAt"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusForbidden),
+)
+
+const ErrCodeSubscriptionBillingStartsAtNotAligned models.ErrorCode = "subscription_billing_starts_at_not_aligned"
+
+var ErrSubscriptionBillingStartsAtNotAligned = models.NewValidationIssue(
+	ErrCodeSubscriptionBillingStartsAtNotAligned,
+	"billing must start at the start of a billing period",
+	models.WithFieldString("billingStartsAt"),
+	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+)
+
 // Phase
 
 const ErrCodeSubscriptionPhaseStartAfterIsNegative models.ErrorCode = "subscription_phase_start_after_is_negative"
