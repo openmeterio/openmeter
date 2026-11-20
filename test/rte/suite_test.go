@@ -32,6 +32,7 @@ func (s *RTEIntegrationSuite) newRTE() rte.Service {
 		s.Entitlements,
 		testutils.NewDiscardLogger(s.T()),
 		config.CreditsConfiguration{Enabled: true},
+		config.RTEConfiguration{},
 		eventbus.NewMock(s.T()),
 		noop.NewMeterProvider().Meter("test"),
 	)

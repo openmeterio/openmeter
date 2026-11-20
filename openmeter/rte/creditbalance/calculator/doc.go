@@ -4,7 +4,7 @@
 // included. RTE's calculation start orders stored results. Passing it to the
 // source as a historical cutoff would change the meaning of Live.
 //
-// Each calculator instance owns a bounded per-charge rating cache. The source
+// A calculator can opt into a bounded per-charge rating cache. The source
 // still reads current quantities and charge inputs on every execution. Identical
 // rating inputs can reuse a successful total across calls on that instance.
 package calculator

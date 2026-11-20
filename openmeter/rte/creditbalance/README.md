@@ -25,5 +25,5 @@ and `Pending`. The calculation time belongs to the enclosing RTE state. See
 advance debt and the difference between amounts.
 
 RTE requests a current calculation so live usage is included. Each run reads fresh usage.
-When the quantity and pricing inputs for an open charge are identical, the calculator can
-reuse its previous rating total. [Per-charge rating cache](../../billing/charges/usagebased/service/rating/README.md)
+If `rte.reuseRatingTotals` is enabled, the calculator can reuse an open charge’s previous
+rating total when its quantity and pricing inputs match. [Per-charge rating cache](../../billing/charges/usagebased/service/rating/README.md)

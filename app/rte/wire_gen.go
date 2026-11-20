@@ -502,7 +502,7 @@ func Initialize(ctx context.Context, conf config.Configuration, metadata common.
 		cleanup()
 		return Application{}, nil, err
 	}
-	rteService, err := common.NewRTEService(client, customerbalanceService, entitlement, logger, creditsConfiguration, eventbusPublisher, meter)
+	rteService, err := common.NewRTEService(client, customerbalanceService, entitlement, logger, creditsConfiguration, rteConfiguration, eventbusPublisher, meter)
 	if err != nil {
 		cleanup10()
 		cleanup9()

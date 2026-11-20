@@ -19,6 +19,7 @@ type Source interface {
 type Config struct {
 	Source              Source
 	Logger              *slog.Logger
+	RatingReuse         *usagebasedrating.TotalsReuse
 	RatingReuseObserver func(context.Context, bool)
 }
 
@@ -41,15 +42,10 @@ func New(config Config) (rte.Calculator[creditbalance.Key, creditbalance.Balance
 		return nil, err
 	}
 
-	reuse, err := usagebasedrating.NewTotalsReuse(256)
-	if err != nil {
-		return nil, err
-	}
-
 	return &calculator{
 		source:              config.Source,
 		logger:              config.Logger,
-		ratingReuse:         reuse,
+		ratingReuse:         config.RatingReuse,
 		ratingReuseObserver: config.RatingReuseObserver,
 	}, nil
 }
@@ -66,7 +62,9 @@ func (c *calculator) Calculate(ctx context.Context, input rte.CalculateInput[cre
 		return creditbalance.Balance{}, err
 	}
 
-	ctx = usagebasedrating.WithTotalsReuse(ctx, c.ratingReuse, c.ratingReuseObserver)
+	if c.ratingReuse != nil {
+		ctx = usagebasedrating.WithTotalsReuse(ctx, c.ratingReuse, c.ratingReuseObserver)
+	}
 
 	// Leave AsOf unset: historical queries intentionally omit live usage.
 	balance, err := c.source.GetBalance(ctx, customerbalance.GetBalanceServiceInput{

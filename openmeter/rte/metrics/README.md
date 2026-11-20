@@ -25,7 +25,7 @@ inside the measured operation.
 | `rte.upstream.events` | Counter | `event`, `outcome` | Supported source-event handling: `routed`, `no_target` or `error`. `event` is the event type, never its ID. |
 | `rte.upstream.lag` | Histogram / s | `event` | Time from the CloudEvent's publication timestamp to handling, when that timestamp exists. Does not measure the age of the underlying usage. |
 | `rte.upstream.routing.duration` | Histogram / s | `event`, `outcome` | Target resolution and invalidation, after any stored-usage visibility wait. Includes routing that finds no target. |
-| `rte.rating.lookups` | Counter | `outcome` | Per-charge rating reuse: `hit` or `miss`. Fresh usage is still queried before lookup; a hit only avoids rating work. |
+| `rte.rating.lookups` | Counter | `outcome` | With `rte.reuseRatingTotals` enabled, per-charge rating reuse: `hit` or `miss`. Fresh usage is still queried before lookup; a hit only avoids rating work. |
 | `rte.comparison.publications` | Counter | `event`, `kind`, `operation`, `outcome` | Producer-side observation/source publication outcomes. `event` is `observation` or `source`; source facts have empty `kind` and `operation`. |
 | `rte.comparison.executions` | Counter | `kind`, `operation`, `outcome` | Worker-side shadow replays: `success`, `error` or `expired`. |
 | `rte.comparison.duration` | Histogram / ms | `kind`, `operation`, `variant` | Paired successful production and RTE timings, with `variant=direct` and `variant=rte`. |
