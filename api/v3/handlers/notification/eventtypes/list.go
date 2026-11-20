@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sort"
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
@@ -121,9 +122,14 @@ func (h *handler) ListNotificationEventTypes() ListNotificationEventTypesHandler
 				to = index
 			}
 
-			matching := make([]v4.EventTypeDefinition, 0)
+			// Filter the whole order, remembering each match's position in it, so
+			// the page edges can tell whether any match lies beyond them.
+			var (
+				matching  []v4.EventTypeDefinition
+				positions []int
+			)
 
-			for _, d := range definitions[from:to] {
+			for i, d := range definitions {
 				if req.Type != nil {
 					ok, err := req.Type.Match(d.EventType.String())
 					if err != nil {
@@ -136,18 +142,24 @@ func (h *handler) ListNotificationEventTypes() ListNotificationEventTypesHandler
 				}
 
 				matching = append(matching, d)
+				positions = append(positions, i)
 			}
+
+			// The matches inside [from, to) are matching[windowStart:windowEnd].
+			windowStart := sort.SearchInts(positions, from)
+			windowEnd := sort.SearchInts(positions, to)
 
 			// A before page ends right before the cursor, so it takes the last
-			// items; an after page or the first page takes the first ones.
-			page := matching[:min(req.PageSize, len(matching))]
-			hasPrevious := req.After != nil
-			hasNext := len(matching) > req.PageSize || req.Before != nil
-
+			// matches of the window; an after page or the first page takes the
+			// first ones.
+			start, end := windowStart, min(windowStart+req.PageSize, windowEnd)
 			if req.Before != nil {
-				page = matching[max(len(matching)-req.PageSize, 0):]
-				hasPrevious = len(matching) > req.PageSize
+				start, end = max(windowEnd-req.PageSize, windowStart), windowEnd
 			}
+
+			page := matching[start:end]
+			hasPrevious := start > 0
+			hasNext := end < len(matching)
 
 			resp := ListNotificationEventTypesResponse{
 				Data: lo.Map(page, func(d v4.EventTypeDefinition, _ int) apiv3models.BillingNotificationEventTypeSummary {
