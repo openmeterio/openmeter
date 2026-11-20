@@ -12,7 +12,7 @@ import (
 )
 
 type Config struct {
-	Adapter subscriptionsync.SyncStateV2Adapter
+	Adapter subscriptionsync.SyncStateAdapter
 	Logger  *slog.Logger
 }
 
@@ -31,7 +31,7 @@ func (c Config) Validate() error {
 
 type Hook struct {
 	subscription.NoOpSubscriptionCommandHook
-	adapter subscriptionsync.SyncStateV2Adapter
+	adapter subscriptionsync.SyncStateAdapter
 	logger  *slog.Logger
 }
 
@@ -66,7 +66,7 @@ func (h *Hook) AfterDelete(ctx context.Context, subscriptionID models.Namespaced
 }
 
 func (h *Hook) markChanged(ctx context.Context, subscriptionID models.NamespacedID) error {
-	if err := h.adapter.MarkSubscriptionChangedV2(ctx, subscriptionID); err != nil {
+	if err := h.adapter.MarkSubscriptionChanged(ctx, subscriptionID); err != nil {
 		return fmt.Errorf("recording subscription change for sync: %w", err)
 	}
 

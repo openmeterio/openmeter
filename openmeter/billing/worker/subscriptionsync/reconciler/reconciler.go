@@ -213,7 +213,7 @@ func (r *Reconciler) All(ctx context.Context, in ReconcilerAllInput) error {
 		selected += len(page)
 
 		// Logged per page, so a large backlog (for example the first run after
-		// switching to v2 scheduling) can be watched draining.
+		// moving scheduling to the sync-state table) can be watched draining.
 		r.logger.InfoContext(ctx, "reconciling a page of subscriptions",
 			slog.Int("page_size", len(page)),
 			slog.Int("selected_so_far", selected),

@@ -194,9 +194,9 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 		}
 
 		return withBillingLock(ctx, s, customerID, func(ctx context.Context) (*synchronizeSubscriptionResult, error) {
-			syncStates, err := s.subscriptionSyncAdapter.GetSyncStatesV2(ctx, subscriptionsync.GetSyncStatesV2Input{subscriptionID})
+			syncStates, err := s.subscriptionSyncAdapter.GetSyncStates(ctx, subscriptionsync.GetSyncStatesInput{subscriptionID})
 			if err != nil {
-				return nil, fmt.Errorf("getting subscription sync state v2: %w", err)
+				return nil, fmt.Errorf("getting subscription sync state: %w", err)
 			}
 
 			// Capture the revision before reading billing intent. A change committed
@@ -250,15 +250,15 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 
 			customer := customerProfile.Customer
 
-			var cleanupState subscriptionsync.SyncStateV2State
+			var cleanupState subscriptionsync.SyncStateState
 			switch {
 			case subs.DeletedAt != nil:
 				// Intentionally differs from IsDeleted(); see "Race between billing collection and subscription deletion cleanup" in ../README.md.
-				cleanupState = subscriptionsync.SyncStateV2StateSubscriptionDeleted
+				cleanupState = subscriptionsync.SyncStateStateSubscriptionDeleted
 			case customer.DeletedAt != nil && !subs.ActiveFrom.Before(*customer.DeletedAt):
 				// This subscription cannot provide service to the deleted customer. Remove
 				// any lines generated before deletion so billing collection cannot invoice them.
-				cleanupState = subscriptionsync.SyncStateV2StateCustomerDeletedBefore
+				cleanupState = subscriptionsync.SyncStateStateCustomerDeletedBefore
 			}
 
 			now := clock.Now().UTC()
@@ -268,9 +268,9 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			if cleanupState == "" && !options.ForceResyncOldSubscriptions && subs.ActiveTo != nil && subs.ActiveTo.Before(now.Add(-oldSubscriptionSyncThreshold)) {
 				s.logger.InfoContext(ctx, "skipping subscription sync because it ended more than 30 days ago", "subscription_id", subscriptionID.ID, "active_to", *subs.ActiveTo)
 				if !options.DryRun {
-					if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, subscriptionsync.RecordSyncResultV2Input{
+					if err := s.subscriptionSyncAdapter.RecordSyncResult(ctx, subscriptionsync.RecordSyncResultInput{
 						SubscriptionID:         subscriptionID,
-						LastSuccessState:       subscriptionsync.SyncStateV2StateTooOld,
+						LastSuccessState:       subscriptionsync.SyncStateStateTooOld,
 						LastSuccessAt:          clock.Now().UTC(),
 						LastSyncedSubsRevision: subsRevision,
 					}); err != nil {
@@ -332,7 +332,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				return res, nil
 			}
 
-			result := subscriptionsync.RecordSyncResultV2Input{
+			result := subscriptionsync.RecordSyncResultInput{
 				SubscriptionID:         subscriptionID,
 				LastSuccessState:       cleanupState,
 				LastSuccessAt:          clock.Now().UTC(),
@@ -346,9 +346,9 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 				// Customer deletion can end billing before the subscription's own ActiveTo.
 				// Record completion only once both the worker clock and AsOf cover that end.
 				case billingEndsAt != nil && !billingEndsAt.After(now) && !billingEndsAt.After(asOf):
-					result.LastSuccessState = subscriptionsync.SyncStateV2StateEnded
+					result.LastSuccessState = subscriptionsync.SyncStateStateEnded
 				case !subsView.Spec.HasBillables():
-					result.LastSuccessState = subscriptionsync.SyncStateV2StateNoBillables
+					result.LastSuccessState = subscriptionsync.SyncStateStateNoBillables
 				default:
 					generatedUntil := linesDiff.SubscriptionMaxGenerationTimeLimit
 					if generatedUntil.IsZero() {
@@ -360,7 +360,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 						generatedUntil = subsView.Spec.ActiveFrom
 					}
 
-					result.LastSuccessState = subscriptionsync.SyncStateV2StateActive
+					result.LastSuccessState = subscriptionsync.SyncStateStateActive
 
 					if billingEndsAt != nil && !generatedUntil.Before(*billingEndsAt) {
 						// Generation already covers the rest of billing, for example when the sync
@@ -392,7 +392,7 @@ func (s *Service) synchronizeSubscription(ctx context.Context, in synchronizeSub
 			}
 
 			// Record success even for an empty plan, together with billing changes.
-			if err := s.subscriptionSyncAdapter.RecordSyncResultV2(ctx, result); err != nil {
+			if err := s.subscriptionSyncAdapter.RecordSyncResult(ctx, result); err != nil {
 				return nil, fmt.Errorf("recording subscription sync result: %w", err)
 			}
 

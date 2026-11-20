@@ -1005,18 +1005,6 @@ func (f SubscriptionAddonQuantityFunc) Mutate(ctx context.Context, m db.Mutation
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionAddonQuantityMutation", m)
 }
 
-// The SubscriptionBillingSyncStateFunc type is an adapter to allow the use of ordinary
-// function as SubscriptionBillingSyncState mutator.
-type SubscriptionBillingSyncStateFunc func(context.Context, *db.SubscriptionBillingSyncStateMutation) (db.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f SubscriptionBillingSyncStateFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.SubscriptionBillingSyncStateMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionBillingSyncStateMutation", m)
-}
-
 // The SubscriptionCostBasisPinFunc type is an adapter to allow the use of ordinary
 // function as SubscriptionCostBasisPin mutator.
 type SubscriptionCostBasisPinFunc func(context.Context, *db.SubscriptionCostBasisPinMutation) (db.Value, error)
@@ -1053,16 +1041,16 @@ func (f SubscriptionPhaseFunc) Mutate(ctx context.Context, m db.Mutation) (db.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionPhaseMutation", m)
 }
 
-// The SubscriptionSyncStateV2Func type is an adapter to allow the use of ordinary
-// function as SubscriptionSyncStateV2 mutator.
-type SubscriptionSyncStateV2Func func(context.Context, *db.SubscriptionSyncStateV2Mutation) (db.Value, error)
+// The SubscriptionSyncStateFunc type is an adapter to allow the use of ordinary
+// function as SubscriptionSyncState mutator.
+type SubscriptionSyncStateFunc func(context.Context, *db.SubscriptionSyncStateMutation) (db.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f SubscriptionSyncStateV2Func) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.SubscriptionSyncStateV2Mutation); ok {
+func (f SubscriptionSyncStateFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.SubscriptionSyncStateMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionSyncStateV2Mutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.SubscriptionSyncStateMutation", m)
 }
 
 // The TaxCodeFunc type is an adapter to allow the use of ordinary

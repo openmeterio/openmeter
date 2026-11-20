@@ -174,15 +174,15 @@ same plan but only logs it and does not write artifacts or sync state.
 
 ## Sync state
 
-The v2 sync-state table (`subscription_sync_states_v2`) keeps the last recorded
+The sync-state table (`subscription_sync_states_v2`) keeps the last recorded
 outcome and subscription revisions. Periodic reconciliation schedules from it; see
-[Periodic reconciliation](#periodic-reconciliation). The legacy
-`subscription_billing_sync_states` table is no longer read or written and will be
-dropped once no deployed version uses it.
+[Periodic reconciliation](#periodic-reconciliation). The table keeps its `_v2`
+suffix from when it replaced the legacy `subscription_billing_sync_states` table,
+which has since been dropped.
 
 The states are:
 
-- `new`: no v2 outcome has been recorded; `last_success_at` is NULL.
+- `new`: no outcome has been recorded; `last_success_at` is NULL.
 - `active`: ordinary reconciliation succeeded. This also covers scheduled subscriptions with billables; it is not the subscription's lifecycle status.
 - `no_billables`: reconciliation succeeded and no phase contains billable items. No next reconciliation is scheduled. Free phases followed by paid phases and one-time fees waiting for cancellation still have billables.
 - `subscription_deleted`: an empty billing target was reconciled for a deleted subscription.
@@ -198,7 +198,7 @@ Exactly 30 days old remains eligible for normal reconciliation.
 
 Sync writes reconciliation outcomes in the same transaction as billing changes,
 even when the plan was empty. Both a missing row and
-`new` mean no v2 outcome has been recorded. Other states require a non-NULL
+`new` mean no outcome has been recorded. Other states require a non-NULL
 `last_success_at`. Dry runs and failed syncs do not record outcomes.
 
 An `active` result requires `next_reconciliation_at`, enforced by domain validation
@@ -220,7 +220,7 @@ period containing `asOf`.
   intended: the subscription stays due until a sync with a current `AsOf` catches up.
 
 Subscription create, update, cancel, continue, and delete hooks mark changes in
-the subscription command's transaction. If no v2 row exists, the hook inserts
+the subscription command's transaction. If no row exists, the hook inserts
 `new` with no success timestamp and initializes both revisions to the same ULID.
 Equal revisions on a `new` row do not mean it was reconciled. For an existing row,
 the hook advances only `current_subs_revision` and `updated_at`, preserving the
@@ -228,11 +228,11 @@ previous outcome, success timestamp, and last synced revision. A failed marker
 write rolls back the subscription command. Annotation-only writes do not mark
 changes because root annotations do not affect subscription billing.
 
-Each sync reads v2 state after acquiring the customer billing lock and before
-reading the subscription view. `current_subs_revision` identifies the subscription
+Each sync reads the sync state after acquiring the customer billing lock and
+before reading the subscription view. `current_subs_revision` identifies the subscription
 revision to reconcile; `last_synced_subs_revision` records the revision observed
 at the start of the recorded sync outcome, including intentional age skips.
-Both revisions are required on every v2 row. For subscriptions without a v2 row,
+Both revisions are required on every row. For subscriptions without a row,
 sync generates a ULID and recording the outcome inserts it into both columns.
 On conflict, it updates the result, deadline, and last synced revision; the current
 revision is never overwritten by sync. Every successful reconciliation records
@@ -288,8 +288,8 @@ until cleanup succeeds.
 
 Known limits of this selection:
 
-- A subscription without a row predates v2 state, so the first run after the
-  switch from legacy scheduling syncs every such subscription in the lookback once.
+- A subscription without a row predates sync-state tracking, so the first run
+  after the switch from legacy scheduling syncs every such subscription in the lookback once.
 - The lookback defaults to 30 days, the same age after which sync skips an ended
   subscription as `too_old`. An ended subscription whose final sync is missed for
   longer than the lookback is not listed again until the job runs with a wider
@@ -351,7 +351,7 @@ from subsequent polls.
 
 Sync reloads the subscription after acquiring the customer billing lock so a
 waiting sync cannot recreate lines from a view read before deletion cleanup.
-Cleanup and its v2 completion record share that transaction. Existing
+Cleanup and its completion record share that transaction. Existing
 immutable-invoice rules still apply if billing collection finishes first.
 
 ## Intentional limitations

@@ -100,11 +100,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
@@ -252,11 +251,10 @@ func checkColumn(t, c string) error {
 			subscription.Table:                                     subscription.ValidColumn,
 			subscriptionaddon.Table:                                subscriptionaddon.ValidColumn,
 			subscriptionaddonquantity.Table:                        subscriptionaddonquantity.ValidColumn,
-			subscriptionbillingsyncstate.Table:                     subscriptionbillingsyncstate.ValidColumn,
 			subscriptioncostbasispin.Table:                         subscriptioncostbasispin.ValidColumn,
 			subscriptionitem.Table:                                 subscriptionitem.ValidColumn,
 			subscriptionphase.Table:                                subscriptionphase.ValidColumn,
-			subscriptionsyncstatev2.Table:                          subscriptionsyncstatev2.ValidColumn,
+			subscriptionsyncstate.Table:                            subscriptionsyncstate.ValidColumn,
 			dbtaxcode.Table:                                        dbtaxcode.ValidColumn,
 			usagereset.Table:                                       usagereset.ValidColumn,
 		})

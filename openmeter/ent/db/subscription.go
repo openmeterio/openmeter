@@ -13,8 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -90,15 +89,13 @@ type SubscriptionEdges struct {
 	ChargesFlatFee []*ChargeFlatFee `json:"charges_flat_fee,omitempty"`
 	// Addons holds the value of the addons edge.
 	Addons []*SubscriptionAddon `json:"addons,omitempty"`
-	// SyncStateV2 holds the value of the sync_state_v2 edge.
-	SyncStateV2 *SubscriptionSyncStateV2 `json:"sync_state_v2,omitempty"`
-	// BillingSyncState holds the value of the billing_sync_state edge.
-	BillingSyncState *SubscriptionBillingSyncState `json:"billing_sync_state,omitempty"`
+	// SyncState holds the value of the sync_state edge.
+	SyncState *SubscriptionSyncState `json:"sync_state,omitempty"`
 	// CostBasisPins holds the value of the cost_basis_pins edge.
 	CostBasisPins []*SubscriptionCostBasisPin `json:"cost_basis_pins,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [13]bool
+	loadedTypes [12]bool
 }
 
 // PlanOrErr returns the Plan value or an error if the edge
@@ -195,32 +192,21 @@ func (e SubscriptionEdges) AddonsOrErr() ([]*SubscriptionAddon, error) {
 	return nil, &NotLoadedError{edge: "addons"}
 }
 
-// SyncStateV2OrErr returns the SyncStateV2 value or an error if the edge
+// SyncStateOrErr returns the SyncState value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e SubscriptionEdges) SyncStateV2OrErr() (*SubscriptionSyncStateV2, error) {
-	if e.SyncStateV2 != nil {
-		return e.SyncStateV2, nil
+func (e SubscriptionEdges) SyncStateOrErr() (*SubscriptionSyncState, error) {
+	if e.SyncState != nil {
+		return e.SyncState, nil
 	} else if e.loadedTypes[10] {
-		return nil, &NotFoundError{label: subscriptionsyncstatev2.Label}
+		return nil, &NotFoundError{label: subscriptionsyncstate.Label}
 	}
-	return nil, &NotLoadedError{edge: "sync_state_v2"}
-}
-
-// BillingSyncStateOrErr returns the BillingSyncState value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e SubscriptionEdges) BillingSyncStateOrErr() (*SubscriptionBillingSyncState, error) {
-	if e.BillingSyncState != nil {
-		return e.BillingSyncState, nil
-	} else if e.loadedTypes[11] {
-		return nil, &NotFoundError{label: subscriptionbillingsyncstate.Label}
-	}
-	return nil, &NotLoadedError{edge: "billing_sync_state"}
+	return nil, &NotLoadedError{edge: "sync_state"}
 }
 
 // CostBasisPinsOrErr returns the CostBasisPins value or an error if the edge
 // was not loaded in eager-loading.
 func (e SubscriptionEdges) CostBasisPinsOrErr() ([]*SubscriptionCostBasisPin, error) {
-	if e.loadedTypes[12] {
+	if e.loadedTypes[11] {
 		return e.CostBasisPins, nil
 	}
 	return nil, &NotLoadedError{edge: "cost_basis_pins"}
@@ -439,14 +425,9 @@ func (_m *Subscription) QueryAddons() *SubscriptionAddonQuery {
 	return NewSubscriptionClient(_m.config).QueryAddons(_m)
 }
 
-// QuerySyncStateV2 queries the "sync_state_v2" edge of the Subscription entity.
-func (_m *Subscription) QuerySyncStateV2() *SubscriptionSyncStateV2Query {
-	return NewSubscriptionClient(_m.config).QuerySyncStateV2(_m)
-}
-
-// QueryBillingSyncState queries the "billing_sync_state" edge of the Subscription entity.
-func (_m *Subscription) QueryBillingSyncState() *SubscriptionBillingSyncStateQuery {
-	return NewSubscriptionClient(_m.config).QueryBillingSyncState(_m)
+// QuerySyncState queries the "sync_state" edge of the Subscription entity.
+func (_m *Subscription) QuerySyncState() *SubscriptionSyncStateQuery {
+	return NewSubscriptionClient(_m.config).QuerySyncState(_m)
 }
 
 // QueryCostBasisPins queries the "cost_basis_pins" edge of the Subscription entity.

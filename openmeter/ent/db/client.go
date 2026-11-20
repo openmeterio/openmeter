@@ -98,11 +98,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 
@@ -282,16 +281,14 @@ type Client struct {
 	SubscriptionAddon *SubscriptionAddonClient
 	// SubscriptionAddonQuantity is the client for interacting with the SubscriptionAddonQuantity builders.
 	SubscriptionAddonQuantity *SubscriptionAddonQuantityClient
-	// SubscriptionBillingSyncState is the client for interacting with the SubscriptionBillingSyncState builders.
-	SubscriptionBillingSyncState *SubscriptionBillingSyncStateClient
 	// SubscriptionCostBasisPin is the client for interacting with the SubscriptionCostBasisPin builders.
 	SubscriptionCostBasisPin *SubscriptionCostBasisPinClient
 	// SubscriptionItem is the client for interacting with the SubscriptionItem builders.
 	SubscriptionItem *SubscriptionItemClient
 	// SubscriptionPhase is the client for interacting with the SubscriptionPhase builders.
 	SubscriptionPhase *SubscriptionPhaseClient
-	// SubscriptionSyncStateV2 is the client for interacting with the SubscriptionSyncStateV2 builders.
-	SubscriptionSyncStateV2 *SubscriptionSyncStateV2Client
+	// SubscriptionSyncState is the client for interacting with the SubscriptionSyncState builders.
+	SubscriptionSyncState *SubscriptionSyncStateClient
 	// TaxCode is the client for interacting with the TaxCode builders.
 	TaxCode *TaxCodeClient
 	// UsageReset is the client for interacting with the UsageReset builders.
@@ -391,11 +388,10 @@ func (c *Client) init() {
 	c.Subscription = NewSubscriptionClient(c.config)
 	c.SubscriptionAddon = NewSubscriptionAddonClient(c.config)
 	c.SubscriptionAddonQuantity = NewSubscriptionAddonQuantityClient(c.config)
-	c.SubscriptionBillingSyncState = NewSubscriptionBillingSyncStateClient(c.config)
 	c.SubscriptionCostBasisPin = NewSubscriptionCostBasisPinClient(c.config)
 	c.SubscriptionItem = NewSubscriptionItemClient(c.config)
 	c.SubscriptionPhase = NewSubscriptionPhaseClient(c.config)
-	c.SubscriptionSyncStateV2 = NewSubscriptionSyncStateV2Client(c.config)
+	c.SubscriptionSyncState = NewSubscriptionSyncStateClient(c.config)
 	c.TaxCode = NewTaxCodeClient(c.config)
 	c.UsageReset = NewUsageResetClient(c.config)
 }
@@ -574,11 +570,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Subscription:                                     NewSubscriptionClient(cfg),
 		SubscriptionAddon:                                NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:                        NewSubscriptionAddonQuantityClient(cfg),
-		SubscriptionBillingSyncState:                     NewSubscriptionBillingSyncStateClient(cfg),
 		SubscriptionCostBasisPin:                         NewSubscriptionCostBasisPinClient(cfg),
 		SubscriptionItem:                                 NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                                NewSubscriptionPhaseClient(cfg),
-		SubscriptionSyncStateV2:                          NewSubscriptionSyncStateV2Client(cfg),
+		SubscriptionSyncState:                            NewSubscriptionSyncStateClient(cfg),
 		TaxCode:                                          NewTaxCodeClient(cfg),
 		UsageReset:                                       NewUsageResetClient(cfg),
 	}, nil
@@ -684,11 +679,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Subscription:                                     NewSubscriptionClient(cfg),
 		SubscriptionAddon:                                NewSubscriptionAddonClient(cfg),
 		SubscriptionAddonQuantity:                        NewSubscriptionAddonQuantityClient(cfg),
-		SubscriptionBillingSyncState:                     NewSubscriptionBillingSyncStateClient(cfg),
 		SubscriptionCostBasisPin:                         NewSubscriptionCostBasisPinClient(cfg),
 		SubscriptionItem:                                 NewSubscriptionItemClient(cfg),
 		SubscriptionPhase:                                NewSubscriptionPhaseClient(cfg),
-		SubscriptionSyncStateV2:                          NewSubscriptionSyncStateV2Client(cfg),
+		SubscriptionSyncState:                            NewSubscriptionSyncStateClient(cfg),
 		TaxCode:                                          NewTaxCodeClient(cfg),
 		UsageReset:                                       NewUsageResetClient(cfg),
 	}, nil
@@ -750,9 +744,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase,
-		c.SubscriptionSyncStateV2, c.TaxCode, c.UsageReset,
+		c.SubscriptionAddonQuantity, c.SubscriptionCostBasisPin, c.SubscriptionItem,
+		c.SubscriptionPhase, c.SubscriptionSyncState, c.TaxCode, c.UsageReset,
 	} {
 		n.Use(hooks...)
 	}
@@ -792,9 +785,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.NotificationEventDeliveryStatus, c.NotificationRule,
 		c.OrganizationDefaultTaxCodes, c.Plan, c.PlanAddon, c.PlanPhase,
 		c.PlanRateCard, c.Subject, c.Subscription, c.SubscriptionAddon,
-		c.SubscriptionAddonQuantity, c.SubscriptionBillingSyncState,
-		c.SubscriptionCostBasisPin, c.SubscriptionItem, c.SubscriptionPhase,
-		c.SubscriptionSyncStateV2, c.TaxCode, c.UsageReset,
+		c.SubscriptionAddonQuantity, c.SubscriptionCostBasisPin, c.SubscriptionItem,
+		c.SubscriptionPhase, c.SubscriptionSyncState, c.TaxCode, c.UsageReset,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -969,16 +961,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SubscriptionAddon.mutate(ctx, m)
 	case *SubscriptionAddonQuantityMutation:
 		return c.SubscriptionAddonQuantity.mutate(ctx, m)
-	case *SubscriptionBillingSyncStateMutation:
-		return c.SubscriptionBillingSyncState.mutate(ctx, m)
 	case *SubscriptionCostBasisPinMutation:
 		return c.SubscriptionCostBasisPin.mutate(ctx, m)
 	case *SubscriptionItemMutation:
 		return c.SubscriptionItem.mutate(ctx, m)
 	case *SubscriptionPhaseMutation:
 		return c.SubscriptionPhase.mutate(ctx, m)
-	case *SubscriptionSyncStateV2Mutation:
-		return c.SubscriptionSyncStateV2.mutate(ctx, m)
+	case *SubscriptionSyncStateMutation:
+		return c.SubscriptionSyncState.mutate(ctx, m)
 	case *TaxCodeMutation:
 		return c.TaxCode.mutate(ctx, m)
 	case *UsageResetMutation:
@@ -16438,31 +16428,15 @@ func (c *SubscriptionClient) QueryAddons(_m *Subscription) *SubscriptionAddonQue
 	return query
 }
 
-// QuerySyncStateV2 queries the sync_state_v2 edge of a Subscription.
-func (c *SubscriptionClient) QuerySyncStateV2(_m *Subscription) *SubscriptionSyncStateV2Query {
-	query := (&SubscriptionSyncStateV2Client{config: c.config}).Query()
+// QuerySyncState queries the sync_state edge of a Subscription.
+func (c *SubscriptionClient) QuerySyncState(_m *Subscription) *SubscriptionSyncStateQuery {
+	query := (&SubscriptionSyncStateClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscription.Table, subscription.FieldID, id),
-			sqlgraph.To(subscriptionsyncstatev2.Table, subscriptionsyncstatev2.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, subscription.SyncStateV2Table, subscription.SyncStateV2Column),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryBillingSyncState queries the billing_sync_state edge of a Subscription.
-func (c *SubscriptionClient) QueryBillingSyncState(_m *Subscription) *SubscriptionBillingSyncStateQuery {
-	query := (&SubscriptionBillingSyncStateClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscription.Table, subscription.FieldID, id),
-			sqlgraph.To(subscriptionbillingsyncstate.Table, subscriptionbillingsyncstate.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, subscription.BillingSyncStateTable, subscription.BillingSyncStateColumn),
+			sqlgraph.To(subscriptionsyncstate.Table, subscriptionsyncstate.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, subscription.SyncStateTable, subscription.SyncStateColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -16838,155 +16812,6 @@ func (c *SubscriptionAddonQuantityClient) mutate(ctx context.Context, m *Subscri
 		return (&SubscriptionAddonQuantityDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown SubscriptionAddonQuantity mutation op: %q", m.Op())
-	}
-}
-
-// SubscriptionBillingSyncStateClient is a client for the SubscriptionBillingSyncState schema.
-type SubscriptionBillingSyncStateClient struct {
-	config
-}
-
-// NewSubscriptionBillingSyncStateClient returns a client for the SubscriptionBillingSyncState from the given config.
-func NewSubscriptionBillingSyncStateClient(c config) *SubscriptionBillingSyncStateClient {
-	return &SubscriptionBillingSyncStateClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `subscriptionbillingsyncstate.Hooks(f(g(h())))`.
-func (c *SubscriptionBillingSyncStateClient) Use(hooks ...Hook) {
-	c.hooks.SubscriptionBillingSyncState = append(c.hooks.SubscriptionBillingSyncState, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `subscriptionbillingsyncstate.Intercept(f(g(h())))`.
-func (c *SubscriptionBillingSyncStateClient) Intercept(interceptors ...Interceptor) {
-	c.inters.SubscriptionBillingSyncState = append(c.inters.SubscriptionBillingSyncState, interceptors...)
-}
-
-// Create returns a builder for creating a SubscriptionBillingSyncState entity.
-func (c *SubscriptionBillingSyncStateClient) Create() *SubscriptionBillingSyncStateCreate {
-	mutation := newSubscriptionBillingSyncStateMutation(c.config, OpCreate)
-	return &SubscriptionBillingSyncStateCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of SubscriptionBillingSyncState entities.
-func (c *SubscriptionBillingSyncStateClient) CreateBulk(builders ...*SubscriptionBillingSyncStateCreate) *SubscriptionBillingSyncStateCreateBulk {
-	return &SubscriptionBillingSyncStateCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *SubscriptionBillingSyncStateClient) MapCreateBulk(slice any, setFunc func(*SubscriptionBillingSyncStateCreate, int)) *SubscriptionBillingSyncStateCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &SubscriptionBillingSyncStateCreateBulk{err: fmt.Errorf("calling to SubscriptionBillingSyncStateClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*SubscriptionBillingSyncStateCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &SubscriptionBillingSyncStateCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for SubscriptionBillingSyncState.
-func (c *SubscriptionBillingSyncStateClient) Update() *SubscriptionBillingSyncStateUpdate {
-	mutation := newSubscriptionBillingSyncStateMutation(c.config, OpUpdate)
-	return &SubscriptionBillingSyncStateUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *SubscriptionBillingSyncStateClient) UpdateOne(_m *SubscriptionBillingSyncState) *SubscriptionBillingSyncStateUpdateOne {
-	mutation := newSubscriptionBillingSyncStateMutation(c.config, OpUpdateOne, withSubscriptionBillingSyncState(_m))
-	return &SubscriptionBillingSyncStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *SubscriptionBillingSyncStateClient) UpdateOneID(id string) *SubscriptionBillingSyncStateUpdateOne {
-	mutation := newSubscriptionBillingSyncStateMutation(c.config, OpUpdateOne, withSubscriptionBillingSyncStateID(id))
-	return &SubscriptionBillingSyncStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for SubscriptionBillingSyncState.
-func (c *SubscriptionBillingSyncStateClient) Delete() *SubscriptionBillingSyncStateDelete {
-	mutation := newSubscriptionBillingSyncStateMutation(c.config, OpDelete)
-	return &SubscriptionBillingSyncStateDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *SubscriptionBillingSyncStateClient) DeleteOne(_m *SubscriptionBillingSyncState) *SubscriptionBillingSyncStateDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *SubscriptionBillingSyncStateClient) DeleteOneID(id string) *SubscriptionBillingSyncStateDeleteOne {
-	builder := c.Delete().Where(subscriptionbillingsyncstate.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &SubscriptionBillingSyncStateDeleteOne{builder}
-}
-
-// Query returns a query builder for SubscriptionBillingSyncState.
-func (c *SubscriptionBillingSyncStateClient) Query() *SubscriptionBillingSyncStateQuery {
-	return &SubscriptionBillingSyncStateQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeSubscriptionBillingSyncState},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a SubscriptionBillingSyncState entity by its id.
-func (c *SubscriptionBillingSyncStateClient) Get(ctx context.Context, id string) (*SubscriptionBillingSyncState, error) {
-	return c.Query().Where(subscriptionbillingsyncstate.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *SubscriptionBillingSyncStateClient) GetX(ctx context.Context, id string) *SubscriptionBillingSyncState {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// QuerySubscription queries the subscription edge of a SubscriptionBillingSyncState.
-func (c *SubscriptionBillingSyncStateClient) QuerySubscription(_m *SubscriptionBillingSyncState) *SubscriptionQuery {
-	query := (&SubscriptionClient{config: c.config}).Query()
-	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := _m.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionbillingsyncstate.Table, subscriptionbillingsyncstate.FieldID, id),
-			sqlgraph.To(subscription.Table, subscription.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionbillingsyncstate.SubscriptionTable, subscriptionbillingsyncstate.SubscriptionColumn),
-		)
-		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// Hooks returns the client hooks.
-func (c *SubscriptionBillingSyncStateClient) Hooks() []Hook {
-	return c.hooks.SubscriptionBillingSyncState
-}
-
-// Interceptors returns the client interceptors.
-func (c *SubscriptionBillingSyncStateClient) Interceptors() []Interceptor {
-	return c.inters.SubscriptionBillingSyncState
-}
-
-func (c *SubscriptionBillingSyncStateClient) mutate(ctx context.Context, m *SubscriptionBillingSyncStateMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&SubscriptionBillingSyncStateCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&SubscriptionBillingSyncStateUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&SubscriptionBillingSyncStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&SubscriptionBillingSyncStateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("db: unknown SubscriptionBillingSyncState mutation op: %q", m.Op())
 	}
 }
 
@@ -17725,107 +17550,107 @@ func (c *SubscriptionPhaseClient) mutate(ctx context.Context, m *SubscriptionPha
 	}
 }
 
-// SubscriptionSyncStateV2Client is a client for the SubscriptionSyncStateV2 schema.
-type SubscriptionSyncStateV2Client struct {
+// SubscriptionSyncStateClient is a client for the SubscriptionSyncState schema.
+type SubscriptionSyncStateClient struct {
 	config
 }
 
-// NewSubscriptionSyncStateV2Client returns a client for the SubscriptionSyncStateV2 from the given config.
-func NewSubscriptionSyncStateV2Client(c config) *SubscriptionSyncStateV2Client {
-	return &SubscriptionSyncStateV2Client{config: c}
+// NewSubscriptionSyncStateClient returns a client for the SubscriptionSyncState from the given config.
+func NewSubscriptionSyncStateClient(c config) *SubscriptionSyncStateClient {
+	return &SubscriptionSyncStateClient{config: c}
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `subscriptionsyncstatev2.Hooks(f(g(h())))`.
-func (c *SubscriptionSyncStateV2Client) Use(hooks ...Hook) {
-	c.hooks.SubscriptionSyncStateV2 = append(c.hooks.SubscriptionSyncStateV2, hooks...)
+// A call to `Use(f, g, h)` equals to `subscriptionsyncstate.Hooks(f(g(h())))`.
+func (c *SubscriptionSyncStateClient) Use(hooks ...Hook) {
+	c.hooks.SubscriptionSyncState = append(c.hooks.SubscriptionSyncState, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `subscriptionsyncstatev2.Intercept(f(g(h())))`.
-func (c *SubscriptionSyncStateV2Client) Intercept(interceptors ...Interceptor) {
-	c.inters.SubscriptionSyncStateV2 = append(c.inters.SubscriptionSyncStateV2, interceptors...)
+// A call to `Intercept(f, g, h)` equals to `subscriptionsyncstate.Intercept(f(g(h())))`.
+func (c *SubscriptionSyncStateClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SubscriptionSyncState = append(c.inters.SubscriptionSyncState, interceptors...)
 }
 
-// Create returns a builder for creating a SubscriptionSyncStateV2 entity.
-func (c *SubscriptionSyncStateV2Client) Create() *SubscriptionSyncStateV2Create {
-	mutation := newSubscriptionSyncStateV2Mutation(c.config, OpCreate)
-	return &SubscriptionSyncStateV2Create{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Create returns a builder for creating a SubscriptionSyncState entity.
+func (c *SubscriptionSyncStateClient) Create() *SubscriptionSyncStateCreate {
+	mutation := newSubscriptionSyncStateMutation(c.config, OpCreate)
+	return &SubscriptionSyncStateCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// CreateBulk returns a builder for creating a bulk of SubscriptionSyncStateV2 entities.
-func (c *SubscriptionSyncStateV2Client) CreateBulk(builders ...*SubscriptionSyncStateV2Create) *SubscriptionSyncStateV2CreateBulk {
-	return &SubscriptionSyncStateV2CreateBulk{config: c.config, builders: builders}
+// CreateBulk returns a builder for creating a bulk of SubscriptionSyncState entities.
+func (c *SubscriptionSyncStateClient) CreateBulk(builders ...*SubscriptionSyncStateCreate) *SubscriptionSyncStateCreateBulk {
+	return &SubscriptionSyncStateCreateBulk{config: c.config, builders: builders}
 }
 
 // MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
 // a builder and applies setFunc on it.
-func (c *SubscriptionSyncStateV2Client) MapCreateBulk(slice any, setFunc func(*SubscriptionSyncStateV2Create, int)) *SubscriptionSyncStateV2CreateBulk {
+func (c *SubscriptionSyncStateClient) MapCreateBulk(slice any, setFunc func(*SubscriptionSyncStateCreate, int)) *SubscriptionSyncStateCreateBulk {
 	rv := reflect.ValueOf(slice)
 	if rv.Kind() != reflect.Slice {
-		return &SubscriptionSyncStateV2CreateBulk{err: fmt.Errorf("calling to SubscriptionSyncStateV2Client.MapCreateBulk with wrong type %T, need slice", slice)}
+		return &SubscriptionSyncStateCreateBulk{err: fmt.Errorf("calling to SubscriptionSyncStateClient.MapCreateBulk with wrong type %T, need slice", slice)}
 	}
-	builders := make([]*SubscriptionSyncStateV2Create, rv.Len())
+	builders := make([]*SubscriptionSyncStateCreate, rv.Len())
 	for i := 0; i < rv.Len(); i++ {
 		builders[i] = c.Create()
 		setFunc(builders[i], i)
 	}
-	return &SubscriptionSyncStateV2CreateBulk{config: c.config, builders: builders}
+	return &SubscriptionSyncStateCreateBulk{config: c.config, builders: builders}
 }
 
-// Update returns an update builder for SubscriptionSyncStateV2.
-func (c *SubscriptionSyncStateV2Client) Update() *SubscriptionSyncStateV2Update {
-	mutation := newSubscriptionSyncStateV2Mutation(c.config, OpUpdate)
-	return &SubscriptionSyncStateV2Update{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Update returns an update builder for SubscriptionSyncState.
+func (c *SubscriptionSyncStateClient) Update() *SubscriptionSyncStateUpdate {
+	mutation := newSubscriptionSyncStateMutation(c.config, OpUpdate)
+	return &SubscriptionSyncStateUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *SubscriptionSyncStateV2Client) UpdateOne(_m *SubscriptionSyncStateV2) *SubscriptionSyncStateV2UpdateOne {
-	mutation := newSubscriptionSyncStateV2Mutation(c.config, OpUpdateOne, withSubscriptionSyncStateV2(_m))
-	return &SubscriptionSyncStateV2UpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *SubscriptionSyncStateClient) UpdateOne(_m *SubscriptionSyncState) *SubscriptionSyncStateUpdateOne {
+	mutation := newSubscriptionSyncStateMutation(c.config, OpUpdateOne, withSubscriptionSyncState(_m))
+	return &SubscriptionSyncStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *SubscriptionSyncStateV2Client) UpdateOneID(id string) *SubscriptionSyncStateV2UpdateOne {
-	mutation := newSubscriptionSyncStateV2Mutation(c.config, OpUpdateOne, withSubscriptionSyncStateV2ID(id))
-	return &SubscriptionSyncStateV2UpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *SubscriptionSyncStateClient) UpdateOneID(id string) *SubscriptionSyncStateUpdateOne {
+	mutation := newSubscriptionSyncStateMutation(c.config, OpUpdateOne, withSubscriptionSyncStateID(id))
+	return &SubscriptionSyncStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// Delete returns a delete builder for SubscriptionSyncStateV2.
-func (c *SubscriptionSyncStateV2Client) Delete() *SubscriptionSyncStateV2Delete {
-	mutation := newSubscriptionSyncStateV2Mutation(c.config, OpDelete)
-	return &SubscriptionSyncStateV2Delete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Delete returns a delete builder for SubscriptionSyncState.
+func (c *SubscriptionSyncStateClient) Delete() *SubscriptionSyncStateDelete {
+	mutation := newSubscriptionSyncStateMutation(c.config, OpDelete)
+	return &SubscriptionSyncStateDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *SubscriptionSyncStateV2Client) DeleteOne(_m *SubscriptionSyncStateV2) *SubscriptionSyncStateV2DeleteOne {
+func (c *SubscriptionSyncStateClient) DeleteOne(_m *SubscriptionSyncState) *SubscriptionSyncStateDeleteOne {
 	return c.DeleteOneID(_m.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *SubscriptionSyncStateV2Client) DeleteOneID(id string) *SubscriptionSyncStateV2DeleteOne {
-	builder := c.Delete().Where(subscriptionsyncstatev2.ID(id))
+func (c *SubscriptionSyncStateClient) DeleteOneID(id string) *SubscriptionSyncStateDeleteOne {
+	builder := c.Delete().Where(subscriptionsyncstate.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
-	return &SubscriptionSyncStateV2DeleteOne{builder}
+	return &SubscriptionSyncStateDeleteOne{builder}
 }
 
-// Query returns a query builder for SubscriptionSyncStateV2.
-func (c *SubscriptionSyncStateV2Client) Query() *SubscriptionSyncStateV2Query {
-	return &SubscriptionSyncStateV2Query{
+// Query returns a query builder for SubscriptionSyncState.
+func (c *SubscriptionSyncStateClient) Query() *SubscriptionSyncStateQuery {
+	return &SubscriptionSyncStateQuery{
 		config: c.config,
-		ctx:    &QueryContext{Type: TypeSubscriptionSyncStateV2},
+		ctx:    &QueryContext{Type: TypeSubscriptionSyncState},
 		inters: c.Interceptors(),
 	}
 }
 
-// Get returns a SubscriptionSyncStateV2 entity by its id.
-func (c *SubscriptionSyncStateV2Client) Get(ctx context.Context, id string) (*SubscriptionSyncStateV2, error) {
-	return c.Query().Where(subscriptionsyncstatev2.ID(id)).Only(ctx)
+// Get returns a SubscriptionSyncState entity by its id.
+func (c *SubscriptionSyncStateClient) Get(ctx context.Context, id string) (*SubscriptionSyncState, error) {
+	return c.Query().Where(subscriptionsyncstate.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *SubscriptionSyncStateV2Client) GetX(ctx context.Context, id string) *SubscriptionSyncStateV2 {
+func (c *SubscriptionSyncStateClient) GetX(ctx context.Context, id string) *SubscriptionSyncState {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -17833,15 +17658,15 @@ func (c *SubscriptionSyncStateV2Client) GetX(ctx context.Context, id string) *Su
 	return obj
 }
 
-// QuerySubscription queries the subscription edge of a SubscriptionSyncStateV2.
-func (c *SubscriptionSyncStateV2Client) QuerySubscription(_m *SubscriptionSyncStateV2) *SubscriptionQuery {
+// QuerySubscription queries the subscription edge of a SubscriptionSyncState.
+func (c *SubscriptionSyncStateClient) QuerySubscription(_m *SubscriptionSyncState) *SubscriptionQuery {
 	query := (&SubscriptionClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := _m.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionsyncstatev2.Table, subscriptionsyncstatev2.FieldID, id),
+			sqlgraph.From(subscriptionsyncstate.Table, subscriptionsyncstate.FieldID, id),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionsyncstatev2.SubscriptionTable, subscriptionsyncstatev2.SubscriptionColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionsyncstate.SubscriptionTable, subscriptionsyncstate.SubscriptionColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -17850,27 +17675,27 @@ func (c *SubscriptionSyncStateV2Client) QuerySubscription(_m *SubscriptionSyncSt
 }
 
 // Hooks returns the client hooks.
-func (c *SubscriptionSyncStateV2Client) Hooks() []Hook {
-	return c.hooks.SubscriptionSyncStateV2
+func (c *SubscriptionSyncStateClient) Hooks() []Hook {
+	return c.hooks.SubscriptionSyncState
 }
 
 // Interceptors returns the client interceptors.
-func (c *SubscriptionSyncStateV2Client) Interceptors() []Interceptor {
-	return c.inters.SubscriptionSyncStateV2
+func (c *SubscriptionSyncStateClient) Interceptors() []Interceptor {
+	return c.inters.SubscriptionSyncState
 }
 
-func (c *SubscriptionSyncStateV2Client) mutate(ctx context.Context, m *SubscriptionSyncStateV2Mutation) (Value, error) {
+func (c *SubscriptionSyncStateClient) mutate(ctx context.Context, m *SubscriptionSyncStateMutation) (Value, error) {
 	switch m.Op() {
 	case OpCreate:
-		return (&SubscriptionSyncStateV2Create{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&SubscriptionSyncStateCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdate:
-		return (&SubscriptionSyncStateV2Update{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&SubscriptionSyncStateUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdateOne:
-		return (&SubscriptionSyncStateV2UpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&SubscriptionSyncStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpDelete, OpDeleteOne:
-		return (&SubscriptionSyncStateV2Delete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+		return (&SubscriptionSyncStateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
-		return nil, fmt.Errorf("db: unknown SubscriptionSyncStateV2 mutation op: %q", m.Op())
+		return nil, fmt.Errorf("db: unknown SubscriptionSyncState mutation op: %q", m.Op())
 	}
 }
 
@@ -18410,8 +18235,8 @@ type (
 		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
 		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard, Subject,
 		Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
-		SubscriptionBillingSyncState, SubscriptionCostBasisPin, SubscriptionItem,
-		SubscriptionPhase, SubscriptionSyncStateV2, TaxCode, UsageReset []ent.Hook
+		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase,
+		SubscriptionSyncState, TaxCode, UsageReset []ent.Hook
 	}
 	inters struct {
 		Addon, AddonRateCard, App, AppCustomInvoicing, AppCustomInvoicingCustomer,
@@ -18441,9 +18266,8 @@ type (
 		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
 		NotificationRule, OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase,
 		PlanRateCard, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionBillingSyncState,
-		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase,
-		SubscriptionSyncStateV2, TaxCode, UsageReset []ent.Interceptor
+		SubscriptionAddonQuantity, SubscriptionCostBasisPin, SubscriptionItem,
+		SubscriptionPhase, SubscriptionSyncState, TaxCode, UsageReset []ent.Interceptor
 	}
 )
 

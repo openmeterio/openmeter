@@ -36,8 +36,8 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 		},
 	}}
 	syncAdapter := &subscriptionSyncAdapterSpy{
-		statesV2: []subscriptionsync.SyncStateV2Managed{{
-			SyncStateV2: subscriptionsync.SyncStateV2{
+		states: []subscriptionsync.SyncStateManaged{{
+			SyncState: subscriptionsync.SyncState{
 				LastSyncedSubsRevision: beforeLockRevision,
 				CurrentSubsRevision:    beforeLockRevision,
 			},
@@ -46,12 +46,12 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	billingService := &billingServiceSpy{
 		beforeLock: func() {
 			subscriptionService.view.Subscription.DeletedAt = &now
-			syncAdapter.statesV2[0].CurrentSubsRevision = lockedRevision
+			syncAdapter.states[0].CurrentSubsRevision = lockedRevision
 		},
 	}
 	reconciler := &syncReconcilerSpy{
 		onPlan: func() {
-			syncAdapter.statesV2[0].CurrentSubsRevision = laterRevision
+			syncAdapter.states[0].CurrentSubsRevision = laterRevision
 		},
 	}
 	service := &Service{
@@ -74,11 +74,11 @@ func TestSyncReloadsDeletionAfterBillingLock(t *testing.T) {
 	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.True(t, reconciler.planCalled)
 	require.Empty(t, reconciler.planInput.Target.Items)
-	require.Len(t, syncAdapter.recordedResultsV2, 1)
-	require.Equal(t, subscriptionsync.SyncStateV2StateSubscriptionDeleted, syncAdapter.recordedResultsV2[0].LastSuccessState)
+	require.Len(t, syncAdapter.recordedResults, 1)
+	require.Equal(t, subscriptionsync.SyncStateStateSubscriptionDeleted, syncAdapter.recordedResults[0].LastSuccessState)
 	// Acknowledge what was read after locking, not a revision changed during planning.
-	require.Equal(t, lockedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
-	require.Equal(t, 1, syncAdapter.getStatesV2Calls)
+	require.Equal(t, lockedRevision, syncAdapter.recordedResults[0].LastSyncedSubsRevision)
+	require.Equal(t, 1, syncAdapter.getStatesCalls)
 }
 
 func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
@@ -96,14 +96,14 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 		},
 	}}
 	syncAdapter := &subscriptionSyncAdapterSpy{
-		statesV2: []subscriptionsync.SyncStateV2Managed{{
-			SyncStateV2: subscriptionsync.SyncStateV2{CurrentSubsRevision: ulid.Make().String()},
+		states: []subscriptionsync.SyncStateManaged{{
+			SyncState: subscriptionsync.SyncState{CurrentSubsRevision: ulid.Make().String()},
 		}},
 	}
 	billingService := &billingServiceSpy{
 		beforeLock: func() {
 			subscriptionService.view.Subscription.ActiveTo = &end
-			syncAdapter.statesV2[0].CurrentSubsRevision = observedRevision
+			syncAdapter.states[0].CurrentSubsRevision = observedRevision
 		},
 	}
 	splitLineGroupService := &splitLineGroupServiceSpy{}
@@ -129,9 +129,9 @@ func TestOldSubscriptionSkipUsesStateAfterBillingLock(t *testing.T) {
 	require.Zero(t, splitLineGroupService.getLinesCalls)
 	require.Zero(t, billingService.invoicePendingLinesCalls)
 	require.False(t, reconciler.planCalled)
-	require.Len(t, syncAdapter.recordedResultsV2, 1)
-	require.Equal(t, subscriptionsync.SyncStateV2StateTooOld, syncAdapter.recordedResultsV2[0].LastSuccessState)
-	require.Equal(t, observedRevision, syncAdapter.recordedResultsV2[0].LastSyncedSubsRevision)
+	require.Len(t, syncAdapter.recordedResults, 1)
+	require.Equal(t, subscriptionsync.SyncStateStateTooOld, syncAdapter.recordedResults[0].LastSuccessState)
+	require.Equal(t, observedRevision, syncAdapter.recordedResults[0].LastSyncedSubsRevision)
 }
 
 func TestSyncEventSkipsSubscriptionSyncedSinceSelection(t *testing.T) {
@@ -179,8 +179,8 @@ func TestSyncEventSkipsSubscriptionSyncedSinceSelection(t *testing.T) {
 				CustomerId:   "customer-id",
 			}
 			sub.ActiveTo = &end
-			state := subscriptionsync.SyncStateV2{
-				LastSuccessState:       subscriptionsync.SyncStateV2StateTooOld,
+			state := subscriptionsync.SyncState{
+				LastSuccessState:       subscriptionsync.SyncStateStateTooOld,
 				LastSuccessAt:          &tc.lastSuccessAt,
 				LastSyncedSubsRevision: ulid.Make().String(),
 			}
@@ -189,7 +189,7 @@ func TestSyncEventSkipsSubscriptionSyncedSinceSelection(t *testing.T) {
 				state.CurrentSubsRevision = ulid.Make().String()
 			}
 
-			syncAdapter := &subscriptionSyncAdapterSpy{statesV2: []subscriptionsync.SyncStateV2Managed{{SyncStateV2: state}}}
+			syncAdapter := &subscriptionSyncAdapterSpy{states: []subscriptionsync.SyncStateManaged{{SyncState: state}}}
 			billingService := &billingServiceSpy{}
 			service := &Service{
 				billingService:          billingService,
@@ -211,9 +211,9 @@ func TestSyncEventSkipsSubscriptionSyncedSinceSelection(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, billingService.withLockCalled, "the decision is made under the billing lock")
 			if tc.wantSynced {
-				require.Len(t, syncAdapter.recordedResultsV2, 1)
+				require.Len(t, syncAdapter.recordedResults, 1)
 			} else {
-				require.Empty(t, syncAdapter.recordedResultsV2)
+				require.Empty(t, syncAdapter.recordedResults)
 			}
 		})
 	}
@@ -290,18 +290,18 @@ func (s *subscriptionServiceSpy) GetView(context.Context, models.NamespacedID) (
 
 type subscriptionSyncAdapterSpy struct {
 	subscriptionsync.Adapter
-	recordedResultsV2 []subscriptionsync.RecordSyncResultV2Input
-	statesV2          []subscriptionsync.SyncStateV2Managed
-	getStatesV2Calls  int
+	recordedResults []subscriptionsync.RecordSyncResultInput
+	states          []subscriptionsync.SyncStateManaged
+	getStatesCalls  int
 }
 
-func (s *subscriptionSyncAdapterSpy) GetSyncStatesV2(context.Context, subscriptionsync.GetSyncStatesV2Input) ([]subscriptionsync.SyncStateV2Managed, error) {
-	s.getStatesV2Calls++
-	return s.statesV2, nil
+func (s *subscriptionSyncAdapterSpy) GetSyncStates(context.Context, subscriptionsync.GetSyncStatesInput) ([]subscriptionsync.SyncStateManaged, error) {
+	s.getStatesCalls++
+	return s.states, nil
 }
 
-func (s *subscriptionSyncAdapterSpy) RecordSyncResultV2(_ context.Context, input subscriptionsync.RecordSyncResultV2Input) error {
-	s.recordedResultsV2 = append(s.recordedResultsV2, input)
+func (s *subscriptionSyncAdapterSpy) RecordSyncResult(_ context.Context, input subscriptionsync.RecordSyncResultInput) error {
+	s.recordedResults = append(s.recordedResults, input)
 	return nil
 }
 

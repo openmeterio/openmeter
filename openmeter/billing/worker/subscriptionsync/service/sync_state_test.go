@@ -481,7 +481,7 @@ func (s *SyncStateTestSuite) TestNoBillablesHasNoReconciliationDeadline() {
 
 	// When sync completes, it acknowledges the subscription without scheduling more work.
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
-	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateNoBillables)
 
 	// Then neither legacy billing nor charge-based billing has artifacts to collect.
 	s.expectNoGatheringInvoice(s.T().Context(), s.Namespace, s.Customer.ID)
@@ -522,7 +522,7 @@ func (s *SyncStateTestSuite) TestRemovingAndRestoringBillablesUpdatesReconciliat
 	_, err = s.SubscriptionService.Update(ctx, view.Subscription.NamespacedID, freeSpec)
 	s.Require().NoError(err)
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
-	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateNoBillables)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateNoBillables)
 	s.expectNoGatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 
 	// Then a later edit restoring the price can provision the fees and resume scheduling.
@@ -598,14 +598,14 @@ func (s *SyncStateTestSuite) TestOneTimeFeeWaitsForCancellation() {
 	}}
 	invoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.expectLines(invoice, view.Subscription.ID, expectedLines)
-	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateEnded)
 
 	// Then a retried cancellation sync keeps the single fee line and stays ended.
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, clock.Now()))
 	finalInvoice := s.gatheringInvoice(ctx, s.Namespace, s.Customer.ID)
 	s.expectLines(finalInvoice, view.Subscription.ID, expectedLines)
 	s.Equal(invoice.Lines.OrEmpty()[0].ID, finalInvoice.Lines.OrEmpty()[0].ID)
-	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateEnded)
 }
 
 func (s *SyncStateTestSuite) TestCancellationProgression() {
@@ -632,8 +632,8 @@ func (s *SyncStateTestSuite) TestCancellationProgression() {
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
 	s.requireMonthlyItems(view, periods)
-	state := s.getSyncStateV2(view.Subscription.NamespacedID)
-	s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+	state := s.getSyncState(view.Subscription.NamespacedID)
+	s.Equal(subscriptionsync.SyncStateStateActive, state.LastSuccessState)
 	s.Require().Equal(&end, state.NextReconciliationAt)
 
 	// Then the final saved deadline records completion without provisioning February.
@@ -641,7 +641,7 @@ func (s *SyncStateTestSuite) TestCancellationProgression() {
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
 	s.requireMonthlyItems(view, periods)
-	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+	s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateEnded)
 }
 
 // A cancellation makes the subscription due for periodic reconciliation while
@@ -697,8 +697,8 @@ func (s *SyncStateTestSuite) TestCancellationAndPeriodicSyncInEitherOrder() {
 
 			// then: every month up to the end is provisioned and the final sync waits for the end
 			s.requireMonthlyItems(view, periods)
-			state := s.getSyncStateV2(subscriptionID)
-			s.Equal(subscriptionsync.SyncStateV2StateActive, state.LastSuccessState)
+			state := s.getSyncState(subscriptionID)
+			s.Equal(subscriptionsync.SyncStateStateActive, state.LastSuccessState)
 			s.Equal(&end, state.NextReconciliationAt)
 			s.Equal(state.CurrentSubsRevision, state.LastSyncedSubsRevision)
 		})
@@ -715,7 +715,7 @@ func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	defer clock.UnFreeze()
 	view := s.createSyncStateSubscription(start, s.paidMonthlyPhase())
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now()))
-	initial := s.getSyncStateV2(view.Subscription.NamespacedID)
+	initial := s.getSyncState(view.Subscription.NamespacedID)
 
 	// When the identical horizon is synced later, the empty billing diff still records success.
 	clock.FreezeTime(start.Add(time.Minute))
@@ -723,14 +723,14 @@ func (s *SyncStateTestSuite) TestRepeatedSyncAndDryRun() {
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, start))
 	next := s.requireActiveDeadline(view.Subscription.NamespacedID, periods[1])
 	s.requireMonthlyItems(view, periods)
-	before := s.getSyncStateV2(view.Subscription.NamespacedID)
+	before := s.getSyncState(view.Subscription.NamespacedID)
 	s.NotEqual(initial.LastSuccessAt, before.LastSuccessAt)
 
 	// Then a dry run at that deadline cannot advance success or provision the upcoming fee.
 	clock.FreezeTime(next)
 	defer clock.UnFreeze()
 	s.Require().NoError(s.Service.SyncByID(s.T().Context(), view.Subscription.NamespacedID, clock.Now(), subscriptionsync.EnableDryRun()))
-	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
+	s.Equal(before, s.getSyncState(view.Subscription.NamespacedID))
 	s.requireMonthlyItems(view, periods)
 }
 
@@ -751,42 +751,42 @@ func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 			subscriptionActiveTo *time.Time
 			now                  time.Time
 			withoutBillables     bool
-			wantState            subscriptionsync.SyncStateV2State
+			wantState            subscriptionsync.SyncStateState
 			wantDeadline         *time.Time
 		}{
 			{
 				name:         "future deletion schedules the final sync",
 				deletedAt:    december,
 				now:          november15,
-				wantState:    subscriptionsync.SyncStateV2StateActive,
+				wantState:    subscriptionsync.SyncStateStateActive,
 				wantDeadline: &december,
 			},
 			{
 				name:      "sync after deletion clears the final deadline",
 				deletedAt: december,
 				now:       december15,
-				wantState: subscriptionsync.SyncStateV2StateEnded,
+				wantState: subscriptionsync.SyncStateStateEnded,
 			},
 			{
 				name:                 "subscription end before deletion wins",
 				deletedAt:            january,
 				subscriptionActiveTo: &december,
 				now:                  december15,
-				wantState:            subscriptionsync.SyncStateV2StateEnded,
+				wantState:            subscriptionsync.SyncStateStateEnded,
 			},
 			{
 				name:                 "deletion before subscription end wins",
 				deletedAt:            december,
 				subscriptionActiveTo: &january,
 				now:                  december15,
-				wantState:            subscriptionsync.SyncStateV2StateEnded,
+				wantState:            subscriptionsync.SyncStateStateEnded,
 			},
 			{
 				name:             "empty plan still records completion",
 				deletedAt:        december,
 				now:              december15,
 				withoutBillables: true,
-				wantState:        subscriptionsync.SyncStateV2StateEnded,
+				wantState:        subscriptionsync.SyncStateStateEnded,
 			},
 		} {
 			s.Run(tc.name, func() {
@@ -815,8 +815,8 @@ func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 				// First record the future deadline, so completion must clear an existing active result.
 				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, createdAt))
 				if !tc.withoutBillables {
-					initial := s.getSyncStateV2(view.Subscription.NamespacedID)
-					s.Equal(subscriptionsync.SyncStateV2StateActive, initial.LastSuccessState)
+					initial := s.getSyncState(view.Subscription.NamespacedID)
+					s.Equal(subscriptionsync.SyncStateStateActive, initial.LastSuccessState)
 					s.Equal(&december, initial.NextReconciliationAt)
 				}
 
@@ -824,7 +824,7 @@ func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 				clock.FreezeTime(tc.now)
 				defer clock.UnFreeze()
 				s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.now))
-				state := s.getSyncStateV2(view.Subscription.NamespacedID)
+				state := s.getSyncState(view.Subscription.NamespacedID)
 				s.Equal(tc.wantState, state.LastSuccessState)
 				s.Equal(tc.wantDeadline, state.NextReconciliationAt)
 				s.Equal(&tc.now, state.LastSuccessAt)
@@ -836,11 +836,11 @@ func (s *SyncStateTestSuite) TestCustomerDeletionReconciliation() {
 				}
 
 				// Then retrying a completed reconciliation stays ended and does not add billing artifacts.
-				if tc.wantState == subscriptionsync.SyncStateV2StateEnded {
+				if tc.wantState == subscriptionsync.SyncStateStateEnded {
 					clock.FreezeTime(tc.now.Add(time.Minute))
 					defer clock.UnFreeze()
 					s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, tc.now))
-					s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+					s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateEnded)
 					if !tc.withoutBillables {
 						s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: createdAt, To: december}})
 					}
@@ -882,12 +882,12 @@ func (s *SyncStateTestSuite) TestMidPeriodCustomerDeletionTruncatesServicePeriod
 
 		// Then no service after November 15 remains billable, and final reconciliation is complete.
 		s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
-		s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+		s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateEnded)
 
 		// Repeating cleanup must preserve the same subscription-sync identities and periods.
 		s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, syncAt))
 		s.requireMonthlyItems(view, []timeutil.ClosedPeriod{{From: start, To: deletedAt}})
-		s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateV2StateEnded)
+		s.requireUnscheduled(view.Subscription.NamespacedID, subscriptionsync.SyncStateStateEnded)
 	})
 }
 
@@ -900,7 +900,7 @@ func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 	// Given a successfully synced subscription whose next success write will fail in PostgreSQL.
 	view := s.createSyncStateSubscription(now, s.paidMonthlyPhase())
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, now))
-	before := s.getSyncStateV2(view.Subscription.NamespacedID)
+	before := s.getSyncState(view.Subscription.NamespacedID)
 	s.Require().NotNil(before.NextReconciliationAt)
 	const constraintName = "test_active_sync_result_failure"
 	_, err := s.TestDB.PGDriver.DB().ExecContext(ctx, fmt.Sprintf(
@@ -923,5 +923,5 @@ func (s *SyncStateTestSuite) TestActiveSyncResultRollback() {
 		{From: now, To: now.AddDate(0, 1, 0)},
 		{From: now.AddDate(0, 1, 0), To: now.AddDate(0, 2, 0)},
 	})
-	s.Equal(before, s.getSyncStateV2(view.Subscription.NamespacedID))
+	s.Equal(before, s.getSyncState(view.Subscription.NamespacedID))
 }

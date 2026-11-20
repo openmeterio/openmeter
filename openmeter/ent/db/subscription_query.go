@@ -24,10 +24,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 )
 
 // SubscriptionQuery is the builder for querying Subscription entities.
@@ -47,8 +46,7 @@ type SubscriptionQuery struct {
 	withChargesCreditPurchase        *ChargeCreditPurchaseQuery
 	withChargesFlatFee               *ChargeFlatFeeQuery
 	withAddons                       *SubscriptionAddonQuery
-	withSyncStateV2                  *SubscriptionSyncStateV2Query
-	withBillingSyncState             *SubscriptionBillingSyncStateQuery
+	withSyncState                    *SubscriptionSyncStateQuery
 	withCostBasisPins                *SubscriptionCostBasisPinQuery
 	modifiers                        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -307,9 +305,9 @@ func (_q *SubscriptionQuery) QueryAddons() *SubscriptionAddonQuery {
 	return query
 }
 
-// QuerySyncStateV2 chains the current query on the "sync_state_v2" edge.
-func (_q *SubscriptionQuery) QuerySyncStateV2() *SubscriptionSyncStateV2Query {
-	query := (&SubscriptionSyncStateV2Client{config: _q.config}).Query()
+// QuerySyncState chains the current query on the "sync_state" edge.
+func (_q *SubscriptionQuery) QuerySyncState() *SubscriptionSyncStateQuery {
+	query := (&SubscriptionSyncStateClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -320,30 +318,8 @@ func (_q *SubscriptionQuery) QuerySyncStateV2() *SubscriptionSyncStateV2Query {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
-			sqlgraph.To(subscriptionsyncstatev2.Table, subscriptionsyncstatev2.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, subscription.SyncStateV2Table, subscription.SyncStateV2Column),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryBillingSyncState chains the current query on the "billing_sync_state" edge.
-func (_q *SubscriptionQuery) QueryBillingSyncState() *SubscriptionBillingSyncStateQuery {
-	query := (&SubscriptionBillingSyncStateClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(subscription.Table, subscription.FieldID, selector),
-			sqlgraph.To(subscriptionbillingsyncstate.Table, subscriptionbillingsyncstate.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, subscription.BillingSyncStateTable, subscription.BillingSyncStateColumn),
+			sqlgraph.To(subscriptionsyncstate.Table, subscriptionsyncstate.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, subscription.SyncStateTable, subscription.SyncStateColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -575,8 +551,7 @@ func (_q *SubscriptionQuery) Clone() *SubscriptionQuery {
 		withChargesCreditPurchase:        _q.withChargesCreditPurchase.Clone(),
 		withChargesFlatFee:               _q.withChargesFlatFee.Clone(),
 		withAddons:                       _q.withAddons.Clone(),
-		withSyncStateV2:                  _q.withSyncStateV2.Clone(),
-		withBillingSyncState:             _q.withBillingSyncState.Clone(),
+		withSyncState:                    _q.withSyncState.Clone(),
 		withCostBasisPins:                _q.withCostBasisPins.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -694,25 +669,14 @@ func (_q *SubscriptionQuery) WithAddons(opts ...func(*SubscriptionAddonQuery)) *
 	return _q
 }
 
-// WithSyncStateV2 tells the query-builder to eager-load the nodes that are connected to
-// the "sync_state_v2" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SubscriptionQuery) WithSyncStateV2(opts ...func(*SubscriptionSyncStateV2Query)) *SubscriptionQuery {
-	query := (&SubscriptionSyncStateV2Client{config: _q.config}).Query()
+// WithSyncState tells the query-builder to eager-load the nodes that are connected to
+// the "sync_state" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *SubscriptionQuery) WithSyncState(opts ...func(*SubscriptionSyncStateQuery)) *SubscriptionQuery {
+	query := (&SubscriptionSyncStateClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withSyncStateV2 = query
-	return _q
-}
-
-// WithBillingSyncState tells the query-builder to eager-load the nodes that are connected to
-// the "billing_sync_state" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SubscriptionQuery) WithBillingSyncState(opts ...func(*SubscriptionBillingSyncStateQuery)) *SubscriptionQuery {
-	query := (&SubscriptionBillingSyncStateClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withBillingSyncState = query
+	_q.withSyncState = query
 	return _q
 }
 
@@ -805,7 +769,7 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*Subscription{}
 		_spec       = _q.querySpec()
-		loadedTypes = [13]bool{
+		loadedTypes = [12]bool{
 			_q.withPlan != nil,
 			_q.withCustomer != nil,
 			_q.withPhases != nil,
@@ -816,8 +780,7 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			_q.withChargesCreditPurchase != nil,
 			_q.withChargesFlatFee != nil,
 			_q.withAddons != nil,
-			_q.withSyncStateV2 != nil,
-			_q.withBillingSyncState != nil,
+			_q.withSyncState != nil,
 			_q.withCostBasisPins != nil,
 		}
 	)
@@ -918,15 +881,9 @@ func (_q *SubscriptionQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			return nil, err
 		}
 	}
-	if query := _q.withSyncStateV2; query != nil {
-		if err := _q.loadSyncStateV2(ctx, query, nodes, nil,
-			func(n *Subscription, e *SubscriptionSyncStateV2) { n.Edges.SyncStateV2 = e }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withBillingSyncState; query != nil {
-		if err := _q.loadBillingSyncState(ctx, query, nodes, nil,
-			func(n *Subscription, e *SubscriptionBillingSyncState) { n.Edges.BillingSyncState = e }); err != nil {
+	if query := _q.withSyncState; query != nil {
+		if err := _q.loadSyncState(ctx, query, nodes, nil,
+			func(n *Subscription, e *SubscriptionSyncState) { n.Edges.SyncState = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1262,7 +1219,7 @@ func (_q *SubscriptionQuery) loadAddons(ctx context.Context, query *Subscription
 	}
 	return nil
 }
-func (_q *SubscriptionQuery) loadSyncStateV2(ctx context.Context, query *SubscriptionSyncStateV2Query, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *SubscriptionSyncStateV2)) error {
+func (_q *SubscriptionQuery) loadSyncState(ctx context.Context, query *SubscriptionSyncStateQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *SubscriptionSyncState)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*Subscription)
 	for i := range nodes {
@@ -1270,37 +1227,10 @@ func (_q *SubscriptionQuery) loadSyncStateV2(ctx context.Context, query *Subscri
 		nodeids[nodes[i].ID] = nodes[i]
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(subscriptionsyncstatev2.FieldSubscriptionID)
+		query.ctx.AppendFieldOnce(subscriptionsyncstate.FieldSubscriptionID)
 	}
-	query.Where(predicate.SubscriptionSyncStateV2(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(subscription.SyncStateV2Column), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.SubscriptionID
-		node, ok := nodeids[fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "subscription_id" returned %v for node %v`, fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *SubscriptionQuery) loadBillingSyncState(ctx context.Context, query *SubscriptionBillingSyncStateQuery, nodes []*Subscription, init func(*Subscription), assign func(*Subscription, *SubscriptionBillingSyncState)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[string]*Subscription)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-	}
-	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(subscriptionbillingsyncstate.FieldSubscriptionID)
-	}
-	query.Where(predicate.SubscriptionBillingSyncState(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(subscription.BillingSyncStateColumn), fks...))
+	query.Where(predicate.SubscriptionSyncState(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(subscription.SyncStateColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

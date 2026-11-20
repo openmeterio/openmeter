@@ -11,11 +11,11 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 )
 
-// SubscriptionSyncStateV2 is the model entity for the SubscriptionSyncStateV2 schema.
-type SubscriptionSyncStateV2 struct {
+// SubscriptionSyncState is the model entity for the SubscriptionSyncState schema.
+type SubscriptionSyncState struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -30,7 +30,7 @@ type SubscriptionSyncStateV2 struct {
 	// SubscriptionID holds the value of the "subscription_id" field.
 	SubscriptionID string `json:"subscription_id,omitempty"`
 	// LastSuccessState holds the value of the "last_success_state" field.
-	LastSuccessState subscriptionsync.SyncStateV2State `json:"last_success_state,omitempty"`
+	LastSuccessState subscriptionsync.SyncStateState `json:"last_success_state,omitempty"`
 	// LastSuccessAt holds the value of the "last_success_at" field.
 	LastSuccessAt *time.Time `json:"last_success_at,omitempty"`
 	// NextReconciliationAt holds the value of the "next_reconciliation_at" field.
@@ -40,13 +40,13 @@ type SubscriptionSyncStateV2 struct {
 	// CurrentSubsRevision holds the value of the "current_subs_revision" field.
 	CurrentSubsRevision string `json:"current_subs_revision,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the SubscriptionSyncStateV2Query when eager-loading is set.
-	Edges        SubscriptionSyncStateV2Edges `json:"edges"`
+	// The values are being populated by the SubscriptionSyncStateQuery when eager-loading is set.
+	Edges        SubscriptionSyncStateEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// SubscriptionSyncStateV2Edges holds the relations/edges for other nodes in the graph.
-type SubscriptionSyncStateV2Edges struct {
+// SubscriptionSyncStateEdges holds the relations/edges for other nodes in the graph.
+type SubscriptionSyncStateEdges struct {
 	// Subscription holds the value of the subscription edge.
 	Subscription *Subscription `json:"subscription,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -56,7 +56,7 @@ type SubscriptionSyncStateV2Edges struct {
 
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e SubscriptionSyncStateV2Edges) SubscriptionOrErr() (*Subscription, error) {
+func (e SubscriptionSyncStateEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
 	} else if e.loadedTypes[0] {
@@ -66,13 +66,13 @@ func (e SubscriptionSyncStateV2Edges) SubscriptionOrErr() (*Subscription, error)
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*SubscriptionSyncStateV2) scanValues(columns []string) ([]any, error) {
+func (*SubscriptionSyncState) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionsyncstatev2.FieldID, subscriptionsyncstatev2.FieldNamespace, subscriptionsyncstatev2.FieldSubscriptionID, subscriptionsyncstatev2.FieldLastSuccessState, subscriptionsyncstatev2.FieldLastSyncedSubsRevision, subscriptionsyncstatev2.FieldCurrentSubsRevision:
+		case subscriptionsyncstate.FieldID, subscriptionsyncstate.FieldNamespace, subscriptionsyncstate.FieldSubscriptionID, subscriptionsyncstate.FieldLastSuccessState, subscriptionsyncstate.FieldLastSyncedSubsRevision, subscriptionsyncstate.FieldCurrentSubsRevision:
 			values[i] = new(sql.NullString)
-		case subscriptionsyncstatev2.FieldCreatedAt, subscriptionsyncstatev2.FieldUpdatedAt, subscriptionsyncstatev2.FieldDeletedAt, subscriptionsyncstatev2.FieldLastSuccessAt, subscriptionsyncstatev2.FieldNextReconciliationAt:
+		case subscriptionsyncstate.FieldCreatedAt, subscriptionsyncstate.FieldUpdatedAt, subscriptionsyncstate.FieldDeletedAt, subscriptionsyncstate.FieldLastSuccessAt, subscriptionsyncstate.FieldNextReconciliationAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -82,77 +82,77 @@ func (*SubscriptionSyncStateV2) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the SubscriptionSyncStateV2 fields.
-func (_m *SubscriptionSyncStateV2) assignValues(columns []string, values []any) error {
+// to the SubscriptionSyncState fields.
+func (_m *SubscriptionSyncState) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case subscriptionsyncstatev2.FieldID:
+		case subscriptionsyncstate.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
 			}
-		case subscriptionsyncstatev2.FieldNamespace:
+		case subscriptionsyncstate.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				_m.Namespace = value.String
 			}
-		case subscriptionsyncstatev2.FieldCreatedAt:
+		case subscriptionsyncstate.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case subscriptionsyncstatev2.FieldUpdatedAt:
+		case subscriptionsyncstate.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case subscriptionsyncstatev2.FieldDeletedAt:
+		case subscriptionsyncstate.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case subscriptionsyncstatev2.FieldSubscriptionID:
+		case subscriptionsyncstate.FieldSubscriptionID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field subscription_id", values[i])
 			} else if value.Valid {
 				_m.SubscriptionID = value.String
 			}
-		case subscriptionsyncstatev2.FieldLastSuccessState:
+		case subscriptionsyncstate.FieldLastSuccessState:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field last_success_state", values[i])
 			} else if value.Valid {
-				_m.LastSuccessState = subscriptionsync.SyncStateV2State(value.String)
+				_m.LastSuccessState = subscriptionsync.SyncStateState(value.String)
 			}
-		case subscriptionsyncstatev2.FieldLastSuccessAt:
+		case subscriptionsyncstate.FieldLastSuccessAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field last_success_at", values[i])
 			} else if value.Valid {
 				_m.LastSuccessAt = new(time.Time)
 				*_m.LastSuccessAt = value.Time
 			}
-		case subscriptionsyncstatev2.FieldNextReconciliationAt:
+		case subscriptionsyncstate.FieldNextReconciliationAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field next_reconciliation_at", values[i])
 			} else if value.Valid {
 				_m.NextReconciliationAt = new(time.Time)
 				*_m.NextReconciliationAt = value.Time
 			}
-		case subscriptionsyncstatev2.FieldLastSyncedSubsRevision:
+		case subscriptionsyncstate.FieldLastSyncedSubsRevision:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field last_synced_subs_revision", values[i])
 			} else if value.Valid {
 				_m.LastSyncedSubsRevision = value.String
 			}
-		case subscriptionsyncstatev2.FieldCurrentSubsRevision:
+		case subscriptionsyncstate.FieldCurrentSubsRevision:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field current_subs_revision", values[i])
 			} else if value.Valid {
@@ -165,39 +165,39 @@ func (_m *SubscriptionSyncStateV2) assignValues(columns []string, values []any) 
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the SubscriptionSyncStateV2.
+// Value returns the ent.Value that was dynamically selected and assigned to the SubscriptionSyncState.
 // This includes values selected through modifiers, order, etc.
-func (_m *SubscriptionSyncStateV2) Value(name string) (ent.Value, error) {
+func (_m *SubscriptionSyncState) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// QuerySubscription queries the "subscription" edge of the SubscriptionSyncStateV2 entity.
-func (_m *SubscriptionSyncStateV2) QuerySubscription() *SubscriptionQuery {
-	return NewSubscriptionSyncStateV2Client(_m.config).QuerySubscription(_m)
+// QuerySubscription queries the "subscription" edge of the SubscriptionSyncState entity.
+func (_m *SubscriptionSyncState) QuerySubscription() *SubscriptionQuery {
+	return NewSubscriptionSyncStateClient(_m.config).QuerySubscription(_m)
 }
 
-// Update returns a builder for updating this SubscriptionSyncStateV2.
-// Note that you need to call SubscriptionSyncStateV2.Unwrap() before calling this method if this SubscriptionSyncStateV2
+// Update returns a builder for updating this SubscriptionSyncState.
+// Note that you need to call SubscriptionSyncState.Unwrap() before calling this method if this SubscriptionSyncState
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *SubscriptionSyncStateV2) Update() *SubscriptionSyncStateV2UpdateOne {
-	return NewSubscriptionSyncStateV2Client(_m.config).UpdateOne(_m)
+func (_m *SubscriptionSyncState) Update() *SubscriptionSyncStateUpdateOne {
+	return NewSubscriptionSyncStateClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the SubscriptionSyncStateV2 entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the SubscriptionSyncState entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *SubscriptionSyncStateV2) Unwrap() *SubscriptionSyncStateV2 {
+func (_m *SubscriptionSyncState) Unwrap() *SubscriptionSyncState {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("db: SubscriptionSyncStateV2 is not a transactional entity")
+		panic("db: SubscriptionSyncState is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *SubscriptionSyncStateV2) String() string {
+func (_m *SubscriptionSyncState) String() string {
 	var builder strings.Builder
-	builder.WriteString("SubscriptionSyncStateV2(")
+	builder.WriteString("SubscriptionSyncState(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
@@ -238,5 +238,5 @@ func (_m *SubscriptionSyncStateV2) String() string {
 	return builder.String()
 }
 
-// SubscriptionSyncStateV2s is a parsable slice of SubscriptionSyncStateV2.
-type SubscriptionSyncStateV2s []*SubscriptionSyncStateV2
+// SubscriptionSyncStates is a parsable slice of SubscriptionSyncState.
+type SubscriptionSyncStates []*SubscriptionSyncState

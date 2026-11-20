@@ -94,11 +94,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddonquantity"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptioncostbasispin"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstatev2"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 	dbtaxcode "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
@@ -3313,25 +3312,6 @@ func init() {
 	subscriptionaddonquantityDescID := subscriptionaddonquantityMixinFields0[0].Descriptor()
 	// subscriptionaddonquantity.DefaultID holds the default value on creation for the id field.
 	subscriptionaddonquantity.DefaultID = subscriptionaddonquantityDescID.Default.(func() string)
-	subscriptionbillingsyncstateMixin := schema.SubscriptionBillingSyncState{}.Mixin()
-	subscriptionbillingsyncstateMixinFields0 := subscriptionbillingsyncstateMixin[0].Fields()
-	_ = subscriptionbillingsyncstateMixinFields0
-	subscriptionbillingsyncstateMixinFields1 := subscriptionbillingsyncstateMixin[1].Fields()
-	_ = subscriptionbillingsyncstateMixinFields1
-	subscriptionbillingsyncstateFields := schema.SubscriptionBillingSyncState{}.Fields()
-	_ = subscriptionbillingsyncstateFields
-	// subscriptionbillingsyncstateDescNamespace is the schema descriptor for namespace field.
-	subscriptionbillingsyncstateDescNamespace := subscriptionbillingsyncstateMixinFields1[0].Descriptor()
-	// subscriptionbillingsyncstate.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	subscriptionbillingsyncstate.NamespaceValidator = subscriptionbillingsyncstateDescNamespace.Validators[0].(func(string) error)
-	// subscriptionbillingsyncstateDescSubscriptionID is the schema descriptor for subscription_id field.
-	subscriptionbillingsyncstateDescSubscriptionID := subscriptionbillingsyncstateFields[0].Descriptor()
-	// subscriptionbillingsyncstate.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
-	subscriptionbillingsyncstate.SubscriptionIDValidator = subscriptionbillingsyncstateDescSubscriptionID.Validators[0].(func(string) error)
-	// subscriptionbillingsyncstateDescID is the schema descriptor for id field.
-	subscriptionbillingsyncstateDescID := subscriptionbillingsyncstateMixinFields0[0].Descriptor()
-	// subscriptionbillingsyncstate.DefaultID holds the default value on creation for the id field.
-	subscriptionbillingsyncstate.DefaultID = subscriptionbillingsyncstateDescID.Default.(func() string)
 	subscriptioncostbasispinMixin := schema.SubscriptionCostBasisPin{}.Mixin()
 	subscriptioncostbasispinMixinFields0 := subscriptioncostbasispinMixin[0].Fields()
 	_ = subscriptioncostbasispinMixinFields0
@@ -3509,45 +3489,43 @@ func init() {
 	subscriptionphaseDescID := subscriptionphaseMixinFields0[0].Descriptor()
 	// subscriptionphase.DefaultID holds the default value on creation for the id field.
 	subscriptionphase.DefaultID = subscriptionphaseDescID.Default.(func() string)
-	subscriptionsyncstatev2Mixin := schema.SubscriptionSyncStateV2{}.Mixin()
-	subscriptionsyncstatev2MixinFields0 := subscriptionsyncstatev2Mixin[0].Fields()
-	_ = subscriptionsyncstatev2MixinFields0
-	subscriptionsyncstatev2MixinFields1 := subscriptionsyncstatev2Mixin[1].Fields()
-	_ = subscriptionsyncstatev2MixinFields1
-	subscriptionsyncstatev2MixinFields2 := subscriptionsyncstatev2Mixin[2].Fields()
-	_ = subscriptionsyncstatev2MixinFields2
-	subscriptionsyncstatev2Fields := schema.SubscriptionSyncStateV2{}.Fields()
-	_ = subscriptionsyncstatev2Fields
-	// subscriptionsyncstatev2DescNamespace is the schema descriptor for namespace field.
-	subscriptionsyncstatev2DescNamespace := subscriptionsyncstatev2MixinFields1[0].Descriptor()
-	// subscriptionsyncstatev2.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	subscriptionsyncstatev2.NamespaceValidator = subscriptionsyncstatev2DescNamespace.Validators[0].(func(string) error)
-	// subscriptionsyncstatev2DescCreatedAt is the schema descriptor for created_at field.
-	subscriptionsyncstatev2DescCreatedAt := subscriptionsyncstatev2MixinFields2[0].Descriptor()
-	// subscriptionsyncstatev2.DefaultCreatedAt holds the default value on creation for the created_at field.
-	subscriptionsyncstatev2.DefaultCreatedAt = subscriptionsyncstatev2DescCreatedAt.Default.(func() time.Time)
-	// subscriptionsyncstatev2DescUpdatedAt is the schema descriptor for updated_at field.
-	subscriptionsyncstatev2DescUpdatedAt := subscriptionsyncstatev2MixinFields2[1].Descriptor()
-	// subscriptionsyncstatev2.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	subscriptionsyncstatev2.DefaultUpdatedAt = subscriptionsyncstatev2DescUpdatedAt.Default.(func() time.Time)
-	// subscriptionsyncstatev2.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	subscriptionsyncstatev2.UpdateDefaultUpdatedAt = subscriptionsyncstatev2DescUpdatedAt.UpdateDefault.(func() time.Time)
-	// subscriptionsyncstatev2DescSubscriptionID is the schema descriptor for subscription_id field.
-	subscriptionsyncstatev2DescSubscriptionID := subscriptionsyncstatev2Fields[0].Descriptor()
-	// subscriptionsyncstatev2.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
-	subscriptionsyncstatev2.SubscriptionIDValidator = subscriptionsyncstatev2DescSubscriptionID.Validators[0].(func(string) error)
-	// subscriptionsyncstatev2DescLastSyncedSubsRevision is the schema descriptor for last_synced_subs_revision field.
-	subscriptionsyncstatev2DescLastSyncedSubsRevision := subscriptionsyncstatev2Fields[4].Descriptor()
-	// subscriptionsyncstatev2.LastSyncedSubsRevisionValidator is a validator for the "last_synced_subs_revision" field. It is called by the builders before save.
-	subscriptionsyncstatev2.LastSyncedSubsRevisionValidator = subscriptionsyncstatev2DescLastSyncedSubsRevision.Validators[0].(func(string) error)
-	// subscriptionsyncstatev2DescCurrentSubsRevision is the schema descriptor for current_subs_revision field.
-	subscriptionsyncstatev2DescCurrentSubsRevision := subscriptionsyncstatev2Fields[5].Descriptor()
-	// subscriptionsyncstatev2.CurrentSubsRevisionValidator is a validator for the "current_subs_revision" field. It is called by the builders before save.
-	subscriptionsyncstatev2.CurrentSubsRevisionValidator = subscriptionsyncstatev2DescCurrentSubsRevision.Validators[0].(func(string) error)
-	// subscriptionsyncstatev2DescID is the schema descriptor for id field.
-	subscriptionsyncstatev2DescID := subscriptionsyncstatev2MixinFields0[0].Descriptor()
-	// subscriptionsyncstatev2.DefaultID holds the default value on creation for the id field.
-	subscriptionsyncstatev2.DefaultID = subscriptionsyncstatev2DescID.Default.(func() string)
+	subscriptionsyncstateMixin := schema.SubscriptionSyncState{}.Mixin()
+	subscriptionsyncstateMixinFields0 := subscriptionsyncstateMixin[0].Fields()
+	_ = subscriptionsyncstateMixinFields0
+	subscriptionsyncstateMixinFields1 := subscriptionsyncstateMixin[1].Fields()
+	_ = subscriptionsyncstateMixinFields1
+	subscriptionsyncstateFields := schema.SubscriptionSyncState{}.Fields()
+	_ = subscriptionsyncstateFields
+	// subscriptionsyncstateDescNamespace is the schema descriptor for namespace field.
+	subscriptionsyncstateDescNamespace := subscriptionsyncstateMixinFields0[1].Descriptor()
+	// subscriptionsyncstate.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionsyncstate.NamespaceValidator = subscriptionsyncstateDescNamespace.Validators[0].(func(string) error)
+	// subscriptionsyncstateDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionsyncstateDescCreatedAt := subscriptionsyncstateMixinFields1[0].Descriptor()
+	// subscriptionsyncstate.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionsyncstate.DefaultCreatedAt = subscriptionsyncstateDescCreatedAt.Default.(func() time.Time)
+	// subscriptionsyncstateDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionsyncstateDescUpdatedAt := subscriptionsyncstateMixinFields1[1].Descriptor()
+	// subscriptionsyncstate.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionsyncstate.DefaultUpdatedAt = subscriptionsyncstateDescUpdatedAt.Default.(func() time.Time)
+	// subscriptionsyncstate.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionsyncstate.UpdateDefaultUpdatedAt = subscriptionsyncstateDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionsyncstateDescSubscriptionID is the schema descriptor for subscription_id field.
+	subscriptionsyncstateDescSubscriptionID := subscriptionsyncstateFields[0].Descriptor()
+	// subscriptionsyncstate.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
+	subscriptionsyncstate.SubscriptionIDValidator = subscriptionsyncstateDescSubscriptionID.Validators[0].(func(string) error)
+	// subscriptionsyncstateDescLastSyncedSubsRevision is the schema descriptor for last_synced_subs_revision field.
+	subscriptionsyncstateDescLastSyncedSubsRevision := subscriptionsyncstateFields[4].Descriptor()
+	// subscriptionsyncstate.LastSyncedSubsRevisionValidator is a validator for the "last_synced_subs_revision" field. It is called by the builders before save.
+	subscriptionsyncstate.LastSyncedSubsRevisionValidator = subscriptionsyncstateDescLastSyncedSubsRevision.Validators[0].(func(string) error)
+	// subscriptionsyncstateDescCurrentSubsRevision is the schema descriptor for current_subs_revision field.
+	subscriptionsyncstateDescCurrentSubsRevision := subscriptionsyncstateFields[5].Descriptor()
+	// subscriptionsyncstate.CurrentSubsRevisionValidator is a validator for the "current_subs_revision" field. It is called by the builders before save.
+	subscriptionsyncstate.CurrentSubsRevisionValidator = subscriptionsyncstateDescCurrentSubsRevision.Validators[0].(func(string) error)
+	// subscriptionsyncstateDescID is the schema descriptor for id field.
+	subscriptionsyncstateDescID := subscriptionsyncstateMixinFields0[0].Descriptor()
+	// subscriptionsyncstate.DefaultID holds the default value on creation for the id field.
+	subscriptionsyncstate.DefaultID = subscriptionsyncstateDescID.Default.(func() string)
 	dbtaxcodeMixin := schema.TaxCode{}.Mixin()
 	dbtaxcodeMixinFields0 := dbtaxcodeMixin[0].Fields()
 	_ = dbtaxcodeMixinFields0

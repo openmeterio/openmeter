@@ -3236,14 +3236,6 @@ func (e *SubscriptionAddonQuantity) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *SubscriptionBillingSyncState) GetID() string {
-	return e.ID
-}
-
-func (e *SubscriptionBillingSyncState) GetNamespace() string {
-	return e.Namespace
-}
-
 func (e *SubscriptionCostBasisPin) GetID() string {
 	return e.ID
 }
@@ -3320,23 +3312,23 @@ func (e *SubscriptionPhase) GetMetadata() map[string]string {
 	return e.Metadata
 }
 
-func (e *SubscriptionSyncStateV2) GetID() string {
+func (e *SubscriptionSyncState) GetID() string {
 	return e.ID
 }
 
-func (e *SubscriptionSyncStateV2) GetNamespace() string {
+func (e *SubscriptionSyncState) GetNamespace() string {
 	return e.Namespace
 }
 
-func (e *SubscriptionSyncStateV2) GetCreatedAt() time.Time {
+func (e *SubscriptionSyncState) GetCreatedAt() time.Time {
 	return e.CreatedAt
 }
 
-func (e *SubscriptionSyncStateV2) GetUpdatedAt() time.Time {
+func (e *SubscriptionSyncState) GetUpdatedAt() time.Time {
 	return e.UpdatedAt
 }
 
-func (e *SubscriptionSyncStateV2) GetDeletedAt() *time.Time {
+func (e *SubscriptionSyncState) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 

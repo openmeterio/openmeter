@@ -14,16 +14,16 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionbillingsyncstate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionsyncstate"
 )
 
-// SubscriptionBillingSyncStateQuery is the builder for querying SubscriptionBillingSyncState entities.
-type SubscriptionBillingSyncStateQuery struct {
+// SubscriptionSyncStateQuery is the builder for querying SubscriptionSyncState entities.
+type SubscriptionSyncStateQuery struct {
 	config
 	ctx              *QueryContext
-	order            []subscriptionbillingsyncstate.OrderOption
+	order            []subscriptionsyncstate.OrderOption
 	inters           []Interceptor
-	predicates       []predicate.SubscriptionBillingSyncState
+	predicates       []predicate.SubscriptionSyncState
 	withSubscription *SubscriptionQuery
 	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -31,39 +31,39 @@ type SubscriptionBillingSyncStateQuery struct {
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the SubscriptionBillingSyncStateQuery builder.
-func (_q *SubscriptionBillingSyncStateQuery) Where(ps ...predicate.SubscriptionBillingSyncState) *SubscriptionBillingSyncStateQuery {
+// Where adds a new predicate for the SubscriptionSyncStateQuery builder.
+func (_q *SubscriptionSyncStateQuery) Where(ps ...predicate.SubscriptionSyncState) *SubscriptionSyncStateQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *SubscriptionBillingSyncStateQuery) Limit(limit int) *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) Limit(limit int) *SubscriptionSyncStateQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *SubscriptionBillingSyncStateQuery) Offset(offset int) *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) Offset(offset int) *SubscriptionSyncStateQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *SubscriptionBillingSyncStateQuery) Unique(unique bool) *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) Unique(unique bool) *SubscriptionSyncStateQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *SubscriptionBillingSyncStateQuery) Order(o ...subscriptionbillingsyncstate.OrderOption) *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) Order(o ...subscriptionsyncstate.OrderOption) *SubscriptionSyncStateQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
 // QuerySubscription chains the current query on the "subscription" edge.
-func (_q *SubscriptionBillingSyncStateQuery) QuerySubscription() *SubscriptionQuery {
+func (_q *SubscriptionSyncStateQuery) QuerySubscription() *SubscriptionQuery {
 	query := (&SubscriptionClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -74,9 +74,9 @@ func (_q *SubscriptionBillingSyncStateQuery) QuerySubscription() *SubscriptionQu
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(subscriptionbillingsyncstate.Table, subscriptionbillingsyncstate.FieldID, selector),
+			sqlgraph.From(subscriptionsyncstate.Table, subscriptionsyncstate.FieldID, selector),
 			sqlgraph.To(subscription.Table, subscription.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionbillingsyncstate.SubscriptionTable, subscriptionbillingsyncstate.SubscriptionColumn),
+			sqlgraph.Edge(sqlgraph.O2O, true, subscriptionsyncstate.SubscriptionTable, subscriptionsyncstate.SubscriptionColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -84,21 +84,21 @@ func (_q *SubscriptionBillingSyncStateQuery) QuerySubscription() *SubscriptionQu
 	return query
 }
 
-// First returns the first SubscriptionBillingSyncState entity from the query.
-// Returns a *NotFoundError when no SubscriptionBillingSyncState was found.
-func (_q *SubscriptionBillingSyncStateQuery) First(ctx context.Context) (*SubscriptionBillingSyncState, error) {
+// First returns the first SubscriptionSyncState entity from the query.
+// Returns a *NotFoundError when no SubscriptionSyncState was found.
+func (_q *SubscriptionSyncStateQuery) First(ctx context.Context) (*SubscriptionSyncState, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{subscriptionbillingsyncstate.Label}
+		return nil, &NotFoundError{subscriptionsyncstate.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) FirstX(ctx context.Context) *SubscriptionBillingSyncState {
+func (_q *SubscriptionSyncStateQuery) FirstX(ctx context.Context) *SubscriptionSyncState {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -106,22 +106,22 @@ func (_q *SubscriptionBillingSyncStateQuery) FirstX(ctx context.Context) *Subscr
 	return node
 }
 
-// FirstID returns the first SubscriptionBillingSyncState ID from the query.
-// Returns a *NotFoundError when no SubscriptionBillingSyncState ID was found.
-func (_q *SubscriptionBillingSyncStateQuery) FirstID(ctx context.Context) (id string, err error) {
+// FirstID returns the first SubscriptionSyncState ID from the query.
+// Returns a *NotFoundError when no SubscriptionSyncState ID was found.
+func (_q *SubscriptionSyncStateQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{subscriptionbillingsyncstate.Label}
+		err = &NotFoundError{subscriptionsyncstate.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) FirstIDX(ctx context.Context) string {
+func (_q *SubscriptionSyncStateQuery) FirstIDX(ctx context.Context) string {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -129,10 +129,10 @@ func (_q *SubscriptionBillingSyncStateQuery) FirstIDX(ctx context.Context) strin
 	return id
 }
 
-// Only returns a single SubscriptionBillingSyncState entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one SubscriptionBillingSyncState entity is found.
-// Returns a *NotFoundError when no SubscriptionBillingSyncState entities are found.
-func (_q *SubscriptionBillingSyncStateQuery) Only(ctx context.Context) (*SubscriptionBillingSyncState, error) {
+// Only returns a single SubscriptionSyncState entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one SubscriptionSyncState entity is found.
+// Returns a *NotFoundError when no SubscriptionSyncState entities are found.
+func (_q *SubscriptionSyncStateQuery) Only(ctx context.Context) (*SubscriptionSyncState, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -141,14 +141,14 @@ func (_q *SubscriptionBillingSyncStateQuery) Only(ctx context.Context) (*Subscri
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{subscriptionbillingsyncstate.Label}
+		return nil, &NotFoundError{subscriptionsyncstate.Label}
 	default:
-		return nil, &NotSingularError{subscriptionbillingsyncstate.Label}
+		return nil, &NotSingularError{subscriptionsyncstate.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) OnlyX(ctx context.Context) *SubscriptionBillingSyncState {
+func (_q *SubscriptionSyncStateQuery) OnlyX(ctx context.Context) *SubscriptionSyncState {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -156,10 +156,10 @@ func (_q *SubscriptionBillingSyncStateQuery) OnlyX(ctx context.Context) *Subscri
 	return node
 }
 
-// OnlyID is like Only, but returns the only SubscriptionBillingSyncState ID in the query.
-// Returns a *NotSingularError when more than one SubscriptionBillingSyncState ID is found.
+// OnlyID is like Only, but returns the only SubscriptionSyncState ID in the query.
+// Returns a *NotSingularError when more than one SubscriptionSyncState ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *SubscriptionBillingSyncStateQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *SubscriptionSyncStateQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -168,15 +168,15 @@ func (_q *SubscriptionBillingSyncStateQuery) OnlyID(ctx context.Context) (id str
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{subscriptionbillingsyncstate.Label}
+		err = &NotFoundError{subscriptionsyncstate.Label}
 	default:
-		err = &NotSingularError{subscriptionbillingsyncstate.Label}
+		err = &NotSingularError{subscriptionsyncstate.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) OnlyIDX(ctx context.Context) string {
+func (_q *SubscriptionSyncStateQuery) OnlyIDX(ctx context.Context) string {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -184,18 +184,18 @@ func (_q *SubscriptionBillingSyncStateQuery) OnlyIDX(ctx context.Context) string
 	return id
 }
 
-// All executes the query and returns a list of SubscriptionBillingSyncStates.
-func (_q *SubscriptionBillingSyncStateQuery) All(ctx context.Context) ([]*SubscriptionBillingSyncState, error) {
+// All executes the query and returns a list of SubscriptionSyncStates.
+func (_q *SubscriptionSyncStateQuery) All(ctx context.Context) ([]*SubscriptionSyncState, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*SubscriptionBillingSyncState, *SubscriptionBillingSyncStateQuery]()
-	return withInterceptors[[]*SubscriptionBillingSyncState](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*SubscriptionSyncState, *SubscriptionSyncStateQuery]()
+	return withInterceptors[[]*SubscriptionSyncState](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) AllX(ctx context.Context) []*SubscriptionBillingSyncState {
+func (_q *SubscriptionSyncStateQuery) AllX(ctx context.Context) []*SubscriptionSyncState {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -203,20 +203,20 @@ func (_q *SubscriptionBillingSyncStateQuery) AllX(ctx context.Context) []*Subscr
 	return nodes
 }
 
-// IDs executes the query and returns a list of SubscriptionBillingSyncState IDs.
-func (_q *SubscriptionBillingSyncStateQuery) IDs(ctx context.Context) (ids []string, err error) {
+// IDs executes the query and returns a list of SubscriptionSyncState IDs.
+func (_q *SubscriptionSyncStateQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(subscriptionbillingsyncstate.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(subscriptionsyncstate.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) IDsX(ctx context.Context) []string {
+func (_q *SubscriptionSyncStateQuery) IDsX(ctx context.Context) []string {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -225,16 +225,16 @@ func (_q *SubscriptionBillingSyncStateQuery) IDsX(ctx context.Context) []string 
 }
 
 // Count returns the count of the given query.
-func (_q *SubscriptionBillingSyncStateQuery) Count(ctx context.Context) (int, error) {
+func (_q *SubscriptionSyncStateQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*SubscriptionBillingSyncStateQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*SubscriptionSyncStateQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) CountX(ctx context.Context) int {
+func (_q *SubscriptionSyncStateQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -243,7 +243,7 @@ func (_q *SubscriptionBillingSyncStateQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *SubscriptionBillingSyncStateQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *SubscriptionSyncStateQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -256,7 +256,7 @@ func (_q *SubscriptionBillingSyncStateQuery) Exist(ctx context.Context) (bool, e
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *SubscriptionBillingSyncStateQuery) ExistX(ctx context.Context) bool {
+func (_q *SubscriptionSyncStateQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -264,18 +264,18 @@ func (_q *SubscriptionBillingSyncStateQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the SubscriptionBillingSyncStateQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the SubscriptionSyncStateQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *SubscriptionBillingSyncStateQuery) Clone() *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) Clone() *SubscriptionSyncStateQuery {
 	if _q == nil {
 		return nil
 	}
-	return &SubscriptionBillingSyncStateQuery{
+	return &SubscriptionSyncStateQuery{
 		config:           _q.config,
 		ctx:              _q.ctx.Clone(),
-		order:            append([]subscriptionbillingsyncstate.OrderOption{}, _q.order...),
+		order:            append([]subscriptionsyncstate.OrderOption{}, _q.order...),
 		inters:           append([]Interceptor{}, _q.inters...),
-		predicates:       append([]predicate.SubscriptionBillingSyncState{}, _q.predicates...),
+		predicates:       append([]predicate.SubscriptionSyncState{}, _q.predicates...),
 		withSubscription: _q.withSubscription.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -285,7 +285,7 @@ func (_q *SubscriptionBillingSyncStateQuery) Clone() *SubscriptionBillingSyncSta
 
 // WithSubscription tells the query-builder to eager-load the nodes that are connected to
 // the "subscription" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *SubscriptionBillingSyncStateQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) WithSubscription(opts ...func(*SubscriptionQuery)) *SubscriptionSyncStateQuery {
 	query := (&SubscriptionClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
@@ -304,15 +304,15 @@ func (_q *SubscriptionBillingSyncStateQuery) WithSubscription(opts ...func(*Subs
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.SubscriptionBillingSyncState.Query().
-//		GroupBy(subscriptionbillingsyncstate.FieldNamespace).
+//	client.SubscriptionSyncState.Query().
+//		GroupBy(subscriptionsyncstate.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (_q *SubscriptionBillingSyncStateQuery) GroupBy(field string, fields ...string) *SubscriptionBillingSyncStateGroupBy {
+func (_q *SubscriptionSyncStateQuery) GroupBy(field string, fields ...string) *SubscriptionSyncStateGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &SubscriptionBillingSyncStateGroupBy{build: _q}
+	grbuild := &SubscriptionSyncStateGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = subscriptionbillingsyncstate.Label
+	grbuild.label = subscriptionsyncstate.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -326,23 +326,23 @@ func (_q *SubscriptionBillingSyncStateQuery) GroupBy(field string, fields ...str
 //		Namespace string `json:"namespace,omitempty"`
 //	}
 //
-//	client.SubscriptionBillingSyncState.Query().
-//		Select(subscriptionbillingsyncstate.FieldNamespace).
+//	client.SubscriptionSyncState.Query().
+//		Select(subscriptionsyncstate.FieldNamespace).
 //		Scan(ctx, &v)
-func (_q *SubscriptionBillingSyncStateQuery) Select(fields ...string) *SubscriptionBillingSyncStateSelect {
+func (_q *SubscriptionSyncStateQuery) Select(fields ...string) *SubscriptionSyncStateSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &SubscriptionBillingSyncStateSelect{SubscriptionBillingSyncStateQuery: _q}
-	sbuild.label = subscriptionbillingsyncstate.Label
+	sbuild := &SubscriptionSyncStateSelect{SubscriptionSyncStateQuery: _q}
+	sbuild.label = subscriptionsyncstate.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a SubscriptionBillingSyncStateSelect configured with the given aggregations.
-func (_q *SubscriptionBillingSyncStateQuery) Aggregate(fns ...AggregateFunc) *SubscriptionBillingSyncStateSelect {
+// Aggregate returns a SubscriptionSyncStateSelect configured with the given aggregations.
+func (_q *SubscriptionSyncStateQuery) Aggregate(fns ...AggregateFunc) *SubscriptionSyncStateSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *SubscriptionBillingSyncStateQuery) prepareQuery(ctx context.Context) error {
+func (_q *SubscriptionSyncStateQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
@@ -354,7 +354,7 @@ func (_q *SubscriptionBillingSyncStateQuery) prepareQuery(ctx context.Context) e
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !subscriptionbillingsyncstate.ValidColumn(f) {
+		if !subscriptionsyncstate.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -368,19 +368,19 @@ func (_q *SubscriptionBillingSyncStateQuery) prepareQuery(ctx context.Context) e
 	return nil
 }
 
-func (_q *SubscriptionBillingSyncStateQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SubscriptionBillingSyncState, error) {
+func (_q *SubscriptionSyncStateQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*SubscriptionSyncState, error) {
 	var (
-		nodes       = []*SubscriptionBillingSyncState{}
+		nodes       = []*SubscriptionSyncState{}
 		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
 			_q.withSubscription != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*SubscriptionBillingSyncState).scanValues(nil, columns)
+		return (*SubscriptionSyncState).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &SubscriptionBillingSyncState{config: _q.config}
+		node := &SubscriptionSyncState{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -399,16 +399,16 @@ func (_q *SubscriptionBillingSyncStateQuery) sqlAll(ctx context.Context, hooks .
 	}
 	if query := _q.withSubscription; query != nil {
 		if err := _q.loadSubscription(ctx, query, nodes, nil,
-			func(n *SubscriptionBillingSyncState, e *Subscription) { n.Edges.Subscription = e }); err != nil {
+			func(n *SubscriptionSyncState, e *Subscription) { n.Edges.Subscription = e }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *SubscriptionBillingSyncStateQuery) loadSubscription(ctx context.Context, query *SubscriptionQuery, nodes []*SubscriptionBillingSyncState, init func(*SubscriptionBillingSyncState), assign func(*SubscriptionBillingSyncState, *Subscription)) error {
+func (_q *SubscriptionSyncStateQuery) loadSubscription(ctx context.Context, query *SubscriptionQuery, nodes []*SubscriptionSyncState, init func(*SubscriptionSyncState), assign func(*SubscriptionSyncState, *Subscription)) error {
 	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*SubscriptionBillingSyncState)
+	nodeids := make(map[string][]*SubscriptionSyncState)
 	for i := range nodes {
 		fk := nodes[i].SubscriptionID
 		if _, ok := nodeids[fk]; !ok {
@@ -436,7 +436,7 @@ func (_q *SubscriptionBillingSyncStateQuery) loadSubscription(ctx context.Contex
 	return nil
 }
 
-func (_q *SubscriptionBillingSyncStateQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *SubscriptionSyncStateQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	if len(_q.modifiers) > 0 {
 		_spec.Modifiers = _q.modifiers
@@ -448,8 +448,8 @@ func (_q *SubscriptionBillingSyncStateQuery) sqlCount(ctx context.Context) (int,
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *SubscriptionBillingSyncStateQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(subscriptionbillingsyncstate.Table, subscriptionbillingsyncstate.Columns, sqlgraph.NewFieldSpec(subscriptionbillingsyncstate.FieldID, field.TypeString))
+func (_q *SubscriptionSyncStateQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(subscriptionsyncstate.Table, subscriptionsyncstate.Columns, sqlgraph.NewFieldSpec(subscriptionsyncstate.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -458,14 +458,14 @@ func (_q *SubscriptionBillingSyncStateQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, subscriptionbillingsyncstate.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, subscriptionsyncstate.FieldID)
 		for i := range fields {
-			if fields[i] != subscriptionbillingsyncstate.FieldID {
+			if fields[i] != subscriptionsyncstate.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
 		if _q.withSubscription != nil {
-			_spec.Node.AddColumnOnce(subscriptionbillingsyncstate.FieldSubscriptionID)
+			_spec.Node.AddColumnOnce(subscriptionsyncstate.FieldSubscriptionID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -491,12 +491,12 @@ func (_q *SubscriptionBillingSyncStateQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *SubscriptionBillingSyncStateQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *SubscriptionSyncStateQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(subscriptionbillingsyncstate.Table)
+	t1 := builder.Table(subscriptionsyncstate.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = subscriptionbillingsyncstate.Columns
+		columns = subscriptionsyncstate.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -529,7 +529,7 @@ func (_q *SubscriptionBillingSyncStateQuery) sqlQuery(ctx context.Context) *sql.
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (_q *SubscriptionBillingSyncStateQuery) ForUpdate(opts ...sql.LockOption) *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) ForUpdate(opts ...sql.LockOption) *SubscriptionSyncStateQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -542,7 +542,7 @@ func (_q *SubscriptionBillingSyncStateQuery) ForUpdate(opts ...sql.LockOption) *
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (_q *SubscriptionBillingSyncStateQuery) ForShare(opts ...sql.LockOption) *SubscriptionBillingSyncStateQuery {
+func (_q *SubscriptionSyncStateQuery) ForShare(opts ...sql.LockOption) *SubscriptionSyncStateQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -552,28 +552,28 @@ func (_q *SubscriptionBillingSyncStateQuery) ForShare(opts ...sql.LockOption) *S
 	return _q
 }
 
-// SubscriptionBillingSyncStateGroupBy is the group-by builder for SubscriptionBillingSyncState entities.
-type SubscriptionBillingSyncStateGroupBy struct {
+// SubscriptionSyncStateGroupBy is the group-by builder for SubscriptionSyncState entities.
+type SubscriptionSyncStateGroupBy struct {
 	selector
-	build *SubscriptionBillingSyncStateQuery
+	build *SubscriptionSyncStateQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *SubscriptionBillingSyncStateGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionBillingSyncStateGroupBy {
+func (_g *SubscriptionSyncStateGroupBy) Aggregate(fns ...AggregateFunc) *SubscriptionSyncStateGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *SubscriptionBillingSyncStateGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *SubscriptionSyncStateGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionBillingSyncStateQuery, *SubscriptionBillingSyncStateGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*SubscriptionSyncStateQuery, *SubscriptionSyncStateGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *SubscriptionBillingSyncStateGroupBy) sqlScan(ctx context.Context, root *SubscriptionBillingSyncStateQuery, v any) error {
+func (_g *SubscriptionSyncStateGroupBy) sqlScan(ctx context.Context, root *SubscriptionSyncStateQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -600,28 +600,28 @@ func (_g *SubscriptionBillingSyncStateGroupBy) sqlScan(ctx context.Context, root
 	return sql.ScanSlice(rows, v)
 }
 
-// SubscriptionBillingSyncStateSelect is the builder for selecting fields of SubscriptionBillingSyncState entities.
-type SubscriptionBillingSyncStateSelect struct {
-	*SubscriptionBillingSyncStateQuery
+// SubscriptionSyncStateSelect is the builder for selecting fields of SubscriptionSyncState entities.
+type SubscriptionSyncStateSelect struct {
+	*SubscriptionSyncStateQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *SubscriptionBillingSyncStateSelect) Aggregate(fns ...AggregateFunc) *SubscriptionBillingSyncStateSelect {
+func (_s *SubscriptionSyncStateSelect) Aggregate(fns ...AggregateFunc) *SubscriptionSyncStateSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *SubscriptionBillingSyncStateSelect) Scan(ctx context.Context, v any) error {
+func (_s *SubscriptionSyncStateSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*SubscriptionBillingSyncStateQuery, *SubscriptionBillingSyncStateSelect](ctx, _s.SubscriptionBillingSyncStateQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*SubscriptionSyncStateQuery, *SubscriptionSyncStateSelect](ctx, _s.SubscriptionSyncStateQuery, _s, _s.inters, v)
 }
 
-func (_s *SubscriptionBillingSyncStateSelect) sqlScan(ctx context.Context, root *SubscriptionBillingSyncStateQuery, v any) error {
+func (_s *SubscriptionSyncStateSelect) sqlScan(ctx context.Context, root *SubscriptionSyncStateQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {
