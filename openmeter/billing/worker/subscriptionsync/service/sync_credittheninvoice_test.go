@@ -4400,7 +4400,7 @@ func (s *CreditThenInvoiceTestSuite) TestGatheringManualCreateSync() {
 	s.Nil(createdLine.Subscription)
 	s.Nil(createdLine.ChildUniqueReferenceID)
 	s.Equal(manualLinePeriod, createdLine.ServicePeriod)
-	s.assertTaxCodeConfigEqual(manualTaxConfig, productcatalog.TaxCodeConfigFrom(createdLine.TaxConfig), "manual line tax config")
+	s.assertTaxCodeConfigEqual(manualTaxConfig, lo.FromPtr(createdLine.TaxConfig), "manual line tax config")
 
 	manualCharge := s.mustGetFlatFeeChargeForInvoiceLine(ctx, createdLine.AsGenericLine())
 	s.Equal(*createdLine.ChargeID, manualCharge.ID)
@@ -4609,7 +4609,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedGatheringManualCreateSync() {
 		s.Equal(manualLinePeriod, createdLine.ServicePeriod)
 		s.Equal(manualLinePeriod.To, createdLine.InvoiceAt)
 		s.Equal(s.APIRequestsTotalFeature.Key, createdLine.FeatureKey)
-		s.assertTaxCodeConfigEqual(manualTaxConfig, productcatalog.TaxCodeConfigFrom(createdLine.TaxConfig), "manual line tax config")
+		s.assertTaxCodeConfigEqual(manualTaxConfig, lo.FromPtr(createdLine.TaxConfig), "manual line tax config")
 	})
 
 	s.Run("manual usage-based charge is created", func() {
@@ -5155,7 +5155,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualEditSync() {
 	s.Equal(updatedIntent.PaymentTerm, editedFlatPrice.PaymentTerm)
 
 	s.Require().NotNil(editedInvoiceLine.TaxConfig)
-	s.True(lo.ToPtr(baseTaxConfig.ToTaxConfig()).Equal(editedInvoiceLine.TaxConfig.ToProductCatalog()), "edited standard line should keep base tax config")
+	s.True(baseTaxConfig.Equal(editedInvoiceLine.TaxConfig), "edited standard line should keep base tax config")
 
 	s.assertFlatFeeChargeIntentsForInvoiceLine(ctx, "after standard line manual edit", updatedLine, expectedFlatFeeIntent{
 		ServicePeriod: originalLine.Period,
@@ -5561,7 +5561,7 @@ func (s *CreditThenInvoiceTestSuite) TestStandardInvoiceManualCreateSync() {
 	s.Nil(createdLine.Subscription)
 	s.Nil(createdLine.ChildUniqueReferenceID)
 	s.Equal(manualLinePeriod, createdLine.Period)
-	s.assertTaxCodeConfigEqual(defaultTaxConfig, productcatalog.TaxCodeConfigFrom(createdLine.TaxConfig.ToProductCatalog()), "manual standard line tax config")
+	s.assertTaxCodeConfigEqual(defaultTaxConfig, lo.FromPtr(createdLine.TaxConfig), "manual standard line tax config")
 	s.Require().Len(createdLine.CreditsApplied, 1)
 	s.Equal(float64(2), createdLine.CreditsApplied[0].Amount.InexactFloat64())
 	s.assertTotals(createdLine.Totals, expectedTotalsInput{
@@ -5799,7 +5799,7 @@ func (s *CreditThenInvoiceTestSuite) TestUsageBasedStandardInvoiceManualCreateSy
 		s.True(unitConfig.Equal(createdLine.UsageBased.UnitConfig))
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2000), *createdLine.UsageBased.MeteredQuantity, "manual usage-based standard line metered quantity")
 		s.AssertDecimalEqual(alpacadecimal.NewFromInt(2), *createdLine.UsageBased.Quantity, "manual usage-based standard line billable quantity")
-		s.assertTaxCodeConfigEqual(defaultTaxConfig, productcatalog.TaxCodeConfigFrom(createdLine.TaxConfig.ToProductCatalog()), "manual standard line tax config")
+		s.assertTaxCodeConfigEqual(defaultTaxConfig, lo.FromPtr(createdLine.TaxConfig), "manual standard line tax config")
 		s.Require().Len(createdLine.CreditsApplied, 1)
 		s.Equal(float64(2), createdLine.CreditsApplied[0].Amount.InexactFloat64())
 		s.assertTotals(createdLine.Totals, expectedTotalsInput{
@@ -11151,7 +11151,7 @@ func (s *CreditThenInvoiceTestSuite) assertGatheringLineTaxConfigs(lines []billi
 	s.Require().NotEmpty(lines)
 	for _, line := range lines {
 		s.Require().NotNil(line.TaxConfig)
-		s.True(lo.ToPtr(expected.ToTaxConfig()).Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
+		s.True(expected.Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
 	}
 }
 
@@ -11161,7 +11161,7 @@ func (s *CreditThenInvoiceTestSuite) assertStandardLineTaxConfigs(lines []*billi
 	s.Require().NotEmpty(lines)
 	for _, line := range lines {
 		s.Require().NotNil(line.TaxConfig)
-		s.True(lo.ToPtr(expected.ToTaxConfig()).Equal(line.TaxConfig.ToProductCatalog()), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
+		s.True(expected.Equal(line.TaxConfig), "line %s tax config: expected %+v, got %+v", line.ID, expected, line.TaxConfig)
 	}
 }
 

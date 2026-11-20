@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 func TestValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFieldsRejectsFeatureKeyChange(t *testing.T) {
@@ -24,7 +25,7 @@ func TestValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFieldsReje
 func TestValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFieldsRejectsTaxConfigChange(t *testing.T) {
 	err := ValidateInvoiceLineOverrideDoesNotChangeImmutableChargeIntentFields(billing.InvoiceLineOverride{
 		ChangesToApply: billing.ExistingLineOverride{
-			TaxConfig: mo.Some(&billing.TaxConfig{}),
+			TaxConfig: mo.Some(&productcatalog.TaxCodeConfig{}),
 		},
 	})
 

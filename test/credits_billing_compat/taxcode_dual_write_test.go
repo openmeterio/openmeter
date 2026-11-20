@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -26,16 +27,20 @@ func TestTaxCodeDualWrite(t *testing.T) {
 	suite.Run(t, new(TaxCodeDualWriteTestSuite))
 }
 
-// assertInvoiceLineTaxCode verifies that an invoice line has a fully-stamped TaxCode: both
-// the FK (TaxCodeID) and the entity snapshot (TaxCode) are present with the expected code.
+// assertInvoiceLineTaxCode verifies that an invoice line references a Tax Code (by ID) whose
+// Stripe app mapping is wantCode.
 func (s *TaxCodeDualWriteTestSuite) assertInvoiceLineTaxCode(line *billing.StandardLine, wantCode string) {
 	s.T().Helper()
 	s.Require().NotNil(line.TaxConfig)
-	s.Require().NotNil(line.TaxConfig.TaxCodeID, "TaxCodeID must be stamped on line")
-	s.Require().NotNil(line.TaxConfig.TaxCode, "TaxCode entity must be stamped on line")
-	s.Require().NotNil(line.TaxConfig.Stripe)
-	s.Equal(wantCode, line.TaxConfig.Stripe.Code)
-	mapping, ok := line.TaxConfig.TaxCode.GetAppMapping(app.AppTypeStripe)
+	s.Require().NotEmpty(line.TaxConfig.TaxCodeID, "TaxCodeID must be stamped on line")
+
+	tc, err := s.TaxCodeEnv.Service.GetTaxCode(s.T().Context(), taxcode.GetTaxCodeInput{
+		NamespacedID:   models.NamespacedID{Namespace: line.Namespace, ID: line.TaxConfig.TaxCodeID},
+		IncludeDeleted: true,
+	})
+	s.Require().NoError(err)
+
+	mapping, ok := tc.GetAppMapping(app.AppTypeStripe)
 	s.True(ok, "TaxCode must have a Stripe app mapping")
 	s.Equal(wantCode, mapping.TaxCode)
 }
@@ -120,8 +125,8 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 					ServicePeriod: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 					InvoiceAt:     now,
 					ManagedBy:     billing.ManuallyManagedLine,
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_20000000").ID,
 					},
 					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      alpacadecimal.NewFromFloat(100),
@@ -181,9 +186,8 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 					ServicePeriod: timeutil.ClosedPeriod{From: now, To: now.Add(time.Hour * 24)},
 					InvoiceAt:     now,
 					ManagedBy:     billing.ManuallyManagedLine,
-					TaxConfig: &productcatalog.TaxConfig{
-						Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-						TaxCodeID: existingID,
+					TaxConfig: &productcatalog.TaxCodeConfig{
+						TaxCodeID: *existingID,
 					},
 					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      alpacadecimal.NewFromFloat(100),
@@ -206,7 +210,5 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotPreservesExistingTaxCodeID() {
 	s.Require().Len(lines, 1)
 
 	s.Require().NotNil(lines[0].TaxConfig)
-	s.Require().NotNil(lines[0].TaxConfig.TaxCodeID)
-	s.Equal(*existingID, *lines[0].TaxConfig.TaxCodeID, "pre-stamped TaxCodeID must not be overwritten")
-	s.NotNil(lines[0].TaxConfig.TaxCode, "entity snapshot should still be stamped from the deps map")
+	s.Equal(*existingID, lines[0].TaxConfig.TaxCodeID, "pre-stamped TaxCodeID must not be overwritten")
 }

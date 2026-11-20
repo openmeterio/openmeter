@@ -401,8 +401,8 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 				ManagedBy: billing.ManuallyManagedLine,
 				Engine:    billing.LineEngineTypeChargeFlatFee,
 				ChargeID:  usdItem.ChargeID,
-				TaxConfig: &productcatalog.TaxConfig{
-					TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+				TaxConfig: &productcatalog.TaxCodeConfig{
+					TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
 				},
 
 				Currency: currencyx.FiatCode(currency.USD),
@@ -488,7 +488,7 @@ func (s *InvoicingTestSuite) TestPendingLineCreation() {
 		require.Len(s.T(), hufInvoiceLines, 2)
 		for _, line := range hufInvoiceLines {
 			require.NotNil(s.T(), line.TaxConfig)
-			require.Equal(s.T(), defaultTaxCodes.InvoicingTaxCodeID, lo.FromPtr(line.TaxConfig.TaxCodeID))
+			require.Equal(s.T(), defaultTaxCodes.InvoicingTaxCodeID, line.TaxConfig.TaxCodeID)
 		}
 
 		lineItem, found := lo.Find(hufInvoiceLines, func(l billing.GatheringLine) bool {

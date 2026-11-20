@@ -404,13 +404,12 @@ func (s *ReconciliationTestSuite) TestSyncKeepsDeletedTaxCodeOnLinesAndCharges()
 	// when: the subscription is synced
 	s.Require().NoError(s.Service.SyncByID(ctx, view.Subscription.NamespacedID, view.Subscription.ActiveFrom.Add(time.Minute)))
 
-	// then: the provisioned lines keep the deleted Tax Code ID with its Stripe mapping resolved
+	// then: the provisioned lines keep the deleted Tax Code ID
 	invoice := s.gatheringInvoice()
 	s.Require().NotEmpty(invoice.Lines.OrEmpty())
 	for _, line := range invoice.Lines.OrEmpty() {
 		s.Require().NotNil(line.TaxConfig)
-		s.Equal(lo.ToPtr(taxCode.ID), line.TaxConfig.TaxCodeID)
-		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, line.TaxConfig.Stripe)
+		s.Equal(taxCode.ID, line.TaxConfig.TaxCodeID)
 	}
 
 	// and: in the charges mode the charge carries the deleted Tax Code ID too

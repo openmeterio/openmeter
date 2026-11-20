@@ -511,15 +511,14 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
 		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
 		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
 
-		// then: the request succeeds, the line carries no tax code reference and no stripe code
+		// then: the request succeeds and the line carries neither a tax code reference nor a stripe code:
+		// the domain line cannot hold a stripe code that maps to no Tax Code, so no tax config is rendered
 		s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
 
 		var invoice apiv1models.Invoice
 		s.Require().NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
 		s.Require().Len(lo.FromPtr(invoice.Lines), 1)
-		s.Require().NotNil((*invoice.Lines)[0].TaxConfig)
-		s.Nil((*invoice.Lines)[0].TaxConfig.Stripe)
-		s.Nil((*invoice.Lines)[0].TaxConfig.TaxCodeId)
+		s.Nil((*invoice.Lines)[0].TaxConfig)
 
 		s.Equal(before, s.taxCodeCount(namespace))
 	})

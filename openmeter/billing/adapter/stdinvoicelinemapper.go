@@ -1,17 +1,18 @@
 package billingadapter
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/samber/lo"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
@@ -51,11 +52,6 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		creditsApplied = nil
 	}
 
-	lineTaxCode, err := taxCodeFromInvoiceLineEdge(dbLine)
-	if err != nil {
-		return nil, fmt.Errorf("mapping tax code [line_id=%s]: %w", dbLine.ID, err)
-	}
-
 	invoiceLine := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -89,11 +85,7 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 
 			Currency: dbLine.Currency,
 
-			TaxConfig: backfillTaxConfigReferences(
-				lo.EmptyableToPtr(dbLine.TaxConfig),
-				dbLine.TaxBehavior,
-				lineTaxCode,
-			),
+			TaxConfig:         productcatalog.FromDBTaxColumns(dbLine.TaxCodeID, dbLine.TaxBehavior),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 			CreditsApplied:    creditsApplied,
 			Totals:            totals.FromDB(dbLine),
@@ -199,69 +191,6 @@ func (a *adapter) mapStandardInvoiceLineUsageDiscountFromDB(dbDiscount *db.Billi
 	}, nil
 }
 
-func taxCodeFromInvoiceLineEdge(dbLine *db.BillingInvoiceLine) (*taxcode.TaxCode, error) {
-	tc, err := dbLine.Edges.TaxCodeOrErr()
-	if err != nil {
-		if dbLine.TaxCodeID == nil {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("resolving tax code [tax_code_id=%s]: %w", *dbLine.TaxCodeID, err)
-	}
-
-	if tc.Namespace != dbLine.Namespace {
-		return nil, fmt.Errorf("tax code namespace mismatch [line_namespace=%s,tax_code_id=%s,tax_code_namespace=%s]", dbLine.Namespace, tc.ID, tc.Namespace)
-	}
-
-	mapped, err := taxcodeadapter.MapTaxCodeFromEntity(tc)
-	if err != nil {
-		return nil, fmt.Errorf("mapping tax code [tax_code_id=%s]: %w", tc.ID, err)
-	}
-
-	return &mapped, nil
-}
-
-// backfillTaxConfigReferences reconstructs the invoice-line TaxConfig read model from the
-// persisted JSONB/config columns and the eagerly loaded TaxCode edge.
-//
-// Expected behavior:
-//   - always backfill the scalar legacy fields through productcatalog.BackfillTaxConfig(...)
-//   - only stamp TaxConfig.TaxCode when the resolved TaxCode entity matches the line's effective
-//     Stripe code / TaxCodeID after backfill and precedence rules are applied
-//   - if the line's own config takes precedence over the resolved TaxCode edge, keep the scalar
-//     config but do not attach a mismatching TaxCode snapshot
-//
-// TODO[later]: change the billing-facing types to expose TaxCodeSnapshot and TaxCodeReference
-// fields explicitly so it is obvious what is the immutable invoice snapshot and what is the live
-// reference to the tax entity.
-func backfillTaxConfigReferences(snapshottedTaxConfig *billing.TaxConfig, persistedTaxBehavior *productcatalog.TaxBehavior, resolvedTaxCode *taxcode.TaxCode) *billing.TaxConfig {
-	if snapshottedTaxConfig == nil {
-		return billing.FromProductCatalog(productcatalog.BackfillTaxConfig(nil, persistedTaxBehavior, resolvedTaxCode))
-	}
-
-	backfilledTaxConfig := productcatalog.BackfillTaxConfig(snapshottedTaxConfig.ToProductCatalog(), persistedTaxBehavior, resolvedTaxCode)
-
-	if backfilledTaxConfig == nil || resolvedTaxCode == nil {
-		return billing.FromProductCatalog(backfilledTaxConfig)
-	}
-
-	if backfilledTaxConfig.TaxCodeID != nil && *backfilledTaxConfig.TaxCodeID != resolvedTaxCode.ID {
-		return billing.FromProductCatalog(backfilledTaxConfig)
-	}
-
-	if backfilledTaxConfig.Stripe != nil {
-		mapping, ok := resolvedTaxCode.GetAppMapping(app.AppTypeStripe)
-		if !ok || mapping.TaxCode != backfilledTaxConfig.Stripe.Code {
-			return billing.FromProductCatalog(backfilledTaxConfig)
-		}
-	}
-
-	result := billing.FromProductCatalog(backfilledTaxConfig)
-	result.TaxCode = resolvedTaxCode
-
-	return result
-}
-
 func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount *db.BillingStandardInvoiceDetailedLineAmountDiscount) (billing.AmountLineDiscountManaged, error) {
 	base := billing.LineDiscountBase{
 		Description:            dbDiscount.Description,
@@ -297,4 +226,59 @@ func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount 
 			RoundingAmount:   lo.FromPtr(dbDiscount.RoundingAmount),
 		},
 	}, nil
+}
+
+// resolveTaxCodeSnapshots loads the Tax Codes the given lines reference, deleted ones
+// included, in one query. A referenced ID the namespace does not know is an error: the write
+// would otherwise persist a snapshot without its referenced entity.
+func (a *adapter) resolveTaxCodeSnapshots(ctx context.Context, namespace string, configs []*productcatalog.TaxCodeConfig) (map[string]*taxcode.TaxCode, error) {
+	ids := make([]string, 0, len(configs))
+	seen := make(map[string]struct{}, len(configs))
+	for _, cfg := range configs {
+		if cfg == nil || cfg.TaxCodeID == "" {
+			continue
+		}
+
+		if _, ok := seen[cfg.TaxCodeID]; ok {
+			continue
+		}
+
+		seen[cfg.TaxCodeID] = struct{}{}
+		ids = append(ids, cfg.TaxCodeID)
+	}
+
+	if len(ids) == 0 {
+		return map[string]*taxcode.TaxCode{}, nil
+	}
+
+	entities, err := a.db.TaxCode.Query().
+		Where(taxcodedb.Namespace(namespace)).
+		Where(taxcodedb.IDIn(ids...)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("loading tax codes: %w", err)
+	}
+
+	out := make(map[string]*taxcode.TaxCode, len(entities))
+	for _, entity := range entities {
+		mapped, err := taxcodeadapter.MapTaxCodeFromEntity(entity)
+		if err != nil {
+			return nil, fmt.Errorf("mapping tax code [tax_code_id=%s]: %w", entity.ID, err)
+		}
+
+		out[entity.ID] = &mapped
+	}
+
+	missing := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := out[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("tax codes not found: %v", missing)
+	}
+
+	return out, nil
 }

@@ -64,12 +64,10 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 		return nil, fmt.Errorf("billing line currency must be fiat: %s", r.Currency.GetCode())
 	}
 
-	// Lines still carry the legacy TaxConfig. Stripe isn't set here: billing fills it in from the
-	// Tax Code when the line is created (see ResolveTaxConfig in billing/service/stdinvoiceline.go).
-	// Sync never compares tax config on existing lines, so this doesn't make them churn.
-	var taxConfig *productcatalog.TaxConfig
-	if cfg := r.Spec.RateCard.AsMeta().TaxConfig; cfg != nil && (cfg.TaxCodeID != "" || cfg.Behavior != nil) {
-		taxConfig = lo.ToPtr(cfg.ToTaxConfig())
+	// Sync never compares tax config on existing lines, so an empty reference doesn't churn them.
+	var taxConfig *productcatalog.TaxCodeConfig
+	if cfg := r.Spec.RateCard.AsMeta().TaxConfig; cfg != nil && !cfg.IsEmpty() {
+		taxConfig = cfg
 	}
 
 	line := billing.GatheringLine{

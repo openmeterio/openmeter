@@ -170,6 +170,48 @@ func (s *PendingLineTaxConfigTestSuite) TestCreatePendingLineResolvesStripeCodeI
 	})
 }
 
+// A v1 pending line that only carries stripe.code must end up referencing the Tax Code mapped to
+// that code: the domain line cannot carry a Stripe code, so the handler has to resolve it.
+func (s *PendingLineTaxConfigTestSuite) TestCreatePendingLineStripeCodeOnlyReusesMappedTaxCode() {
+	ctx := s.T().Context()
+
+	// given: a customer and a tax code already mapped to the stripe code
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), s.namespace)
+	s.ProvisionBillingProfile(ctx, s.namespace, s.appID)
+	cust := s.CreateTestCustomer(s.namespace, "create-stripe-code-reuse")
+	mapped := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_50000000")
+	taxCodesBefore := s.taxCodeCount()
+
+	// when: a pending line with only a stripe.code is created
+	rec := s.createPendingLines(cust.ID, []apiv1models.InvoicePendingLineCreate{
+		s.flatLine("line", &apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "txcd_50000000"}}),
+	})
+	s.Require().Equal(http.StatusCreated, rec.Code, rec.Body.String())
+
+	// then: no tax code is created and the response renders the mapped one
+	s.Equal(taxCodesBefore, s.taxCodeCount())
+
+	created := s.createResponse(rec)
+	s.Require().Len(created.Lines, 1)
+	s.Equal(&apiv1models.TaxConfig{
+		Stripe:    &apiv1models.StripeTaxConfig{Code: "txcd_50000000"},
+		TaxCodeId: lo.ToPtr(mapped.ID),
+	}, created.Lines[0].TaxConfig)
+
+	// and: the stored line references the mapped tax code
+	stored, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		Invoice: billing.InvoiceID{Namespace: s.namespace, ID: created.Invoice.Id},
+		Expand:  billing.InvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	gatheringStored, err := stored.AsGatheringInvoice()
+	s.Require().NoError(err)
+	storedLines := gatheringStored.Lines.OrEmpty()
+	s.Require().Len(storedLines, 1)
+	s.Require().NotNil(storedLines[0].TaxConfig)
+	s.Equal(mapped.ID, storedLines[0].TaxConfig.TaxCodeID)
+}
+
 func unitLinePriceForTaxConfigTest() *apiv1models.RateCardUsageBasedPrice {
 	price := apiv1models.RateCardUsageBasedPrice{}
 	_ = price.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{
@@ -295,8 +337,7 @@ func (s *PendingLineTaxConfigTestSuite) TestUpdateInvoiceResolvesStripeCode() {
 	storedLines := gatheringStored.Lines.OrEmpty()
 	s.Require().Len(storedLines, 1)
 	s.Require().NotNil(storedLines[0].TaxConfig)
-	s.Require().NotNil(storedLines[0].TaxConfig.TaxCodeID)
-	s.Equal(taxCode.ID, *storedLines[0].TaxConfig.TaxCodeID)
+	s.Equal(taxCode.ID, storedLines[0].TaxConfig.TaxCodeID)
 }
 
 func (s *PendingLineTaxConfigTestSuite) echoLines(invoice apiv1models.Invoice) []apiv1models.InvoiceLineReplaceUpdate {

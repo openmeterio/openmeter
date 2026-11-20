@@ -140,7 +140,7 @@ type GenericInvoiceLineReader interface {
 	GetCurrency() currencyx.FiatCode
 	GetPrice() *productcatalog.Price
 	GetUnitConfig() *productcatalog.UnitConfig
-	GetTaxConfig() *TaxConfig
+	GetTaxConfig() *productcatalog.TaxCodeConfig
 	GetServicePeriod() timeutil.ClosedPeriod
 	GetChildUniqueReferenceID() *string
 	GetFeatureKey() string

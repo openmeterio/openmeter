@@ -316,7 +316,7 @@ func (e *BillingGatheringInvoiceLine) GetServicePeriodEnd() time.Time {
 	return e.ServicePeriodEnd
 }
 
-func (e *BillingGatheringInvoiceLine) GetTaxConfig() billing.TaxConfig {
+func (e *BillingGatheringInvoiceLine) GetTaxConfig() billing.StoredLineTaxConfig {
 	return e.TaxConfig
 }
 
@@ -536,7 +536,7 @@ func (e *BillingInvoiceLine) GetCurrency() currencyx.FiatCode {
 	return e.Currency
 }
 
-func (e *BillingInvoiceLine) GetTaxConfig() billing.TaxConfig {
+func (e *BillingInvoiceLine) GetTaxConfig() billing.StoredLineTaxConfig {
 	return e.TaxConfig
 }
 

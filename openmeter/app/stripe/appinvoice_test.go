@@ -88,7 +88,7 @@ func TestResolveLinesTaxCodes(t *testing.T) {
 		_, err := appOperations{TaxCodeResolver: resolver}.resolveLinesTaxCodes(t.Context(), namespace, []billing.DetailedLineWithResolvedTaxConfig{
 			{
 				DetailedLine: billing.DetailedLine{},
-				TaxConfig:    billing.FromProductCatalog(&productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(existingID)}),
+				TaxConfig:    &productcatalog.TaxCodeConfig{TaxCodeID: existingID},
 			},
 		})
 
@@ -105,7 +105,7 @@ func TestResolveLinesTaxCodes(t *testing.T) {
 		taxCodes, err := appOperations{TaxCodeResolver: resolver}.resolveLinesTaxCodes(t.Context(), namespace, []billing.DetailedLineWithResolvedTaxConfig{
 			{
 				DetailedLine: billing.DetailedLine{},
-				TaxConfig:    billing.FromProductCatalog(&productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(existingID)}),
+				TaxConfig:    &productcatalog.TaxCodeConfig{TaxCodeID: existingID},
 			},
 		})
 
@@ -122,7 +122,7 @@ func TestResolveLinesTaxCodes(t *testing.T) {
 			{DetailedLine: billing.DetailedLine{}},
 			{
 				DetailedLine: billing.DetailedLine{},
-				TaxConfig:    billing.FromProductCatalog(&productcatalog.TaxConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)}),
+				TaxConfig:    &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
 			},
 		})
 

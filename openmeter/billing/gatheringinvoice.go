@@ -421,8 +421,8 @@ type GatheringLineBase struct {
 	// Nil for lines without a unit_config rate card.
 	UnitConfig *unitconfig.UnitConfig `json:"unitConfig,omitempty"`
 
-	TaxConfig         *productcatalog.TaxConfig `json:"taxOverrides,omitempty"`
-	RateCardDiscounts Discounts                 `json:"rateCardDiscounts,omitempty"`
+	TaxConfig         *productcatalog.TaxCodeConfig `json:"taxOverrides,omitempty"`
+	RateCardDiscounts Discounts                     `json:"rateCardDiscounts,omitempty"`
 
 	ChildUniqueReferenceID *string                `json:"childUniqueReferenceID,omitempty"`
 	Subscription           *SubscriptionReference `json:"subscription,omitempty"`
@@ -441,8 +441,8 @@ func (i GatheringLineBase) GetMetadata() models.Metadata {
 	return i.Metadata
 }
 
-func (i GatheringLineBase) GetTaxConfig() *TaxConfig {
-	return FromProductCatalog(i.TaxConfig)
+func (i GatheringLineBase) GetTaxConfig() *productcatalog.TaxCodeConfig {
+	return i.TaxConfig
 }
 
 func (i GatheringLineBase) GetCurrency() currencyx.FiatCode {
@@ -536,8 +536,7 @@ func (i GatheringLineBase) Clone() (GatheringLineBase, error) {
 	out.Metadata = i.Metadata.Clone()
 
 	if i.TaxConfig != nil {
-		out.TaxConfig = &productcatalog.TaxConfig{}
-		*out.TaxConfig = *i.TaxConfig
+		out.TaxConfig = lo.ToPtr(i.TaxConfig.Clone())
 	}
 
 	if i.Subscription != nil {
@@ -825,9 +824,9 @@ func (g GatheringLine) AsNewStandardLine(invoiceID string) (*StandardLine, error
 		return nil, fmt.Errorf("cloning annotations: %w", err)
 	}
 
-	var taxConfig *TaxConfig
+	var taxConfig *productcatalog.TaxCodeConfig
 	if g.TaxConfig != nil {
-		taxConfig = FromProductCatalog(lo.ToPtr(g.TaxConfig.Clone()))
+		taxConfig = lo.ToPtr(g.TaxConfig.Clone())
 	}
 
 	var subscription *SubscriptionReference

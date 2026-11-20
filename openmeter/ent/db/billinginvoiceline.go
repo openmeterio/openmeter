@@ -55,7 +55,7 @@ type BillingInvoiceLine struct {
 	// Currency holds the value of the "currency" field.
 	Currency currencyx.FiatCode `json:"currency,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
-	TaxConfig billing.TaxConfig `json:"tax_config,omitempty"`
+	TaxConfig billing.StoredLineTaxConfig `json:"tax_config,omitempty"`
 	// TaxCodeID holds the value of the "tax_code_id" field.
 	TaxCodeID *string `json:"tax_code_id,omitempty"`
 	// TaxBehavior holds the value of the "tax_behavior" field.

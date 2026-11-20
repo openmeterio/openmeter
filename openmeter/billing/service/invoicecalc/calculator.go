@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
 type invoiceCalculatorsByType struct {
@@ -50,61 +50,10 @@ type Calculator interface {
 	CalculateGatheringInvoiceWithLiveData(*billing.StandardInvoice, StandardInvoiceCalculatorDependencies) error
 }
 
-// TaxCodes is a pre-resolved map of Stripe tax codes keyed by their Stripe code string.
-// Built before the calculator runs so that SnapshotTaxConfigIntoLines can stamp both
-// TaxCodeID and the entity into each line in a single pass without hitting the DB.
-type TaxCodes map[string]taxcode.TaxCode
-
-// Get looks up a TaxCode by Stripe code. Returns nil, false if not present.
-func (t TaxCodes) Get(stripeCode string) (*taxcode.TaxCode, bool) {
-	if t == nil {
-		return nil, false
-	}
-
-	tc, ok := t[stripeCode]
-	if !ok {
-		return nil, false
-	}
-
-	return &tc, true
-}
-
-// TaxCodesByID is the by-ID counterpart of TaxCodes: the Tax Codes invoice lines reference
-// through TaxCodeID, including soft-deleted ones. Get treats an absent key and a nil value
-// the same (nil, false), so callers only see "not resolvable" — a line whose ID points
-// outside the namespace keeps the ID without an entity instead of being skipped.
-type TaxCodesByID map[string]*taxcode.TaxCode
-
-// Get looks up a TaxCode by ID. Returns nil, false if not present.
-func (t TaxCodesByID) Get(id string) (*taxcode.TaxCode, bool) {
-	if t == nil {
-		return nil, false
-	}
-
-	tc, ok := t[id]
-	if !ok || tc == nil {
-		return nil, false
-	}
-
-	return tc, true
-}
-
 type StandardInvoiceCalculatorDependencies struct {
-	TaxCodes TaxCodes
-	// TaxCodesByID holds the Tax Codes lines reference by ID, loaded in one batch with
-	// deleted codes included. A referenced ID missing from the namespace is present with
-	// a nil value: the line keeps its ID but gets no TaxCode attached, the same rule the
-	// read side applies.
-	TaxCodesByID TaxCodesByID
-	// DefaultTaxConfig is the invoice's default tax config in the legacy line shape, with the Stripe
-	// code taken from the referenced Tax Code's mapping. The invoice itself only keeps the Tax Code
-	// ID, but lines still identify their tax code by Stripe code.
-	DefaultTaxConfig *billing.TaxConfig
-	// DefaultTaxCode is the default's Tax Code, loaded by ID and possibly deleted. It also lands
-	// in TaxCodesByID (resolveTaxCodes batches every referenced ID, the default's first), but it
-	// stays out of TaxCodes: looking it up by Stripe code could return another Tax Code with the
-	// same mapping, and the default is stamped by ID instead.
-	DefaultTaxCode *taxcode.TaxCode
+	// DefaultTaxConfig is the invoice default's tax config. The calculator merges it into every
+	// line so lines never have to look the default up themselves.
+	DefaultTaxConfig *productcatalog.TaxCodeConfig
 }
 
 type GatheringInvoiceCalculatorDependencies struct {

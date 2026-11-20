@@ -205,11 +205,10 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 0, now.Add(-time.Minute))
 	defer s.MockStreamingConnector.Reset()
 
-	taxConfig := &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe: &productcatalog.StripeTaxConfig{
-			Code: "txcd_10000000",
-		},
+	stripeTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	taxConfig := &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: stripeTaxCode.ID,
 	}
 
 	res, err := s.Charges.CreatePendingInvoiceLines(
@@ -250,15 +249,15 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	expectedChargeID := res.Lines[0].ChargeID
 	s.RequireChargeBasedGatheringLine(res.Lines[0], expectedChargeID)
 	s.Require().NotNil(res.Lines[0].TaxConfig)
-	s.Require().NotNil(res.Lines[0].TaxConfig.TaxCodeID, "TaxCodeID must be resolved before the gathering line is persisted")
+	s.Require().NotEmpty(res.Lines[0].TaxConfig.TaxCodeID, "TaxCodeID must be resolved before the gathering line is persisted")
 
 	createdTC, err := s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: namespace,
 		AppType:   app.AppTypeStripe,
-		TaxCode:   taxConfig.Stripe.Code,
+		TaxCode:   "txcd_10000000",
 	})
 	s.Require().NoError(err, "TaxCode entity must exist before invoice advancement")
-	s.Equal(createdTC.ID, *res.Lines[0].TaxConfig.TaxCodeID)
+	s.Equal(createdTC.ID, res.Lines[0].TaxConfig.TaxCodeID)
 
 	dbLine, err := s.DBClient.BillingInvoiceLine.Query().
 		Where(billinginvoicelinedb.ID(res.Lines[0].GetID())).
@@ -295,12 +294,9 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	}, ubpSplitLine.Period, "invoice line must cover only the partially billed period")
 	s.Require().NotNil(ubpSplitLine.TaxConfig, "tax config is retained")
 	s.Equal(taxConfig.Behavior, ubpSplitLine.TaxConfig.Behavior, "tax config behavior is retained")
-	s.Equal(taxConfig.Stripe, ubpSplitLine.TaxConfig.Stripe, "tax config stripe is retained")
-	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID is stamped during advancement")
+	s.Require().NotEmpty(ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID is stamped during advancement")
 
-	s.Equal(createdTC.ID, *ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID must match the DB entity")
-	s.Require().NotNil(ubpSplitLine.TaxConfig.TaxCode, "TaxCode entity must be stamped on line")
-	s.Equal(createdTC.ID, ubpSplitLine.TaxConfig.TaxCode.ID, "stamped TaxCode entity must match the DB entity")
+	s.Equal(createdTC.ID, ubpSplitLine.TaxConfig.TaxCodeID, "TaxCodeID must match the DB entity")
 
 	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
 	s.Len(ubpSplitLineDetailedLines, 1)
@@ -331,9 +327,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	}, remainingLine.ServicePeriod, "gathering line must cover the unbilled remainder")
 	s.Require().NotNil(remainingLine.TaxConfig, "remaining line retains its tax config")
 	s.Equal(taxConfig.Behavior, remainingLine.TaxConfig.Behavior, "remaining line retains its tax behavior")
-	s.Equal(taxConfig.Stripe, remainingLine.TaxConfig.Stripe, "remaining line retains its Stripe tax code")
-	s.Require().NotNil(remainingLine.TaxConfig.TaxCodeID)
-	s.Equal(createdTC.ID, *remainingLine.TaxConfig.TaxCodeID, "remaining line retains the resolved tax code")
+	s.Equal(createdTC.ID, remainingLine.TaxConfig.TaxCodeID, "remaining line retains the resolved tax code")
 }
 
 func (s *InvoicingTaxTestSuite) generateDraftInvoice(ctx context.Context, customer *customer.Customer) billing.StandardInvoice {

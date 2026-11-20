@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -81,18 +80,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *tes
 				UpdatedAt: period.From,
 			}),
 			Period: period,
-			TaxConfig: &billing.TaxConfig{
-				TaxConfig: productcatalog.TaxConfig{
-					Behavior:  &productCatalogTaxBehavior,
-					TaxCodeID: &taxCodeID,
-				},
-				TaxCode: &taxcode.TaxCode{
-					NamespacedID: models.NamespacedID{
-						Namespace: "ns",
-						ID:        taxCodeID,
-					},
-					Name: "Tax Code",
-				},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				Behavior:  &productCatalogTaxBehavior,
+				TaxCodeID: taxCodeID,
 			},
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -118,11 +108,13 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *tes
 			Behavior:  &taxBehavior,
 			TaxCodeId: &taxCodeID,
 		},
-	}, nil)
+	}, &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: taxCodeID,
+	})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
-	require.Equal(t, taxCodeID, *mergedLine.TaxConfig.TaxCodeID)
-	require.Nil(t, mergedLine.TaxConfig.TaxCode)
+	require.Equal(t, taxCodeID, mergedLine.TaxConfig.TaxCodeID)
 }
 
 func TestMergeStandardLineFromInvoiceLineReplaceUpdateLeavesProviderDefaultOmissionForInvoiceNormalization(t *testing.T) {
@@ -131,18 +123,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateLeavesProviderDefaultOmiss
 
 	defaultTaxCodeID := "default-tax-code-id"
 	productCatalogTaxBehavior := productcatalog.ExclusiveTaxBehavior
-	line.TaxConfig = &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			Behavior:  &productCatalogTaxBehavior,
-			TaxCodeID: &defaultTaxCodeID,
-		},
-		TaxCode: &taxcode.TaxCode{
-			NamespacedID: models.NamespacedID{
-				Namespace: "ns",
-				ID:        defaultTaxCodeID,
-			},
-			Name: "Default Tax Code",
-		},
+	line.TaxConfig = &productcatalog.TaxCodeConfig{
+		Behavior:  &productCatalogTaxBehavior,
+		TaxCodeID: defaultTaxCodeID,
 	}
 
 	taxBehavior := apiv1models.TaxBehaviorExclusive
@@ -151,11 +134,10 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateLeavesProviderDefaultOmiss
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}), nil)
+	}), &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
-	require.Nil(t, mergedLine.TaxConfig.TaxCodeID)
-	require.Nil(t, mergedLine.TaxConfig.TaxCode)
+	require.Empty(t, mergedLine.TaxConfig.TaxCodeID)
 }
 
 func TestMergeStandardLineFromInvoiceLineReplaceUpdateDoesNotPreserveExplicitTaxCodeWhenPayloadOmitsTaxCodeIdentity(t *testing.T) {
@@ -164,18 +146,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDoesNotPreserveExplicitTax
 
 	explicitTaxCodeID := "explicit-tax-code-id"
 	productCatalogTaxBehavior := productcatalog.ExclusiveTaxBehavior
-	line.TaxConfig = &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			Behavior:  &productCatalogTaxBehavior,
-			TaxCodeID: &explicitTaxCodeID,
-		},
-		TaxCode: &taxcode.TaxCode{
-			NamespacedID: models.NamespacedID{
-				Namespace: "ns",
-				ID:        explicitTaxCodeID,
-			},
-			Name: "Explicit Tax Code",
-		},
+	line.TaxConfig = &productcatalog.TaxCodeConfig{
+		Behavior:  &productCatalogTaxBehavior,
+		TaxCodeID: explicitTaxCodeID,
 	}
 
 	taxBehavior := apiv1models.TaxBehaviorExclusive
@@ -184,11 +157,10 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDoesNotPreserveExplicitTax
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}), nil)
+	}), &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
-	require.Nil(t, mergedLine.TaxConfig.TaxCodeID)
-	require.Nil(t, mergedLine.TaxConfig.TaxCode)
+	require.Empty(t, mergedLine.TaxConfig.TaxCodeID)
 }
 
 func TestMergeStandardLineFromInvoiceLineReplaceUpdateDropsResolvedTaxCodeWhenTaxConfigChanges(t *testing.T) {
@@ -197,18 +169,9 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDropsResolvedTaxCodeWhenTa
 
 	oldTaxCodeID := "old-tax-code-id"
 	oldTaxBehavior := productcatalog.ExclusiveTaxBehavior
-	line.TaxConfig = &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			Behavior:  &oldTaxBehavior,
-			TaxCodeID: &oldTaxCodeID,
-		},
-		TaxCode: &taxcode.TaxCode{
-			NamespacedID: models.NamespacedID{
-				Namespace: "ns",
-				ID:        oldTaxCodeID,
-			},
-			Name: "Old Tax Code",
-		},
+	line.TaxConfig = &productcatalog.TaxCodeConfig{
+		Behavior:  &oldTaxBehavior,
+		TaxCodeID: oldTaxCodeID,
 	}
 
 	newTaxCodeID := "new-tax-code-id"
@@ -219,11 +182,10 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDropsResolvedTaxCodeWhenTa
 			TaxCodeId: &newTaxCodeID,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}), nil)
+	}), &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior), TaxCodeID: newTaxCodeID})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
-	require.Nil(t, mergedLine.TaxConfig.TaxCode)
-	require.Equal(t, newTaxCodeID, *mergedLine.TaxConfig.TaxCodeID)
+	require.Equal(t, newTaxCodeID, mergedLine.TaxConfig.TaxCodeID)
 }
 
 func TestMergeStandardLineFromInvoiceLineReplaceUpdatePreservesDiscountCorrelationID(t *testing.T) {

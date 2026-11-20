@@ -124,10 +124,7 @@ func intentFromManualCreatedLine(
 		}
 	}
 
-	taxConfig := productcatalog.TaxCodeConfig{}
-	if lineTaxConfig := line.GetTaxConfig(); lineTaxConfig != nil {
-		taxConfig = productcatalog.TaxCodeConfigFrom(lineTaxConfig.ToProductCatalog())
-	}
+	taxConfig := lo.FromPtr(line.GetTaxConfig())
 
 	intent := flatfee.Intent{
 		Intent: meta.Intent{

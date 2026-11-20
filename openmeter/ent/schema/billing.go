@@ -336,7 +336,7 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 				dialect.Postgres: "varchar(3)",
 			}),
 
-		field.JSON("tax_config", billing.TaxConfig{}).
+		field.JSON("tax_config", billing.StoredLineTaxConfig{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
@@ -375,7 +375,7 @@ func (StandardInvoiceLineIntentMixin) Fields() []ent.Field {
 		field.Time("service_period_start"),
 		field.Time("service_period_end"),
 
-		field.JSON("tax_config", billing.TaxConfig{}).
+		field.JSON("tax_config", billing.StoredLineTaxConfig{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).

@@ -234,7 +234,7 @@ func ResolveInvoiceTaxCodes(ctx context.Context, resolver productcatalog.TaxCode
 	})
 
 	for _, line := range input.StandardLines {
-		if id := taxCodeIDFromConfig(line.TaxConfig.ToProductCatalog()); id != "" {
+		if id := taxCodeIDFromConfig(line.TaxConfig); id != "" {
 			ids = append(ids, id)
 		}
 	}
@@ -249,12 +249,12 @@ func ResolveInvoiceTaxCodes(ctx context.Context, resolver productcatalog.TaxCode
 }
 
 // taxCodeIDFromConfig returns the Tax Code reference of the config, or "" when there is none.
-func taxCodeIDFromConfig(cfg *productcatalog.TaxConfig) string {
-	if cfg == nil || cfg.TaxCodeID == nil {
+func taxCodeIDFromConfig(cfg *productcatalog.TaxCodeConfig) string {
+	if cfg == nil {
 		return ""
 	}
 
-	return *cfg.TaxCodeID
+	return cfg.TaxCodeID
 }
 
 func resolveTaxCodesByIDs(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, ids []string) (map[string]*taxcode.TaxCode, error) {

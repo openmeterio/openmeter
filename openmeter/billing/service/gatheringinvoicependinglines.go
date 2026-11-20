@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/cmpx"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -932,7 +933,14 @@ func (s *Service) CreateStandardInvoiceFromGatheringLines(ctx context.Context, i
 	}
 
 	// Let's publish the created event
-	event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
+	taxCodes, err := s.lineTaxCodes(ctx, invoice.Namespace, lo.Map(invoice.Lines.OrEmpty(), func(l *billing.StandardLine, _ int) *productcatalog.TaxCodeConfig {
+		return l.TaxConfig
+	})...)
+	if err != nil {
+		return nil, fmt.Errorf("creating event: %w", err)
+	}
+
+	event, err := billing.NewStandardInvoiceCreatedEvent(invoice, taxCodes)
 	if err != nil {
 		return nil, fmt.Errorf("creating event: %w", err)
 	}
@@ -1001,8 +1009,6 @@ func (s *Service) recalculateStandardInvoice(ctx context.Context, invoice billin
 	calculatorDeps, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: invoice.Namespace,
 		Invoice:   &invoice,
-		// At this point the invoice is still mutable, so we can properly resolve/backfill the tax codes.
-		ReadOnly: false,
 	})
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)

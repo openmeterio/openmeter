@@ -12651,7 +12651,7 @@ type BillingGatheringInvoiceLineMutation struct {
 	currency                         *currencyx.FiatCode
 	service_period_start             *time.Time
 	service_period_end               *time.Time
-	tax_config                       *billing.TaxConfig
+	tax_config                       *billing.StoredLineTaxConfig
 	price_type                       *productcatalog.PriceType
 	feature_key                      *string
 	price                            **productcatalog.Price
@@ -13237,12 +13237,12 @@ func (m *BillingGatheringInvoiceLineMutation) ResetServicePeriodEnd() {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (m *BillingGatheringInvoiceLineMutation) SetTaxConfig(bc billing.TaxConfig) {
-	m.tax_config = &bc
+func (m *BillingGatheringInvoiceLineMutation) SetTaxConfig(bltc billing.StoredLineTaxConfig) {
+	m.tax_config = &bltc
 }
 
 // TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *BillingGatheringInvoiceLineMutation) TaxConfig() (r billing.TaxConfig, exists bool) {
+func (m *BillingGatheringInvoiceLineMutation) TaxConfig() (r billing.StoredLineTaxConfig, exists bool) {
 	v := m.tax_config
 	if v == nil {
 		return
@@ -13253,7 +13253,7 @@ func (m *BillingGatheringInvoiceLineMutation) TaxConfig() (r billing.TaxConfig, 
 // OldTaxConfig returns the old "tax_config" field's value of the BillingGatheringInvoiceLine entity.
 // If the BillingGatheringInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingGatheringInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v billing.TaxConfig, err error) {
+func (m *BillingGatheringInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v billing.StoredLineTaxConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
 	}
@@ -14696,7 +14696,7 @@ func (m *BillingGatheringInvoiceLineMutation) SetField(name string, value ent.Va
 		m.SetServicePeriodEnd(v)
 		return nil
 	case billinggatheringinvoiceline.FieldTaxConfig:
-		v, ok := value.(billing.TaxConfig)
+		v, ok := value.(billing.StoredLineTaxConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -20413,7 +20413,7 @@ type BillingInvoiceLineMutation struct {
 	name                                                  *string
 	description                                           *string
 	currency                                              *currencyx.FiatCode
-	tax_config                                            *billing.TaxConfig
+	tax_config                                            *billing.StoredLineTaxConfig
 	tax_behavior                                          *productcatalog.TaxBehavior
 	amount                                                *alpacadecimal.Decimal
 	taxes_total                                           *alpacadecimal.Decimal
@@ -20966,12 +20966,12 @@ func (m *BillingInvoiceLineMutation) ResetCurrency() {
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (m *BillingInvoiceLineMutation) SetTaxConfig(bc billing.TaxConfig) {
-	m.tax_config = &bc
+func (m *BillingInvoiceLineMutation) SetTaxConfig(bltc billing.StoredLineTaxConfig) {
+	m.tax_config = &bltc
 }
 
 // TaxConfig returns the value of the "tax_config" field in the mutation.
-func (m *BillingInvoiceLineMutation) TaxConfig() (r billing.TaxConfig, exists bool) {
+func (m *BillingInvoiceLineMutation) TaxConfig() (r billing.StoredLineTaxConfig, exists bool) {
 	v := m.tax_config
 	if v == nil {
 		return
@@ -20982,7 +20982,7 @@ func (m *BillingInvoiceLineMutation) TaxConfig() (r billing.TaxConfig, exists bo
 // OldTaxConfig returns the old "tax_config" field's value of the BillingInvoiceLine entity.
 // If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BillingInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v billing.TaxConfig, err error) {
+func (m *BillingInvoiceLineMutation) OldTaxConfig(ctx context.Context) (v billing.StoredLineTaxConfig, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldTaxConfig is only allowed on UpdateOne operations")
 	}
@@ -23487,7 +23487,7 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		m.SetCurrency(v)
 		return nil
 	case billinginvoiceline.FieldTaxConfig:
-		v, ok := value.(billing.TaxConfig)
+		v, ok := value.(billing.StoredLineTaxConfig)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

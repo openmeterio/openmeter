@@ -23,7 +23,7 @@ type ExistingLineOverride struct {
 
 	Period    mo.Option[timeutil.ClosedPeriod]
 	InvoiceAt mo.Option[time.Time]
-	TaxConfig mo.Option[*TaxConfig]
+	TaxConfig mo.Option[*productcatalog.TaxCodeConfig]
 
 	Price      mo.Option[*productcatalog.Price]
 	FeatureKey mo.Option[string]
@@ -406,7 +406,7 @@ func applyExistingLineOverrideToGatheringLine(o ExistingLineOverride, line *Gath
 	}
 
 	if val, ok := o.TaxConfig.Get(); ok {
-		line.TaxConfig = val.ToProductCatalog()
+		line.TaxConfig = val
 	}
 
 	if val, ok := o.Price.Get(); ok {

@@ -232,6 +232,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 			{AppType: app.AppTypeStripe, TaxCode: defaultStripeTaxCode},
 		},
 	})
+	overrideTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, overrideStripeTaxCode)
 
 	flatPerUnitMeterID := ulid.Make().String()
 	flatPerUsageMeterID := ulid.Make().String()
@@ -441,9 +442,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 							Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.UnitPrice{
 								Amount: alpacadecimal.NewFromFloat(0.00000075),
 							})),
-							TaxConfig: &productcatalog.TaxConfig{
+							TaxConfig: &productcatalog.TaxCodeConfig{
 								Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-								TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+								TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
 							},
 						},
 					},
@@ -461,11 +462,9 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 								Amount:      alpacadecimal.NewFromFloat(100),
 								PaymentTerm: productcatalog.InArrearsPaymentTerm,
 							})),
-							TaxConfig: &productcatalog.TaxConfig{
-								Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-								Stripe: &productcatalog.StripeTaxConfig{
-									Code: overrideStripeTaxCode,
-								},
+							TaxConfig: &productcatalog.TaxCodeConfig{
+								Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+								TaxCodeID: overrideTaxCode.ID,
 							},
 						},
 					},
@@ -1686,7 +1685,7 @@ func (s *StripeInvoiceTestSuite) TestSendInvoice() {
 // syncDraftToStripe collects the given flat-fee line into a draft and lets the invoice state
 // machine sync it to Stripe once, returning the synced invoice. The clock must already be past
 // period.To, because collection only picks up lines whose invoice time has passed.
-func (s *StripeInvoiceTestSuite) syncDraftToStripe(ctx context.Context, cust *customer.Customer, period timeutil.ClosedPeriod, taxConfig *productcatalog.TaxConfig, name string) billing.StandardInvoice {
+func (s *StripeInvoiceTestSuite) syncDraftToStripe(ctx context.Context, cust *customer.Customer, period timeutil.ClosedPeriod, taxConfig *productcatalog.TaxCodeConfig, name string) billing.StandardInvoice {
 	s.T().Helper()
 
 	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
@@ -1829,9 +1828,9 @@ func (s *StripeInvoiceTestSuite) TestDraftResyncSendsTaxCodeMapping() {
 	s.stubDraftSyncUpsert("in_taxcode_resync")
 	defer s.StripeAppClient.Restore()
 
-	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxConfig{
+	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(invoicingTaxCode.ID),
+		TaxCodeID: invoicingTaxCode.ID,
 	}, "Resynced fee")
 
 	s.Equal("in_taxcode_resync", invoice.ExternalIDs.Invoicing)
@@ -1903,9 +1902,9 @@ func (s *StripeInvoiceTestSuite) TestDraftSyncSendsSoftDeletedTaxCodeMapping() {
 		Currency:      currencyx.FiatCode(currency.USD),
 		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
 	})
-	line.TaxConfig = &productcatalog.TaxConfig{
+	line.TaxConfig = &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(taxCode.ID),
+		TaxCodeID: taxCode.ID,
 	}
 
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
@@ -1974,9 +1973,9 @@ func (s *StripeInvoiceTestSuite) TestProviderDefaultTaxCodeSendsNoTaxCode() {
 	s.stubDraftSyncUpsert("in_taxcode_provider_default")
 	defer s.StripeAppClient.Restore()
 
-	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxConfig{
+	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(providerDefault.ID),
+		TaxCodeID: providerDefault.ID,
 	}, "Provider default tax fee")
 
 	s.assertSentTaxCode("")

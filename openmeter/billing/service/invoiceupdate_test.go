@@ -11,7 +11,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -259,18 +258,16 @@ func TestDiffMutableInvoiceLinesSanitizesNilTaxConfigToDefaultNoDiff(t *testing.
 		&invoice,
 	)
 	require.NoError(t, err)
-	require.Equal(t, invoiceUpdateDefaultTaxCodeID, *sanitizedInvoice.GetGenericLines().OrEmpty()[0].GetTaxConfig().TaxCodeID)
+	require.Equal(t, invoiceUpdateDefaultTaxCodeID, sanitizedInvoice.GetGenericLines().OrEmpty()[0].GetTaxConfig().TaxCodeID)
 }
 
 func TestDiffMutableInvoiceLinesKeepsExplicitTaxCodeToDefaultDiff(t *testing.T) {
 	explicitTaxCodeID := "explicit-tax-code-id"
 	taxBehavior := productcatalog.ExclusiveTaxBehavior
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				Behavior:  &taxBehavior,
-				TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			Behavior:  &taxBehavior,
+			TaxCodeID: explicitTaxCodeID,
 		},
 		nil,
 	)
@@ -291,21 +288,15 @@ func TestDiffMutableInvoiceLinesKeepsExplicitTaxCodeToDefaultDiff(t *testing.T) 
 	updatedTaxConfig, ok := lineDiff.Updated[0].ChangesToApply.TaxConfig.Get()
 	require.True(t, ok)
 	require.NotNil(t, updatedTaxConfig)
-	require.Equal(t, invoiceUpdateDefaultTaxCodeID, *updatedTaxConfig.TaxCodeID)
+	require.Equal(t, invoiceUpdateDefaultTaxCodeID, updatedTaxConfig.TaxCodeID)
 }
 
-func TestDiffMutableInvoiceLinesResolvesProviderDefaultTaxCodeIDMatchNoDiff(t *testing.T) {
+func TestDiffMutableInvoiceLinesEmptyTaxConfigMatchesProviderDefaultNoDiff(t *testing.T) {
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			TaxCodeID: invoiceUpdateDefaultTaxCodeID,
 		},
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				Stripe: &productcatalog.StripeTaxConfig{},
-			},
-		},
+		&productcatalog.TaxCodeConfig{},
 	)
 	svc := serviceForInvoiceTaxConfigDiffTest()
 
@@ -313,37 +304,27 @@ func TestDiffMutableInvoiceLinesResolvesProviderDefaultTaxCodeIDMatchNoDiff(t *t
 	require.NoError(t, err)
 	require.True(t, lineDiff.IsEmpty())
 
-	require.Nil(t, edited.Lines.OrEmpty()[0].TaxConfig.TaxCodeID)
-	require.NotNil(t, edited.Lines.OrEmpty()[0].TaxConfig.Stripe)
-	require.Empty(t, edited.Lines.OrEmpty()[0].TaxConfig.Stripe.Code)
+	require.Empty(t, edited.Lines.OrEmpty()[0].TaxConfig.TaxCodeID)
 }
 
 func TestDiffMutableInvoiceLinesResolvedExplicitTaxCodeIDMatchNoDiff(t *testing.T) {
 	explicitTaxCodeID := "explicit-tax-code-id"
 	taxBehavior := productcatalog.ExclusiveTaxBehavior
-	invoiceTaxConfig := &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			Behavior:  &taxBehavior,
-			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-		},
-		TaxCode: &taxcode.TaxCode{
-			NamespacedID: models.NamespacedID{
-				Namespace: "ns",
-				ID:        explicitTaxCodeID,
-			},
-			Key:  "explicit",
-			Name: "Explicit Tax Code",
-		},
+	invoiceTaxConfig := &productcatalog.TaxCodeConfig{
+		Behavior:  &taxBehavior,
+		TaxCodeID: explicitTaxCodeID,
 	}
-	editedTaxConfig := &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			Behavior:  &taxBehavior,
-			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-		},
+	editedTaxConfig := &productcatalog.TaxCodeConfig{
+		Behavior:  &taxBehavior,
+		TaxCodeID: explicitTaxCodeID,
 	}
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(invoiceTaxConfig, editedTaxConfig)
 	svc := serviceForInvoiceTaxConfigDiffTest()
-	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = *invoiceTaxConfig.TaxCode
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: explicitTaxCodeID},
+		Key:          "explicit",
+		Name:         "Explicit Tax Code",
+	}
 
 	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 	require.NoError(t, err)
@@ -354,15 +335,11 @@ func TestDiffMutableInvoiceLinesAllowsReplacingDeletedTaxCode(t *testing.T) {
 	deletedTaxCodeID := "deleted-tax-code-id"
 	replacementTaxCodeID := "replacement-tax-code-id"
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(deletedTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			TaxCodeID: deletedTaxCodeID,
 		},
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(replacementTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			TaxCodeID: replacementTaxCodeID,
 		},
 	)
 	svc := serviceForInvoiceTaxConfigDiffTest()
@@ -385,15 +362,13 @@ func TestDiffMutableInvoiceLinesAllowsReplacingDeletedTaxCode(t *testing.T) {
 
 	updatedTaxConfig, ok := lineDiff.Updated[0].ChangesToApply.TaxConfig.Get()
 	require.True(t, ok)
-	require.Equal(t, replacementTaxCodeID, *updatedTaxConfig.TaxCodeID)
+	require.Equal(t, replacementTaxCodeID, updatedTaxConfig.TaxCodeID)
 }
 
 func TestDiffMutableInvoiceLinesAllowsUnchangedDeletedTaxCode(t *testing.T) {
 	deletedTaxCodeID := "deleted-tax-code-id"
-	taxConfig := &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr(deletedTaxCodeID),
-		},
+	taxConfig := &productcatalog.TaxCodeConfig{
+		TaxCodeID: deletedTaxCodeID,
 	}
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(taxConfig, taxConfig)
 	svc := serviceForInvoiceTaxConfigDiffTest()
@@ -416,15 +391,11 @@ func TestDiffMutableInvoiceLinesRejectsNewlyReferencedDeletedTaxCode(t *testing.
 	unchangedTaxCodeID := "unchanged-tax-code-id"
 	deletedTaxCodeID := "deleted-tax-code-id"
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(unchangedTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			TaxCodeID: unchangedTaxCodeID,
 		},
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(deletedTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			TaxCodeID: deletedTaxCodeID,
 		},
 	)
 	svc := serviceForInvoiceTaxConfigDiffTest()
@@ -446,154 +417,17 @@ func TestDiffMutableInvoiceLinesRejectsNewlyReferencedDeletedTaxCode(t *testing.
 	require.ErrorIs(t, err, billing.ErrTaxCodeDeleted)
 }
 
-func TestInvoiceWithSanitizedTaxConfigForDiffNormalizesExplicitTaxCodeIdentity(t *testing.T) {
-	explicitTaxCodeID := "explicit-tax-code-id"
-	canonicalStripeCode := "txcd_10000000"
-	invoice, _ := standardInvoicePairForTaxConfigDiffTest(&billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_20060051"},
-		},
-	}, nil)
-	svc := serviceForInvoiceTaxConfigDiffTest()
-	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
-		NamespacedID: models.NamespacedID{
-			Namespace: "ns",
-			ID:        explicitTaxCodeID,
-		},
-		Key:  "explicit",
-		Name: "Explicit Tax Code",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: canonicalStripeCode},
-		},
-	}
-
-	sanitized, err := svc.invoiceWithSanitizedTaxConfigForDiff(
-		t.Context(),
-		svc.defaultTaxCodeResolversForInvoiceUpdate(&invoice),
-		&invoice,
-	)
-	require.NoError(t, err)
-
-	taxConfig := sanitized.GetGenericLines().OrEmpty()[0].GetTaxConfig()
-	require.Equal(t, explicitTaxCodeID, *taxConfig.TaxCodeID)
-	require.Equal(t, canonicalStripeCode, taxConfig.Stripe.Code)
-}
-
-func TestInvoiceWithSanitizedTaxConfigForDiffRejectsCrossNamespaceTaxCode(t *testing.T) {
-	explicitTaxCodeID := "explicit-tax-code-id"
-	invoice, _ := standardInvoicePairForTaxConfigDiffTest(&billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-		},
-	}, nil)
-	svc := serviceForInvoiceTaxConfigDiffTest()
-	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
-		NamespacedID: models.NamespacedID{
-			Namespace: "another-namespace",
-			ID:        explicitTaxCodeID,
-		},
-		Key:  "explicit",
-		Name: "Explicit Tax Code",
-	}
-
-	_, err := svc.invoiceWithSanitizedTaxConfigForDiff(
-		t.Context(),
-		svc.defaultTaxCodeResolversForInvoiceUpdate(&invoice),
-		&invoice,
-	)
-	require.ErrorContains(t, err, "tax code explicit-tax-code-id not found")
-}
-
-func TestDiffMutableInvoiceLinesSystemSourceUsesFullTaxConfigEquality(t *testing.T) {
-	explicitTaxCodeID := "explicit-tax-code-id"
-	taxBehavior := productcatalog.ExclusiveTaxBehavior
-	invoiceTaxConfig := &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			Behavior:  &taxBehavior,
-			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-		},
-		TaxCode: &taxcode.TaxCode{
-			NamespacedID: models.NamespacedID{
-				Namespace: "ns",
-				ID:        explicitTaxCodeID,
-			},
-			Key:  "explicit",
-			Name: "Explicit Tax Code",
-		},
-	}
-	editedTaxConfig := &billing.TaxConfig{
-		TaxConfig: productcatalog.TaxConfig{
-			Behavior:  &taxBehavior,
-			TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-		},
-	}
-	invoice, edited := standardInvoicePairForTaxConfigDiffTest(invoiceTaxConfig, editedTaxConfig)
-
-	apiLineDiff, err := diffMutableInvoiceLinesForTestWithSource(&invoice, &edited, billing.ChangeSourceAPIRequest, billing.DefaultCreateLineRouter{})
-	require.NoError(t, err)
-	require.True(t, apiLineDiff.IsEmpty())
-
-	systemLineDiff, err := diffMutableInvoiceLinesForTestWithSource(&invoice, &edited, billing.ChangeSourceSystem, billing.DefaultCreateLineRouter{})
-	require.NoError(t, err)
-	require.Len(t, systemLineDiff.Updated, 1)
-
-	updatedTaxConfig, ok := systemLineDiff.Updated[0].ChangesToApply.TaxConfig.Get()
-	require.True(t, ok)
-	require.Equal(t, editedTaxConfig, updatedTaxConfig)
-}
-
-func TestDiffMutableInvoiceLinesResolvesProviderTaxCodeIDMatchNoDiff(t *testing.T) {
-	explicitTaxCodeID := "explicit-tax-code-id"
-	stripeCode := "txcd_10000000"
-	taxBehavior := productcatalog.ExclusiveTaxBehavior
-	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				Behavior:  &taxBehavior,
-				TaxCodeID: lo.ToPtr(explicitTaxCodeID),
-			},
-		},
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				Behavior: &taxBehavior,
-				Stripe:   &productcatalog.StripeTaxConfig{Code: stripeCode},
-			},
-		},
-	)
-	svc := serviceForInvoiceTaxConfigDiffTest()
-	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[explicitTaxCodeID] = taxcode.TaxCode{
-		NamespacedID: models.NamespacedID{
-			Namespace: "ns",
-			ID:        explicitTaxCodeID,
-		},
-		Key:  "explicit",
-		Name: "Explicit Tax Code",
-		AppMappings: taxcode.TaxCodeAppMappings{
-			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
-		},
-	}
-
-	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
-	require.NoError(t, err)
-	require.True(t, lineDiff.IsEmpty())
-}
-
 func TestDiffMutableInvoiceLinesBehaviorOnlyDifferenceProducesTaxConfigDiff(t *testing.T) {
 	exclusiveBehavior := productcatalog.ExclusiveTaxBehavior
 	inclusiveBehavior := productcatalog.InclusiveTaxBehavior
 	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				Behavior:  &exclusiveBehavior,
-				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			Behavior:  &exclusiveBehavior,
+			TaxCodeID: invoiceUpdateDefaultTaxCodeID,
 		},
-		&billing.TaxConfig{
-			TaxConfig: productcatalog.TaxConfig{
-				Behavior:  &inclusiveBehavior,
-				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
-			},
+		&productcatalog.TaxCodeConfig{
+			Behavior:  &inclusiveBehavior,
+			TaxCodeID: invoiceUpdateDefaultTaxCodeID,
 		},
 	)
 	svc := serviceForInvoiceTaxConfigDiffTest()
@@ -606,7 +440,7 @@ func TestDiffMutableInvoiceLinesBehaviorOnlyDifferenceProducesTaxConfigDiff(t *t
 	require.True(t, ok)
 	require.NotNil(t, updatedTaxConfig)
 	require.Equal(t, inclusiveBehavior, *updatedTaxConfig.Behavior)
-	require.Equal(t, invoiceUpdateDefaultTaxCodeID, *updatedTaxConfig.TaxCodeID)
+	require.Equal(t, invoiceUpdateDefaultTaxCodeID, updatedTaxConfig.TaxCodeID)
 }
 
 func TestInvoiceWithSanitizedTaxConfigForDiffReturnsValidationErrorWhenTaxCodeIDCannotBeResolved(t *testing.T) {
@@ -1102,10 +936,8 @@ func newStandardLineForLineEngineTest(id string, engine billing.LineEngineType, 
 				To:   now.Add(time.Hour),
 			},
 			InvoiceAt: now.Add(time.Hour),
-			TaxConfig: &billing.TaxConfig{
-				TaxConfig: productcatalog.TaxConfig{
-					TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
-				},
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: invoiceUpdateDefaultTaxCodeID,
 			},
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -1142,8 +974,8 @@ func newGatheringLineForLineEngineTest(id string, engine billing.LineEngineType,
 				To:   now.Add(time.Hour),
 			},
 			InvoiceAt: now.Add(time.Hour),
-			TaxConfig: &productcatalog.TaxConfig{
-				TaxCodeID: lo.ToPtr(invoiceUpdateDefaultTaxCodeID),
+			TaxConfig: &productcatalog.TaxCodeConfig{
+				TaxCodeID: invoiceUpdateDefaultTaxCodeID,
 			},
 			Price: *productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 				Amount: alpacadecimal.NewFromInt(100),
@@ -1158,7 +990,7 @@ func genericLineIDs(lines []billing.GenericInvoiceLine) []string {
 	})
 }
 
-func standardInvoicePairForTaxConfigDiffTest(beforeTaxConfig, afterTaxConfig *billing.TaxConfig) (billing.StandardInvoice, billing.StandardInvoice) {
+func standardInvoicePairForTaxConfigDiffTest(beforeTaxConfig, afterTaxConfig *productcatalog.TaxCodeConfig) (billing.StandardInvoice, billing.StandardInvoice) {
 	beforeLine := newStandardLineForLineEngineTest("line-1", billing.LineEngineTypeInvoice, false)
 	beforeLine.TaxConfig = cloneBillingTaxConfigForTest(beforeTaxConfig)
 
@@ -1189,7 +1021,7 @@ func standardInvoicePairForTaxConfigDiffTest(beforeTaxConfig, afterTaxConfig *bi
 	return invoice, edited
 }
 
-func cloneBillingTaxConfigForTest(taxConfig *billing.TaxConfig) *billing.TaxConfig {
+func cloneBillingTaxConfigForTest(taxConfig *productcatalog.TaxCodeConfig) *productcatalog.TaxCodeConfig {
 	if taxConfig == nil {
 		return nil
 	}

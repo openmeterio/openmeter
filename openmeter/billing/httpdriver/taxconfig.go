@@ -17,15 +17,15 @@ import (
 // resolveLineTaxConfig resolves one line's v1 tax config inside the request's transaction,
 // replacing the input's stripe.code with the referenced Tax Code's ID. The input's stripe.code
 // is dropped: the stored config references the Tax Code, and responses render stripe.code from
-// its current mapping. raw is the config as the request mapper produced it.
-func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, raw *productcatalog.TaxConfig) (*productcatalog.TaxConfig, error) {
+// its current mapping. raw is the config as the request sent it.
+func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, raw *apiv1models.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
 	if raw == nil {
 		return nil, nil
 	}
 
 	// FromAPITaxConfig carries the stripe.code format check, the empty-ID rejection and
 	// taxCodeId-wins; non-resolution errors keep the 400 class through the wrapper below.
-	cfg, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, namespace, productcataloghttp.FromTaxConfig(*raw))
+	cfg, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, namespace, *raw)
 	if err != nil {
 		if isTaxCodeResolutionError(err) {
 			return nil, err
@@ -34,14 +34,7 @@ func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBa
 		return nil, billing.ValidationError{Err: err}
 	}
 
-	// cfg is nil only for a config with no behavior, ID or code; keep it as the request sent it.
-	if cfg == nil {
-		return raw, nil
-	}
-
-	out := cfg.ToTaxConfig()
-
-	return &out, nil
+	return cfg, nil
 }
 
 // isTaxCodeResolutionError reports whether the error is a resolution failure (a 500), not bad
@@ -51,10 +44,9 @@ func isTaxCodeResolutionError(err error) bool {
 	return errors.As(err, &resolveErr)
 }
 
-// lineTaxConfig returns the raw tax config the request mappers use for a line: the deprecated
-// top-level taxConfig when there is no rate card, the rate card's otherwise. The mappers reject
-// requests where the two differ, so either read gives the same config for update and simulation
-// lines.
+// lineTaxConfig returns the raw tax config a request line carries: the deprecated top-level
+// taxConfig when there is no rate card, the rate card's otherwise. The mappers reject requests
+// where the two differ, so either read gives the same config.
 func lineTaxConfig(rateCard *apiv1models.InvoiceUsageBasedRateCard, taxConfig *apiv1models.TaxConfig) *apiv1models.TaxConfig {
 	if rateCard == nil {
 		return taxConfig
@@ -73,7 +65,7 @@ type resolvedLineTaxConfig struct {
 	// Line is the request line as the update received it.
 	Line apiv1models.InvoiceLineReplaceUpdate
 	// TaxConfig is the line's resolved tax config, nil when the line sent no tax config.
-	TaxConfig *productcatalog.TaxConfig
+	TaxConfig *productcatalog.TaxCodeConfig
 }
 
 // resolveUpdateLineTaxConfigs resolves every edited line's tax config up front, so the update's
@@ -91,8 +83,7 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 			continue
 		}
 
-		rawConfig := productcataloghttp.AsTaxConfig(*raw)
-		cfg, err := resolveLineTaxConfig(ctx, resolver, namespace, &rawConfig)
+		cfg, err := resolveLineTaxConfig(ctx, resolver, namespace, raw)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +98,7 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 // update's EditFn has no context, so the handler resolves up front and pairs each config with
 // its line; the merge must see the same lines in the same order, and any mismatch is a caller
 // bug that fails the request instead of silently applying another line's config.
-func taxConfigsForRequestLines(resolved []resolvedLineTaxConfig, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxConfig, error) {
+func taxConfigsForRequestLines(resolved []resolvedLineTaxConfig, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxCodeConfig, error) {
 	if len(resolved) != len(lines) {
 		return nil, fmt.Errorf("resolved tax configs (%d) do not match request lines (%d)", len(resolved), len(lines))
 	}
@@ -118,7 +109,7 @@ func taxConfigsForRequestLines(resolved []resolvedLineTaxConfig, lines []apiv1mo
 		}
 	}
 
-	out := make([]*productcatalog.TaxConfig, len(resolved))
+	out := make([]*productcatalog.TaxCodeConfig, len(resolved))
 	for i, entry := range resolved {
 		out[i] = entry.TaxConfig
 	}
