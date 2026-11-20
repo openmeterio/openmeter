@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
@@ -128,9 +129,11 @@ func (h *handler) CreatePendingLine() CreatePendingLineHandler {
 				}
 
 				taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, h.taxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
-					Namespace:      request.Customer.Namespace,
-					Workflows:      []billing.WorkflowConfig{mergedProfile.EffectiveProfile.WorkflowConfig},
-					GatheringLines: res.Lines,
+					Namespace: request.Customer.Namespace,
+					Workflows: []billing.WorkflowConfig{mergedProfile.EffectiveProfile.WorkflowConfig},
+					// The response renders the whole gathering invoice, so lines added by earlier
+					// requests need their Tax Codes too.
+					GatheringLines: append(slices.Clone(res.Invoice.Lines.OrEmpty()), res.Lines...),
 				})
 				if err != nil {
 					return err
