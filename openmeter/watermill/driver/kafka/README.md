@@ -3,6 +3,9 @@
 New consumer groups keep Kafka's newest-offset policy. Messages published before
 their partition consumers select starting offsets can be skipped.
 
+With ApiVersions negotiation off, the Watermill Sarama client speaks Kafka 2.6.2
+protocol, which 2.6.2 through 4.x brokers accept.
+
 The billing, balance, and notification workers expose `GET /healthz/subscriptions`
 on their telemetry ports. It returns 503 until every configured topic has a
 consumer-group session and every partition assigned

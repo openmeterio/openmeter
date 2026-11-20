@@ -76,6 +76,11 @@ func (o *BrokerOptions) applyCACertificates(tlsConfig *tls.Config) error {
 func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	config := sarama.NewConfig()
 
+	// ApiVersions negotiation is disabled below, so this is the request version
+	// the broker must accept. 2.6.2 is the newest protocol a Kafka 2.6.2 broker
+	// supports, and it remains valid for 3.x and 4.x brokers.
+	config.Version = sarama.V2_6_2_0
+
 	if role == "" {
 		return nil, errors.New("role is required")
 	}
