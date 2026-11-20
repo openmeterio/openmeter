@@ -1,11 +1,11 @@
 # Sourced by smoke.sh. Reapply the shipped data migrations after a binary rollback:
 # the jobs migrator skips versions recorded as successful on the first upgrade.
 backfills=(
-    ../../../tools/migrate/migrations/20261118213749_notification_channel_type_normalization.up.sql
-    ../../../tools/migrate/migrations/20261118215856_notification_channel_config_normalization.up.sql
-    ../../../tools/migrate/migrations/20261119133042_notification_event_type_normalization.up.sql
-    ../../../tools/migrate/migrations/20261119143941_notification_delivery_state_normalization.up.sql
-    ../../../tools/migrate/migrations/20261119152230_notification_rule_config_normalization.up.sql
+    ../../../tools/migrate/migrations/20261124090000_notification_channel_type_normalization.up.sql
+    ../../../tools/migrate/migrations/20261124090100_notification_channel_config_normalization.up.sql
+    ../../../tools/migrate/migrations/20261124090200_notification_event_type_normalization.up.sql
+    ../../../tools/migrate/migrations/20261124090300_notification_delivery_state_normalization.up.sql
+    ../../../tools/migrate/migrations/20261124090400_notification_rule_config_normalization.up.sql
 )
 
 check_counts() {

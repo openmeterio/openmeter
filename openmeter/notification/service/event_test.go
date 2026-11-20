@@ -224,7 +224,7 @@ func TestResendEvent(t *testing.T) {
 			for _, direction := range tc.directions {
 				migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
 					migrate.OMMigrationsConfig.FSPath,
-					"20261119143941_notification_delivery_state_normalization."+direction+".sql",
+					"20261124090300_notification_delivery_state_normalization."+direction+".sql",
 				))
 				require.NoError(t, err)
 

@@ -167,7 +167,7 @@ pending=$(sql "SELECT jsonb_build_array(id,lower(state),next_attempt_at) FROM no
 dc stop old
 dc run --rm -T candidate-jobs >"$artifacts/candidate-migration.log" 2>&1
 upgraded=$(version)
-[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded >= 20261119152230 && upgraded > baseline )) || fail "Expected all five candidate backfills, got $upgraded"
+[[ $upgraded =~ ^[0-9]+$ ]] && (( upgraded >= 20261124090400 && upgraded > baseline )) || fail "Expected all five candidate backfills, got $upgraded"
 # Explicit state writes cannot prove that the jobs image applied the new default.
 [[ $(sql "SELECT column_default FROM information_schema.columns
     WHERE table_schema='public' AND table_name='notification_event_delivery_status' AND column_name='state'") == "'pending'::character varying" ]] ||

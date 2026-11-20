@@ -20,7 +20,7 @@ BEGIN
             AND jsonb_typeof(channel.config->'data') = 'object') IS NOT TRUE THEN
             RAISE EXCEPTION 'invalid channel config envelope [table=notification_channels namespace=% channel.id=%]: expected type WEBHOOK/webhook and an object-valued data field. '
                 'Repair this row''s config to contain that envelope with url and optional customHeaders/signingSecret inside data, or use a flat config with url and optional custom_headers/signing_secret. Preserve the existing URL, headers and signing secret. '
-                'If schema_om shows version 20261118215856 as dirty, verify this migration rolled back and use golang-migrate with x-migrations-table=schema_om to force 20261118213749 (the previous successful version), then rerun the migration.', channel.namespace, channel.id;
+                'If schema_om shows version 20261124090100 as dirty, verify this migration rolled back and use golang-migrate with x-migrations-table=schema_om to force 20261124090000 (the previous successful version), then rerun the migration.', channel.namespace, channel.id;
         END IF;
 
         data := channel.config->'data';

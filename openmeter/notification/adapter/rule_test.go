@@ -642,7 +642,7 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 			if stage.direction != "" {
 				migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
 					migrate.OMMigrationsConfig.FSPath,
-					"20261119133042_notification_event_type_normalization."+stage.direction+".sql",
+					"20261124090200_notification_event_type_normalization."+stage.direction+".sql",
 				))
 				require.NoError(t, err)
 
@@ -690,7 +690,7 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 
 	migrations := make(map[string]string)
 	for _, direction := range []string{"up", "down"} {
-		name := "20261119152230_notification_rule_config_normalization." + direction + ".sql"
+		name := "20261124090400_notification_rule_config_normalization." + direction + ".sql"
 		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(migrate.OMMigrationsConfig.FSPath, name))
 		require.NoError(t, err)
 
@@ -899,8 +899,8 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 				assert.Contains(t, err.Error(), namespace)
 				assert.Contains(t, err.Error(), invalidID)
 				assert.Contains(t, err.Error(), `expected type "invoice.created"`)
-				assert.Contains(t, err.Error(), "If schema_om shows version 20261119152230 as dirty")
-				assert.Contains(t, err.Error(), "force 20261119143941 (the previous successful version), then rerun the migration")
+				assert.Contains(t, err.Error(), "If schema_om shows version 20261124090400 as dirty")
+				assert.Contains(t, err.Error(), "force 20261124090300 (the previous successful version), then rerun the migration")
 
 				// then: both original configs survive and neither Rule gains a backup
 				var preserved int

@@ -503,7 +503,7 @@ func TestListEvents_MixedDeliveryStatesDueForReconciliation(t *testing.T) {
 					if stage.direction != "" {
 						migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
 							migrate.OMMigrationsConfig.FSPath,
-							"20261119143941_notification_delivery_state_normalization."+stage.direction+".sql",
+							"20261124090300_notification_delivery_state_normalization."+stage.direction+".sql",
 						))
 						require.NoError(t, err)
 
@@ -959,7 +959,7 @@ func TestRuleEventTypeNormalizationMigration(t *testing.T) {
 	for _, direction := range []string{"up", "down"} {
 		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
 			migrate.OMMigrationsConfig.FSPath,
-			"20261119133042_notification_event_type_normalization."+direction+".sql",
+			"20261124090200_notification_event_type_normalization."+direction+".sql",
 		))
 		require.NoError(t, err)
 
@@ -1803,7 +1803,7 @@ func TestListEvents_MixedTypeSpellingsAcrossPages(t *testing.T) {
 			if stage.direction != "" {
 				migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
 					migrate.OMMigrationsConfig.FSPath,
-					"20261119133042_notification_event_type_normalization."+stage.direction+".sql",
+					"20261124090200_notification_event_type_normalization."+stage.direction+".sql",
 				))
 				require.NoError(t, err)
 

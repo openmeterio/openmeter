@@ -20,7 +20,7 @@ BEGIN
         IF (rule.config->>'type' = rule.legacy AND jsonb_typeof(rule.config->'data') = 'object') IS NOT TRUE THEN
             RAISE EXCEPTION 'invalid rule config envelope [table=notification_rules namespace=% rule.id=%]: expected type "%" and an object-valued data field. '
                 'Repair the discriminator and data, or supply the corresponding flat config. '
-                'If schema_om shows version 20261119152230 as dirty, verify this migration rolled back and use golang-migrate with x-migrations-table=schema_om to force 20261119143941 (the previous successful version), then rerun the migration.', rule.namespace, rule.id, rule.legacy;
+                'If schema_om shows version 20261124090400 as dirty, verify this migration rolled back and use golang-migrate with x-migrations-table=schema_om to force 20261124090300 (the previous successful version), then rerun the migration.', rule.namespace, rule.id, rule.legacy;
         END IF;
 
         UPDATE notification_rules
