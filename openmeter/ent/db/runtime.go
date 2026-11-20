@@ -92,8 +92,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtesourceoffset"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -3233,29 +3233,6 @@ func init() {
 	rtedemand.DefaultAttempts = rtedemandDescAttempts.Default.(int)
 	// rtedemand.AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
 	rtedemand.AttemptsValidator = rtedemandDescAttempts.Validators[0].(func(int) error)
-	rteinvalidationMixin := schema.RTEInvalidation{}.Mixin()
-	rteinvalidationMixinFields0 := rteinvalidationMixin[0].Fields()
-	_ = rteinvalidationMixinFields0
-	rteinvalidationFields := schema.RTEInvalidation{}.Fields()
-	_ = rteinvalidationFields
-	// rteinvalidationDescCreatedAt is the schema descriptor for created_at field.
-	rteinvalidationDescCreatedAt := rteinvalidationMixinFields0[0].Descriptor()
-	// rteinvalidation.DefaultCreatedAt holds the default value on creation for the created_at field.
-	rteinvalidation.DefaultCreatedAt = rteinvalidationDescCreatedAt.Default.(func() time.Time)
-	// rteinvalidationDescUpdatedAt is the schema descriptor for updated_at field.
-	rteinvalidationDescUpdatedAt := rteinvalidationMixinFields0[1].Descriptor()
-	// rteinvalidation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	rteinvalidation.DefaultUpdatedAt = rteinvalidationDescUpdatedAt.Default.(func() time.Time)
-	// rteinvalidation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	rteinvalidation.UpdateDefaultUpdatedAt = rteinvalidationDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// rteinvalidationDescSource is the schema descriptor for source field.
-	rteinvalidationDescSource := rteinvalidationFields[0].Descriptor()
-	// rteinvalidation.SourceValidator is a validator for the "source" field. It is called by the builders before save.
-	rteinvalidation.SourceValidator = rteinvalidationDescSource.Validators[0].(func(string) error)
-	// rteinvalidationDescEventID is the schema descriptor for event_id field.
-	rteinvalidationDescEventID := rteinvalidationFields[1].Descriptor()
-	// rteinvalidation.EventIDValidator is a validator for the "event_id" field. It is called by the builders before save.
-	rteinvalidation.EventIDValidator = rteinvalidationDescEventID.Validators[0].(func(string) error)
 	rtemeteredentitlementbalanceMixin := schema.RTEMeteredEntitlementBalance{}.Mixin()
 	rtemeteredentitlementbalanceMixinFields0 := rtemeteredentitlementbalanceMixin[0].Fields()
 	_ = rtemeteredentitlementbalanceMixinFields0
@@ -3284,6 +3261,33 @@ func init() {
 	// rtemeteredentitlementbalanceDescBalance is the schema descriptor for balance field.
 	rtemeteredentitlementbalanceDescBalance := rtemeteredentitlementbalanceFields[2].Descriptor()
 	rtemeteredentitlementbalance.ValueScanner.Balance = rtemeteredentitlementbalanceDescBalance.ValueScanner.(field.TypeValueScanner[jsontext.Value])
+	rtesourceoffsetMixin := schema.RTESourceOffset{}.Mixin()
+	rtesourceoffsetMixinFields0 := rtesourceoffsetMixin[0].Fields()
+	_ = rtesourceoffsetMixinFields0
+	rtesourceoffsetFields := schema.RTESourceOffset{}.Fields()
+	_ = rtesourceoffsetFields
+	// rtesourceoffsetDescCreatedAt is the schema descriptor for created_at field.
+	rtesourceoffsetDescCreatedAt := rtesourceoffsetMixinFields0[0].Descriptor()
+	// rtesourceoffset.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rtesourceoffset.DefaultCreatedAt = rtesourceoffsetDescCreatedAt.Default.(func() time.Time)
+	// rtesourceoffsetDescUpdatedAt is the schema descriptor for updated_at field.
+	rtesourceoffsetDescUpdatedAt := rtesourceoffsetMixinFields0[1].Descriptor()
+	// rtesourceoffset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rtesourceoffset.DefaultUpdatedAt = rtesourceoffsetDescUpdatedAt.Default.(func() time.Time)
+	// rtesourceoffset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rtesourceoffset.UpdateDefaultUpdatedAt = rtesourceoffsetDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rtesourceoffsetDescTopic is the schema descriptor for topic field.
+	rtesourceoffsetDescTopic := rtesourceoffsetFields[0].Descriptor()
+	// rtesourceoffset.TopicValidator is a validator for the "topic" field. It is called by the builders before save.
+	rtesourceoffset.TopicValidator = rtesourceoffsetDescTopic.Validators[0].(func(string) error)
+	// rtesourceoffsetDescPartition is the schema descriptor for partition field.
+	rtesourceoffsetDescPartition := rtesourceoffsetFields[1].Descriptor()
+	// rtesourceoffset.PartitionValidator is a validator for the "partition" field. It is called by the builders before save.
+	rtesourceoffset.PartitionValidator = rtesourceoffsetDescPartition.Validators[0].(func(int32) error)
+	// rtesourceoffsetDescLastOffset is the schema descriptor for last_offset field.
+	rtesourceoffsetDescLastOffset := rtesourceoffsetFields[2].Descriptor()
+	// rtesourceoffset.LastOffsetValidator is a validator for the "last_offset" field. It is called by the builders before save.
+	rtesourceoffset.LastOffsetValidator = rtesourceoffsetDescLastOffset.Validators[0].(func(int64) error)
 	subjectMixin := schema.Subject{}.Mixin()
 	subjectMixinFields0 := subjectMixin[0].Fields()
 	_ = subjectMixinFields0

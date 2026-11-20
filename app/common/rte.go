@@ -153,11 +153,14 @@ func NewRTESubscriptionStatus(conf config.EventsConfiguration) *watermillkafka.S
 }
 
 // The worker's router closes the subscriber.
-func RTESubscriber(conf config.RTEConfiguration, broker watermillkafka.BrokerOptions, status *watermillkafka.SubscriptionStatus) (message.Subscriber, error) {
+func RTESubscriber(conf config.RTEConfiguration, broker watermillkafka.BrokerOptions, status *watermillkafka.SubscriptionStatus, demands rte.DemandService) (message.Subscriber, error) {
 	subscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
 		Broker:             broker,
 		ConsumerGroupName:  conf.ConsumerGroupName,
 		SubscriptionStatus: status,
+		BeforeConsumeClaim: func(ctx context.Context, topic string, partition int32, logEnd int64) error {
+			return demands.ResetSourceOffset(ctx, rte.SourcePosition{Topic: topic, Partition: partition, Offset: logEnd})
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("initialize RTE subscriber: %w", err)

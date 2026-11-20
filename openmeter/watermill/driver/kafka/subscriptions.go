@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"slices"
@@ -103,7 +104,8 @@ func (s *SubscriptionStatus) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 // Watermill exposes consumer-group handler decoration through its tracer hook.
 // The other methods pass through unchanged to preserve the subscriber's tracing behavior.
 type subscriptionObserver struct {
-	status *SubscriptionStatus
+	beforeConsumeClaim func(context.Context, string, int32, int64) error
+	status             *SubscriptionStatus
 }
 
 func (o subscriptionObserver) WrapConsumer(c sarama.Consumer) sarama.Consumer {
@@ -119,10 +121,11 @@ func (o subscriptionObserver) WrapSyncProducer(_ *sarama.Config, p sarama.SyncPr
 }
 
 func (o subscriptionObserver) WrapConsumerGroupHandler(handler sarama.ConsumerGroupHandler) sarama.ConsumerGroupHandler {
-	return &subscriptionHandler{ConsumerGroupHandler: handler, status: o.status}
+	return &subscriptionHandler{ConsumerGroupHandler: handler, status: o.status, beforeConsumeClaim: o.beforeConsumeClaim}
 }
 
 type subscriptionHandler struct {
+	beforeConsumeClaim func(context.Context, string, int32, int64) error
 	sarama.ConsumerGroupHandler
 	status *SubscriptionStatus
 }
@@ -158,6 +161,12 @@ func (h *subscriptionHandler) Cleanup(session sarama.ConsumerGroupSession) error
 }
 
 func (h *subscriptionHandler) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	if h.beforeConsumeClaim != nil {
+		if err := h.beforeConsumeClaim(session.Context(), claim.Topic(), claim.Partition(), claim.HighWaterMarkOffset()); err != nil {
+			return err
+		}
+	}
+
 	// Sarama selects the starting offset before calling ConsumeClaim, even when
 	// the topic is empty. Setup alone is too early for newest-offset subscribers.
 	h.status.mu.Lock()

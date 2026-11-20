@@ -99,8 +99,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemandlock"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtesourceoffset"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -256,8 +256,8 @@ func checkColumn(t, c string) error {
 			rtecreditbalance.Table:                                 rtecreditbalance.ValidColumn,
 			rtedemand.Table:                                        rtedemand.ValidColumn,
 			rtedemandlock.Table:                                    rtedemandlock.ValidColumn,
-			rteinvalidation.Table:                                  rteinvalidation.ValidColumn,
 			rtemeteredentitlementbalance.Table:                     rtemeteredentitlementbalance.ValidColumn,
+			rtesourceoffset.Table:                                  rtesourceoffset.ValidColumn,
 			subject.Table:                                          subject.ValidColumn,
 			subscription.Table:                                     subscription.ValidColumn,
 			subscriptionaddon.Table:                                subscriptionaddon.ValidColumn,

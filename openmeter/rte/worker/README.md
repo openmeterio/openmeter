@@ -7,8 +7,24 @@ handlers run alongside background slots that poll PostgreSQL for pending demand.
 | --- | --- |
 | Calculation request | Run the requested calculator. With a freshness policy, first check whether a stored result satisfies it. An unconditional request may execute again on redelivery. |
 | Comparison request | Replay the sampled operation and record paired durations on success. Observations expire after one minute. |
-| Supported source event | Resolve affected keys and invalidate active demand using the original CloudEvents source and ID. |
+| Supported source event | Resolve affected keys and mark matching active demand dirty once per Kafka position. |
 | Calculation update | No further calculation. This event tells downstream consumers that RTE accepted a result. |
+
+## Source offsets
+
+Watermill handles one record at a time per partition and waits for acknowledgement before
+dispatching the next. A successful source invalidation records its offset even when no key
+matched. Unrelated messages on the same topic can leave gaps. Commands and comparison requests
+retain their own delivery semantics. The Kafka consumer group still manages where consumption starts.
+
+When Sarama assigns a partition, the worker checks the broker's exclusive log end before
+reporting the claim ready. If the saved offset is at or beyond that end, it clears the
+checkpoint and logs the reset. A failed check aborts the claim.
+
+The checkpoint belongs to the topic name and partition. A recreated topic that has already
+grown past its old checkpoint looks like the original. When replacing topics, stop the old
+consumers and clear those topics' checkpoint rows before restarting. An intentional Kafka
+rewind also needs a checkpoint reset if the aim is to apply the old invalidations again.
 
 ## Background polling
 

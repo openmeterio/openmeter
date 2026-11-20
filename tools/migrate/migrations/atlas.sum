@@ -1,4 +1,4 @@
-h1:SB0Vrbhi+NtFd4cjWXFTPFKfXBcil2JZpCorZloPdvA=
+h1:d6m7/SjoL1qkWOxcSqZfxIXzTmka5P3QjdUMQboZMYg=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -335,3 +335,4 @@ h1:SB0Vrbhi+NtFd4cjWXFTPFKfXBcil2JZpCorZloPdvA=
 20261119143023_rte_demand.up.sql h1:NXGb+72PADNh5K9dmowsNVhSY7OFCAeuJqxgoMHQJQc=
 20261119143226_drop_rte_refresh_interval.up.sql h1:sSlwrpikesE9beGH5XhtgoOMPXQLpwqm0Tio0Pr19Vk=
 20261119143321_rte_demand_calculation_locks.up.sql h1:9lBRS8et2t7ayQ/MzCOIp9OmrWuvsxsGynIPZ/PeUao=
+20261120163055_rte_source_offsets.up.sql h1:/pAcDPcDZhB5c9jbcziJ3kuwA/JAh7RvdrWAAMSmtOo=

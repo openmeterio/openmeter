@@ -9,7 +9,7 @@ successful calculation after tracking expires or a caller deactivates the key.
 | Metered entitlement balance | Namespace and entitlement ID | Calculation start and the complete domain balance as JSON, including per-grant amounts |
 | Demand | Namespace, kind and hash of the semantic key | Decodable key, owner, background tracking, pull expiry, dirty/completed versions, entitlement deletion deadline and retry state |
 | Calculation lock | Demand row ID | One lock shared by all workers processing demand for this key |
-| Invalidation receipt | CloudEvents source and ID | A fact that dirtied at least one active key |
+| Source offset | Kafka topic and partition | Last source record whose invalidation committed, including an empty match |
 
 For either balance store, an atomic upsert accepts a calculation whose start is strictly later
 than the existing row. Even an equal timestamp retains the original result. The store reads back
@@ -38,5 +38,4 @@ The repository locks the separate calculation row through the callback, includin
 Invalidations can update the demand row while the calculator runs.
 Background workers skip locked keys. An `EnsureFresh` call for the same target waits for the owner.
 Always propagate the callback context into the calculation so the result, update outbox record and
-completion share the transaction. See [demand processing](../demand/README.md) for timeout,
-rollback and receipt retention.
+completion share the transaction. See [demand processing](../demand/README.md) for timeouts and rollback.

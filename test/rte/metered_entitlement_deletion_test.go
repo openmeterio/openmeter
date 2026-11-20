@@ -91,7 +91,7 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 			selectors, err := source.Resolve(ctx, fact)
 			require.NoError(t, err)
 
-			invalid := rte.InvalidateInput{Source: fact.EventMetadata().Source, EventID: "deletion", Selectors: selectors}
+			invalid := rte.InvalidateInput{Selectors: selectors}
 			require.NoError(t, demand.Invalidate(ctx, invalid))
 			if tc.scheduled {
 				require.NoError(t, demand.EnsureFresh(ctx, pull))
@@ -117,7 +117,7 @@ func (s *RTEIntegrationSuite) TestDeletedMeteredEntitlementDemand() {
 				clock.FreezeTime(effective.Add(-time.Second))
 				defer clock.UnFreeze()
 
-				require.NoError(t, demand.Invalidate(ctx, rte.InvalidateInput{Source: invalid.Source, EventID: "new-fact", Selectors: selectors}))
+				require.NoError(t, demand.Invalidate(ctx, invalid))
 
 				repo, err := rteadapter.NewDemandRepository(rteadapter.Config{Client: s.DBClient, Logger: logger})
 				require.NoError(t, err)

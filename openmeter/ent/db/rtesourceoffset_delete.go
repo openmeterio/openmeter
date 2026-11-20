@@ -9,29 +9,29 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtesourceoffset"
 )
 
-// RTEInvalidationDelete is the builder for deleting a RTEInvalidation entity.
-type RTEInvalidationDelete struct {
+// RTESourceOffsetDelete is the builder for deleting a RTESourceOffset entity.
+type RTESourceOffsetDelete struct {
 	config
 	hooks    []Hook
-	mutation *RTEInvalidationMutation
+	mutation *RTESourceOffsetMutation
 }
 
-// Where appends a list predicates to the RTEInvalidationDelete builder.
-func (_d *RTEInvalidationDelete) Where(ps ...predicate.RTEInvalidation) *RTEInvalidationDelete {
+// Where appends a list predicates to the RTESourceOffsetDelete builder.
+func (_d *RTESourceOffsetDelete) Where(ps ...predicate.RTESourceOffset) *RTESourceOffsetDelete {
 	_d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query and returns how many vertices were deleted.
-func (_d *RTEInvalidationDelete) Exec(ctx context.Context) (int, error) {
+func (_d *RTESourceOffsetDelete) Exec(ctx context.Context) (int, error) {
 	return withHooks(ctx, _d.sqlExec, _d.mutation, _d.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *RTEInvalidationDelete) ExecX(ctx context.Context) int {
+func (_d *RTESourceOffsetDelete) ExecX(ctx context.Context) int {
 	n, err := _d.Exec(ctx)
 	if err != nil {
 		panic(err)
@@ -39,8 +39,8 @@ func (_d *RTEInvalidationDelete) ExecX(ctx context.Context) int {
 	return n
 }
 
-func (_d *RTEInvalidationDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(rteinvalidation.Table, sqlgraph.NewFieldSpec(rteinvalidation.FieldID, field.TypeInt))
+func (_d *RTESourceOffsetDelete) sqlExec(ctx context.Context) (int, error) {
+	_spec := sqlgraph.NewDeleteSpec(rtesourceoffset.Table, sqlgraph.NewFieldSpec(rtesourceoffset.FieldID, field.TypeInt))
 	if ps := _d.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -56,32 +56,32 @@ func (_d *RTEInvalidationDelete) sqlExec(ctx context.Context) (int, error) {
 	return affected, err
 }
 
-// RTEInvalidationDeleteOne is the builder for deleting a single RTEInvalidation entity.
-type RTEInvalidationDeleteOne struct {
-	_d *RTEInvalidationDelete
+// RTESourceOffsetDeleteOne is the builder for deleting a single RTESourceOffset entity.
+type RTESourceOffsetDeleteOne struct {
+	_d *RTESourceOffsetDelete
 }
 
-// Where appends a list predicates to the RTEInvalidationDelete builder.
-func (_d *RTEInvalidationDeleteOne) Where(ps ...predicate.RTEInvalidation) *RTEInvalidationDeleteOne {
+// Where appends a list predicates to the RTESourceOffsetDelete builder.
+func (_d *RTESourceOffsetDeleteOne) Where(ps ...predicate.RTESourceOffset) *RTESourceOffsetDeleteOne {
 	_d._d.mutation.Where(ps...)
 	return _d
 }
 
 // Exec executes the deletion query.
-func (_d *RTEInvalidationDeleteOne) Exec(ctx context.Context) error {
+func (_d *RTESourceOffsetDeleteOne) Exec(ctx context.Context) error {
 	n, err := _d._d.Exec(ctx)
 	switch {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{rteinvalidation.Label}
+		return &NotFoundError{rtesourceoffset.Label}
 	default:
 		return nil
 	}
 }
 
 // ExecX is like Exec, but panics if an error occurs.
-func (_d *RTEInvalidationDeleteOne) ExecX(ctx context.Context) {
+func (_d *RTESourceOffsetDeleteOne) ExecX(ctx context.Context) {
 	if err := _d.Exec(ctx); err != nil {
 		panic(err)
 	}

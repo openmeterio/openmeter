@@ -531,7 +531,7 @@ func Initialize(ctx context.Context, conf config.Configuration, metadata common.
 		return Application{}, nil, err
 	}
 	subscriptionStatus := common.NewRTESubscriptionStatus(eventsConfiguration)
-	subscriber, err := common.RTESubscriber(rteConfiguration, brokerOptions, subscriptionStatus)
+	subscriber, err := common.RTESubscriber(rteConfiguration, brokerOptions, subscriptionStatus, demandService)
 	if err != nil {
 		cleanup10()
 		cleanup9()

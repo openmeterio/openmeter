@@ -17,7 +17,7 @@ const (
 )
 
 // Upstream records source handling, publication lag and target-routing costs.
-// A routed event may still be a duplicate or match zero active demand rows.
+// A routed event may still match zero active demand rows.
 type Upstream struct {
 	events          metric.Int64Counter
 	lag             metric.Float64Histogram

@@ -14,6 +14,9 @@ import (
 type DemandService interface {
 	Activate(context.Context, CalculationTarget) error
 	EnsureFresh(context.Context, EnsureFreshInput) error
+	// ResetSourceOffset clears a checkpoint beyond the current partition log end before consumption starts.
+	ResetSourceOffset(ctx context.Context, logEnd SourcePosition) error
+
 	Deactivate(context.Context, CalculationTarget) error
 	Invalidate(context.Context, InvalidateInput) error
 
@@ -54,22 +57,45 @@ type DemandSelector struct {
 	Targets   []CalculationTarget
 }
 
-// InvalidateInput identifies one immutable fact by Source and EventID, across all
-// selectors and redeliveries. Reusing that identity for a different fact suppresses it.
+// SourcePosition identifies one record in a Kafka topic partition.
+type SourcePosition struct {
+	Topic     string
+	Partition int32
+	Offset    int64
+}
+
+func (p SourcePosition) Validate() error {
+	var errs []error
+	if p.Topic == "" {
+		errs = append(errs, errors.New("topic is required"))
+	}
+
+	if p.Partition < 0 {
+		errs = append(errs, errors.New("partition must be non-negative"))
+	}
+
+	if p.Offset < 0 {
+		errs = append(errs, errors.New("offset must be non-negative"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type InvalidationResult struct {
+	Matched   int64
+	Duplicate bool
+}
+
 type InvalidateInput struct {
-	Source    string
-	EventID   string
+	// In-process and non-Kafka deliveries omit Position and always apply.
+	Position  *SourcePosition
 	Selectors []DemandSelector
 }
 
 func (i InvalidateInput) Validate() error {
 	var errs []error
-	if i.Source == "" {
-		errs = append(errs, errors.New("source is required"))
-	}
-
-	if i.EventID == "" {
-		errs = append(errs, errors.New("event ID is required"))
+	if i.Position != nil {
+		errs = append(errs, i.Position.Validate())
 	}
 
 	for n, selector := range i.Selectors {
@@ -138,29 +164,6 @@ type DemandWorkResult struct {
 	CalculationError error
 }
 
-type InvalidationResult struct {
-	Matched   int
-	Duplicate bool
-}
-
-type PruneInvalidationsInput struct {
-	Before time.Time
-	Limit  int
-}
-
-func (i PruneInvalidationsInput) Validate() error {
-	var errs []error
-	if i.Before.IsZero() {
-		errs = append(errs, errors.New("receipt retention boundary is required"))
-	}
-
-	if i.Limit <= 0 {
-		errs = append(errs, errors.New("receipt prune limit must be positive"))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
-
 // DemandRepository keeps the work lock, successful state/outbox writes and
 // completion atomic. A failed callback rolls back to a savepoint before durable
 // retry bookkeeping; a process crash rolls back the entire attempt.
@@ -171,8 +174,10 @@ type DemandRepository interface {
 	// the age is acceptable and no source deletion is due.
 	EnsurePull(context.Context, EnsureFreshInput) (clean bool, err error)
 
+	// ResetSourceOffset clears a checkpoint beyond the current partition log end before consumption starts.
+	ResetSourceOffset(ctx context.Context, logEnd SourcePosition) error
+
 	Deactivate(context.Context, CalculationTarget) error
 	Invalidate(context.Context, InvalidateInput) (InvalidationResult, error)
-	PruneInvalidations(context.Context, PruneInvalidationsInput) (int, error)
 	Process(context.Context, ProcessDemandInput, func(context.Context, CalculationTarget) error) (DemandWorkResult, error)
 }

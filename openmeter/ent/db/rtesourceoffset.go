@@ -9,11 +9,11 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtesourceoffset"
 )
 
-// RTEInvalidation is the model entity for the RTEInvalidation schema.
-type RTEInvalidation struct {
+// RTESourceOffset is the model entity for the RTESourceOffset schema.
+type RTESourceOffset struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
@@ -23,23 +23,25 @@ type RTEInvalidation struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
-	// Source holds the value of the "source" field.
-	Source string `json:"source,omitempty"`
-	// EventID holds the value of the "event_id" field.
-	EventID      string `json:"event_id,omitempty"`
+	// Topic holds the value of the "topic" field.
+	Topic string `json:"topic,omitempty"`
+	// Partition holds the value of the "partition" field.
+	Partition int32 `json:"partition,omitempty"`
+	// LastOffset holds the value of the "last_offset" field.
+	LastOffset   int64 `json:"last_offset,omitempty"`
 	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*RTEInvalidation) scanValues(columns []string) ([]any, error) {
+func (*RTESourceOffset) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case rteinvalidation.FieldID:
+		case rtesourceoffset.FieldID, rtesourceoffset.FieldPartition, rtesourceoffset.FieldLastOffset:
 			values[i] = new(sql.NullInt64)
-		case rteinvalidation.FieldSource, rteinvalidation.FieldEventID:
+		case rtesourceoffset.FieldTopic:
 			values[i] = new(sql.NullString)
-		case rteinvalidation.FieldCreatedAt, rteinvalidation.FieldUpdatedAt, rteinvalidation.FieldDeletedAt:
+		case rtesourceoffset.FieldCreatedAt, rtesourceoffset.FieldUpdatedAt, rtesourceoffset.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -49,49 +51,55 @@ func (*RTEInvalidation) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the RTEInvalidation fields.
-func (_m *RTEInvalidation) assignValues(columns []string, values []any) error {
+// to the RTESourceOffset fields.
+func (_m *RTESourceOffset) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case rteinvalidation.FieldID:
+		case rtesourceoffset.FieldID:
 			value, ok := values[i].(*sql.NullInt64)
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int(value.Int64)
-		case rteinvalidation.FieldCreatedAt:
+		case rtesourceoffset.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
 			}
-		case rteinvalidation.FieldUpdatedAt:
+		case rtesourceoffset.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
-		case rteinvalidation.FieldDeletedAt:
+		case rtesourceoffset.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
-		case rteinvalidation.FieldSource:
+		case rtesourceoffset.FieldTopic:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field source", values[i])
+				return fmt.Errorf("unexpected type %T for field topic", values[i])
 			} else if value.Valid {
-				_m.Source = value.String
+				_m.Topic = value.String
 			}
-		case rteinvalidation.FieldEventID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field event_id", values[i])
+		case rtesourceoffset.FieldPartition:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field partition", values[i])
 			} else if value.Valid {
-				_m.EventID = value.String
+				_m.Partition = int32(value.Int64)
+			}
+		case rtesourceoffset.FieldLastOffset:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field last_offset", values[i])
+			} else if value.Valid {
+				_m.LastOffset = value.Int64
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -100,34 +108,34 @@ func (_m *RTEInvalidation) assignValues(columns []string, values []any) error {
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the RTEInvalidation.
+// Value returns the ent.Value that was dynamically selected and assigned to the RTESourceOffset.
 // This includes values selected through modifiers, order, etc.
-func (_m *RTEInvalidation) Value(name string) (ent.Value, error) {
+func (_m *RTESourceOffset) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
 }
 
-// Update returns a builder for updating this RTEInvalidation.
-// Note that you need to call RTEInvalidation.Unwrap() before calling this method if this RTEInvalidation
+// Update returns a builder for updating this RTESourceOffset.
+// Note that you need to call RTESourceOffset.Unwrap() before calling this method if this RTESourceOffset
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (_m *RTEInvalidation) Update() *RTEInvalidationUpdateOne {
-	return NewRTEInvalidationClient(_m.config).UpdateOne(_m)
+func (_m *RTESourceOffset) Update() *RTESourceOffsetUpdateOne {
+	return NewRTESourceOffsetClient(_m.config).UpdateOne(_m)
 }
 
-// Unwrap unwraps the RTEInvalidation entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the RTESourceOffset entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (_m *RTEInvalidation) Unwrap() *RTEInvalidation {
+func (_m *RTESourceOffset) Unwrap() *RTESourceOffset {
 	_tx, ok := _m.config.driver.(*txDriver)
 	if !ok {
-		panic("db: RTEInvalidation is not a transactional entity")
+		panic("db: RTESourceOffset is not a transactional entity")
 	}
 	_m.config.driver = _tx.drv
 	return _m
 }
 
 // String implements the fmt.Stringer.
-func (_m *RTEInvalidation) String() string {
+func (_m *RTESourceOffset) String() string {
 	var builder strings.Builder
-	builder.WriteString("RTEInvalidation(")
+	builder.WriteString("RTESourceOffset(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
@@ -140,14 +148,17 @@ func (_m *RTEInvalidation) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
-	builder.WriteString("source=")
-	builder.WriteString(_m.Source)
+	builder.WriteString("topic=")
+	builder.WriteString(_m.Topic)
 	builder.WriteString(", ")
-	builder.WriteString("event_id=")
-	builder.WriteString(_m.EventID)
+	builder.WriteString("partition=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Partition))
+	builder.WriteString(", ")
+	builder.WriteString("last_offset=")
+	builder.WriteString(fmt.Sprintf("%v", _m.LastOffset))
 	builder.WriteByte(')')
 	return builder.String()
 }
 
-// RTEInvalidations is a parsable slice of RTEInvalidation.
-type RTEInvalidations []*RTEInvalidation
+// RTESourceOffsets is a parsable slice of RTESourceOffset.
+type RTESourceOffsets []*RTESourceOffset

@@ -17,7 +17,7 @@ inside the measured operation.
 | `rte.calculation.duration` | Histogram / s | `kind`, `outcome` | The same calls, including domain calculation, state storage and update enqueueing. Excludes asynchronous outbox delivery. |
 | `rte.state.reads` | Counter | `kind`, `outcome` | Client and calculation-service `Get` calls: `hit`, `missing` (not calculated), or `failed`. |
 | `rte.state.read.duration` | Histogram / s | `kind`, `outcome` | Time spent reading stored state, without refreshing it. |
-| `rte.demand.operations` | Counter | `operation`, `outcome` | Freshness requests, invalidations, processing attempts and receipt maintenance; see outcomes below. |
+| `rte.demand.operations` | Counter | `operation`, `outcome` | Freshness requests, invalidations and processing attempts. |
 | `rte.demand.ensure_fresh.duration` | Histogram / s | `kind`, `outcome` | `EnsureFresh`, including demand registration, lock waits and any required calculation. Outcomes: `cache_hit`, `calculated`, `error`. |
 | `rte.demand.queue_wait.duration` | Histogram / s | `kind`, `outcome` | Time from eligibility to claim. For another pass on the same key, eligibility starts when the previous pass finishes. A retry becomes eligible at its backoff deadline. |
 | `rte.demand.processing.duration` | Histogram / s | `kind`, `outcome` | Elapsed time from the confirmed background claim through processing and transaction completion. Both background histograms record when the attempt returns. Empty polls and targeted pulls contribute no samples. |
@@ -44,13 +44,12 @@ or that Kafka delivered the update.
 | `rte.demand.operations` operation | Outcomes |
 | --- | --- |
 | `pull` | `cache_hit`: no calculation needed; `calculated`: this call processed the refresh; `error`: registration or refresh failed. |
-| `invalidate` | `marked`: accepted nonduplicate invalidation, possibly matching zero keys; `duplicate`: receipt already exists; `error`: invalidation failed. |
+| `invalidate` | `marked`: applied an invalidation, possibly matching zero keys; `duplicate`: offset already covered; `error`: invalidation failed. |
 | `process` | `empty`: no work needed or claimable; `calculated`: processed successfully; `retired`: source deletion ended tracking; `retry`: calculation failed and was deferred; `error`: processing failed. Includes background attempts and processing invoked by `EnsureFresh`. |
-| `maintenance` | `pruned`: removed expired receipts; `empty`: none removed; `error`: pruning failed. Counts executed maintenance passes, not every poll. |
 
 `Activate` and `Deactivate` do not currently increment this counter. A pull can
 also increment `process`; do not sum the two to count requests. `routed` upstream
-events can still produce a duplicate invalidation or match no active demand.
+events can still match zero active keys.
 Several dirty events can share one calculation.
 
 Publication outcomes are `published`, `failed`, `queue_full`, `stopped`, `expired`,

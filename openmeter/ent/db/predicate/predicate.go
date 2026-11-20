@@ -530,9 +530,6 @@ type RTEDemand func(*sql.Selector)
 // RTEDemandLock is the predicate function for rtedemandlock builders.
 type RTEDemandLock func(*sql.Selector)
 
-// RTEInvalidation is the predicate function for rteinvalidation builders.
-type RTEInvalidation func(*sql.Selector)
-
 // RTEMeteredEntitlementBalance is the predicate function for rtemeteredentitlementbalance builders.
 type RTEMeteredEntitlementBalance func(*sql.Selector)
 
@@ -546,6 +543,9 @@ func RTEMeteredEntitlementBalanceOrErr(p RTEMeteredEntitlementBalance, err error
 		p(s)
 	}
 }
+
+// RTESourceOffset is the predicate function for rtesourceoffset builders.
+type RTESourceOffset func(*sql.Selector)
 
 // Subject is the predicate function for subject builders.
 type Subject func(*sql.Selector)

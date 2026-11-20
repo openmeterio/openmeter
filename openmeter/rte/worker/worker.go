@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	wmkafka "github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
@@ -176,18 +177,25 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 		return err
 	}
 
-	if len(selectors) == 0 {
-		outcome = rtemetrics.UpstreamOutcomeNoTarget
-		return nil
+	input := rte.InvalidateInput{Selectors: selectors}
+	partition, hasPartition := wmkafka.MessagePartitionFromCtx(ctx)
+	offset, hasOffset := wmkafka.MessagePartitionOffsetFromCtx(ctx)
+	if hasPartition != hasOffset {
+		return errors.New("incomplete Kafka source position")
 	}
 
-	if err := w.demand.Invalidate(ctx, rte.InvalidateInput{
-		Source: envelope.Source(), EventID: envelope.ID(), Selectors: selectors,
-	}); err != nil {
+	if hasOffset {
+		input.Position = &rte.SourcePosition{Topic: message.SubscribeTopicFromCtx(ctx), Partition: partition, Offset: offset}
+	}
+
+	if err := w.demand.Invalidate(ctx, input); err != nil {
 		return err
 	}
 
 	outcome = rtemetrics.UpstreamOutcomeRouted
+	if len(selectors) == 0 {
+		outcome = rtemetrics.UpstreamOutcomeNoTarget
+	}
 
 	return nil
 }

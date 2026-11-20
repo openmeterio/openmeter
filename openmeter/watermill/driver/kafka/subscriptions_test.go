@@ -201,13 +201,15 @@ func (s *subscriptionTestSession) Context() context.Context   { return s.ctx }
 func (s *subscriptionTestSession) Claims() map[string][]int32 { return s.claims }
 
 type subscriptionTestClaim struct {
+	logEnd int64
 	sarama.ConsumerGroupClaim
 	topic     string
 	partition int32
 }
 
-func (c subscriptionTestClaim) Topic() string    { return c.topic }
-func (c subscriptionTestClaim) Partition() int32 { return c.partition }
+func (c subscriptionTestClaim) HighWaterMarkOffset() int64 { return c.logEnd }
+func (c subscriptionTestClaim) Topic() string              { return c.topic }
+func (c subscriptionTestClaim) Partition() int32           { return c.partition }
 
 type subscriptionTestHandler struct {
 	started  chan int32
@@ -234,3 +236,22 @@ type subscriptionTestSubscriber struct {
 }
 
 func (s *subscriptionTestSubscriber) Close() error { return s.closeErr }
+
+func TestClaimInitializationErrorPreventsDispatchAndReadiness(t *testing.T) {
+	status := NewSubscriptionStatus([]string{"events"})
+	failure := errors.New("checkpoint unavailable")
+	delegate := &subscriptionTestHandler{started: make(chan int32, 1)}
+	handler := (subscriptionObserver{status: status, beforeConsumeClaim: func(_ context.Context, topic string, partition int32, end int64) error {
+		require.Equal(t, "events", topic)
+		require.Equal(t, int32(2), partition)
+		require.Equal(t, int64(7), end)
+
+		return failure
+	}}).WrapConsumerGroupHandler(delegate)
+
+	session := &subscriptionTestSession{ctx: t.Context(), claims: map[string][]int32{"events": {2}}}
+	require.NoError(t, handler.Setup(session))
+	require.ErrorIs(t, handler.ConsumeClaim(session, subscriptionTestClaim{topic: "events", partition: 2, logEnd: 7}), failure)
+	require.False(t, status.Snapshot().Ready)
+	require.Empty(t, delegate.started)
+}
