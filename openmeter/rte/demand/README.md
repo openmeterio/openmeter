@@ -19,10 +19,13 @@ the gap. A zero maximum age allows any age while the key is continuously tracked
 
 A key is dirty while `dirty_version > completed_version`. An invalidation increments the dirty
 version for matching active keys. It locks demand rows in ascending primary-key order so
-overlapping invalidations acquire shared rows in the same order. If at least one key matched,
-it stores a receipt for the CloudEvents source and ID in the same transaction. Duplicate delivery
-then leaves those keys alone.
-A distinct event for earlier usage still counts. A selector containing only namespace and kind
+overlapping invalidations acquire shared rows in the same order. The same PostgreSQL statement
+advances the source partition's checkpoint and updates the matching keys. If the write fails,
+Kafka can retry the record. Replaying an offset at or below the checkpoint skips that write.
+A newly published copy has a new offset and can schedule another calculation. Calls without a
+Kafka position always invalidate their matches. [Partition assignment and replay](../worker/README.md#source-offsets)
+
+Late usage counts too. A selector containing only namespace and kind
 matches every active key of that kind.
 
 The first change to a clean key makes it eligible for work. Further changes while it waits keep
@@ -48,6 +51,3 @@ calculations run independently of demand.
 - A metered entitlement's scheduled deletion is a known deadline. An activated key is checked
   when deletion takes effect. A key tracked only between reads is checked on the next refresh.
   Retirement ends tracking, preserves the stored value, and returns not-found to a targeted refresh.
-- Receipts expire after seven days by default. Each instance prunes up to 1,000 at a time,
-  normally once a minute, retrying a full batch after one second. Redelivery after expiry can
-  trigger another calculation.

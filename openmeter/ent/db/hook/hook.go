@@ -993,18 +993,6 @@ func (f RTEDemandLockFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value,
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEDemandLockMutation", m)
 }
 
-// The RTEInvalidationFunc type is an adapter to allow the use of ordinary
-// function as RTEInvalidation mutator.
-type RTEInvalidationFunc func(context.Context, *db.RTEInvalidationMutation) (db.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f RTEInvalidationFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.RTEInvalidationMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEInvalidationMutation", m)
-}
-
 // The RTEMeteredEntitlementBalanceFunc type is an adapter to allow the use of ordinary
 // function as RTEMeteredEntitlementBalance mutator.
 type RTEMeteredEntitlementBalanceFunc func(context.Context, *db.RTEMeteredEntitlementBalanceMutation) (db.Value, error)
@@ -1015,6 +1003,18 @@ func (f RTEMeteredEntitlementBalanceFunc) Mutate(ctx context.Context, m db.Mutat
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEMeteredEntitlementBalanceMutation", m)
+}
+
+// The RTESourceOffsetFunc type is an adapter to allow the use of ordinary
+// function as RTESourceOffset mutator.
+type RTESourceOffsetFunc func(context.Context, *db.RTESourceOffsetMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTESourceOffsetFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTESourceOffsetMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTESourceOffsetMutation", m)
 }
 
 // The SubjectFunc type is an adapter to allow the use of ordinary

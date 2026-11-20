@@ -63,22 +63,19 @@ func (RTEDemandLock) Edges() []ent.Edge {
 	}
 }
 
-// RTEInvalidation suppresses repeated source facts during the retention window.
-// Replaying a fact after its receipt expires safely schedules extra calculation.
-type RTEInvalidation struct{ ent.Schema }
+// RTESourceOffset records the last invalidation committed for a Kafka partition.
+type RTESourceOffset struct{ ent.Schema }
 
-func (RTEInvalidation) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }
+func (RTESourceOffset) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }
 
-func (RTEInvalidation) Fields() []ent.Field {
+func (RTESourceOffset) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("source").NotEmpty().Immutable(),
-		field.String("event_id").NotEmpty().Immutable(),
+		field.String("topic").NotEmpty().Immutable(),
+		field.Int32("partition").NonNegative().Immutable(),
+		field.Int64("last_offset").NonNegative(),
 	}
 }
 
-func (RTEInvalidation) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("source", "event_id").Unique(),
-		index.Fields("created_at", "id").StorageKey("rte_invalidation_retention"),
-	}
+func (RTESourceOffset) Indexes() []ent.Index {
+	return []ent.Index{index.Fields("topic", "partition").Unique()}
 }

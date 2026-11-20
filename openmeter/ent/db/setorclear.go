@@ -6238,20 +6238,6 @@ func (u *RTEDemandUpdateOne) SetOrClearLastCalculatedAt(value *time.Time) *RTEDe
 	return u.SetLastCalculatedAt(*value)
 }
 
-func (u *RTEInvalidationUpdate) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *RTEInvalidationUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
 func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -6260,6 +6246,20 @@ func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearDeletedAt(value *time.Tim
 }
 
 func (u *RTEMeteredEntitlementBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTESourceOffsetUpdate) SetOrClearDeletedAt(value *time.Time) *RTESourceOffsetUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *RTESourceOffsetUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTESourceOffsetUpdateOne {
 	if value == nil {
 		return u.ClearDeletedAt()
 	}

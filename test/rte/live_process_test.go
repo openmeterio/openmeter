@@ -5,11 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.opentelemetry.io/otel/metric/noop"
 
 	"github.com/openmeterio/openmeter/app/common"
+	offsetdb "github.com/openmeterio/openmeter/openmeter/ent/db/rtesourceoffset"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
@@ -190,7 +192,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		require.Greater(t, metricCount(live.metrics(t), "rte_rating_lookups_total", "outcome=\"hit\""), float64(0))
 	})
 
-	s.Run("metered late usage refresh and duplicate suppression", func() {
+	s.Run("late usage refresh and redelivery", func() {
 		t := s.T()
 		ctx := t.Context()
 
@@ -213,30 +215,33 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		require.Equal(t, float64(125), creditState.Value.Booked.InexactFloat64())
 		require.Equal(t, float64(100), meteredState.Value.TotalAvailableGrantAmount)
 
-		// Then redelivering the same CloudEvent ID is consumed as a duplicate,
-		// without new state or calculations. Waiting for its metric proves that
-		// the worker observed it, rather than merely being slow.
-		before := live.metrics(t)
-		require.NoError(t, live.publisher.Publish(live.conf.Events.IngestEvents.Topic, msg.Copy()))
+		// Rewind the Kafka group to the same offset. Wait for the duplicate outcome
+		// so a delayed consumer cannot make the state assertions pass.
+		checkpoint, err := s.DBClient.RTESourceOffset.Query().Where(offsetdb.TopicEQ(live.conf.Events.IngestEvents.Topic), offsetdb.PartitionEQ(0)).Only(ctx)
+		require.NoError(t, err)
+		live.rewindIngest(t, checkpoint.LastOffset)
 		require.Eventually(t, func() bool {
-			return metricCount(live.metrics(t), "rte_demand_operations_total", "operation=\"invalidate\"", "outcome=\"duplicate\"") >
-				metricCount(before, "rte_demand_operations_total", "operation=\"invalidate\"", "outcome=\"duplicate\"")
-		}, 10*time.Second, 50*time.Millisecond)
-
-		currentCredit, err := creditClient.Get(ctx, creditKey)
+			return metricCount(live.metrics(t), "rte_demand_operations_total", `operation="invalidate"`, `outcome="duplicate"`) > 0
+		}, 15*time.Second, 100*time.Millisecond)
+		credit, err := creditClient.Get(ctx, creditKey)
 		require.NoError(t, err)
-
-		currentMetered, err := meteredClient.Get(ctx, meteredKey)
+		require.Equal(t, creditState, credit)
+		metered, err := meteredClient.Get(ctx, meteredKey)
 		require.NoError(t, err)
-		require.Equal(t, creditState, currentCredit)
-		require.Equal(t, meteredState, currentMetered)
+		require.Equal(t, meteredState, metered)
 
-		after := live.metrics(t)
-		require.Equal(t, metricCount(before, "rte_calculations_total"), metricCount(after, "rte_calculations_total"))
-		t.Logf("child calculations after late usage: credit=%g metered=%g; rating hits=%g misses=%g",
-			metricCount(after, "rte_calculations_total", "kind=\"credit_balance\""),
-			metricCount(after, "rte_calculations_total", "kind=\"metered_entitlement\""),
-			metricCount(after, "rte_rating_lookups_total", "outcome=\"hit\""),
-			metricCount(after, "rte_rating_lookups_total", "outcome=\"miss\""))
+		// Publishing the same notification again allocates a new offset and refreshes both keys.
+		require.NoError(t, live.publisher.Publish(live.conf.Events.IngestEvents.Topic, msg.Copy()))
+		require.EventuallyWithT(t, func(check *assert.CollectT) {
+			credit, err := creditClient.Get(ctx, creditKey)
+			require.NoError(check, err)
+			require.True(check, credit.CalculatedAt.After(creditState.CalculatedAt))
+			require.Equal(check, creditState.Value, credit.Value)
+
+			metered, err := meteredClient.Get(ctx, meteredKey)
+			require.NoError(check, err)
+			require.True(check, metered.CalculatedAt.After(meteredState.CalculatedAt))
+			require.Equal(check, meteredState.Value, metered.Value)
+		}, 20*time.Second, 50*time.Millisecond)
 	})
 }

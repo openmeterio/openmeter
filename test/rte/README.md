@@ -33,8 +33,7 @@ The scenario starts with 100 credits and a 100-unit entitlement. Repeated produc
 a fresh calculation and a cache hit. Adding 25 credits changes the credit balance alone. Then
 25 units of late usage, priced at one credit per unit, bring live credit to 100 and entitlement
 balance to 75. The test inserts usage through the ClickHouse connector and publishes the sink's
-stored-usage notification. Redelivery must increment the duplicate counter without another
-calculation. [Process test](live_process_test.go)
+stored-usage notification. The test rewinds the consumer group and verifies that the worker skips the same offset after restart. Publishing the notification again refreshes both balances from the same stored usage. [Process test](live_process_test.go)
 
 For the opt-in Compose test that creates grants through the product API and reads the worker's
 result through the client, see [RTE client e2e](../../e2e/README.md#rte-client).

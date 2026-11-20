@@ -10,11 +10,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/oklog/ulid/v2"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -23,6 +25,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/app/config"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	progressadapter "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	streamingclickhouse "github.com/openmeterio/openmeter/openmeter/streaming/clickhouse"
@@ -34,13 +37,15 @@ import (
 var liveProcessHTTPClient = &http.Client{Timeout: 2 * time.Second}
 
 type liveProcess struct {
-	bus       eventbus.Publisher
-	publisher message.Publisher
-	streaming streaming.Connector
-	conf      config.Configuration
-	baseURL   string
-	logPath   string
-	stop      func()
+	admin      *kafka.AdminClient
+	configPath string
+	bus        eventbus.Publisher
+	publisher  message.Publisher
+	streaming  streaming.Connector
+	conf       config.Configuration
+	baseURL    string
+	logPath    string
+	stop       func()
 }
 
 func (s *RTELiveProcessSuite) startLiveProcess() *liveProcess {
@@ -144,63 +149,15 @@ func (s *RTELiveProcessSuite) startLiveProcess() *liveProcess {
 	require.NoError(t, v.WriteConfigAs(configPath))
 
 	logPath := filepath.Join(artifactDir, "rte-process.log")
-	log, err := os.Create(logPath)
+	live := &liveProcess{conf: conf, streaming: connector, baseURL: "http://" + address, logPath: logPath, configPath: configPath}
+	// The isolated ingest topic is empty. Simulate a checkpoint left behind by a
+	// previous topic with the same name and check it is gone at readiness.
+	stale, err := s.DBClient.RTESourceOffset.Create().SetTopic(conf.Events.IngestEvents.Topic).
+		SetPartition(0).SetLastOffset(100).Save(ctx)
 	require.NoError(t, err)
-
-	// Launch the production executable with this fixture configuration.
-	command := exec.CommandContext(ctx, os.Getenv("RTE_E2E_BINARY"), "--config", configPath)
-	command.Stdout, command.Stderr = log, log
-	for _, variable := range os.Environ() {
-		name, _, _ := strings.Cut(variable, "=")
-		overridden := false
-		for _, prefix := range []string{"POSTGRES_", "TELEMETRY_", "EVENTS_", "RTE_", "AGGREGATION_"} {
-			overridden = overridden || strings.HasPrefix(name, prefix)
-		}
-
-		if !overridden {
-			command.Env = append(command.Env, variable)
-		}
-	}
-
-	require.NoError(t, command.Start())
-
-	exited := make(chan struct{})
-	var exitErr error
-	go func() {
-		exitErr = command.Wait()
-		close(exited)
-	}()
-
-	stop := func() {
-		_ = command.Process.Signal(os.Interrupt)
-		select {
-		case <-exited:
-		case <-time.After(5 * time.Second):
-			_ = command.Process.Kill()
-			<-exited
-		}
-
-		_ = log.Close()
-	}
-	t.Cleanup(stop)
-
-	// A ready subscription means source events can reach the child.
-	live := &liveProcess{conf: conf, streaming: connector, baseURL: "http://" + address, logPath: logPath, stop: stop}
-	require.Eventually(t, func() bool {
-		select {
-		case <-exited:
-			t.Fatalf("RTE process exited: %v; log: %s", exitErr, logPath)
-		default:
-		}
-
-		response, err := liveProcessHTTPClient.Get(live.baseURL + "/healthz/subscriptions")
-		if err != nil {
-			return false
-		}
-		defer response.Body.Close()
-
-		return response.StatusCode == http.StatusOK
-	}, 40*time.Second, 100*time.Millisecond, "RTE must subscribe to real Kafka; log: %s", logPath)
+	live.startWorker(t)
+	_, err = s.DBClient.RTESourceOffset.Get(ctx, stale.ID)
+	require.True(t, db.IsNotFound(err), "first claim must reset the out-of-range checkpoint")
 
 	// Publish real source facts and calculation requests to the child.
 	publisher, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
@@ -230,9 +187,86 @@ func (s *RTELiveProcessSuite) startLiveProcess() *liveProcess {
 		})
 		admin.Close()
 	})
+	live.admin = admin
 	t.Logf("RTE child ready; process log: %s", logPath)
 
 	return live
+}
+
+func (p *liveProcess) startWorker(t *testing.T) {
+	t.Helper()
+	log, err := os.OpenFile(p.logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	require.NoError(t, err)
+
+	// Launch the production executable with this fixture configuration.
+	command := exec.CommandContext(t.Context(), os.Getenv("RTE_E2E_BINARY"), "--config", p.configPath)
+	command.Stdout, command.Stderr = log, log
+	for _, variable := range os.Environ() {
+		name, _, _ := strings.Cut(variable, "=")
+		overridden := false
+		for _, prefix := range []string{"POSTGRES_", "TELEMETRY_", "EVENTS_", "RTE_", "AGGREGATION_"} {
+			overridden = overridden || strings.HasPrefix(name, prefix)
+		}
+
+		if !overridden {
+			command.Env = append(command.Env, variable)
+		}
+	}
+
+	require.NoError(t, command.Start())
+
+	exited := make(chan struct{})
+	var exitErr error
+	go func() {
+		exitErr = command.Wait()
+		close(exited)
+	}()
+
+	p.stop = sync.OnceFunc(func() {
+		_ = command.Process.Signal(os.Interrupt)
+		select {
+		case <-exited:
+		case <-time.After(5 * time.Second):
+			_ = command.Process.Kill()
+			<-exited
+		}
+
+		_ = log.Close()
+	})
+	t.Cleanup(p.stop)
+
+	// A ready subscription means source events can reach the child.
+	require.Eventually(t, func() bool {
+		select {
+		case <-exited:
+			t.Fatalf("RTE process exited: %v; log: %s", exitErr, p.logPath)
+		default:
+		}
+
+		response, err := liveProcessHTTPClient.Get(p.baseURL + "/healthz/subscriptions")
+		if err != nil {
+			return false
+		}
+		defer response.Body.Close()
+
+		return response.StatusCode == http.StatusOK
+	}, 40*time.Second, 100*time.Millisecond, "RTE must subscribe to real Kafka; log: %s", p.logPath)
+}
+
+// rewindIngest restarts the real consumer at an already committed record.
+func (p *liveProcess) rewindIngest(t *testing.T, offset int64) {
+	t.Helper()
+	p.stop()
+	topic := p.conf.Events.IngestEvents.Topic
+	result, err := p.admin.AlterConsumerGroupOffsets(t.Context(), []kafka.ConsumerGroupTopicPartitions{{
+		Group:      p.conf.RTE.ConsumerGroupName,
+		Partitions: []kafka.TopicPartition{{Topic: &topic, Partition: 0, Offset: kafka.Offset(offset)}},
+	}})
+	require.NoError(t, err)
+	require.Len(t, result.ConsumerGroupsTopicPartitions, 1)
+	require.Len(t, result.ConsumerGroupsTopicPartitions[0].Partitions, 1)
+	require.NoError(t, result.ConsumerGroupsTopicPartitions[0].Partitions[0].Error)
+	p.startWorker(t)
 }
 
 func (p *liveProcess) metrics(t *testing.T) string {

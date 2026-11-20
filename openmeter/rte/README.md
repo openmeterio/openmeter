@@ -36,7 +36,7 @@ client. Billing that needs to see its own uncommitted writes calls the domain se
 
 1. A committed source event or stored usage batch identifies balances whose inputs may have
    changed. The worker matches those keys against active demand and marks them dirty in PostgreSQL.
-   Redelivery of the same recorded event leaves their versions unchanged. [Source routing](upstream/README.md)
+   RTE records the Kafka partition offset in the same write, so replaying that offset skips the invalidation. [Source routing](upstream/README.md)
 2. For an activated key, a worker polls for dirty demand and claims the key. For a key tracked
    only by `EnsureFresh`, calculation waits for the next freshness request. Several changes can
    share a calculation. Changes received during the calculation leave another pass pending.

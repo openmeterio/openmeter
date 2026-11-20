@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
 	lockdb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemandlock"
-	receiptdb "github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
+	offsetdb "github.com/openmeterio/openmeter/openmeter/ent/db/rtesourceoffset"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -246,85 +246,60 @@ func (r *demandRepository) Deactivate(ctx context.Context, target rte.Calculatio
 	})
 }
 
-// A competing delivery may insert the same receipt after our UPDATE took its
-// snapshot. Roll back our dirty-version increments if it wins that race.
-var errConcurrentInvalidation = errors.New("concurrent invalidation already recorded")
-
 func (r *demandRepository) Invalidate(ctx context.Context, input rte.InvalidateInput) (rte.InvalidationResult, error) {
 	if err := input.Validate(); err != nil {
 		return rte.InvalidationResult{}, err
 	}
 
-	if len(input.Selectors) == 0 {
+	if input.Position == nil && len(input.Selectors) == 0 {
 		return rte.InvalidationResult{}, nil
 	}
 
-	result, err := transaction.Run(ctx, r, func(ctx context.Context) (rte.InvalidationResult, error) {
-		return entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (rte.InvalidationResult, error) {
-			query, args, err := (invalidateDemandQuery{input: input, at: clock.Now()}).SQL()
+	return entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (rte.InvalidationResult, error) {
+		query, args, err := (invalidateDemandQuery{input: input, at: clock.Now()}).SQL()
+		if err != nil {
+			return rte.InvalidationResult{}, err
+		}
+
+		if input.Position != nil {
+			rows, err := a.db.QueryContext(ctx, query, args...)
 			if err != nil {
 				return rte.InvalidationResult{}, err
 			}
+			defer rows.Close()
 
-			updated, err := a.db.ExecContext(ctx, query, args...)
-			if err != nil {
-				return rte.InvalidationResult{}, err
-			}
-
-			matched, err := updated.RowsAffected()
-			if err != nil {
-				return rte.InvalidationResult{}, err
-			}
-
-			if matched == 0 {
-				duplicate, err := a.db.RTEInvalidation.Query().Where(
-					receiptdb.SourceEQ(input.Source), receiptdb.EventIDEQ(input.EventID),
-				).Exist(ctx)
-
-				return rte.InvalidationResult{Duplicate: duplicate}, err
-			}
-
-			err = a.db.RTEInvalidation.Create().SetSource(input.Source).SetEventID(input.EventID).
-				OnConflict(sql.ConflictColumns(receiptdb.FieldSource, receiptdb.FieldEventID)).DoNothing().Exec(ctx)
+			count, err := sql.ScanInt64(rows)
 			if errors.Is(err, stdsql.ErrNoRows) {
-				return rte.InvalidationResult{}, errConcurrentInvalidation
+				return rte.InvalidationResult{Duplicate: true}, nil
 			}
 
-			if err != nil {
-				return rte.InvalidationResult{}, fmt.Errorf("remember invalidation: %w", err)
-			}
+			return rte.InvalidationResult{Matched: count}, err
+		}
 
-			return rte.InvalidationResult{Matched: int(matched)}, nil
-		})
+		updated, err := a.db.ExecContext(ctx, query, args...)
+		if err != nil {
+			return rte.InvalidationResult{}, err
+		}
+
+		count, err := updated.RowsAffected()
+
+		return rte.InvalidationResult{Matched: count}, err
 	})
-	// A rollback failure is joined to the sentinel and must reach the caller.
-	if err == errConcurrentInvalidation {
-		return rte.InvalidationResult{Duplicate: true}, nil
-	}
-
-	return result, err
 }
 
-// A deletion notification can arrive before its effective time. Read the source
-// again at processing time in case the writer moved or canceled the deadline.
-func (r *demandRepository) PruneInvalidations(ctx context.Context, input rte.PruneInvalidationsInput) (int, error) {
-	if err := input.Validate(); err != nil {
-		return 0, err
+func (r *demandRepository) ResetSourceOffset(ctx context.Context, logEnd rte.SourcePosition) error {
+	if err := logEnd.Validate(); err != nil {
+		return err
 	}
 
-	return transaction.Run(ctx, r, func(ctx context.Context) (int, error) {
-		return entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (int, error) {
-			ids, err := a.db.RTEInvalidation.Query().Where(receiptdb.CreatedAtLT(input.Before)).
-				Order(receiptdb.ByCreatedAt(), receiptdb.ByID()).Limit(input.Limit).ForUpdate(sql.WithLockAction(sql.SkipLocked)).IDs(ctx)
-			if err != nil {
-				return 0, err
-			}
+	return entutils.TransactingRepoWithNoValue(ctx, r.adapter, func(ctx context.Context, a *adapter) error {
+		// logEnd is the next offset Kafka could assign. Even equality is out of range.
+		count, err := a.db.RTESourceOffset.Delete().Where(offsetdb.TopicEQ(logEnd.Topic),
+			offsetdb.PartitionEQ(logEnd.Partition), offsetdb.LastOffsetGTE(logEnd.Offset)).Exec(ctx)
+		if err == nil && count > 0 {
+			a.logger.WarnContext(ctx, "reset RTE source offset beyond Kafka partition end", "topic", logEnd.Topic, "partition", logEnd.Partition, "log_end", logEnd.Offset)
+		}
 
-			if len(ids) == 0 {
-				return 0, nil
-			}
-
-			return a.db.RTEInvalidation.Delete().Where(receiptdb.IDIn(ids...)).Exec(ctx)
-		})
+		return err
 	})
 }

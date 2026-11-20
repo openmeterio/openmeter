@@ -112,8 +112,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemandlock"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtesourceoffset"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -230,8 +230,8 @@ const (
 	TypeRTECreditBalance                                 = "RTECreditBalance"
 	TypeRTEDemand                                        = "RTEDemand"
 	TypeRTEDemandLock                                    = "RTEDemandLock"
-	TypeRTEInvalidation                                  = "RTEInvalidation"
 	TypeRTEMeteredEntitlementBalance                     = "RTEMeteredEntitlementBalance"
+	TypeRTESourceOffset                                  = "RTESourceOffset"
 	TypeSubject                                          = "Subject"
 	TypeSubscription                                     = "Subscription"
 	TypeSubscriptionAddon                                = "SubscriptionAddon"
@@ -121533,570 +121533,6 @@ func (m *RTEDemandLockMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown RTEDemandLock edge %s", name)
 }
 
-// RTEInvalidationMutation represents an operation that mutates the RTEInvalidation nodes in the graph.
-type RTEInvalidationMutation struct {
-	config
-	op            Op
-	typ           string
-	id            *int
-	created_at    *time.Time
-	updated_at    *time.Time
-	deleted_at    *time.Time
-	source        *string
-	event_id      *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*RTEInvalidation, error)
-	predicates    []predicate.RTEInvalidation
-}
-
-var _ ent.Mutation = (*RTEInvalidationMutation)(nil)
-
-// rteinvalidationOption allows management of the mutation configuration using functional options.
-type rteinvalidationOption func(*RTEInvalidationMutation)
-
-// newRTEInvalidationMutation creates new mutation for the RTEInvalidation entity.
-func newRTEInvalidationMutation(c config, op Op, opts ...rteinvalidationOption) *RTEInvalidationMutation {
-	m := &RTEInvalidationMutation{
-		config:        c,
-		op:            op,
-		typ:           TypeRTEInvalidation,
-		clearedFields: make(map[string]struct{}),
-	}
-	for _, opt := range opts {
-		opt(m)
-	}
-	return m
-}
-
-// withRTEInvalidationID sets the ID field of the mutation.
-func withRTEInvalidationID(id int) rteinvalidationOption {
-	return func(m *RTEInvalidationMutation) {
-		var (
-			err   error
-			once  sync.Once
-			value *RTEInvalidation
-		)
-		m.oldValue = func(ctx context.Context) (*RTEInvalidation, error) {
-			once.Do(func() {
-				if m.done {
-					err = errors.New("querying old values post mutation is not allowed")
-				} else {
-					value, err = m.Client().RTEInvalidation.Get(ctx, id)
-				}
-			})
-			return value, err
-		}
-		m.id = &id
-	}
-}
-
-// withRTEInvalidation sets the old RTEInvalidation of the mutation.
-func withRTEInvalidation(node *RTEInvalidation) rteinvalidationOption {
-	return func(m *RTEInvalidationMutation) {
-		m.oldValue = func(context.Context) (*RTEInvalidation, error) {
-			return node, nil
-		}
-		m.id = &node.ID
-	}
-}
-
-// Client returns a new `ent.Client` from the mutation. If the mutation was
-// executed in a transaction (ent.Tx), a transactional client is returned.
-func (m RTEInvalidationMutation) Client() *Client {
-	client := &Client{config: m.config}
-	client.init()
-	return client
-}
-
-// Tx returns an `ent.Tx` for mutations that were executed in transactions;
-// it returns an error otherwise.
-func (m RTEInvalidationMutation) Tx() (*Tx, error) {
-	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, errors.New("db: mutation is not running in a transaction")
-	}
-	tx := &Tx{config: m.config}
-	tx.init()
-	return tx, nil
-}
-
-// ID returns the ID value in the mutation. Note that the ID is only available
-// if it was provided to the builder or after it was returned from the database.
-func (m *RTEInvalidationMutation) ID() (id int, exists bool) {
-	if m.id == nil {
-		return
-	}
-	return *m.id, true
-}
-
-// IDs queries the database and returns the entity ids that match the mutation's predicate.
-// That means, if the mutation is applied within a transaction with an isolation level such
-// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
-// or updated by the mutation.
-func (m *RTEInvalidationMutation) IDs(ctx context.Context) ([]int, error) {
-	switch {
-	case m.op.Is(OpUpdateOne | OpDeleteOne):
-		id, exists := m.ID()
-		if exists {
-			return []int{id}, nil
-		}
-		fallthrough
-	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().RTEInvalidation.Query().Where(m.predicates...).IDs(ctx)
-	default:
-		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
-	}
-}
-
-// SetCreatedAt sets the "created_at" field.
-func (m *RTEInvalidationMutation) SetCreatedAt(t time.Time) {
-	m.created_at = &t
-}
-
-// CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *RTEInvalidationMutation) CreatedAt() (r time.Time, exists bool) {
-	v := m.created_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCreatedAt returns the old "created_at" field's value of the RTEInvalidation entity.
-// If the RTEInvalidation object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RTEInvalidationMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
-	}
-	return oldValue.CreatedAt, nil
-}
-
-// ResetCreatedAt resets all changes to the "created_at" field.
-func (m *RTEInvalidationMutation) ResetCreatedAt() {
-	m.created_at = nil
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (m *RTEInvalidationMutation) SetUpdatedAt(t time.Time) {
-	m.updated_at = &t
-}
-
-// UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *RTEInvalidationMutation) UpdatedAt() (r time.Time, exists bool) {
-	v := m.updated_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldUpdatedAt returns the old "updated_at" field's value of the RTEInvalidation entity.
-// If the RTEInvalidation object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RTEInvalidationMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
-	}
-	return oldValue.UpdatedAt, nil
-}
-
-// ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *RTEInvalidationMutation) ResetUpdatedAt() {
-	m.updated_at = nil
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (m *RTEInvalidationMutation) SetDeletedAt(t time.Time) {
-	m.deleted_at = &t
-}
-
-// DeletedAt returns the value of the "deleted_at" field in the mutation.
-func (m *RTEInvalidationMutation) DeletedAt() (r time.Time, exists bool) {
-	v := m.deleted_at
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldDeletedAt returns the old "deleted_at" field's value of the RTEInvalidation entity.
-// If the RTEInvalidation object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RTEInvalidationMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
-	}
-	return oldValue.DeletedAt, nil
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (m *RTEInvalidationMutation) ClearDeletedAt() {
-	m.deleted_at = nil
-	m.clearedFields[rteinvalidation.FieldDeletedAt] = struct{}{}
-}
-
-// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
-func (m *RTEInvalidationMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[rteinvalidation.FieldDeletedAt]
-	return ok
-}
-
-// ResetDeletedAt resets all changes to the "deleted_at" field.
-func (m *RTEInvalidationMutation) ResetDeletedAt() {
-	m.deleted_at = nil
-	delete(m.clearedFields, rteinvalidation.FieldDeletedAt)
-}
-
-// SetSource sets the "source" field.
-func (m *RTEInvalidationMutation) SetSource(s string) {
-	m.source = &s
-}
-
-// Source returns the value of the "source" field in the mutation.
-func (m *RTEInvalidationMutation) Source() (r string, exists bool) {
-	v := m.source
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldSource returns the old "source" field's value of the RTEInvalidation entity.
-// If the RTEInvalidation object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RTEInvalidationMutation) OldSource(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldSource is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldSource requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldSource: %w", err)
-	}
-	return oldValue.Source, nil
-}
-
-// ResetSource resets all changes to the "source" field.
-func (m *RTEInvalidationMutation) ResetSource() {
-	m.source = nil
-}
-
-// SetEventID sets the "event_id" field.
-func (m *RTEInvalidationMutation) SetEventID(s string) {
-	m.event_id = &s
-}
-
-// EventID returns the value of the "event_id" field in the mutation.
-func (m *RTEInvalidationMutation) EventID() (r string, exists bool) {
-	v := m.event_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldEventID returns the old "event_id" field's value of the RTEInvalidation entity.
-// If the RTEInvalidation object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *RTEInvalidationMutation) OldEventID(ctx context.Context) (v string, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldEventID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldEventID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldEventID: %w", err)
-	}
-	return oldValue.EventID, nil
-}
-
-// ResetEventID resets all changes to the "event_id" field.
-func (m *RTEInvalidationMutation) ResetEventID() {
-	m.event_id = nil
-}
-
-// Where appends a list predicates to the RTEInvalidationMutation builder.
-func (m *RTEInvalidationMutation) Where(ps ...predicate.RTEInvalidation) {
-	m.predicates = append(m.predicates, ps...)
-}
-
-// WhereP appends storage-level predicates to the RTEInvalidationMutation builder. Using this method,
-// users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *RTEInvalidationMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.RTEInvalidation, len(ps))
-	for i := range ps {
-		p[i] = ps[i]
-	}
-	m.Where(p...)
-}
-
-// Op returns the operation name.
-func (m *RTEInvalidationMutation) Op() Op {
-	return m.op
-}
-
-// SetOp allows setting the mutation operation.
-func (m *RTEInvalidationMutation) SetOp(op Op) {
-	m.op = op
-}
-
-// Type returns the node type of this mutation (RTEInvalidation).
-func (m *RTEInvalidationMutation) Type() string {
-	return m.typ
-}
-
-// Fields returns all fields that were changed during this mutation. Note that in
-// order to get all numeric fields that were incremented/decremented, call
-// AddedFields().
-func (m *RTEInvalidationMutation) Fields() []string {
-	fields := make([]string, 0, 5)
-	if m.created_at != nil {
-		fields = append(fields, rteinvalidation.FieldCreatedAt)
-	}
-	if m.updated_at != nil {
-		fields = append(fields, rteinvalidation.FieldUpdatedAt)
-	}
-	if m.deleted_at != nil {
-		fields = append(fields, rteinvalidation.FieldDeletedAt)
-	}
-	if m.source != nil {
-		fields = append(fields, rteinvalidation.FieldSource)
-	}
-	if m.event_id != nil {
-		fields = append(fields, rteinvalidation.FieldEventID)
-	}
-	return fields
-}
-
-// Field returns the value of a field with the given name. The second boolean
-// return value indicates that this field was not set, or was not defined in the
-// schema.
-func (m *RTEInvalidationMutation) Field(name string) (ent.Value, bool) {
-	switch name {
-	case rteinvalidation.FieldCreatedAt:
-		return m.CreatedAt()
-	case rteinvalidation.FieldUpdatedAt:
-		return m.UpdatedAt()
-	case rteinvalidation.FieldDeletedAt:
-		return m.DeletedAt()
-	case rteinvalidation.FieldSource:
-		return m.Source()
-	case rteinvalidation.FieldEventID:
-		return m.EventID()
-	}
-	return nil, false
-}
-
-// OldField returns the old value of the field from the database. An error is
-// returned if the mutation operation is not UpdateOne, or the query to the
-// database failed.
-func (m *RTEInvalidationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
-	switch name {
-	case rteinvalidation.FieldCreatedAt:
-		return m.OldCreatedAt(ctx)
-	case rteinvalidation.FieldUpdatedAt:
-		return m.OldUpdatedAt(ctx)
-	case rteinvalidation.FieldDeletedAt:
-		return m.OldDeletedAt(ctx)
-	case rteinvalidation.FieldSource:
-		return m.OldSource(ctx)
-	case rteinvalidation.FieldEventID:
-		return m.OldEventID(ctx)
-	}
-	return nil, fmt.Errorf("unknown RTEInvalidation field %s", name)
-}
-
-// SetField sets the value of a field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *RTEInvalidationMutation) SetField(name string, value ent.Value) error {
-	switch name {
-	case rteinvalidation.FieldCreatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCreatedAt(v)
-		return nil
-	case rteinvalidation.FieldUpdatedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetUpdatedAt(v)
-		return nil
-	case rteinvalidation.FieldDeletedAt:
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetDeletedAt(v)
-		return nil
-	case rteinvalidation.FieldSource:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetSource(v)
-		return nil
-	case rteinvalidation.FieldEventID:
-		v, ok := value.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetEventID(v)
-		return nil
-	}
-	return fmt.Errorf("unknown RTEInvalidation field %s", name)
-}
-
-// AddedFields returns all numeric fields that were incremented/decremented during
-// this mutation.
-func (m *RTEInvalidationMutation) AddedFields() []string {
-	return nil
-}
-
-// AddedField returns the numeric value that was incremented/decremented on a field
-// with the given name. The second boolean return value indicates that this field
-// was not set, or was not defined in the schema.
-func (m *RTEInvalidationMutation) AddedField(name string) (ent.Value, bool) {
-	return nil, false
-}
-
-// AddField adds the value to the field with the given name. It returns an error if
-// the field is not defined in the schema, or if the type mismatched the field
-// type.
-func (m *RTEInvalidationMutation) AddField(name string, value ent.Value) error {
-	switch name {
-	}
-	return fmt.Errorf("unknown RTEInvalidation numeric field %s", name)
-}
-
-// ClearedFields returns all nullable fields that were cleared during this
-// mutation.
-func (m *RTEInvalidationMutation) ClearedFields() []string {
-	var fields []string
-	if m.FieldCleared(rteinvalidation.FieldDeletedAt) {
-		fields = append(fields, rteinvalidation.FieldDeletedAt)
-	}
-	return fields
-}
-
-// FieldCleared returns a boolean indicating if a field with the given name was
-// cleared in this mutation.
-func (m *RTEInvalidationMutation) FieldCleared(name string) bool {
-	_, ok := m.clearedFields[name]
-	return ok
-}
-
-// ClearField clears the value of the field with the given name. It returns an
-// error if the field is not defined in the schema.
-func (m *RTEInvalidationMutation) ClearField(name string) error {
-	switch name {
-	case rteinvalidation.FieldDeletedAt:
-		m.ClearDeletedAt()
-		return nil
-	}
-	return fmt.Errorf("unknown RTEInvalidation nullable field %s", name)
-}
-
-// ResetField resets all changes in the mutation for the field with the given name.
-// It returns an error if the field is not defined in the schema.
-func (m *RTEInvalidationMutation) ResetField(name string) error {
-	switch name {
-	case rteinvalidation.FieldCreatedAt:
-		m.ResetCreatedAt()
-		return nil
-	case rteinvalidation.FieldUpdatedAt:
-		m.ResetUpdatedAt()
-		return nil
-	case rteinvalidation.FieldDeletedAt:
-		m.ResetDeletedAt()
-		return nil
-	case rteinvalidation.FieldSource:
-		m.ResetSource()
-		return nil
-	case rteinvalidation.FieldEventID:
-		m.ResetEventID()
-		return nil
-	}
-	return fmt.Errorf("unknown RTEInvalidation field %s", name)
-}
-
-// AddedEdges returns all edge names that were set/added in this mutation.
-func (m *RTEInvalidationMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// AddedIDs returns all IDs (to other nodes) that were added for the given edge
-// name in this mutation.
-func (m *RTEInvalidationMutation) AddedIDs(name string) []ent.Value {
-	return nil
-}
-
-// RemovedEdges returns all edge names that were removed in this mutation.
-func (m *RTEInvalidationMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
-// the given name in this mutation.
-func (m *RTEInvalidationMutation) RemovedIDs(name string) []ent.Value {
-	return nil
-}
-
-// ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *RTEInvalidationMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
-	return edges
-}
-
-// EdgeCleared returns a boolean which indicates if the edge with the given name
-// was cleared in this mutation.
-func (m *RTEInvalidationMutation) EdgeCleared(name string) bool {
-	return false
-}
-
-// ClearEdge clears the value of the edge with the given name. It returns an error
-// if that edge is not defined in the schema.
-func (m *RTEInvalidationMutation) ClearEdge(name string) error {
-	return fmt.Errorf("unknown RTEInvalidation unique edge %s", name)
-}
-
-// ResetEdge resets all changes to the edge with the given name in this mutation.
-// It returns an error if the edge is not defined in the schema.
-func (m *RTEInvalidationMutation) ResetEdge(name string) error {
-	return fmt.Errorf("unknown RTEInvalidation edge %s", name)
-}
-
 // RTEMeteredEntitlementBalanceMutation represents an operation that mutates the RTEMeteredEntitlementBalance nodes in the graph.
 type RTEMeteredEntitlementBalanceMutation struct {
 	config
@@ -122767,6 +122203,693 @@ func (m *RTEMeteredEntitlementBalanceMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *RTEMeteredEntitlementBalanceMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown RTEMeteredEntitlementBalance edge %s", name)
+}
+
+// RTESourceOffsetMutation represents an operation that mutates the RTESourceOffset nodes in the graph.
+type RTESourceOffsetMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int
+	created_at     *time.Time
+	updated_at     *time.Time
+	deleted_at     *time.Time
+	topic          *string
+	partition      *int32
+	addpartition   *int32
+	last_offset    *int64
+	addlast_offset *int64
+	clearedFields  map[string]struct{}
+	done           bool
+	oldValue       func(context.Context) (*RTESourceOffset, error)
+	predicates     []predicate.RTESourceOffset
+}
+
+var _ ent.Mutation = (*RTESourceOffsetMutation)(nil)
+
+// rtesourceoffsetOption allows management of the mutation configuration using functional options.
+type rtesourceoffsetOption func(*RTESourceOffsetMutation)
+
+// newRTESourceOffsetMutation creates new mutation for the RTESourceOffset entity.
+func newRTESourceOffsetMutation(c config, op Op, opts ...rtesourceoffsetOption) *RTESourceOffsetMutation {
+	m := &RTESourceOffsetMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRTESourceOffset,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRTESourceOffsetID sets the ID field of the mutation.
+func withRTESourceOffsetID(id int) rtesourceoffsetOption {
+	return func(m *RTESourceOffsetMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RTESourceOffset
+		)
+		m.oldValue = func(ctx context.Context) (*RTESourceOffset, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RTESourceOffset.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRTESourceOffset sets the old RTESourceOffset of the mutation.
+func withRTESourceOffset(node *RTESourceOffset) rtesourceoffsetOption {
+	return func(m *RTESourceOffsetMutation) {
+		m.oldValue = func(context.Context) (*RTESourceOffset, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RTESourceOffsetMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RTESourceOffsetMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RTESourceOffsetMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RTESourceOffsetMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RTESourceOffset.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RTESourceOffsetMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RTESourceOffsetMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RTESourceOffset entity.
+// If the RTESourceOffset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTESourceOffsetMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RTESourceOffsetMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RTESourceOffsetMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RTESourceOffsetMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RTESourceOffset entity.
+// If the RTESourceOffset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTESourceOffsetMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RTESourceOffsetMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *RTESourceOffsetMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *RTESourceOffsetMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the RTESourceOffset entity.
+// If the RTESourceOffset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTESourceOffsetMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *RTESourceOffsetMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[rtesourceoffset.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *RTESourceOffsetMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[rtesourceoffset.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *RTESourceOffsetMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, rtesourceoffset.FieldDeletedAt)
+}
+
+// SetTopic sets the "topic" field.
+func (m *RTESourceOffsetMutation) SetTopic(s string) {
+	m.topic = &s
+}
+
+// Topic returns the value of the "topic" field in the mutation.
+func (m *RTESourceOffsetMutation) Topic() (r string, exists bool) {
+	v := m.topic
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTopic returns the old "topic" field's value of the RTESourceOffset entity.
+// If the RTESourceOffset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTESourceOffsetMutation) OldTopic(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTopic is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTopic requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTopic: %w", err)
+	}
+	return oldValue.Topic, nil
+}
+
+// ResetTopic resets all changes to the "topic" field.
+func (m *RTESourceOffsetMutation) ResetTopic() {
+	m.topic = nil
+}
+
+// SetPartition sets the "partition" field.
+func (m *RTESourceOffsetMutation) SetPartition(i int32) {
+	m.partition = &i
+	m.addpartition = nil
+}
+
+// Partition returns the value of the "partition" field in the mutation.
+func (m *RTESourceOffsetMutation) Partition() (r int32, exists bool) {
+	v := m.partition
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPartition returns the old "partition" field's value of the RTESourceOffset entity.
+// If the RTESourceOffset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTESourceOffsetMutation) OldPartition(ctx context.Context) (v int32, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPartition is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPartition requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPartition: %w", err)
+	}
+	return oldValue.Partition, nil
+}
+
+// AddPartition adds i to the "partition" field.
+func (m *RTESourceOffsetMutation) AddPartition(i int32) {
+	if m.addpartition != nil {
+		*m.addpartition += i
+	} else {
+		m.addpartition = &i
+	}
+}
+
+// AddedPartition returns the value that was added to the "partition" field in this mutation.
+func (m *RTESourceOffsetMutation) AddedPartition() (r int32, exists bool) {
+	v := m.addpartition
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPartition resets all changes to the "partition" field.
+func (m *RTESourceOffsetMutation) ResetPartition() {
+	m.partition = nil
+	m.addpartition = nil
+}
+
+// SetLastOffset sets the "last_offset" field.
+func (m *RTESourceOffsetMutation) SetLastOffset(i int64) {
+	m.last_offset = &i
+	m.addlast_offset = nil
+}
+
+// LastOffset returns the value of the "last_offset" field in the mutation.
+func (m *RTESourceOffsetMutation) LastOffset() (r int64, exists bool) {
+	v := m.last_offset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastOffset returns the old "last_offset" field's value of the RTESourceOffset entity.
+// If the RTESourceOffset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTESourceOffsetMutation) OldLastOffset(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastOffset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastOffset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastOffset: %w", err)
+	}
+	return oldValue.LastOffset, nil
+}
+
+// AddLastOffset adds i to the "last_offset" field.
+func (m *RTESourceOffsetMutation) AddLastOffset(i int64) {
+	if m.addlast_offset != nil {
+		*m.addlast_offset += i
+	} else {
+		m.addlast_offset = &i
+	}
+}
+
+// AddedLastOffset returns the value that was added to the "last_offset" field in this mutation.
+func (m *RTESourceOffsetMutation) AddedLastOffset() (r int64, exists bool) {
+	v := m.addlast_offset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetLastOffset resets all changes to the "last_offset" field.
+func (m *RTESourceOffsetMutation) ResetLastOffset() {
+	m.last_offset = nil
+	m.addlast_offset = nil
+}
+
+// Where appends a list predicates to the RTESourceOffsetMutation builder.
+func (m *RTESourceOffsetMutation) Where(ps ...predicate.RTESourceOffset) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RTESourceOffsetMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RTESourceOffsetMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RTESourceOffset, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RTESourceOffsetMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RTESourceOffsetMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RTESourceOffset).
+func (m *RTESourceOffsetMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RTESourceOffsetMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.created_at != nil {
+		fields = append(fields, rtesourceoffset.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, rtesourceoffset.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, rtesourceoffset.FieldDeletedAt)
+	}
+	if m.topic != nil {
+		fields = append(fields, rtesourceoffset.FieldTopic)
+	}
+	if m.partition != nil {
+		fields = append(fields, rtesourceoffset.FieldPartition)
+	}
+	if m.last_offset != nil {
+		fields = append(fields, rtesourceoffset.FieldLastOffset)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RTESourceOffsetMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case rtesourceoffset.FieldCreatedAt:
+		return m.CreatedAt()
+	case rtesourceoffset.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case rtesourceoffset.FieldDeletedAt:
+		return m.DeletedAt()
+	case rtesourceoffset.FieldTopic:
+		return m.Topic()
+	case rtesourceoffset.FieldPartition:
+		return m.Partition()
+	case rtesourceoffset.FieldLastOffset:
+		return m.LastOffset()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RTESourceOffsetMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case rtesourceoffset.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case rtesourceoffset.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case rtesourceoffset.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case rtesourceoffset.FieldTopic:
+		return m.OldTopic(ctx)
+	case rtesourceoffset.FieldPartition:
+		return m.OldPartition(ctx)
+	case rtesourceoffset.FieldLastOffset:
+		return m.OldLastOffset(ctx)
+	}
+	return nil, fmt.Errorf("unknown RTESourceOffset field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTESourceOffsetMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case rtesourceoffset.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case rtesourceoffset.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case rtesourceoffset.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case rtesourceoffset.FieldTopic:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTopic(v)
+		return nil
+	case rtesourceoffset.FieldPartition:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPartition(v)
+		return nil
+	case rtesourceoffset.FieldLastOffset:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastOffset(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RTESourceOffset field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RTESourceOffsetMutation) AddedFields() []string {
+	var fields []string
+	if m.addpartition != nil {
+		fields = append(fields, rtesourceoffset.FieldPartition)
+	}
+	if m.addlast_offset != nil {
+		fields = append(fields, rtesourceoffset.FieldLastOffset)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RTESourceOffsetMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case rtesourceoffset.FieldPartition:
+		return m.AddedPartition()
+	case rtesourceoffset.FieldLastOffset:
+		return m.AddedLastOffset()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RTESourceOffsetMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case rtesourceoffset.FieldPartition:
+		v, ok := value.(int32)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPartition(v)
+		return nil
+	case rtesourceoffset.FieldLastOffset:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLastOffset(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RTESourceOffset numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RTESourceOffsetMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(rtesourceoffset.FieldDeletedAt) {
+		fields = append(fields, rtesourceoffset.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RTESourceOffsetMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RTESourceOffsetMutation) ClearField(name string) error {
+	switch name {
+	case rtesourceoffset.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RTESourceOffset nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RTESourceOffsetMutation) ResetField(name string) error {
+	switch name {
+	case rtesourceoffset.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case rtesourceoffset.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case rtesourceoffset.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case rtesourceoffset.FieldTopic:
+		m.ResetTopic()
+		return nil
+	case rtesourceoffset.FieldPartition:
+		m.ResetPartition()
+		return nil
+	case rtesourceoffset.FieldLastOffset:
+		m.ResetLastOffset()
+		return nil
+	}
+	return fmt.Errorf("unknown RTESourceOffset field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RTESourceOffsetMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RTESourceOffsetMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RTESourceOffsetMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RTESourceOffsetMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RTESourceOffsetMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RTESourceOffsetMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RTESourceOffsetMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown RTESourceOffset unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RTESourceOffsetMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown RTESourceOffset edge %s", name)
 }
 
 // SubjectMutation represents an operation that mutates the Subject nodes in the graph.

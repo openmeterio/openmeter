@@ -276,7 +276,7 @@ func (s *RTEIntegrationSuite) TestUsageAfterEntitlementActivityEndRefreshesBalan
 		RawEvents:  []serializer.CloudEventsKafkaPayload{{Time: occurred.Unix()}},
 	})
 	s.Require().NoError(err)
-	s.Require().NoError(demands.Invalidate(ctx, rte.InvalidateInput{Source: "ingest", EventID: "post-end-usage", Selectors: selected}))
+	s.Require().NoError(demands.Invalidate(ctx, rte.InvalidateInput{Selectors: selected}))
 
 	// Then a pull with an unexpired lease refreshes to the same balance as the source.
 	s.Require().NoError(demands.EnsureFresh(ctx, pull))

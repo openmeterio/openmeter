@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -24,11 +25,18 @@ type SubscriberOptions struct {
 	ConsumerGroupName string
 	// SubscriptionStatus optionally observes the subscriber's configured topics.
 	SubscriptionStatus *SubscriptionStatus
+	// BeforeConsumeClaim runs before an observed partition becomes ready or dispatches messages.
+	// logEnd is exclusive. Returning an error aborts that claim.
+	BeforeConsumeClaim func(ctx context.Context, topic string, partition int32, logEnd int64) error
 }
 
 func (o *SubscriberOptions) Validate() error {
 	if err := o.Broker.Validate(); err != nil {
 		return err
+	}
+
+	if o.BeforeConsumeClaim != nil && o.SubscriptionStatus == nil {
+		return errors.New("claim initialization requires subscription status")
 	}
 
 	if o.ConsumerGroupName == "" {
@@ -58,7 +66,7 @@ func NewSubscriber(in SubscriberOptions) (message.Subscriber, error) {
 		Unmarshaler:           kafka.DefaultMarshaler{},
 	}
 	if in.SubscriptionStatus != nil {
-		wmConfig.Tracer = subscriptionObserver{status: in.SubscriptionStatus}
+		wmConfig.Tracer = subscriptionObserver{status: in.SubscriptionStatus, beforeConsumeClaim: in.BeforeConsumeClaim}
 	}
 
 	if err := wmConfig.Validate(); err != nil {
