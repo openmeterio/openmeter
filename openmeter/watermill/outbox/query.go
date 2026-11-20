@@ -39,12 +39,20 @@ type pendingTransactionQuery struct {
 //	  AND e.transaction_id NOT IN (:excluded_transactions)
 //	ORDER BY e.id LIMIT 1 FOR UPDATE SKIP LOCKED;
 //
-// Both type-header predicates and the excluded transaction predicate are optional.
+// Scoped claims use e.attempts = 0 and both type-header predicates.
+// Excluded transactions are optional for either worker.
 func (q pendingTransactionQuery) Apply(s *sql.Selector) {
+	headAttempts := sql.LT(s.C(eventoutbox.FieldAttempts), q.MaxAttempts)
+	if q.EventType != "" {
+		// Postgres rechecks the locked row if a concurrent drain changed it.
+		// The sibling subquery can still see the old attempt count.
+		headAttempts = sql.EQ(s.C(eventoutbox.FieldAttempts), 0)
+	}
+
 	earlier := sql.Table(eventoutbox.Table).As("earlier_outbox")
 	s.Where(sql.And(
 		sql.In(s.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
-		sql.LT(s.C(eventoutbox.FieldAttempts), q.MaxAttempts),
+		headAttempts,
 		sql.NotExists(sql.Select(earlier.C(eventoutbox.FieldID)).From(earlier).Where(sql.And(
 			sql.LT(earlier.C(eventoutbox.FieldAttempts), q.MaxAttempts),
 			sql.In(earlier.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
