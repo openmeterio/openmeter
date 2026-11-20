@@ -1625,12 +1625,6 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 				wantConfig:  `{"url":"https://example.com/hook"}`,
 				annotations: `{}`,
 			},
-			{
-				name:        "existing backup survives another legacy write",
-				config:      `{"type":"WEBHOOK","data":{"url":"https://example.com/hook"}}`,
-				wantConfig:  `{"url":"https://example.com/hook"}`,
-				annotations: `{"preserve":9007199254740993,"dbmigration.notification.channel.config.normalization.original":{"type":"WEBHOOK","data":{"url":"https://original.example.com"}}}`,
-			},
 		}
 
 		type channelSnapshot struct {
@@ -1639,7 +1633,6 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 			before           string
 			wantConfig       string
 			wantLegacyConfig string
-			wantAnnotations  string
 			xmin             string
 			config           notification.ChannelConfig
 			readable         bool
@@ -1671,33 +1664,12 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 					readable:  storedType != "future_channel",
 					changed:   tc.wantConfig != "",
 				}
-				annotations := tc.annotations
-				if annotations == "" {
-					annotations = `{"preserve":9007199254740993}`
-				}
-
-				var storedAnnotations any = annotations
+				var storedAnnotations any = tc.annotations
 				if tc.sqlNullAnnotations {
 					storedAnnotations = nil
-					annotations = `null`
+				} else if tc.annotations == "" {
+					storedAnnotations = `{"preserve":9007199254740993}`
 				}
-
-				var wantAnnotations map[string]json.RawMessage
-				require.NoError(t, json.Unmarshal([]byte(annotations), &wantAnnotations))
-
-				if snapshot.changed {
-					if wantAnnotations == nil {
-						wantAnnotations = make(map[string]json.RawMessage)
-					}
-
-					const backupKey = "dbmigration.notification.channel.config.normalization.original"
-					if _, exists := wantAnnotations[backupKey]; !exists {
-						wantAnnotations[backupKey] = json.RawMessage(tc.config)
-					}
-				}
-
-				encodedAnnotations, err := json.Marshal(wantAnnotations)
-				require.NoError(t, err)
 
 				legacyConfig := tc.config
 				if snapshot.readable {
@@ -1717,16 +1689,16 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 					legacyConfig = string(encoded)
 				}
 
-				err = env.sqlDB.QueryRowContext(t.Context(), `
+				err := env.sqlDB.QueryRowContext(t.Context(), `
 					INSERT INTO notification_channels AS c
 						(id, namespace, name, type, disabled, config, created_at, updated_at, deleted_at,
 						 metadata, annotations, event_type_filter, provider_data, generation, reconcile_status, reconcile_next_at)
 					VALUES ($1, $2, $3, $4, $5, $6, '2026-01-01T00:00:00Z', '2026-01-01T12:00:00Z', $7,
 						 '{"team":"billing"}', $9, '["v1.billing.invoice.created"]',
 						 '{"svix.endpoint_id":"ep_preserve"}', 7, 'pending', '2026-01-03T00:00:00Z')
-					RETURNING (to_jsonb(c) - 'config' - 'annotations')::text, xmin::text, $8::jsonb::text, $10::jsonb::text, $11::jsonb::text`,
-					snapshot.id, namespace, tc.name, storedType, tc.disabled, tc.config, deletedAt, wantConfig, storedAnnotations, string(encodedAnnotations), legacyConfig,
-				).Scan(&snapshot.before, &snapshot.xmin, &snapshot.wantConfig, &snapshot.wantAnnotations, &snapshot.wantLegacyConfig)
+					RETURNING (to_jsonb(c) - 'config')::text, xmin::text, $8::jsonb::text, $10::jsonb::text`,
+					snapshot.id, namespace, tc.name, storedType, tc.disabled, tc.config, deletedAt, wantConfig, storedAnnotations, legacyConfig,
+				).Scan(&snapshot.before, &snapshot.xmin, &snapshot.wantConfig, &snapshot.wantLegacyConfig)
 				require.NoError(t, err)
 
 				if snapshot.readable {
@@ -1756,7 +1728,7 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 				_, err := env.sqlDB.ExecContext(t.Context(), migrations[step.direction])
 				require.NoError(t, err)
 
-				// then: legacy configs are backed up and flattened; settings and other fields stay unchanged
+				// then: only the config representation changes, including on rollback
 				for i := range snapshots {
 					snapshot := &snapshots[i]
 					wantConfig := snapshot.wantConfig
@@ -1764,31 +1736,15 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 						wantConfig = snapshot.wantLegacyConfig
 					}
 
-					if step.name == "upgrade after rollback" && snapshot.readable {
-						var annotations map[string]json.RawMessage
-						require.NoError(t, json.Unmarshal([]byte(snapshot.wantAnnotations), &annotations))
-
-						const backupKey = "dbmigration.notification.channel.config.normalization.original"
-						if _, exists := annotations[backupKey]; !exists {
-							annotations[backupKey] = json.RawMessage(snapshot.wantLegacyConfig)
-							encoded, err := json.Marshal(annotations)
-							require.NoError(t, err)
-
-							err = env.sqlDB.QueryRowContext(t.Context(), `SELECT $1::jsonb::text`, string(encoded)).Scan(&snapshot.wantAnnotations)
-							require.NoError(t, err)
-						}
-					}
-
-					var config, after, xmin, annotations string
+					var config, after, xmin string
 					err := env.sqlDB.QueryRowContext(t.Context(), `
-						SELECT config::text, (to_jsonb(c) - 'config' - 'annotations')::text, xmin::text, annotations::text
+						SELECT config::text, (to_jsonb(c) - 'config')::text, xmin::text
 						FROM notification_channels c WHERE id = $1`, snapshot.id,
-					).Scan(&config, &after, &xmin, &annotations)
+					).Scan(&config, &after, &xmin)
 					require.NoError(t, err)
 
 					assert.Equal(t, wantConfig, config)
 					assert.Equal(t, snapshot.before, after)
-					assert.Equal(t, snapshot.wantAnnotations, annotations)
 
 					if (step.name == "upgrade" && snapshot.changed) ||
 						((step.name == "rollback" || step.name == "upgrade after rollback") && snapshot.readable) {
@@ -1839,7 +1795,7 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 			before string
 		}{
 			{name: "updated channel", id: updatedID},
-			{name: "new channel without backup", id: createdID},
+			{name: "new channel", id: createdID},
 		}
 		for i := range cases {
 			err := env.sqlDB.QueryRowContext(t.Context(), `
@@ -1847,7 +1803,7 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		// when: rolling back, use the current config even if an older backup exists
+		// when: rolling back after the config edits
 		_, err = env.sqlDB.ExecContext(t.Context(), migrations["down"])
 		require.NoError(t, err)
 
@@ -1873,14 +1829,6 @@ func TestChannelConfigNormalizationMigration(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, 2, converted)
-
-		var backup string
-		err = env.sqlDB.QueryRowContext(t.Context(), `
-			SELECT (annotations->'dbmigration.notification.channel.config.normalization.original')::text
-			FROM notification_channels WHERE id = $1`, updatedID).Scan(&backup)
-		require.NoError(t, err)
-
-		assert.JSONEq(t, original, backup)
 	})
 
 	t.Run("rejects malformed envelopes atomically", func(t *testing.T) {

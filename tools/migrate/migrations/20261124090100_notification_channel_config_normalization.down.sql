@@ -1,6 +1,5 @@
 -- Restore the legacy envelope from the current config, including Channels created
--- or updated after the upgrade. Keep the backup annotation for manual recovery;
--- restoring it here could undo URL, header or signing-secret changes.
+-- or updated after the upgrade.
 -- Stop and drain writers of flat configs before rolling back to older readers.
 UPDATE notification_channels
 SET config = jsonb_build_object(

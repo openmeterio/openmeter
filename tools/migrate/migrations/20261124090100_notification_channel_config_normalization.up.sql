@@ -1,4 +1,4 @@
--- Flatten legacy webhook Channel configs and retain the original JSON in annotations.
+-- Flatten legacy webhook Channel configs.
 -- Apply after all backend and worker instances write flat configs and transactions
 -- started by older instances have completed. Conversion is atomic: an unsupported
 -- envelope aborts the migration without changing any Channels.
@@ -32,11 +32,7 @@ BEGIN
             || CASE WHEN data ? 'customHeaders'
                 THEN jsonb_build_object('custom_headers', data->'customHeaders') ELSE '{}'::jsonb END
             || CASE WHEN data ? 'signingSecret'
-                THEN jsonb_build_object('signing_secret', data->'signingSecret') ELSE '{}'::jsonb END,
-            -- Existing annotations take precedence so a rerun cannot replace the original backup.
-            annotations = jsonb_build_object(
-                'dbmigration.notification.channel.config.normalization.original', channel.config
-            ) || COALESCE(NULLIF(annotations, 'null'::jsonb), '{}'::jsonb)
+                THEN jsonb_build_object('signing_secret', data->'signingSecret') ELSE '{}'::jsonb END
         WHERE id = channel.id AND namespace = channel.namespace;
     END LOOP;
 END $$;
