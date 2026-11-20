@@ -31,7 +31,7 @@ func (r failingTaxCodeResolver) Resolve(context.Context, string, string) (*taxco
 	return nil, errors.New("not implemented")
 }
 
-func (r failingTaxCodeResolver) BatchResolve(context.Context, string, ...string) (map[string]*taxcode.TaxCode, error) {
+func (r failingTaxCodeResolver) BatchResolve(context.Context, string, ...string) (productcatalog.TaxCodesByID, error) {
 	if r.err != nil {
 		return nil, r.err
 	}

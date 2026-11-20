@@ -139,10 +139,10 @@ func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	return nil
 }
 
-// authoredTaxCodeIssue classifies an authored Tax Code reference against resolved Tax Codes:
+// taxCodeReferenceIssue classifies a Tax Code reference against resolved Tax Codes:
 // nil when the ID exists and is live, ErrTaxCodeNotFound when the namespace has no such row,
 // ErrTaxCodeDeleted when it is soft-deleted. The issue message names the ID.
-func authoredTaxCodeIssue(id string, resolved map[string]*taxcode.TaxCode) error {
+func taxCodeReferenceIssue(id string, resolved productcatalog.TaxCodesByID) error {
 	issue := ErrTaxCodeNotFound
 
 	switch tc := resolved[id]; {
@@ -158,8 +158,9 @@ func authoredTaxCodeIssue(id string, resolved map[string]*taxcode.TaxCode) error
 	return issue
 }
 
-// ValidateTaxCodeID rejects a missing or deleted Tax Code. Use it for authored references only:
-// a reference copied from stored data may point at a Tax Code deleted since, and that is fine.
+// ValidateTaxCodeID rejects a missing or deleted Tax Code. Use it for references the caller
+// sent in this request only: a reference copied from stored data (inherited) may point at a Tax
+// Code deleted since, and that is fine.
 func ValidateTaxCodeID(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace, id string) error {
 	if id == "" {
 		return nil
@@ -170,28 +171,28 @@ func ValidateTaxCodeID(ctx context.Context, resolver productcatalog.TaxCodeResol
 		return fmt.Errorf("resolving tax code %s: %w", id, err)
 	}
 
-	return authoredTaxCodeIssue(id, taxCodes)
+	return taxCodeReferenceIssue(id, taxCodes)
 }
 
-// AuthoredTaxCodeID is one Tax Code ID an API caller authored, together with the field path
-// its validation issues should carry.
-type AuthoredTaxCodeID struct {
+// RequestTaxCodeRef is one Tax Code ID the caller sent in this request, together with the field
+// path its validation issues should carry.
+type RequestTaxCodeRef struct {
 	TaxCodeID string
 	// FieldPath locates the reference, e.g. "lines/0/tax_config/tax_code". References with an
 	// empty TaxCodeID are skipped, so their FieldPath is never used.
 	FieldPath string
 }
 
-// ValidateAuthoredTaxCodeIDsInput carries the authored Tax Code references of one request.
-type ValidateAuthoredTaxCodeIDsInput struct {
+// ValidateRequestTaxCodeIDsInput carries the Tax Code references the caller sent in one request.
+type ValidateRequestTaxCodeIDsInput struct {
 	Namespace string
 	Resolver  productcatalog.TaxCodeResolver
-	// References holds one entry per authored reference; duplicate IDs are resolved in one
+	// References holds one entry per reference; duplicate IDs are resolved in one
 	// batch but each failing reference gets its own issue under its own field path.
-	References []AuthoredTaxCodeID
+	References []RequestTaxCodeRef
 }
 
-func (i ValidateAuthoredTaxCodeIDsInput) Validate() error {
+func (i ValidateRequestTaxCodeIDsInput) Validate() error {
 	var errs []error
 
 	if i.Namespace == "" {
@@ -205,12 +206,12 @@ func (i ValidateAuthoredTaxCodeIDsInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// ValidateAuthoredTaxCodeIDs rejects authored Tax Code references that point at a missing or
-// soft-deleted Tax Code: missing ones with ErrTaxCodeNotFound, deleted ones with
-// ErrTaxCodeDeleted, each under the reference's field path. Use it for references an API caller
-// authored in the current request; references copied from stored data may point at a Tax Code
-// deleted since and must not run through this.
-func ValidateAuthoredTaxCodeIDs(ctx context.Context, input ValidateAuthoredTaxCodeIDsInput) error {
+// ValidateRequestTaxCodeIDs rejects Tax Code references that point at a missing or soft-deleted
+// Tax Code: missing ones with ErrTaxCodeNotFound, deleted ones with ErrTaxCodeDeleted, each under
+// the reference's field path. Use it for references the caller sent in this request; references
+// copied from stored data (inherited) may point at a Tax Code deleted since and must not run
+// through this. References with an empty ID are skipped.
+func ValidateRequestTaxCodeIDs(ctx context.Context, input ValidateRequestTaxCodeIDsInput) error {
 	if err := input.Validate(); err != nil {
 		return err
 	}
@@ -236,12 +237,16 @@ func ValidateAuthoredTaxCodeIDs(ctx context.Context, input ValidateAuthoredTaxCo
 
 	resolved, err := input.Resolver.BatchResolve(ctx, input.Namespace, ids...)
 	if err != nil {
-		return fmt.Errorf("resolving authored tax codes: %w", err)
+		return fmt.Errorf("resolving request tax codes: %w", err)
 	}
 
 	var errs []error
 	for _, ref := range input.References {
-		if err := authoredTaxCodeIssue(ref.TaxCodeID, resolved); err != nil {
+		if ref.TaxCodeID == "" {
+			continue
+		}
+
+		if err := taxCodeReferenceIssue(ref.TaxCodeID, resolved); err != nil {
 			errs = append(errs, ValidationWithFieldPrefix(ref.FieldPath, err))
 		}
 	}

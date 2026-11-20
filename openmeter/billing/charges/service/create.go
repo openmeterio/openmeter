@@ -146,12 +146,12 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 	return errors.Join(errs...)
 }
 
-// validateAuthoredTaxCodes rejects Tax Code IDs the caller authored in this request
+// validateRequestTaxCodes rejects Tax Code IDs the caller sent in this request
 // when they reference a missing or deleted Tax Code. Runs before applyDefaultTaxCodes so only
 // caller-sent IDs are checked; defaults filled in here are inherited and may be deleted.
 // All distinct IDs resolve in one batch; each failing intent gets its own issue naming it.
-func (s *service) validateAuthoredTaxCodes(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
-	refs := make([]billing.AuthoredTaxCodeID, 0, len(intents))
+func (s *service) validateRequestTaxCodes(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
+	refs := make([]billing.RequestTaxCodeRef, 0, len(intents))
 	for idx, createIntent := range intents {
 		taxCodeID, err := createIntent.TaxCodeID()
 		if err != nil {
@@ -162,7 +162,7 @@ func (s *service) validateAuthoredTaxCodes(ctx context.Context, namespace string
 			continue
 		}
 
-		refs = append(refs, billing.AuthoredTaxCodeID{
+		refs = append(refs, billing.RequestTaxCodeRef{
 			TaxCodeID: taxCodeID,
 			FieldPath: fmt.Sprintf("intents/%d/tax_config/tax_code", idx),
 		})
@@ -172,12 +172,12 @@ func (s *service) validateAuthoredTaxCodes(ctx context.Context, namespace string
 		return nil
 	}
 
-	if err := billing.ValidateAuthoredTaxCodeIDs(ctx, billing.ValidateAuthoredTaxCodeIDsInput{
+	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
 		Namespace:  namespace,
 		Resolver:   s.taxCodeResolver,
 		References: refs,
 	}); err != nil {
-		return billing.ValidationError{Err: err}
+		return err
 	}
 
 	return nil
@@ -213,10 +213,15 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 		return nil, err
 	}
 
-	// Validate already rejected an unset ChangeSource, so the input classifies its
-	// references: only API requests carry authored ones.
+	// Checked before the full Validate below: an unset source would silently skip the request
+	// Tax Code check, and Validate only runs once defaults are applied.
+	if err := input.ChangeSource.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(fmt.Errorf("change source: %w", err))
+	}
+
+	// Only API requests carry Tax Code IDs the caller sent.
 	if input.ChangeSource == billing.ChangeSourceAPIRequest {
-		if err := s.validateAuthoredTaxCodes(ctx, input.Namespace, input.Intents); err != nil {
+		if err := s.validateRequestTaxCodes(ctx, input.Namespace, input.Intents); err != nil {
 			return nil, err
 		}
 	}
