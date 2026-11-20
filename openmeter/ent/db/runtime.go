@@ -92,7 +92,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/rteinvalidation"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
@@ -3233,29 +3232,6 @@ func init() {
 	rtedemand.DefaultAttempts = rtedemandDescAttempts.Default.(int)
 	// rtedemand.AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
 	rtedemand.AttemptsValidator = rtedemandDescAttempts.Validators[0].(func(int) error)
-	rteinvalidationMixin := schema.RTEInvalidation{}.Mixin()
-	rteinvalidationMixinFields0 := rteinvalidationMixin[0].Fields()
-	_ = rteinvalidationMixinFields0
-	rteinvalidationFields := schema.RTEInvalidation{}.Fields()
-	_ = rteinvalidationFields
-	// rteinvalidationDescCreatedAt is the schema descriptor for created_at field.
-	rteinvalidationDescCreatedAt := rteinvalidationMixinFields0[0].Descriptor()
-	// rteinvalidation.DefaultCreatedAt holds the default value on creation for the created_at field.
-	rteinvalidation.DefaultCreatedAt = rteinvalidationDescCreatedAt.Default.(func() time.Time)
-	// rteinvalidationDescUpdatedAt is the schema descriptor for updated_at field.
-	rteinvalidationDescUpdatedAt := rteinvalidationMixinFields0[1].Descriptor()
-	// rteinvalidation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	rteinvalidation.DefaultUpdatedAt = rteinvalidationDescUpdatedAt.Default.(func() time.Time)
-	// rteinvalidation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	rteinvalidation.UpdateDefaultUpdatedAt = rteinvalidationDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// rteinvalidationDescSource is the schema descriptor for source field.
-	rteinvalidationDescSource := rteinvalidationFields[0].Descriptor()
-	// rteinvalidation.SourceValidator is a validator for the "source" field. It is called by the builders before save.
-	rteinvalidation.SourceValidator = rteinvalidationDescSource.Validators[0].(func(string) error)
-	// rteinvalidationDescEventID is the schema descriptor for event_id field.
-	rteinvalidationDescEventID := rteinvalidationFields[1].Descriptor()
-	// rteinvalidation.EventIDValidator is a validator for the "event_id" field. It is called by the builders before save.
-	rteinvalidation.EventIDValidator = rteinvalidationDescEventID.Validators[0].(func(string) error)
 	rtemeteredentitlementbalanceMixin := schema.RTEMeteredEntitlementBalance{}.Mixin()
 	rtemeteredentitlementbalanceMixinFields0 := rtemeteredentitlementbalanceMixin[0].Fields()
 	_ = rtemeteredentitlementbalanceMixinFields0

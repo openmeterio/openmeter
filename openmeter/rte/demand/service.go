@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel/metric"
@@ -14,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
 	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -24,11 +22,9 @@ type Config struct {
 	Logger      *slog.Logger
 	MetricMeter metric.Meter
 
-	// Zero uses seven days. Replays beyond this window can trigger extra work.
-	InvalidationRetention time.Duration
-	CalculationTimeout    time.Duration
-	RetryMinDelay         time.Duration
-	RetryMaxDelay         time.Duration
+	CalculationTimeout time.Duration
+	RetryMinDelay      time.Duration
+	RetryMaxDelay      time.Duration
 }
 
 func (c Config) Validate() error {
@@ -53,10 +49,6 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("retry delays must be positive and max must be at least min"))
 	}
 
-	if c.InvalidationRetention < 0 {
-		errs = append(errs, errors.New("invalidation retention must not be negative"))
-	}
-
 	if c.CalculationTimeout <= 0 {
 		errs = append(errs, errors.New("calculation timeout must be positive"))
 	}
@@ -65,18 +57,13 @@ func (c Config) Validate() error {
 }
 
 type service struct {
-	config    Config
-	metrics   *rtemetrics.Demand
-	lastPrune atomic.Int64
+	config  Config
+	metrics *rtemetrics.Demand
 }
 
 func New(config Config) (rte.DemandService, error) {
 	if err := config.Validate(); err != nil {
 		return nil, err
-	}
-
-	if config.InvalidationRetention == 0 {
-		config.InvalidationRetention = 7 * 24 * time.Hour
 	}
 
 	metrics, err := rtemetrics.NewDemand(config.MetricMeter)
@@ -142,55 +129,20 @@ func (s *service) Invalidate(ctx context.Context, input rte.InvalidateInput) err
 		return err
 	}
 
-	result, err := s.config.Repository.Invalidate(ctx, input)
+	matched, err := s.config.Repository.Invalidate(ctx, input)
 	outcome := rtemetrics.DemandOutcomeMarked
-	if result.Duplicate {
-		outcome = rtemetrics.DemandOutcomeDuplicate
-	}
-
 	if err != nil {
 		outcome = rtemetrics.DemandOutcomeError
 	}
 
 	s.metrics.Operation(ctx, rtemetrics.DemandOperationInvalidate, outcome)
-	s.metrics.Invalidated(ctx, result.Matched)
+	s.metrics.Invalidated(ctx, matched)
 
 	return err
 }
 
 func (s *service) Process(ctx context.Context) (bool, error) {
-	s.pruneReceipts(ctx)
 	return s.process(ctx, nil)
-}
-
-func (s *service) pruneReceipts(ctx context.Context) {
-	now := clock.Now()
-	previous := s.lastPrune.Load()
-	if previous != 0 && now.UnixNano()-previous < int64(time.Minute) {
-		return
-	}
-
-	if !s.lastPrune.CompareAndSwap(previous, now.UnixNano()) {
-		return
-	}
-
-	count, err := s.config.Repository.PruneInvalidations(ctx, rte.PruneInvalidationsInput{Before: now.Add(-s.config.InvalidationRetention), Limit: 1000})
-	if err == nil && count == 1000 {
-		// Drain an accumulated backlog without adding maintenance to every poll.
-		s.lastPrune.CompareAndSwap(now.UnixNano(), now.Add(-time.Minute+time.Second).UnixNano())
-	}
-
-	outcome := rtemetrics.DemandOutcomeEmpty
-	if count > 0 {
-		outcome = rtemetrics.DemandOutcomePruned
-	}
-
-	if err != nil {
-		outcome = rtemetrics.DemandOutcomeError
-		s.config.Logger.WarnContext(ctx, "prune RTE invalidation receipts", "error", err)
-	}
-
-	s.metrics.Operation(ctx, rtemetrics.DemandOperationMaintenance, outcome)
 }
 
 func (s *service) process(ctx context.Context, target *rte.CalculationTarget) (bool, error) {

@@ -62,23 +62,3 @@ func (RTEDemandLock) Edges() []ent.Edge {
 			Unique().Immutable().Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }
-
-// RTEInvalidation suppresses repeated source facts during the retention window.
-// Replaying a fact after its receipt expires safely schedules extra calculation.
-type RTEInvalidation struct{ ent.Schema }
-
-func (RTEInvalidation) Mixin() []ent.Mixin { return []ent.Mixin{entutils.TimeMixin{}} }
-
-func (RTEInvalidation) Fields() []ent.Field {
-	return []ent.Field{
-		field.String("source").NotEmpty().Immutable(),
-		field.String("event_id").NotEmpty().Immutable(),
-	}
-}
-
-func (RTEInvalidation) Indexes() []ent.Index {
-	return []ent.Index{
-		index.Fields("source", "event_id").Unique(),
-		index.Fields("created_at", "id").StorageKey("rte_invalidation_retention"),
-	}
-}

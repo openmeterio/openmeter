@@ -13,10 +13,9 @@ import (
 type DemandOperation string
 
 const (
-	DemandOperationPull        DemandOperation = "pull"
-	DemandOperationInvalidate  DemandOperation = "invalidate"
-	DemandOperationProcess     DemandOperation = "process"
-	DemandOperationMaintenance DemandOperation = "maintenance"
+	DemandOperationPull       DemandOperation = "pull"
+	DemandOperationInvalidate DemandOperation = "invalidate"
+	DemandOperationProcess    DemandOperation = "process"
 )
 
 type DemandOutcome string
@@ -26,9 +25,7 @@ const (
 	DemandOutcomeCacheHit   DemandOutcome = "cache_hit"
 	DemandOutcomeCalculated DemandOutcome = "calculated"
 	DemandOutcomeMarked     DemandOutcome = "marked"
-	DemandOutcomeDuplicate  DemandOutcome = "duplicate"
 	DemandOutcomeEmpty      DemandOutcome = "empty"
-	DemandOutcomePruned     DemandOutcome = "pruned"
 	DemandOutcomeRetired    DemandOutcome = "retired"
 	DemandOutcomeRetry      DemandOutcome = "retry"
 )
@@ -93,9 +90,9 @@ func (m *Demand) EnsureFresh(ctx context.Context, kind rte.CalculationKind, star
 		metric.WithAttributes(attribute.String("kind", string(kind)), attribute.String("outcome", string(outcome))))
 }
 
-func (m *Demand) Invalidated(ctx context.Context, matched int) {
+func (m *Demand) Invalidated(ctx context.Context, matched int64) {
 	if matched > 0 {
-		m.invalidated.Add(ctx, int64(matched))
+		m.invalidated.Add(ctx, matched)
 	}
 }
 
