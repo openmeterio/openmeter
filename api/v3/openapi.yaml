@@ -3810,7 +3810,7 @@ paths:
         List the notification event types, without their JSON Schemas. Event types are
         the same in every namespace. Deprecated event types stay listed.
       parameters:
-        - $ref: '#/components/parameters/PagePaginationQuery'
+        - $ref: '#/components/parameters/CursorPaginationQuery'
         - name: filter
           in: query
           required: false
@@ -3827,11 +3827,11 @@ paths:
           style: deepObject
       responses:
         '200':
-          description: Page paginated response.
+          description: Cursor paginated response.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotificationEventTypeSummaryPagePaginatedResponse'
+                $ref: '#/components/schemas/NotificationEventTypeSummaryPaginatedResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -22424,7 +22424,7 @@ components:
           $ref: '#/components/schemas/PaginatedMeta'
       additionalProperties: false
       description: Page paginated response.
-    NotificationEventTypeSummaryPagePaginatedResponse:
+    NotificationEventTypeSummaryPaginatedResponse:
       type: object
       required:
         - data
@@ -22435,9 +22435,9 @@ components:
           items:
             $ref: '#/components/schemas/BillingNotificationEventTypeSummary'
         meta:
-          $ref: '#/components/schemas/PaginatedMeta'
+          $ref: '#/components/schemas/CursorMeta'
       additionalProperties: false
-      description: Page paginated response.
+      description: Cursor paginated response.
     NotificationRulePagePaginatedResponse:
       type: object
       required:

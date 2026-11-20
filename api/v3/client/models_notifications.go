@@ -682,10 +682,10 @@ type NotificationEventTypeSummary struct {
 	DeprecatedBy *string `json:"deprecated_by,omitempty"`
 }
 
-// Page paginated response.
-type NotificationEventTypeSummaryPagePaginatedResponse struct {
+// Cursor paginated response.
+type NotificationEventTypeSummaryPaginatedResponse struct {
 	Data []NotificationEventTypeSummary `json:"data"`
-	Meta PaginatedMeta                  `json:"meta"`
+	Meta CursorMeta                     `json:"meta"`
 }
 
 // Address

@@ -13626,12 +13626,12 @@ type NotificationEventPagePaginatedResponse struct {
 	Meta PaginatedMeta `json:"meta"`
 }
 
-// NotificationEventTypeSummaryPagePaginatedResponse Page paginated response.
-type NotificationEventTypeSummaryPagePaginatedResponse struct {
+// NotificationEventTypeSummaryPaginatedResponse Cursor paginated response.
+type NotificationEventTypeSummaryPaginatedResponse struct {
 	Data []BillingNotificationEventTypeSummary `json:"data"`
 
-	// Meta returns the pagination information
-	Meta PaginatedMeta `json:"meta"`
+	// Meta Pagination metadata.
+	Meta CursorMeta `json:"meta"`
 }
 
 // NotificationRulePagePaginatedResponse Page paginated response.
@@ -15422,8 +15422,7 @@ type ListBillingNotificationChannelsParams struct {
 
 // ListBillingNotificationEventTypesParams defines parameters for ListBillingNotificationEventTypes.
 type ListBillingNotificationEventTypesParams struct {
-	// Page Determines which page of the collection to retrieve.
-	Page *PagePaginationQuery `json:"page,omitempty"`
+	Page *CursorPaginationQuery `json:"page,omitempty"`
 
 	// Filter Filter notification event types returned in the response. Event types are
 	// ordered by version, then name.
