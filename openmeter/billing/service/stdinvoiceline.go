@@ -190,9 +190,9 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	})
 }
 
-// validatePendingLinesTaxCodes rejects Tax Code references the caller sent in this
-// request. Inherited references (subscription sync, charges) may point at a deleted Tax Code
-// and pass; a missing or foreign-namespace ID fails on every source through ResolveTaxConfig.
+// validatePendingLinesTaxCodes rejects deleted or missing Tax Code IDs the caller sent in this
+// request. System-created lines (subscription sync, charges) may reference a deleted Tax Code and
+// pass; a missing or foreign-namespace ID fails on every source through ResolveTaxConfig.
 func (s *Service) validatePendingLinesTaxCodes(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) error {
 	if input.ChangeSource != billing.ChangeSourceAPIRequest {
 		return nil

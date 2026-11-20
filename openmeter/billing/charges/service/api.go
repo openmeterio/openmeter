@@ -77,7 +77,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 		Namespace: input.Namespace,
 		Intents:   charges.NewCreateChargeIntents(chargeIntent),
 
-		// The API caller authored the tax config, so a deleted Tax Code ID is rejected.
+		// The caller sent this tax config, so a deleted Tax Code ID is rejected.
 		ChangeSource: billing.ChangeSourceAPIRequest,
 	})
 	if err != nil {

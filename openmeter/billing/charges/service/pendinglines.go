@@ -52,8 +52,8 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		result, err := s.create(ctx, charges.CreateInput{
 			Namespace: input.Customer.Namespace,
 			Intents:   charges.NewCreateChargeIntents(intents...),
-			// The pending lines came from the caller in this request, so their tax
-			// code references are authored when the request itself is.
+			// Passed through: the lines' Tax Code IDs are checked only when the request
+			// itself came from an API caller.
 			ChangeSource: input.ChangeSource,
 		})
 		if err != nil {

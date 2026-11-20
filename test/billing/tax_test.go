@@ -341,9 +341,9 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsCopiedIntoInvoices() 
 	})
 }
 
-// API edits on gathering invoices apply the same authored/inherited split as on standard
-// invoices: touching another field of a line holding a deleted Tax Code passes, while pointing
-// a line at a deleted code is rejected.
+// API edits on gathering invoices treat deleted Tax Codes like standard invoices do: touching
+// another field of a line holding a deleted Tax Code passes, while pointing a line at a deleted
+// code is rejected.
 func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherited() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("ns-tax-gathering-edit-deleted")
@@ -386,8 +386,8 @@ func (s *InvoicingTaxTestSuite) TestGatheringInvoiceEditTaxCodeAuthoredVsInherit
 	})
 
 	s.Run("when: an API edit repoints the line at another deleted tax code", func() {
-		// The line already holds this test's deleted code, so a same-ID edit is an unchanged
-		// inherited reference; repointing at a different deleted code is authored.
+		// The line already holds this test's deleted code, so a same-ID edit changes nothing;
+		// repointing at a different deleted code is a new reference and is rejected.
 		otherDeleted := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
 		s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: otherDeleted.NamespacedID}))
 
@@ -463,9 +463,8 @@ func (s *InvoicingTaxTestSuite) TestDeletedDefaultTaxCodeIsNotSwappedForLiveMapp
 	s.requirePersistedLinesReferenceTaxCode(ctx, invoice, deleted.ID)
 }
 
-// API callers author the Tax Code IDs they send on pending lines: a deleted one is rejected
-// with the deleted-specific error, a missing one with not-found. A system-source create
-// carrying the same reference is inherited and passes.
+// Pending lines created through the API reject a deleted Tax Code ID with the deleted-specific
+// error and a missing one with not-found. A system-source create with the same reference passes.
 func (s *InvoicingTaxTestSuite) TestPendingLinesTaxCodeAuthoredVsInherited() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("ns-tax-pending-lines-deleted")
@@ -604,12 +603,11 @@ func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.Sta
 	}
 }
 
-// requirePersistedLinesReferenceTaxCode checks the stored rows directly: the service returns lines
-// re-read through the adapter, which backfills the Tax Code entity from the tax_code_id edge, so
-// only the row shows what was persisted. The tax_config JSONB snapshot carries the resolved entity
-// only when a write happened after calculation stamped it; a line that references its own Tax Code
-// ID is first persisted before that stamping and later recalculations leave the JSON untouched, so
-// the entity is asserted only when present.
+// requirePersistedLinesReferenceTaxCode checks the stored rows directly: lines returned by the
+// service are re-read through the adapter, which backfills the Tax Code entity from the
+// tax_code_id edge, so only the row shows what was persisted. The tax_config JSON snapshot only
+// carries the entity if a write happened after calculation stamped it, so the entity is asserted
+// only when present.
 func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx context.Context, invoice billing.StandardInvoice, taxCodeID string) {
 	s.T().Helper()
 

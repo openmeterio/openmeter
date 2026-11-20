@@ -46,13 +46,11 @@ type CreateInput struct {
 	Namespace string
 	Intents   CreateChargeIntents
 
-	// ChangeSource classifies where the intents' tax code references come from.
-	//
-	// ChangeSourceAPIRequest means an API caller authored the intents, so a Tax Code ID
-	// referencing a deleted Tax Code is rejected before defaults are applied.
-	// ChangeSourceSystem means the references are inherited from stored data or freshly
-	// stamped defaults, which may point at a Tax Code deleted since. The zero value is
-	// rejected by Validate: every caller must classify its references.
+	// ChangeSource says where the intents' Tax Code references come from.
+	// ChangeSourceAPIRequest: the caller sent them in this request, so a deleted Tax Code
+	// ID is rejected before defaults are applied. ChangeSourceSystem: they are inherited
+	// from stored data or are stamped defaults, and may point at a Tax Code deleted since.
+	// The zero value is rejected by Validate.
 	ChangeSource billing.ChangeSource
 }
 
@@ -63,8 +61,8 @@ func (i CreateInput) Validate() error {
 		errs = append(errs, fmt.Errorf("namespace is required"))
 	}
 
-	// The zero value is invalid like on the billing pending-lines input: every caller must
-	// classify its references, because the authored check above only runs for API requests.
+	// Every caller must say where its references come from, because the deleted Tax Code
+	// check only runs for API requests.
 	if err := i.ChangeSource.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("change source: %w", err))
 	}

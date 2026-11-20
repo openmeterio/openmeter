@@ -139,9 +139,8 @@ func MergeTaxConfigs(base, overrides *TaxConfig) *TaxConfig {
 	return nil
 }
 
-// taxCodeReferenceIssue classifies a Tax Code reference against resolved Tax Codes:
-// nil when the ID exists and is live, ErrTaxCodeNotFound when the namespace has no such row,
-// ErrTaxCodeDeleted when it is soft-deleted. The issue message names the ID.
+// taxCodeReferenceIssue returns nil for a live Tax Code, ErrTaxCodeNotFound when the namespace
+// has no such row, and ErrTaxCodeDeleted when it is soft-deleted. The message names the ID.
 func taxCodeReferenceIssue(id string, resolved productcatalog.TaxCodesByID) error {
 	issue := ErrTaxCodeNotFound
 
@@ -158,9 +157,8 @@ func taxCodeReferenceIssue(id string, resolved productcatalog.TaxCodesByID) erro
 	return issue
 }
 
-// ValidateTaxCodeID rejects a missing or deleted Tax Code. Use it for references the caller
-// sent in this request only: a reference copied from stored data (inherited) may point at a Tax
-// Code deleted since, and that is fine.
+// ValidateTaxCodeID rejects a missing or deleted Tax Code. Use it only for IDs the caller sent
+// in this request: an ID copied from stored data may point at a Tax Code deleted since.
 func ValidateTaxCodeID(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace, id string) error {
 	if id == "" {
 		return nil
@@ -174,21 +172,18 @@ func ValidateTaxCodeID(ctx context.Context, resolver productcatalog.TaxCodeResol
 	return taxCodeReferenceIssue(id, taxCodes)
 }
 
-// RequestTaxCodeRef is one Tax Code ID the caller sent in this request, together with the field
-// path its validation issues should carry.
+// RequestTaxCodeRef is a Tax Code ID the caller sent, with the field path for its issues.
 type RequestTaxCodeRef struct {
 	TaxCodeID string
-	// FieldPath locates the reference, e.g. "lines/0/tax_config/tax_code". References with an
-	// empty TaxCodeID are skipped, so their FieldPath is never used.
+	// FieldPath locates the reference, e.g. "lines/0/tax_config/tax_code".
 	FieldPath string
 }
 
-// ValidateRequestTaxCodeIDsInput carries the Tax Code references the caller sent in one request.
+// ValidateRequestTaxCodeIDsInput carries the Tax Code IDs the caller sent in one request.
 type ValidateRequestTaxCodeIDsInput struct {
 	Namespace string
 	Resolver  productcatalog.TaxCodeResolver
-	// References holds one entry per reference; duplicate IDs are resolved in one
-	// batch but each failing reference gets its own issue under its own field path.
+	// Duplicate IDs are resolved in one batch, but each failing reference gets its own issue.
 	References []RequestTaxCodeRef
 }
 
@@ -208,9 +203,8 @@ func (i ValidateRequestTaxCodeIDsInput) Validate() error {
 
 // ValidateRequestTaxCodeIDs rejects Tax Code references that point at a missing or soft-deleted
 // Tax Code: missing ones with ErrTaxCodeNotFound, deleted ones with ErrTaxCodeDeleted, each under
-// the reference's field path. Use it for references the caller sent in this request; references
-// copied from stored data (inherited) may point at a Tax Code deleted since and must not run
-// through this. References with an empty ID are skipped.
+// the reference's field path. Use it only for IDs the caller sent in this request; IDs copied
+// from stored data may point at a Tax Code deleted since. Empty IDs are skipped.
 func ValidateRequestTaxCodeIDs(ctx context.Context, input ValidateRequestTaxCodeIDsInput) error {
 	if err := input.Validate(); err != nil {
 		return err

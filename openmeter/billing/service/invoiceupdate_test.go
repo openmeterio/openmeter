@@ -406,8 +406,8 @@ func TestDiffMutableInvoiceLinesAllowsUnchangedDeletedTaxCode(t *testing.T) {
 
 	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
 
-	// The edit leaves the line's Tax Code untouched, so the inherited deleted
-	// reference passes; only newly authored deleted IDs are rejected.
+	// The edit leaves the line's Tax Code untouched, so the stored deleted reference
+	// passes; only deleted IDs the edit newly sets are rejected.
 	require.NoError(t, err)
 	require.True(t, lineDiff.IsEmpty())
 }

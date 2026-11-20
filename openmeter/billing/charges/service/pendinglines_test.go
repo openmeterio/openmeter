@@ -249,9 +249,8 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesResolvesStripe
 }
 
 // TestCreatePendingInvoiceLinesTaxCodeAuthoredVsInherited verifies the ChangeSource split on the
-// charge-backed pending-line entry point: an api_request create authors its lines' Tax Code IDs
-// and rejects a deleted one, while the same lines as a system create are inherited and keep the
-// deleted Tax Code.
+// charge-backed pending-line entry point: an api_request create rejects a deleted Tax Code ID
+// the caller sent, while the same lines as a system create are inherited and keep it.
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesTaxCodeAuthoredVsInherited() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-pending-lines-deleted-tax")
@@ -313,8 +312,6 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesTaxCodeAuthore
 	})
 }
 
-// newDeletedTaxChargeLine builds a manually managed flat-fee pending line whose tax config
-// references the given Tax Code by ID.
 func (s *InvoicableChargesTestSuite) newDeletedTaxChargeLine(ns string, servicePeriod timeutil.ClosedPeriod, taxCodeID string) billing.GatheringLine {
 	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 		Namespace:     ns,

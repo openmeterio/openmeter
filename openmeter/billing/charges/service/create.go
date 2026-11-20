@@ -101,9 +101,9 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 }
 
 // validateTaxCodesExist verifies every distinct non-empty tax code referenced by the intents
-// exists. Deleted Tax Codes pass: authored ones were already rejected with the deleted-specific
-// error, and inherited ones (defaults stamped here, sync ApplyPatches creates) may legitimately
-// reference a code deleted since.
+// exists. Deleted Tax Codes pass: IDs from the request were already rejected by
+// validateRequestTaxCodes, and inherited ones (stamped defaults, sync creates) may point at a
+// code deleted since.
 func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
 	// Keep the first-seen order so errors are reported in intent order.
 	var taxCodeIDs []string
@@ -150,10 +150,9 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 	return errors.Join(errs...)
 }
 
-// validateRequestTaxCodes rejects Tax Code IDs the caller sent in this request
-// when they reference a missing or deleted Tax Code. Runs before applyDefaultTaxCodes so only
-// caller-sent IDs are checked; defaults filled in here are inherited and may be deleted.
-// All distinct IDs resolve in one batch; each failing intent gets its own issue naming it.
+// validateRequestTaxCodes rejects Tax Code IDs the caller sent in this request when they
+// reference a missing or deleted Tax Code. It runs before applyDefaultTaxCodes so stamped
+// defaults, which may be deleted, are not checked. Each failing intent gets its own issue.
 func (s *service) validateRequestTaxCodes(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
 	refs := make([]billing.RequestTaxCodeRef, 0, len(intents))
 	for idx, createIntent := range intents {
@@ -571,8 +570,8 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 					BypassFeatureMeterValidation: item.bypassFeatureMeterValidation,
 				}
 			}),
-			// The charge intents were already validated, so the lines' tax code
-			// references are inherited, not authored by this call.
+			// The charge intents were already validated; the lines' Tax Code IDs are
+			// copied from them.
 			ChangeSource: billing.ChangeSourceSystem,
 		})
 		if err != nil {
