@@ -36,7 +36,7 @@ func (n *namespacedResolver) Resolve(ctx context.Context, id string) (*taxcode.T
 	return n.resolver.Resolve(ctx, n.namespace, id)
 }
 
-func (n *namespacedResolver) BatchResolve(ctx context.Context, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (n *namespacedResolver) BatchResolve(ctx context.Context, ids ...string) (productcatalog.TaxCodesByID, error) {
 	return n.resolver.BatchResolve(ctx, n.namespace, ids...)
 }
 
@@ -71,7 +71,7 @@ func (r *resolver) Resolve(ctx context.Context, namespace string, id string) (*t
 	return &tc, nil
 }
 
-func (r *resolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (r *resolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (productcatalog.TaxCodesByID, error) {
 	if namespace == "" {
 		return nil, errors.New("namespace is not set")
 	}

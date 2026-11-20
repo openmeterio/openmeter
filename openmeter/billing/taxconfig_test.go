@@ -25,7 +25,7 @@ type stubTaxCodeResolver struct {
 	calls    int
 }
 
-func (r *stubTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (r *stubTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (productcatalog.TaxCodesByID, error) {
 	r.calls++
 
 	if r.err != nil {
@@ -86,5 +86,61 @@ func TestValidateTaxCodeID(t *testing.T) {
 		require.ErrorIs(t, err, lookupErr)
 		var issue ValidationIssue
 		assert.False(t, errors.As(err, &issue), "lookup failures must not become validation issues")
+	})
+}
+
+// An empty ID is a reference with no Tax Code: it is skipped, never reported as not found, even
+// when it is validated together with real IDs.
+func TestValidateRequestTaxCodeIDsSkipsEmptyIDs(t *testing.T) {
+	const (
+		namespace = "ns"
+		liveID    = "01JTAXCODE00000000000000000"
+		missingID = "01JTAXCODE00000000000000002"
+	)
+
+	resolver := &stubTaxCodeResolver{taxCodes: map[string]*taxcode.TaxCode{
+		liveID: {NamespacedID: models.NamespacedID{Namespace: namespace, ID: liveID}},
+	}}
+
+	t.Run("live and empty IDs pass", func(t *testing.T) {
+		// given: a live reference and an empty one in the same request
+		// when: they are validated together
+		err := ValidateRequestTaxCodeIDs(t.Context(), ValidateRequestTaxCodeIDsInput{
+			Namespace: namespace,
+			Resolver:  resolver,
+			References: []RequestTaxCodeRef{
+				{TaxCodeID: liveID, FieldPath: "lines/0/tax_config/tax_code"},
+				{TaxCodeID: "", FieldPath: "lines/1/tax_config/tax_code"},
+			},
+		})
+
+		// then: nothing is reported
+		require.NoError(t, err)
+	})
+
+	t.Run("only the missing ID is reported next to live and empty ones", func(t *testing.T) {
+		// given: live, empty and missing references in the same request
+		// when: they are validated together
+		err := ValidateRequestTaxCodeIDs(t.Context(), ValidateRequestTaxCodeIDsInput{
+			Namespace: namespace,
+			Resolver:  resolver,
+			References: []RequestTaxCodeRef{
+				{TaxCodeID: liveID, FieldPath: "lines/0/tax_config/tax_code"},
+				{TaxCodeID: "", FieldPath: "lines/1/tax_config/tax_code"},
+				{TaxCodeID: missingID, FieldPath: "lines/2/tax_config/tax_code"},
+			},
+		})
+
+		// then: exactly one issue, for the missing ID's field path
+		require.ErrorIs(t, err, ErrTaxCodeNotFound)
+		assert.ErrorContains(t, err, "lines/2/tax_config/tax_code")
+		assert.NotContains(t, err.Error(), "lines/1/")
+
+		var validationErr ValidationError
+		require.ErrorAs(t, err, &validationErr)
+
+		joined, ok := validationErr.Err.(interface{ Unwrap() []error })
+		require.True(t, ok)
+		assert.Len(t, joined.Unwrap(), 1)
 	})
 }

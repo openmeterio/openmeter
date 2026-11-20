@@ -17,14 +17,28 @@ type TaxCodeResolver interface {
 	// BatchResolve returns the Tax Codes found for ids, keyed by ID, including soft-deleted ones:
 	// existing rows and issued invoices may still reference a deleted code. IDs that don't exist
 	// in the namespace are missing from the map.
-	BatchResolve(ctx context.Context, namespace string, ids ...string) (map[string]*taxcode.TaxCode, error)
+	BatchResolve(ctx context.Context, namespace string, ids ...string) (TaxCodesByID, error)
 	WithNamespace(namespace string) NamespacedTaxCodeResolver
+}
+
+// TaxCodesByID holds Tax Codes keyed by ID, soft-deleted ones included. A missing key and a nil
+// value both mean the ID can't be resolved in the namespace.
+type TaxCodesByID map[string]*taxcode.TaxCode
+
+// Get returns the Tax Code for id, or nil, false when it can't be resolved.
+func (t TaxCodesByID) Get(id string) (*taxcode.TaxCode, bool) {
+	tc := t[id]
+	if tc == nil {
+		return nil, false
+	}
+
+	return tc, true
 }
 
 // NamespacedTaxCodeResolver is a TaxCodeResolver bound to a single namespace.
 type NamespacedTaxCodeResolver interface {
 	Resolve(ctx context.Context, id string) (*taxcode.TaxCode, error)
-	BatchResolve(ctx context.Context, ids ...string) (map[string]*taxcode.TaxCode, error)
+	BatchResolve(ctx context.Context, ids ...string) (TaxCodesByID, error)
 	Namespace() string
 }
 

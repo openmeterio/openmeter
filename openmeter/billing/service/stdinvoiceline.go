@@ -190,7 +190,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 	})
 }
 
-// validatePendingLinesTaxCodes rejects authored Tax Code references the caller sent in this
+// validatePendingLinesTaxCodes rejects Tax Code references the caller sent in this
 // request. Inherited references (subscription sync, charges) may point at a deleted Tax Code
 // and pass; a missing or foreign-namespace ID fails on every source through ResolveTaxConfig.
 func (s *Service) validatePendingLinesTaxCodes(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) error {
@@ -198,24 +198,24 @@ func (s *Service) validatePendingLinesTaxCodes(ctx context.Context, input billin
 		return nil
 	}
 
-	refs := make([]billing.AuthoredTaxCodeID, 0, len(input.Lines))
+	refs := make([]billing.RequestTaxCodeRef, 0, len(input.Lines))
 	for i := range input.Lines {
 		if input.Lines[i].TaxConfig == nil || input.Lines[i].TaxConfig.TaxCodeID == nil {
 			continue
 		}
 
-		refs = append(refs, billing.AuthoredTaxCodeID{
+		refs = append(refs, billing.RequestTaxCodeRef{
 			TaxCodeID: *input.Lines[i].TaxConfig.TaxCodeID,
 			FieldPath: fmt.Sprintf("lines/%d/tax_config/tax_code", i),
 		})
 	}
 
-	if err := billing.ValidateAuthoredTaxCodeIDs(ctx, billing.ValidateAuthoredTaxCodeIDsInput{
+	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
 		Namespace:  input.Customer.Namespace,
 		Resolver:   s.taxCodeResolver,
 		References: refs,
 	}); err != nil {
-		return billing.ValidationError{Err: err}
+		return err
 	}
 
 	return nil

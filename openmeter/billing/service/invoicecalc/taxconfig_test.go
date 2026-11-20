@@ -339,7 +339,7 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 				}),
 			),
 			deps: StandardInvoiceCalculatorDependencies{
-				TaxCodesByID: TaxCodesByID{"tc-1": &tc1},
+				TaxCodesByID: productcatalog.TaxCodesByID{"tc-1": &tc1},
 			},
 			wantTC: &billing.TaxConfig{
 				TaxConfig: productcatalog.TaxConfig{

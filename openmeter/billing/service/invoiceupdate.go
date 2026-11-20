@@ -209,7 +209,7 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 
 		// after keeps its sanitized lines below; the deleted-ID check runs against the
 		// same normalized state the diff compares.
-		if err := s.rejectAuthoredDeletedTaxCodes(ctx, before, after); err != nil {
+		if err := s.validateChangedLineTaxCodes(ctx, before, after); err != nil {
 			return mutableInvoiceLineDiff{}, err
 		}
 	}
@@ -376,20 +376,20 @@ func validateTaxConfigTaxCodeIDResolvedForDiff(taxConfig *billing.TaxConfig) err
 	}
 }
 
-// rejectAuthoredDeletedTaxCodes rejects Tax Code IDs an API edit authored. Both invoice
-// states were sanitized with deleted codes included, so the comparison is on the resolved
-// TaxCodeID: a line whose ID equals its previous state (or a line the edit leaves alone)
-// inherited its reference and passes; only a newly referenced deleted code is rejected.
-func (s *Service) rejectAuthoredDeletedTaxCodes(ctx context.Context, before, after billing.GenericInvoiceReader) error {
+// validateChangedLineTaxCodes checks the lines of an API edit whose Tax Code ID is new or differs
+// from the stored invoice, and rejects the edit if one points at a deleted (or missing) Tax Code.
+// Lines that keep their stored Tax Code ID, or that the edit leaves alone, are not checked: that
+// reference is inherited and may point at a code deleted since. Both invoice states were
+// sanitized with deleted codes included, so the comparison is on the resolved TaxCodeID.
+func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after billing.GenericInvoiceReader) error {
 	afterLines := after.GetGenericLines().OrEmpty()
-	beforeByLineID := make(map[string]billing.GenericInvoiceLine, len(before.GetGenericLines().OrEmpty()))
-	for _, line := range before.GetGenericLines().OrEmpty() {
-		beforeByLineID[line.GetID()] = line
-	}
+	beforeByLineID := lo.KeyBy(before.GetGenericLines().OrEmpty(), func(line billing.GenericInvoiceLine) string {
+		return line.GetID()
+	})
 
-	// Collect the distinct Tax Code IDs the edit authored, so they are checked with one
-	// batch lookup and a deleted code is named by ID in the issue.
-	authoredIDs := make(map[string]string) // tax code ID -> first line ID referencing it
+	// Collect the distinct changed Tax Code IDs, so they are checked with one batch lookup and
+	// a deleted code is named by ID in the issue.
+	changedTaxCodeIDs := make(map[string]string) // tax code ID -> first line ID referencing it
 	for _, afterLine := range afterLines {
 		taxCodeID := taxCodeIDFromTaxConfig(afterLine.GetTaxConfig())
 		if taxCodeID == "" {
@@ -402,26 +402,26 @@ func (s *Service) rejectAuthoredDeletedTaxCodes(ctx context.Context, before, aft
 			}
 		}
 
-		if _, seen := authoredIDs[taxCodeID]; !seen {
-			authoredIDs[taxCodeID] = afterLine.GetID()
+		if _, seen := changedTaxCodeIDs[taxCodeID]; !seen {
+			changedTaxCodeIDs[taxCodeID] = afterLine.GetID()
 		}
 	}
 
-	if len(authoredIDs) == 0 {
+	if len(changedTaxCodeIDs) == 0 {
 		return nil
 	}
 
 	// The sanitizer already rejects IDs the namespace cannot resolve, so the batched
-	// authored check here only ever fires its deleted classification.
-	refs := make([]billing.AuthoredTaxCodeID, 0, len(authoredIDs))
-	for taxCodeID, lineID := range authoredIDs {
-		refs = append(refs, billing.AuthoredTaxCodeID{
+	// check here only ever fires its deleted classification.
+	refs := make([]billing.RequestTaxCodeRef, 0, len(changedTaxCodeIDs))
+	for taxCodeID, lineID := range changedTaxCodeIDs {
+		refs = append(refs, billing.RequestTaxCodeRef{
 			TaxCodeID: taxCodeID,
 			FieldPath: fmt.Sprintf("lines/%s/tax_config/tax_code", lineID),
 		})
 	}
 
-	if err := billing.ValidateAuthoredTaxCodeIDs(ctx, billing.ValidateAuthoredTaxCodeIDsInput{
+	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
 		Namespace:  after.GetInvoiceID().Namespace,
 		Resolver:   s.taxCodeResolver,
 		References: refs,

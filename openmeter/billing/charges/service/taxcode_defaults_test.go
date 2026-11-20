@@ -332,68 +332,71 @@ func (s *TaxCodePersistenceTestSuite) requirePersistedChargeTaxCodeConfig(charge
 }
 
 // TestChargeDefaultingToDeletedProfileTaxCode covers charge creation without an explicit tax
-// code when the customer's billing-profile default was soft-deleted: the default is inherited,
-// so creation succeeds and the charge carries the deleted Tax Code ID.
+// code when the customer's billing-profile default was soft-deleted: the default is copied from
+// stored data, so creation succeeds and the charge carries the deleted Tax Code ID. API requests
+// pass too, because the default is stamped after the request's own Tax Code IDs are checked.
 func (s *TaxCodePersistenceTestSuite) TestChargeDefaultingToDeletedProfileTaxCode() {
 	for _, chargeType := range taxCodeDefaultingChargeTypes() {
-		s.Run(chargeType.name, func() {
-			// given: a customer whose billing-profile default tax code was deleted after the profile was set up
-			ctx := s.T().Context()
-			ns := s.GetUniqueNamespace("tax-code-default-deleted-profile")
-			s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
-			sandboxApp := s.InstallSandboxApp(s.T(), ns)
-			profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
-			cust := s.CreateTestCustomer(ns, "test-subject")
+		for _, changeSource := range []billing.ChangeSource{billing.ChangeSourceSystem, billing.ChangeSourceAPIRequest} {
+			s.Run(chargeType.name+"/"+string(changeSource), func() {
+				// given: a customer whose billing-profile default tax code was deleted after the profile was set up
+				ctx := s.T().Context()
+				ns := s.GetUniqueNamespace("tax-code-default-deleted-profile")
+				s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+				sandboxApp := s.InstallSandboxApp(s.T(), ns)
+				profile := s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+				cust := s.CreateTestCustomer(ns, "test-subject")
 
-			deleted := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
-				Key: "deleted-profile-default-tax",
-				AppMappings: taxcode.TaxCodeAppMappings{
-					{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
-				},
+				deleted := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+					Key: "deleted-profile-default-tax",
+					AppMappings: taxcode.TaxCodeAppMappings{
+						{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+					},
+				})
+				s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+					TaxCodeID: deleted.ID,
+				})
+
+				servicePeriod := timeutil.ClosedPeriod{
+					From: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+					To:   time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
+				}
+				// The freeze must precede the deletion: IsDeleted compares DeletedAt against clock.Now().
+				clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+				defer clock.UnFreeze()
+
+				s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+				var featureKey string
+				if chargeType.price.Type() != productcatalog.FlatPriceType {
+					usageFeature := s.SetupApiRequestsTotalFeature(ctx, ns)
+					defer usageFeature.Cleanup()
+					featureKey = usageFeature.Feature.Key
+				}
+
+				// when: a charge is created without a tax code, so the profile default is stamped
+				created, err := s.Charges.Create(ctx, charges.CreateInput{
+					ChangeSource: changeSource,
+					Namespace:    ns,
+					Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
+						customer:       cust.GetID(),
+						currency:       USD,
+						servicePeriod:  servicePeriod,
+						settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+						price:          chargeType.price,
+						featureKey:     featureKey,
+						name:           "deleted profile default tax code",
+						managedBy:      billing.ManuallyManagedLine,
+					})),
+				})
+
+				// then: the inherited deleted default passes and the charge carries its ID
+				s.Require().NoError(err)
+				s.Require().Len(created, 1)
+				chargeID, err := created[0].GetChargeID()
+				s.Require().NoError(err)
+				s.requirePersistedChargeTaxCodeConfig(chargeID, productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
 			})
-			s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
-				TaxCodeID: deleted.ID,
-			})
-
-			servicePeriod := timeutil.ClosedPeriod{
-				From: time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
-				To:   time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC),
-			}
-			// The freeze must precede the deletion: IsDeleted compares DeletedAt against clock.Now().
-			clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
-			defer clock.UnFreeze()
-
-			s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
-
-			var featureKey string
-			if chargeType.price.Type() != productcatalog.FlatPriceType {
-				usageFeature := s.SetupApiRequestsTotalFeature(ctx, ns)
-				defer usageFeature.Cleanup()
-				featureKey = usageFeature.Feature.Key
-			}
-
-			// when: a charge is created without a tax code, so the profile default is stamped
-			created, err := s.Charges.Create(ctx, charges.CreateInput{
-				ChangeSource: billing.ChangeSourceSystem,
-				Namespace:    ns,
-				Intents: charges.NewCreateChargeIntents(s.createMockChargeIntent(createMockChargeIntentInput{
-					customer:       cust.GetID(),
-					currency:       USD,
-					servicePeriod:  servicePeriod,
-					settlementMode: productcatalog.CreditThenInvoiceSettlementMode,
-					price:          chargeType.price,
-					featureKey:     featureKey,
-					name:           "deleted profile default tax code",
-					managedBy:      billing.ManuallyManagedLine,
-				})),
-			})
-
-			// then: the inherited deleted default passes and the charge carries its ID
-			s.Require().NoError(err)
-			s.Require().Len(created, 1)
-			chargeID, err := created[0].GetChargeID()
-			s.Require().NoError(err)
-			s.requirePersistedChargeTaxCodeConfig(chargeID, productcatalog.TaxCodeConfig{TaxCodeID: deleted.ID})
-		})
+		}
 	}
 }

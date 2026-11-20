@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
@@ -38,13 +39,13 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 
 	result := make(invoicecalc.TaxCodes)
 	// Unique Stripe codes to resolve by mapping.
-	seen := make(map[string]struct{})
+	stripeCodes := make(map[string]struct{})
 
-	// Unique Tax Code IDs to resolve by ID, the default's first.
-	idsByID := make(map[string]struct{})
+	// Unique Tax Code IDs to resolve by ID: the default's and the lines' own.
+	taxCodeIDs := make(map[string]struct{})
 
 	if cfg := invoice.Workflow.Config.Invoicing.DefaultTaxConfig; cfg != nil && cfg.TaxCodeID != "" {
-		idsByID[cfg.TaxCodeID] = struct{}{}
+		taxCodeIDs[cfg.TaxCodeID] = struct{}{}
 	}
 
 	for _, line := range invoice.Lines.OrEmpty() {
@@ -54,7 +55,7 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 		}
 
 		if cfg.TaxCodeID != nil && *cfg.TaxCodeID != "" {
-			idsByID[*cfg.TaxCodeID] = struct{}{}
+			taxCodeIDs[*cfg.TaxCodeID] = struct{}{}
 
 			continue
 		}
@@ -63,14 +64,14 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 			continue
 		}
 
-		seen[cfg.Stripe.Code] = struct{}{}
+		stripeCodes[cfg.Stripe.Code] = struct{}{}
 	}
 
-	var taxCodesByID map[string]*taxcode.TaxCode
-	if len(idsByID) > 0 {
+	var taxCodesByID productcatalog.TaxCodesByID
+	if len(taxCodeIDs) > 0 {
 		var err error
 
-		taxCodesByID, err = s.taxCodeResolver.BatchResolve(ctx, namespace, slices.Collect(maps.Keys(idsByID))...)
+		taxCodesByID, err = s.taxCodeResolver.BatchResolve(ctx, namespace, slices.Collect(maps.Keys(taxCodeIDs))...)
 		if err != nil {
 			return deps, fmt.Errorf("resolving tax codes by ID: %w", err)
 		}
@@ -94,9 +95,9 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 		deps.DefaultTaxConfig = billing.FromProductCatalog(&legacyDefault)
 	}
 
-	if len(idsByID) > 0 {
-		deps.TaxCodesByID = make(invoicecalc.TaxCodesByID, len(idsByID))
-		for id := range idsByID {
+	if len(taxCodeIDs) > 0 {
+		deps.TaxCodesByID = make(productcatalog.TaxCodesByID, len(taxCodeIDs))
+		for id := range taxCodeIDs {
 			// A line ID missing from the result keeps the ID with no TaxCode attached: the
 			// read side applies the same rule, and a missing row here means the reference
 			// cannot be resolved (outside the namespace or gone), not that calculation
@@ -105,7 +106,7 @@ func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) 
 		}
 	}
 
-	for stripeCode := range seen {
+	for stripeCode := range stripeCodes {
 		if readOnly {
 			tc, err := s.taxCodeService.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 				Namespace: namespace,
