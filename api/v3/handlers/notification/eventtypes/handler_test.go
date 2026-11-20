@@ -153,6 +153,38 @@ func TestListNotificationEventTypes(t *testing.T) {
 		require.True(t, second.Meta.Page.Next.IsNull())
 	})
 
+	t.Run("a filter change keeps next and previous to pages with matches", func(t *testing.T) {
+		cursor := func(eventType string) *string {
+			return lo.ToPtr(base64.StdEncoding.EncodeToString([]byte(eventType)))
+		}
+
+		// Before the first entitlement type, only invoice types match "billing",
+		// and none comes after the cursor.
+		code, body := list(t, ListNotificationEventTypesParams{
+			Page: &apiv3models.CursorPaginationQuery{Before: cursor("v1.entitlement.balance_threshold.triggered")},
+			Filter: &apiv3models.ListNotificationEventTypesParamsFilter{
+				Type: &filters.FilterString{Contains: lo.ToPtr("billing")},
+			},
+		})
+		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, []string{"v1.billing.invoice.created", "v1.billing.invoice.updated"}, types(body.Data))
+		require.True(t, body.Meta.Page.Next.IsNull(), "no billing type comes after the cursor")
+		require.True(t, body.Meta.Page.Previous.IsNull())
+
+		// After the last invoice type, only entitlement types match
+		// "entitlement", and none comes before the cursor.
+		code, body = list(t, ListNotificationEventTypesParams{
+			Page: &apiv3models.CursorPaginationQuery{After: cursor("v1.billing.invoice.updated")},
+			Filter: &apiv3models.ListNotificationEventTypesParamsFilter{
+				Type: &filters.FilterString{Contains: lo.ToPtr("entitlement")},
+			},
+		})
+		require.Equal(t, http.StatusOK, code)
+		require.Equal(t, []string{"v1.entitlement.balance_threshold.triggered", "v1.entitlement.usage_period.reset"}, types(body.Data))
+		require.True(t, body.Meta.Page.Previous.IsNull(), "no entitlement type comes before the cursor")
+		require.True(t, body.Meta.Page.Next.IsNull())
+	})
+
 	t.Run("invalid cursors", func(t *testing.T) {
 		for name, page := range map[string]*apiv3models.CursorPaginationQuery{
 			"not base64":         {After: lo.ToPtr("not base64!")},
