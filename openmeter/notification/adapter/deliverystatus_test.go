@@ -136,6 +136,201 @@ func TestDeliveryStatusStateStorageCompatibility(t *testing.T) {
 	}
 }
 
+func TestDeliveryStatusStateNormalizationMigration(t *testing.T) {
+	env := newEventTestEnv(t)
+	migrations := make(map[string]string)
+	for _, direction := range []string{"up", "down"} {
+		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+			migrate.OMMigrationsConfig.FSPath,
+			"20261119152000_notification_delivery_state_normalization."+direction+".sql",
+		))
+		require.NoError(t, err)
+
+		migrations[direction] = string(migration)
+	}
+
+	type statePair struct {
+		legacy, lowercase string
+	}
+	pairs := []statePair{
+		{legacy: "PENDING", lowercase: "pending"},
+		{legacy: "SENDING", lowercase: "sending"},
+		{legacy: "RESENDING", lowercase: "resending"},
+		{legacy: "SUCCESS", lowercase: "success"},
+		{legacy: "FAILED", lowercase: "failed"},
+		{legacy: "FUTURE", lowercase: "FUTURE"},
+		{legacy: "Pending", lowercase: "Pending"},
+	}
+	type snapshot struct {
+		id, namespace, state, xmin, before string
+		pair                               statePair
+	}
+
+	// Raw PostgreSQL JSON text preserves large annotation values without float conversion.
+	const snapshotSQL = `SELECT s.state, s.xmin::text, jsonb_build_object(
+		'delivery', to_jsonb(s) - 'state', 'event', to_jsonb(e), 'rule', to_jsonb(r), 'channel', to_jsonb(c),
+		'event_deliveries', (SELECT jsonb_agg(to_jsonb(ed) ORDER BY ed.notification_event_id)
+			FROM notification_event_delivery_status_events ed WHERE ed.notification_event_delivery_status_id = s.id)
+	)::text FROM notification_event_delivery_status s
+	JOIN notification_events e ON e.id = s.event_id
+	JOIN notification_rules r ON r.id = e.rule_id
+	JOIN notification_channels c ON c.id = s.channel_id WHERE s.id = $1`
+
+	seedDelivery := func(t *testing.T, pair statePair, state string) snapshot {
+		t.Helper()
+
+		namespace := ulid.Make().String()
+		channel := seedChannel(t, env, namespace)
+		rule := seedRule(t, env, namespace, notification.EventTypeBalanceThreshold, channel.ID)
+		event := seedEvent(t, env, namespace, rule, clock.Now(), nil)
+		require.Len(t, event.DeliveryStatus, 1)
+
+		at := time.Date(2026, time.November, 1, 10, 0, 0, 0, time.UTC)
+		attempts, err := json.Marshal([]notification.EventDeliveryAttempt{{
+			State: notification.EventDeliveryStatusStateFailed, Timestamp: at,
+			Response: notification.EventDeliveryAttemptResponse{Body: "provider response", Duration: 250 * time.Millisecond},
+		}})
+		require.NoError(t, err)
+
+		id := event.DeliveryStatus[0].ID
+		_, err = env.sqlDB.ExecContext(t.Context(), `
+			UPDATE notification_event_delivery_status SET state = $1, reason = 'preserve reason',
+				next_attempt_at = '2026-11-02T00:00:00Z', dispatch_generation = 7,
+				dispatch_queued_at = '2026-11-01T00:00:00Z', attempts = $2,
+				annotations = '{"preserve":9007199254740993}', provider_data = '{"svix.message_id":"msg_preserve"}'
+			WHERE id = $3`, state, string(attempts), id)
+		require.NoError(t, err)
+
+		result := snapshot{id: id, namespace: namespace, pair: pair}
+		err = env.sqlDB.QueryRowContext(t.Context(), snapshotSQL, id).Scan(&result.state, &result.xmin, &result.before)
+		require.NoError(t, err)
+
+		return result
+	}
+
+	// given: every known state in both spellings, plus values outside the explicit mapping
+	var snapshots []snapshot
+	for _, pair := range pairs {
+		snapshots = append(snapshots, seedDelivery(t, pair, pair.legacy))
+		if pair.legacy != pair.lowercase {
+			snapshots = append(snapshots, seedDelivery(t, pair, pair.lowercase))
+		}
+	}
+
+	for _, step := range []struct {
+		name, direction string
+		createAfterUp   bool
+	}{
+		{name: "upgrade", direction: "up"},
+		{name: "repeat upgrade with new deliveries", direction: "up", createAfterUp: true},
+		{name: "rollback", direction: "down"},
+		{name: "repeat rollback", direction: "down"},
+		{name: "upgrade after rollback", direction: "up"},
+	} {
+		t.Run(step.name, func(t *testing.T) {
+			if step.createAfterUp {
+				for _, pair := range pairs {
+					if pair.legacy != pair.lowercase {
+						snapshots = append(snapshots, seedDelivery(t, pair, pair.lowercase))
+					}
+				}
+			}
+
+			// when: applying the actual migration in either direction
+			_, err := env.sqlDB.ExecContext(t.Context(), migrations[step.direction])
+			require.NoError(t, err)
+
+			// then: only the state column changes; related resources and attempts stay intact
+			for i := range snapshots {
+				before := &snapshots[i]
+				want := before.pair.lowercase
+				if step.direction == "down" {
+					want = before.pair.legacy
+				}
+
+				var state, xmin, after string
+				err := env.sqlDB.QueryRowContext(t.Context(), snapshotSQL, before.id).Scan(&state, &xmin, &after)
+				require.NoError(t, err)
+
+				assert.Equal(t, want, state)
+				assert.Equal(t, before.before, after)
+
+				if before.state == want {
+					assert.Equal(t, before.xmin, xmin, "already-normalized and unknown states must not be rewritten")
+				} else {
+					assert.NotEqual(t, before.xmin, xmin)
+				}
+
+				before.state, before.xmin = state, xmin
+				if before.pair.legacy != before.pair.lowercase {
+					fetched, err := env.adapter.GetEventDeliveryStatus(t.Context(), notification.GetEventDeliveryStatusInput{
+						NamespacedID: models.NamespacedID{Namespace: before.namespace, ID: before.id},
+					})
+					require.NoError(t, err)
+
+					listed, err := env.adapter.ListEventsDeliveryStatus(t.Context(), notification.ListEventsDeliveryStatusInput{
+						Namespaces: []string{before.namespace}, States: []notification.EventDeliveryStatusState{notification.EventDeliveryStatusState(before.pair.legacy)},
+						Page: pagination.NewPage(1, 20),
+					})
+					require.NoError(t, err)
+					require.Len(t, listed.Items, 1)
+
+					assert.Equal(t, notification.EventDeliveryStatusState(before.pair.legacy), fetched.State)
+					assert.Equal(t, before.id, listed.Items[0].ID)
+				}
+			}
+
+			var defaultState string
+			err = env.sqlDB.QueryRowContext(t.Context(), `
+				SELECT column_default FROM information_schema.columns
+				WHERE table_schema = 'public' AND table_name = 'notification_event_delivery_status' AND column_name = 'state'`).Scan(&defaultState)
+			require.NoError(t, err)
+
+			assert.Equal(t, "'pending'::character varying", defaultState)
+		})
+	}
+
+	for _, tc := range []struct {
+		name, direction, before, want string
+	}{
+		{name: "upgrade under Turkish collation", direction: "up", before: "FAILED", want: "failed"},
+		{name: "rollback under Turkish collation", direction: "down", before: "failed", want: "FAILED"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given: Turkish case conversion distinguishes dotted and dotless I
+			ctx := t.Context()
+			tx, err := env.sqlDB.BeginTx(ctx, nil)
+			require.NoError(t, err)
+			defer func() { _ = tx.Rollback() }()
+
+			var hasCollation bool
+			err = tx.QueryRowContext(ctx, `SELECT to_regcollation('pg_catalog."tr-x-icu"') IS NOT NULL`).Scan(&hasCollation)
+			require.NoError(t, err)
+
+			if !hasCollation {
+				t.Skip("PostgreSQL does not provide the Turkish ICU collation")
+			}
+
+			_, err = tx.ExecContext(ctx, `CREATE TEMP TABLE notification_event_delivery_status (state text COLLATE "tr-x-icu")`)
+			require.NoError(t, err)
+
+			_, err = tx.ExecContext(ctx, `INSERT INTO notification_event_delivery_status (state) VALUES ($1)`, tc.before)
+			require.NoError(t, err)
+
+			// when: applying the migration to the stored state
+			_, err = tx.ExecContext(ctx, migrations[tc.direction])
+			require.NoError(t, err)
+
+			// then: readers get the exact ASCII enum value
+			var state string
+			err = tx.QueryRowContext(ctx, `SELECT state FROM notification_event_delivery_status`).Scan(&state)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.want, state)
+		})
+	}
+}
+
 func TestDeliveryStatusStateDefault(t *testing.T) {
 	for _, schema := range []struct {
 		name  string

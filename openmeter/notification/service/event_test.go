@@ -3,9 +3,11 @@ package service_test
 import (
 	"context"
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path"
 	"slices"
 	"strings"
 	"testing"
@@ -28,6 +30,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 // seedBalanceThresholdRule creates a rule targeting the given channels through the
@@ -202,12 +205,38 @@ func TestResendEvent(t *testing.T) {
 		assert.True(t, models.IsGenericValidationError(err), "expected a validation error, got: %v", err)
 	})
 
-	for _, storedState := range []string{"FAILED", "failed"} {
-		t.Run("resend from "+storedState, func(t *testing.T) {
+	for _, tc := range []struct {
+		name, storedState, wantState string
+		directions                   []string
+	}{
+		{name: "legacy state", storedState: "FAILED", wantState: "FAILED"},
+		{name: "lowercase state", storedState: "failed", wantState: "failed"},
+		{name: "after upgrade", storedState: "FAILED", wantState: "failed", directions: []string{"up"}},
+		{name: "after rollback", storedState: "FAILED", wantState: "FAILED", directions: []string{"up", "down"}},
+		{name: "after re-upgrade", storedState: "FAILED", wantState: "failed", directions: []string{"up", "down", "up"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			// given: the terminal state was written by either deployment version
 			_, err := env.db.ExecContext(t.Context(),
-				"UPDATE notification_event_delivery_status SET state = $1 WHERE id = $2", storedState, statuses.Items[0].ID)
+				"UPDATE notification_event_delivery_status SET state = $1, next_attempt_at = $3 WHERE id = $2", tc.storedState, statuses.Items[0].ID, clock.Now().Add(time.Hour))
 			require.NoError(t, err)
+
+			for _, direction := range tc.directions {
+				migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+					migrate.OMMigrationsConfig.FSPath,
+					"20261119152000_notification_delivery_state_normalization."+direction+".sql",
+				))
+				require.NoError(t, err)
+
+				_, err = env.db.ExecContext(t.Context(), string(migration))
+				require.NoError(t, err)
+			}
+
+			before, err := env.db.NotificationEventDeliveryStatus.Get(t.Context(), statuses.Items[0].ID)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.wantState, before.State)
+			assert.NotNil(t, before.NextAttemptAt)
 
 			// when: resending through the service
 			err = env.service.ResendEvent(t.Context(), notification.ResendEventInput{
