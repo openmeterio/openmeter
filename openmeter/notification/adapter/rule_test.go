@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"slices"
 	"testing"
@@ -578,10 +579,14 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 	env := newChannelTestEnv(t)
 	namespace := ulid.Make().String()
 
-	// given: all four public types with both legacy and versioned rows
+	// Seed types in reverse public order so sorting only by ID gives a different first page.
 	idsByType := make(map[string][]string)
-	var allIDs []string
-	for _, eventType := range []notification.EventType{notification.EventTypeBalanceThreshold, notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated} {
+	for _, eventType := range []notification.EventType{
+		notification.EventTypeInvoiceUpdated,
+		notification.EventTypeInvoiceCreated,
+		notification.EventTypeEntitlementReset,
+		notification.EventTypeBalanceThreshold,
+	} {
 		var ids []string
 		for _, legacy := range []bool{true, false} {
 			created := createRule(t, env, namespace, clock.Now(), func(input *notification.CreateRuleInput) {
@@ -608,7 +613,11 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 
 		slices.Sort(ids)
 		idsByType[string(eventType)] = ids
-		allIDs = append(allIDs, ids...)
+	}
+
+	var allIDs []string
+	for _, publicType := range slices.Sorted(maps.Keys(idsByType)) {
+		allIDs = append(allIDs, idsByType[publicType]...)
 	}
 
 	excludingInvoiceCreated := lo.Filter(allIDs, func(id string, _ int) bool {
