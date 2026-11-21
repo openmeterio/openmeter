@@ -993,7 +993,7 @@ func TestRuleEventTypeNormalizationMigration(t *testing.T) {
 			}
 
 			// Seed through the adapter, then reproduce historical spellings and inactive Rules.
-			seedPair := func(t *testing.T, storedType string, disabled, deleted bool) snapshot {
+			seedPair := func(t *testing.T, storedRuleType, storedEventType string, disabled, deleted bool) snapshot {
 				t.Helper()
 
 				eventType := notification.EventType(tc.legacy)
@@ -1028,13 +1028,13 @@ func TestRuleEventTypeNormalizationMigration(t *testing.T) {
 						deleted_at = CASE WHEN $3 THEN '2026-01-02T00:00:00Z'::timestamptz ELSE NULL END,
 						config = CASE WHEN $5 THEN jsonb_build_object('type', $6::text, 'data', config) ELSE config END,
 						metadata = '{"team":"billing"}', annotations = '{"preserve":9007199254740993}'
-					WHERE id = $4`, storedType, disabled, deleted, rule.ID, storedType == tc.legacy, string(eventType))
+					WHERE id = $4`, storedRuleType, disabled, deleted, rule.ID, storedRuleType == tc.legacy, string(eventType))
 				require.NoError(t, err)
 
 				_, err = env.sqlDB.ExecContext(t.Context(), `
 					UPDATE notification_events SET type = $1, annotations = '{"preserve":9007199254740993}',
 						rule_snapshot = '{"preserve":9007199254740993}', provider_data = '{"svix.message_id":"msg_preserve"}'
-					WHERE id = $2`, storedType, event.ID)
+					WHERE id = $2`, storedEventType, event.ID)
 				require.NoError(t, err)
 
 				_, err = env.sqlDB.ExecContext(t.Context(), `
@@ -1055,10 +1055,17 @@ func TestRuleEventTypeNormalizationMigration(t *testing.T) {
 
 			// given: mixed spellings, multiple namespaces, and disabled/deleted Rules
 			snapshots := []snapshot{
-				seedPair(t, tc.legacy, false, false),
-				seedPair(t, tc.versioned, false, false),
-				seedPair(t, tc.legacy, true, false),
-				seedPair(t, tc.legacy, true, true),
+				seedPair(t, tc.legacy, tc.legacy, false, false),
+				seedPair(t, tc.versioned, tc.versioned, false, false),
+				seedPair(t, tc.legacy, tc.legacy, true, false),
+				seedPair(t, tc.legacy, tc.legacy, true, true),
+			}
+
+			if tc.legacy != tc.versioned {
+				snapshots = append(snapshots,
+					seedPair(t, tc.legacy, tc.versioned, false, false),
+					seedPair(t, tc.versioned, tc.legacy, false, false),
+				)
 			}
 
 			for _, step := range []struct {
@@ -1073,7 +1080,7 @@ func TestRuleEventTypeNormalizationMigration(t *testing.T) {
 			} {
 				t.Run(step.name, func(t *testing.T) {
 					if step.createAfterUp {
-						snapshots = append(snapshots, seedPair(t, tc.versioned, false, false))
+						snapshots = append(snapshots, seedPair(t, tc.versioned, tc.versioned, false, false))
 					}
 
 					// when: applying both table updates through the embedded migration
@@ -1099,9 +1106,13 @@ func TestRuleEventTypeNormalizationMigration(t *testing.T) {
 
 						if before.eventType == wantType {
 							assert.Equal(t, before.eventXmin, eventXmin)
-							assert.Equal(t, before.ruleXmin, ruleXmin)
 						} else {
 							assert.NotEqual(t, before.eventXmin, eventXmin)
+						}
+
+						if before.ruleType == wantType {
+							assert.Equal(t, before.ruleXmin, ruleXmin)
+						} else {
 							assert.NotEqual(t, before.ruleXmin, ruleXmin)
 						}
 
