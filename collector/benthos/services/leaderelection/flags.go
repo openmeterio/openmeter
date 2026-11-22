@@ -16,6 +16,7 @@ const (
 	leaseRenewDeadlineFlag      = "lease-renew-deadline"
 	leaseRetryPeriodFlag        = "lease-retry-period"
 	leaseHealthCheckTimeoutFlag = "lease-health-check-timeout"
+	leaseStartDelayFlag         = "lease-start-delay"
 )
 
 var hostname, _ = os.Hostname()
@@ -64,6 +65,12 @@ var leaderElectionCLIFlags = []cli.Flag{
 		Name:    leaseHealthCheckTimeoutFlag,
 		Usage:   "Timeout for lease health check. Should be longer than lease duration for inactive leader detection",
 		EnvVars: []string{"LEASE_HEALTH_CHECK_TIMEOUT"},
+		Value:   0,
+	},
+	&cli.DurationFlag{
+		Name:    leaseStartDelayFlag,
+		Usage:   "Time to wait after the start before taking part in the leader election. Leaves the lease of a leader that stopped to a replica that is already running, even when the starting replica has the identity of that leader. Should be longer than the lease duration plus five retry periods",
+		EnvVars: []string{"LEASE_START_DELAY"},
 		Value:   0,
 	},
 }
