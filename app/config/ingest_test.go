@@ -114,3 +114,28 @@ func TestKafkaIngestSslCaLocationEnv(t *testing.T) {
 	assert.Equal(t, "/etc/ssl/kafka-ca.pem", cfg.Ingest.Kafka.SslCaLocation)
 	assert.Equal(t, "/etc/ssl/sink-ca.pem", cfg.Sink.Kafka.SslCaLocation)
 }
+
+// TestKafkaIngestApiVersionRequest verifies the default and the environment variable that feed ApiVersionRequest.
+func TestKafkaIngestApiVersionRequest(t *testing.T) {
+	t.Run("Default", func(t *testing.T) {
+		v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ContinueOnError)
+		SetViperDefaults(v, flags)
+
+		var cfg Configuration
+
+		require.NoError(t, v.Unmarshal(&cfg, viper.DecodeHook(DecodeHook())))
+		assert.False(t, cfg.Ingest.Kafka.ApiVersionRequest)
+	})
+
+	t.Run("Env", func(t *testing.T) {
+		t.Setenv("INGEST_KAFKA_APIVERSIONREQUEST", "true")
+
+		v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ContinueOnError)
+		SetViperDefaults(v, flags)
+
+		var cfg Configuration
+
+		require.NoError(t, v.Unmarshal(&cfg, viper.DecodeHook(DecodeHook())))
+		assert.True(t, cfg.Ingest.Kafka.ApiVersionRequest)
+	})
+}

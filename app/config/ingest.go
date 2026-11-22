@@ -86,6 +86,15 @@ type KafkaConfiguration struct {
 	// This value must not be set to value lower than 10s.
 	TopicMetadataRefreshInterval pkgkafka.TimeDurationMilliSeconds
 
+	// ApiVersionRequest makes the Sarama clients of the event bus (API, balance, billing and notification
+	// workers) send an ApiVersionsRequest when connecting and limit each request to the versions the broker
+	// supports, like librdkafka's api.version.request. It defaults to false, as before: the request was
+	// disabled because it logged errors against Confluent Cloud, and current Sarama closes the connection
+	// when that request fails with EOF.
+	// Enable it for brokers that do not accept the Kafka 2.8 request versions Sarama sends otherwise, such
+	// as Redpanda. The librdkafka clients (ingest, sink worker) always negotiate versions.
+	ApiVersionRequest bool
+
 	// Enable contexts for extensive debugging of librdkafka.
 	// See: https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md#debug-contexts
 	DebugContexts pkgkafka.DebugContexts
@@ -190,6 +199,7 @@ func ConfigureIngestKafkaConfiguration(v *viper.Viper, prefixes ...string) {
 	v.SetDefault(prefixer("kafka.brokerAddressFamily"), "v4")
 	v.SetDefault(prefixer("kafka.socketKeepAliveEnabled"), true)
 	v.SetDefault(prefixer("kafka.topicMetadataRefreshInterval"), time.Minute)
+	v.SetDefault(prefixer("kafka.apiVersionRequest"), false)
 }
 
 // Configure configures some defaults in the Viper instance.

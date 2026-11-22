@@ -44,6 +44,7 @@ ingest:
     brokerAddressFamily: any
     socketKeepAliveEnabled: true
     topicMetadataRefreshInterval: 1m
+    apiVersionRequest: true
     debugContexts:
       - broker
       - topic

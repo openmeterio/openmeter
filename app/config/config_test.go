@@ -119,6 +119,7 @@ func TestComplete(t *testing.T) {
 					TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),
 					StatsInterval:                pkgkafka.TimeDurationMilliSeconds(5 * time.Second),
 					SocketKeepAliveEnabled:       true,
+					ApiVersionRequest:            true,
 					DebugContexts: pkgkafka.DebugContexts{
 						"broker",
 						"topic",

@@ -158,3 +158,34 @@ func TestCreateKafkaConfigSslCaLocation(t *testing.T) {
 		require.Nil(t, cfg.Net.TLS.Config)
 	})
 }
+
+func TestCreateKafkaConfigApiVersionsRequest(t *testing.T) {
+	tests := []struct {
+		name              string
+		apiVersionRequest bool
+	}{
+		{name: "disabled by default", apiVersionRequest: false},
+		{name: "enabled", apiVersionRequest: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := BrokerOptions{
+				KafkaConfig: config.KafkaConfiguration{
+					Broker:            "localhost:9092",
+					ApiVersionRequest: tt.apiVersionRequest,
+				},
+				ClientID:    "test",
+				Logger:      slog.New(slog.DiscardHandler),
+				MetricMeter: noop.NewMeterProvider().Meter("test"),
+			}
+
+			for _, role := range []string{"publisher", "subscriber"} {
+				cfg, err := opts.createKafkaConfig(role)
+				require.NoError(t, err)
+
+				require.Equal(t, tt.apiVersionRequest, cfg.ApiVersionsRequest, role)
+			}
+		})
+	}
+}

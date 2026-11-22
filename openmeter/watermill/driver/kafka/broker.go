@@ -91,10 +91,12 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	config.Metadata.RefreshFrequency = o.KafkaConfig.TopicMetadataRefreshInterval.Duration()
 	config.ClientID = fmt.Sprintf("%s-%s", o.ClientID, role)
 
-	// Disable ApiVersionsRequest to avoid flooding the logs with ApiVersionsRequest errors from Sarama.
+	// ApiVersionsRequest is disabled by default to avoid flooding the logs with ApiVersionsRequest errors from Sarama.
 	// Error while sending ApiVersionsRequest V3 to broker.
 	// See: https://github.com/IBM/sarama/blob/85f7d7b0cf3e3d4224df99c6b11f276c8fc49fd5/broker.go#L223-L251
-	config.ApiVersionsRequest = false
+	// Brokers that reject the request versions of config.Version (e.g. Redpanda) need it enabled, so that
+	// Sarama limits each request to the versions the broker supports.
+	config.ApiVersionsRequest = o.KafkaConfig.ApiVersionRequest
 
 	// These are globals, so we cannot append the publisher/subscriber name to them
 	logger := o.Logger.With(slog.String(string(semconv.OTelScopeNameKey), "sarama"))
