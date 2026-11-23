@@ -54,7 +54,8 @@ func (s *RTEIntegrationSuite) newEventPipeline() eventPipeline {
 			MaxAttempts:      3,
 		},
 	}
-	bus, closeBus, err := common.NewEventBusPublisher(ctx, transport, s.DBClient, events, logger)
+	metadata := common.NewMetadata(config.Configuration{}, "", "rte")
+	bus, closeBus, err := common.NewDeploymentEventBusPublisher(ctx, transport, s.DBClient, events, metadata, logger)
 	require.NoError(t, err)
 
 	var worker rte.Worker

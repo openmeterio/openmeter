@@ -42,7 +42,8 @@ client. Billing that needs to see its own uncommitted writes calls the domain se
    share a calculation. Changes received during the calculation leave another pass pending.
    [Claims, ordering and retries](demand/README.md)
 3. On an accepted result, the demand transaction commits the stored balance, its update event
-   in the outbox, and completion of the claimed version together. Kafka delivery follows commit.
+   in the outbox, and completion of the claimed version together. RTE replicas deliver and retry
+   those events after commit. If all replicas stop, pending updates wait in the RTE queue.
    A failed calculation leaves the previous value available. [Storage](adapter/README.md) ·
    [Update delivery](../watermill/outbox/README.md)
 
