@@ -255,6 +255,15 @@ func (a appOperations) createInvoice(ctx context.Context, invoice billing.Standa
 		createInvoiceParams.DaysUntilDue = lo.ToPtr(daysUntilDue)
 	}
 
+	// Resolve before creating the Stripe invoice, so an unresolvable Tax Code fails the sync
+	// without leaving a draft whose ID would never be saved.
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
+
+	taxCodes, err := a.resolveLinesTaxCodes(ctx, invoice.Namespace, leafLines)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
+	}
+
 	stripeInvoice, err := a.createStripeInvoice(ctx, stripeClient, invoice.GetInvoiceID(), createInvoiceParams)
 	if err != nil {
 		return nil, err
@@ -270,13 +279,6 @@ func (a appOperations) createInvoice(ctx context.Context, invoice billing.Standa
 
 	// Add lines to the Stripe invoice
 	var stripeLineAdd []*stripe.InvoiceItemParams
-
-	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
-
-	taxCodes, err := a.resolveLinesTaxCodes(ctx, invoice.Namespace, leafLines)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
-	}
 
 	// Iterate over the leaf lines
 	for _, line := range leafLines {
@@ -415,6 +417,14 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 		return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
 	}
 
+	// Resolve before the first Stripe write, mirroring createInvoice.
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
+
+	taxCodes, err := a.resolveLinesTaxCodes(ctx, invoice.Namespace, leafLines)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
+	}
+
 	// Update the invoice in Stripe
 	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
 		AutomaticTaxEnabled: invoice.Workflow.Config.Tax.Enabled,
@@ -470,13 +480,6 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 	}
 
 	// Iterate over the leaf lines
-	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
-
-	taxCodes, err := a.resolveLinesTaxCodes(ctx, invoice.Namespace, leafLines)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
-	}
-
 	for _, line := range leafLines {
 		amountDiscountsById, err := line.AmountDiscounts.GetByID()
 		if err != nil {
