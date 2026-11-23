@@ -241,6 +241,13 @@ func TestFromAPIChargeTaxConfig(t *testing.T) {
 			name: "no tax config",
 		},
 		{
+			name: "behavior only",
+			input: &apiv3models.BillingTaxConfig{
+				Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorInclusive),
+			},
+			want: productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
+		},
+		{
 			name: "tax code reference",
 			input: &apiv3models.BillingTaxConfig{
 				Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorExclusive),
