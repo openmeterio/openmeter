@@ -6238,20 +6238,6 @@ func (u *RTEDemandUpdateOne) SetOrClearLastCalculatedAt(value *time.Time) *RTEDe
 	return u.SetLastCalculatedAt(*value)
 }
 
-func (u *RTEInvalidationUpdate) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdate {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
-func (u *RTEInvalidationUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTEInvalidationUpdateOne {
-	if value == nil {
-		return u.ClearDeletedAt()
-	}
-	return u.SetDeletedAt(*value)
-}
-
 func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearDeletedAt(value *time.Time) *RTEMeteredEntitlementBalanceUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()

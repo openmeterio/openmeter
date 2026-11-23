@@ -3168,18 +3168,6 @@ func (e *RTEDemand) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
-func (e *RTEInvalidation) GetCreatedAt() time.Time {
-	return e.CreatedAt
-}
-
-func (e *RTEInvalidation) GetUpdatedAt() time.Time {
-	return e.UpdatedAt
-}
-
-func (e *RTEInvalidation) GetDeletedAt() *time.Time {
-	return e.DeletedAt
-}
-
 func (e *RTEMeteredEntitlementBalance) GetNamespace() string {
 	return e.Namespace
 }

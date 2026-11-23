@@ -181,9 +181,7 @@ func (w *worker) handleSource(msg *message.Message, event marshaler.Event) error
 		return nil
 	}
 
-	if err := w.demand.Invalidate(ctx, rte.InvalidateInput{
-		Source: envelope.Source(), EventID: envelope.ID(), Selectors: selectors,
-	}); err != nil {
+	if err := w.demand.Invalidate(ctx, rte.InvalidateInput{Selectors: selectors}); err != nil {
 		return err
 	}
 

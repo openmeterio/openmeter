@@ -56,7 +56,6 @@ func TestInvalidateDemandQuery_SQLTemplate(t *testing.T) {
 	query, args, err := (invalidateDemandQuery{
 		at: now,
 		input: rte.InvalidateInput{
-			Source: "ledger", EventID: "event",
 			Selectors: []rte.DemandSelector{
 				{Namespace: "ns", Kind: rte.CalculationKindCreditBalance, OwnerIDs: []string{"customer"}},
 				{Namespace: "ns", Kind: rte.CalculationKindMeteredEntitlement, Targets: []rte.CalculationTarget{target}},
@@ -69,16 +68,14 @@ UPDATE "rte_demands"
 SET "dirty_version" = COALESCE("rte_demands"."dirty_version", 0) + $1, "updated_at" = $2,
     "next_attempt_at" = CASE WHEN "rte_demands"."attempts" = $3 AND "rte_demands"."dirty_version" = "rte_demands"."completed_version" THEN $4 ELSE "rte_demands"."next_attempt_at" END
 WHERE "id" IN (SELECT "id" FROM "rte_demands"
-    WHERE (("rte_demands"."deleted_at" IS NULL AND ("rte_demands"."push_enabled" OR "rte_demands"."pull_until" > $5))
+    WHERE ("rte_demands"."deleted_at" IS NULL AND ("rte_demands"."push_enabled" OR "rte_demands"."pull_until" > $5))
     AND (("namespace" = $6 AND "kind" = $7 AND "owner_id" = ANY($8))
-        OR ("namespace" = $9 AND "kind" = $10 AND "key_hash" = ANY($11))))
-    AND NOT EXISTS (SELECT "id" FROM "rte_invalidations" WHERE "source" = $12 AND "event_id" = $13)
+        OR ("namespace" = $9 AND "kind" = $10 AND "key_hash" = ANY($11)))
     ORDER BY "id" FOR NO KEY UPDATE)`
 	require.Equal(t, strings.Join(strings.Fields(expectedSQL), " "), query)
 	require.Equal(t, []any{
 		1, now, 0, now, now,
 		"ns", rte.CalculationKindCreditBalance, pq.Array([]string{"customer"}),
 		"ns", rte.CalculationKindMeteredEntitlement, pq.Array([]string{identity.KeyHash}),
-		"ledger", "event",
 	}, args)
 }
