@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -70,7 +71,10 @@ func TestResolveCostBasisRequirements(t *testing.T) {
 		}
 
 		return subscription.SubscriptionSpec{
-			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{InvoiceCurrency: currencyx.Code("USD")},
+			CreateSubscriptionCustomerInput: subscription.CreateSubscriptionCustomerInput{
+				ActiveFrom:      at,
+				InvoiceCurrency: currencyx.Code("USD"),
+			},
 			CreateSubscriptionPlanInput: subscription.CreateSubscriptionPlanInput{
 				SettlementMode: mode,
 			},
@@ -100,7 +104,7 @@ func TestResolveCostBasisRequirements(t *testing.T) {
 		}}}}
 		spec := newSpec(productcatalog.CreditOnlySettlementMode)
 
-		resolved, err := svc.resolveCostBasisRequirements(t.Context(), namespace, spec, at, customCostBasisPairs(spec))
+		resolved, err := svc.resolveCostBasisRequirements(t.Context(), namespace, spec, customCostBasisPairs(spec))
 		require.NoError(t, err)
 		require.Empty(t, resolved)
 		require.Zero(t, calls)
@@ -132,11 +136,25 @@ func TestResolveCostBasisRequirements(t *testing.T) {
 		}}}}
 		spec := newSpec(productcatalog.CreditThenInvoiceSettlementMode)
 
-		resolved, err := svc.resolveCostBasisRequirements(t.Context(), namespace, spec, at, customCostBasisPairs(spec))
+		resolved, err := svc.resolveCostBasisRequirements(t.Context(), namespace, spec, customCostBasisPairs(spec))
 		require.NoError(t, err)
 		require.Len(t, resolved, 1)
 		require.Equal(t, costBasisID, resolved[0].ID)
 		require.Equal(t, 1, calls)
+	})
+
+	t.Run("two recurring fees share one lookup at the delayed billing start", func(t *testing.T) {
+		spec := newSpec(productcatalog.CreditThenInvoiceSettlementMode)
+		cutoff := at.Add(24*time.Hour + 500*time.Millisecond)
+		spec.BillingStartsAt = &cutoff
+		month := datetime.MustParseDuration(t, "P1M")
+		for _, items := range spec.Phases["default"].ItemsByKey {
+			items[0].RateCard.(*productcatalog.FlatFeeRateCard).BillingCadence = &month
+		}
+
+		require.Equal(t, map[costBasisPair]time.Time{
+			{customCurrencyID: customCurrencyID, invoiceCurrency: "USD"}: cutoff.Truncate(time.Second),
+		}, customCostBasisPairs(spec))
 	})
 
 	t.Run("missing cost basis is a validation error", func(t *testing.T) {
@@ -151,7 +169,7 @@ func TestResolveCostBasisRequirements(t *testing.T) {
 		}}}}
 		spec := newSpec(productcatalog.CreditThenInvoiceSettlementMode)
 
-		_, err := svc.resolveCostBasisRequirements(t.Context(), namespace, spec, at, customCostBasisPairs(spec))
+		_, err := svc.resolveCostBasisRequirements(t.Context(), namespace, spec, customCostBasisPairs(spec))
 		require.Error(t, err)
 		require.True(t, models.IsGenericValidationError(err))
 		require.ErrorIs(t, err, productcatalog.ErrCurrencyCostBasisNotFound)

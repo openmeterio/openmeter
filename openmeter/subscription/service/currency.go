@@ -7,8 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	subscriptioncurrencyresolver "github.com/openmeterio/openmeter/openmeter/subscription/currencyresolver"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -41,12 +44,18 @@ type costBasisPair struct {
 	invoiceCurrency  string
 }
 
-func customCostBasisPairs(spec subscription.SubscriptionSpec) map[costBasisPair]struct{} {
-	pairs := map[costBasisPair]struct{}{}
+func customCostBasisPairs(spec subscription.SubscriptionSpec) map[costBasisPair]time.Time {
+	pairs := map[costBasisPair]time.Time{}
 
 	for _, phase := range spec.Phases {
 		if phase == nil {
 			continue
+		}
+
+		initialActiveFrom := spec.ActiveFrom
+		if !spec.CostBasisMode.IsPinned() {
+			phaseStart, _ := phase.StartAfter.AddTo(spec.ActiveFrom)
+			initialActiveFrom = lo.Latest(phaseStart, lo.FromPtr(spec.BillingStartsAt)).Truncate(streaming.MinimumWindowSizeDuration)
 		}
 
 		for _, items := range phase.ItemsByKey {
@@ -64,10 +73,13 @@ func customCostBasisPairs(spec subscription.SubscriptionSpec) map[costBasisPair]
 					continue
 				}
 
-				pairs[costBasisPair{
+				pair := costBasisPair{
 					customCurrencyID: *meta.Currency.CustomCurrencyID,
 					invoiceCurrency:  spec.InvoiceCurrency.String(),
-				}] = struct{}{}
+				}
+				if first, exists := pairs[pair]; !exists || initialActiveFrom.Before(first) {
+					pairs[pair] = initialActiveFrom
+				}
 			}
 		}
 	}
@@ -79,15 +91,14 @@ func (s *service) resolveCostBasisRequirements(
 	ctx context.Context,
 	namespace string,
 	spec subscription.SubscriptionSpec,
-	at time.Time,
-	pairs map[costBasisPair]struct{},
+	lookupTimes map[costBasisPair]time.Time,
 ) ([]currencies.CostBasis, error) {
-	if spec.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode || len(pairs) == 0 {
+	if spec.SettlementMode != productcatalog.CreditThenInvoiceSettlementMode || len(lookupTimes) == 0 {
 		return nil, nil
 	}
 
-	orderedPairs := make([]costBasisPair, 0, len(pairs))
-	for pair := range pairs {
+	orderedPairs := make([]costBasisPair, 0, len(lookupTimes))
+	for pair := range lookupTimes {
 		orderedPairs = append(orderedPairs, pair)
 	}
 
@@ -101,11 +112,12 @@ func (s *service) resolveCostBasisRequirements(
 
 	resolved := make([]currencies.CostBasis, 0, len(orderedPairs))
 	for _, pair := range orderedPairs {
+		lookupTime := lookupTimes[pair]
 		costBasis, err := s.CostBasisService.GetCostBasisAt(ctx, currencies.GetCostBasisAtInput{
 			Namespace:  namespace,
 			CurrencyID: pair.customCurrencyID,
 			FiatCode:   spec.InvoiceCurrency,
-			At:         at,
+			At:         lookupTime,
 		})
 		if err != nil {
 			if models.IsGenericNotFoundError(err) {
@@ -114,7 +126,7 @@ func (s *service) resolveCostBasisRequirements(
 					productcatalog.ErrCurrencyCostBasisNotFound,
 					pair.customCurrencyID,
 					spec.InvoiceCurrency,
-					at.UTC().Format(time.RFC3339),
+					lookupTime.UTC().Format(time.RFC3339),
 				))
 			}
 
