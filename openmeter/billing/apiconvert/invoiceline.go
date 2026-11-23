@@ -13,13 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	catalogconvert "github.com/openmeterio/openmeter/openmeter/productcatalog/apiconvert"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig, taxCodes map[string]*taxcode.TaxCode) (*[]apiv1models.InvoiceDetailedLine, error) {
+func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig, taxCodes productcatalog.TaxCodesByID) (*[]apiv1models.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (apiv1models.InvoiceDetailedLine, error) {
 		return mapDetailedLineToAPI(line, currency, invoiceAt, taxConfig, taxCodes)
 	})
@@ -30,7 +29,7 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatC
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig, taxCodes map[string]*taxcode.TaxCode) (apiv1models.InvoiceDetailedLine, error) {
+func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxConfig, taxCodes productcatalog.TaxCodesByID) (apiv1models.InvoiceDetailedLine, error) {
 	lineTaxConfig, err := ToAPITaxConfig(taxCodes, taxConfig)
 	if err != nil {
 		return apiv1models.InvoiceDetailedLine{}, fmt.Errorf("failed to map tax config: %w", err)
@@ -107,7 +106,7 @@ func mapLineAppExternalIdsToAPI(externalIds externalid.LineExternalIDs) *apiv1mo
 	}
 }
 
-func mapInvoiceLineToAPI(line *billing.StandardLine, taxCodes map[string]*taxcode.TaxCode) (apiv1models.InvoiceLine, error) {
+func mapInvoiceLineToAPI(line *billing.StandardLine, taxCodes productcatalog.TaxCodesByID) (apiv1models.InvoiceLine, error) {
 	if line.UsageBased == nil {
 		return apiv1models.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
 	}
@@ -389,7 +388,7 @@ func decimalPtrToStringPtrIfNotEqual(value *alpacadecimal.Decimal, other *alpaca
 // referenced Tax Code's current Stripe mapping, not the code the line was created with, so a
 // line renders what the Tax Code maps to today. taxCodes must hold the config's referenced
 // Tax Code. Lines carry no Tax Code render without stripe.code.
-func ToAPITaxConfig(taxCodes map[string]*taxcode.TaxCode, to *productcatalog.TaxConfig) (*apiv1models.TaxConfig, error) {
+func ToAPITaxConfig(taxCodes productcatalog.TaxCodesByID, to *productcatalog.TaxConfig) (*apiv1models.TaxConfig, error) {
 	if to == nil {
 		return nil, nil
 	}
@@ -403,8 +402,8 @@ func ToAPITaxConfig(taxCodes map[string]*taxcode.TaxCode, to *productcatalog.Tax
 		})), nil
 	}
 
-	tc := taxCodes[id]
-	if tc == nil {
+	tc, ok := taxCodes.Get(id)
+	if !ok {
 		return nil, fmt.Errorf("tax code %s not found in taxCodes", id)
 	}
 

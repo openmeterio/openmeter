@@ -223,7 +223,7 @@ func (i ResolveInvoiceTaxCodesInput) Validate() error {
 // stored stripe.code no longer matches renders the current one, and the whole page shares one
 // lookup. A referenced ID the namespace can't resolve fails rendering (a 500), consistent with
 // the default.
-func ResolveInvoiceTaxCodes(ctx context.Context, resolver productcatalog.TaxCodeResolver, input ResolveInvoiceTaxCodesInput) (map[string]*taxcode.TaxCode, error) {
+func ResolveInvoiceTaxCodes(ctx context.Context, resolver productcatalog.TaxCodeResolver, input ResolveInvoiceTaxCodesInput) (productcatalog.TaxCodesByID, error) {
 	if err := input.Validate(); err != nil {
 		return nil, err
 	}
@@ -257,7 +257,7 @@ func taxCodeIDFromConfig(cfg *productcatalog.TaxConfig) string {
 	return *cfg.TaxCodeID
 }
 
-func resolveTaxCodesByIDs(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, ids []string) (map[string]*taxcode.TaxCode, error) {
+func resolveTaxCodesByIDs(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, ids []string) (productcatalog.TaxCodesByID, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}

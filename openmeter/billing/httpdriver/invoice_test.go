@@ -551,6 +551,27 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
 		s.Equal(&apiv1models.StripeTaxConfig{Code: "txcd_10000000"}, (*invoice.Lines)[0].TaxConfig.Stripe)
 	})
 
+	s.Run("mismatched taxConfig and rateCard.taxConfig is rejected", func() {
+		// given: a line whose deprecated taxConfig differs from its rate card's
+		line := s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{TaxCodeId: lo.ToPtr(taxCode.ID)})
+		line.TaxConfig = &apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "txcd_10000000"}}
+
+		// when: the invoice is simulated
+		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+			Currency: apiv1models.CurrencyCode(currency.USD),
+			Lines:    []apiv1models.InvoiceSimulationLine{line},
+		})
+		s.Require().NoError(err)
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+		// then: the request fails with a validation error naming the mismatch
+		s.Require().Equal(http.StatusBadRequest, w.Code, w.Body.String())
+		s.Contains(w.Body.String(), "taxConfig must be equal to rateCard.taxConfig")
+	})
+
 	s.Run("malformed stripe code is rejected", func() {
 		// when: the invoice is simulated with a malformed stripe code
 		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{

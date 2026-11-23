@@ -73,7 +73,7 @@ func (i *invoiceLineRateCardItems) ValidateRateCard() error {
 	}
 
 	if i.TaxConfig != nil && i.RateCard.TaxConfig != nil && !reflect.DeepEqual(*i.TaxConfig, *i.RateCard.TaxConfig) {
-		errs = append(errs, errors.New("taxConfig must be equal to rateCard.taxConfig"))
+		errs = append(errs, errTaxConfigMismatch)
 	}
 
 	priceType, err := i.RateCard.Price.Discriminator()
@@ -98,6 +98,8 @@ type invoiceLineRateCardParsed struct {
 	FeatureKey string
 	Discounts  productcatalog.Discounts
 }
+
+var errTaxConfigMismatch = errors.New("taxConfig must be equal to rateCard.taxConfig")
 
 func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardItems) (*invoiceLineRateCardParsed, error) {
 	if in.RateCard == nil {

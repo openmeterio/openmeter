@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/samber/lo"
 
@@ -52,9 +53,9 @@ func isTaxCodeResolutionError(err error) bool {
 }
 
 // lineTaxConfig returns the raw tax config the request mappers use for a line: the deprecated
-// top-level taxConfig when there is no rate card, the rate card's otherwise. The mappers reject
-// requests where the two differ, so either read gives the same config for update and simulation
-// lines.
+// top-level taxConfig when there is no rate card, the rate card's otherwise. Requests where the
+// two differ are rejected (by the update mappers, and before resolution for simulation), so either
+// read gives the same config.
 func lineTaxConfig(rateCard *apiv1models.InvoiceUsageBasedRateCard, taxConfig *apiv1models.TaxConfig) *apiv1models.TaxConfig {
 	if rateCard == nil {
 		return taxConfig
@@ -131,6 +132,13 @@ func taxConfigsForRequestLines(resolved []resolvedLineTaxConfig, lines []apiv1mo
 // leaves the line as sent, and the response shows it without stripe.code.
 func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalog.TransactionalTaxCodeResolver, namespace string, lines []apiv1models.InvoiceSimulationLine) error {
 	for i := range lines {
+		// Compare before resolving: resolution writes the same config to both fields, which
+		// would hide a mismatch from the mapper's own check.
+		if lines[i].TaxConfig != nil && lines[i].RateCard != nil && lines[i].RateCard.TaxConfig != nil &&
+			!reflect.DeepEqual(*lines[i].TaxConfig, *lines[i].RateCard.TaxConfig) {
+			return billing.ValidationError{Err: fmt.Errorf("lines/%d: %w", i, errTaxConfigMismatch)}
+		}
+
 		raw := simulationLineTaxConfig(lines[i])
 		if raw == nil {
 			continue

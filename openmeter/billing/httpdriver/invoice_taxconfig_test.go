@@ -82,7 +82,7 @@ func (s *ProfileTaxConfigTestSuite) TestInvoiceListResolvesTaxCodesOnce() {
 		break
 	}
 
-	s.Require().NotNil(draft.ID, "expected a standard invoice")
+	s.Require().NotEmpty(draft.ID, "expected a standard invoice")
 
 	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:      draft.GetInvoiceID(),

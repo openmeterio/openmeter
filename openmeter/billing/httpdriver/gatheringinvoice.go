@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -105,7 +106,7 @@ func mapServicePeriodToAPI(p timeutil.ClosedPeriod) *apiv1models.Period {
 	}
 }
 
-func mapGatheringInvoiceLineToAPI(line billing.GatheringLine, taxCodes map[string]*taxcode.TaxCode) (apiv1models.InvoiceLine, error) {
+func mapGatheringInvoiceLineToAPI(line billing.GatheringLine, taxCodes productcatalog.TaxCodesByID) (apiv1models.InvoiceLine, error) {
 	price, err := productcataloghttp.FromRateCardUsageBasedPrice(line.Price)
 	if err != nil {
 		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
