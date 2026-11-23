@@ -9,12 +9,12 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/api/v3/response"
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -40,33 +40,12 @@ type (
 func (h *handler) ListNotificationEventTypes() ListNotificationEventTypesHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params ListNotificationEventTypesParams) (ListNotificationEventTypesRequest, error) {
-			req := ListNotificationEventTypesRequest{PageSize: defaultListNotificationEventTypesPageSize}
-
-			// The request validator already limits page[size] to 1..1000.
-			if params.Page != nil {
-				req.PageSize = lo.FromPtrOr(params.Page.Size, defaultListNotificationEventTypesPageSize)
-
-				if params.Page.After != nil && params.Page.Before != nil {
-					return ListNotificationEventTypesRequest{}, apierrors.NewBadRequestError(ctx,
-						errors.New("page[after] and page[before] are mutually exclusive"),
-						apierrors.InvalidParameters{{
-							Field:  "page[after]",
-							Reason: "cannot be combined with page[before]",
-							Source: apierrors.InvalidParamSourceQuery,
-						}},
-					)
-				}
-
-				var err error
-
-				if req.After, err = decodeEventTypeCursorParam(ctx, "page[after]", params.Page.After); err != nil {
-					return ListNotificationEventTypesRequest{}, err
-				}
-
-				if req.Before, err = decodeEventTypeCursorParam(ctx, "page[before]", params.Page.Before); err != nil {
-					return ListNotificationEventTypesRequest{}, err
-				}
+			page, err := request.ParseCursorPage(ctx, params.Page, defaultListNotificationEventTypesPageSize, decodeEventTypeCursor)
+			if err != nil {
+				return ListNotificationEventTypesRequest{}, err
 			}
+
+			req := ListNotificationEventTypesRequest{PageSize: page.Size, After: page.After, Before: page.Before}
 
 			if params.Filter != nil {
 				typeFilter, err := filters.FromAPIFilterString(params.Filter.Type)
@@ -161,33 +140,26 @@ func (h *handler) ListNotificationEventTypes() ListNotificationEventTypesHandler
 			hasPrevious := start > 0
 			hasNext := end < len(matching)
 
+			var edges response.CursorPageEdges
+
+			if len(page) > 0 {
+				edges.First = lo.ToPtr(encodeEventTypeCursor(page[0].EventType.String()))
+				edges.Last = lo.ToPtr(encodeEventTypeCursor(page[len(page)-1].EventType.String()))
+
+				if hasNext {
+					edges.Next = edges.Last
+				}
+
+				if hasPrevious {
+					edges.Previous = edges.First
+				}
+			}
+
 			resp := ListNotificationEventTypesResponse{
 				Data: lo.Map(page, func(d v4.EventTypeDefinition, _ int) apiv3models.BillingNotificationEventTypeSummary {
 					return ToAPIBillingNotificationEventTypeSummary(d)
 				}),
-				Meta: response.CursorMeta{
-					Page: response.CursorMetaPage{
-						Next:     nullable.NewNullNullable[string](),
-						Previous: nullable.NewNullNullable[string](),
-						Size:     req.PageSize,
-					},
-				},
-			}
-
-			if len(page) > 0 {
-				first := encodeEventTypeCursor(page[0].EventType.String())
-				last := encodeEventTypeCursor(page[len(page)-1].EventType.String())
-
-				resp.Meta.Page.First = &first
-				resp.Meta.Page.Last = &last
-
-				if hasNext {
-					resp.Meta.Page.Next = nullable.NewNullableWithValue(last)
-				}
-
-				if hasPrevious {
-					resp.Meta.Page.Previous = nullable.NewNullableWithValue(first)
-				}
+				Meta: response.NewCursorMeta(req.PageSize, edges),
 			}
 
 			return resp, nil
@@ -207,16 +179,10 @@ func encodeEventTypeCursor(eventType string) string {
 	return base64.StdEncoding.EncodeToString([]byte(eventType))
 }
 
-func decodeEventTypeCursorParam(ctx context.Context, field string, cursor *string) (*string, error) {
-	if cursor == nil {
-		return nil, nil
-	}
-
-	decoded, err := base64.StdEncoding.DecodeString(*cursor)
+func decodeEventTypeCursor(cursor string) (*string, error) {
+	decoded, err := base64.StdEncoding.DecodeString(cursor)
 	if err != nil || len(decoded) == 0 {
-		return nil, apierrors.NewBadRequestError(ctx, errors.New("invalid cursor"), apierrors.InvalidParameters{
-			{Field: field, Reason: "invalid cursor", Source: apierrors.InvalidParamSourceQuery},
-		})
+		return nil, errors.New("invalid cursor")
 	}
 
 	return lo.ToPtr(string(decoded)), nil
