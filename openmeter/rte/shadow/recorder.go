@@ -45,7 +45,7 @@ func (c Config) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-type publication struct {
+type outboundEvent struct {
 	event     marshaler.Event
 	kind      rte.CalculationKind
 	operation rte.ComparisonOperation
@@ -53,10 +53,10 @@ type publication struct {
 
 type Recorder struct {
 	config       Config
-	publications *rtemetrics.Publications
+	eventMetrics *rtemetrics.ProducerEvents
 	ctx          context.Context
 	cancel       context.CancelFunc
-	queue        chan publication
+	queue        chan outboundEvent
 	done         chan struct{}
 	admission    sync.RWMutex
 }
@@ -66,16 +66,19 @@ func NewRecorder(ctx context.Context, config Config) (*Recorder, error) {
 		return nil, err
 	}
 
-	publications, err := rtemetrics.NewPublications(config.Meter)
+	eventMetrics, err := rtemetrics.NewProducerEvents(config.Meter)
 	if err != nil {
 		return nil, err
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	r := &Recorder{
-		config: config, publications: publications,
-		ctx: ctx, cancel: cancel,
-		queue: make(chan publication, queueCapacity), done: make(chan struct{}),
+		config:       config,
+		eventMetrics: eventMetrics,
+		ctx:          ctx,
+		cancel:       cancel,
+		queue:        make(chan outboundEvent, queueCapacity),
+		done:         make(chan struct{}),
 	}
 	go r.run()
 
@@ -112,45 +115,52 @@ func (r *Recorder) ObserveMeteredCalculation(ctx context.Context, id models.Name
 
 func (r *Recorder) observe(ctx context.Context, key rte.Key, kind rte.CalculationKind, op rte.ComparisonOperation, duration time.Duration) {
 	at := time.Now()
-	item := publication{kind: kind, operation: op}
 	target, err := rte.NewCalculationTarget(key)
 	if err != nil {
-		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeInvalid)
+		r.eventMetrics.Record(ctx, kind, op, rtemetrics.ProducerEventOutcomeInvalid)
 		return
 	}
 
 	// NewCalculationTarget encodes the typed key, so every producer sees the
 	// same bytes for the same balance, across replicas and operation types.
 	if int(crc32.ChecksumIEEE(target.Key)%100) >= r.config.SamplePercent {
-		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeSampledOut)
+		r.eventMetrics.Record(ctx, kind, op, rtemetrics.ProducerEventOutcomeSampledOut)
 		return
 	}
 
-	item.event = rte.BalanceComparisonEvent{CalculationTarget: target, Operation: op, DirectDuration: duration, ObservedAt: at}
-	r.enqueue(ctx, item)
+	r.enqueue(ctx, outboundEvent{
+		event: rte.BalanceComparisonEvent{
+			CalculationTarget: target,
+			Operation:         op,
+			DirectDuration:    duration,
+			ObservedAt:        at,
+		},
+		kind:      kind,
+		operation: op,
+	})
 }
 
 // TryPublishSource takes ownership of an immutable, committed source fact.
 // All source facts are eligible because one can affect multiple sampled targets.
 func (r *Recorder) TryPublishSource(event marshaler.Event) {
 	if r != nil && event != nil {
-		r.enqueue(r.ctx, publication{event: event})
+		r.enqueue(r.ctx, outboundEvent{event: event})
 	}
 }
 
-func (r *Recorder) enqueue(ctx context.Context, item publication) {
+func (r *Recorder) enqueue(ctx context.Context, item outboundEvent) {
 	r.admission.RLock()
 	defer r.admission.RUnlock()
 
 	if r.ctx.Err() != nil {
-		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeStopped)
+		r.eventMetrics.Record(ctx, item.kind, item.operation, rtemetrics.ProducerEventOutcomeStopped)
 		return
 	}
 
 	select {
 	case r.queue <- item:
 	default:
-		r.publications.Record(ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeQueueFull)
+		r.eventMetrics.Record(ctx, item.kind, item.operation, rtemetrics.ProducerEventOutcomeQueueFull)
 	}
 }
 
@@ -163,7 +173,7 @@ func (r *Recorder) run() {
 		r.admission.Unlock()
 
 		for item := range r.queue {
-			r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeStopped)
+			r.eventMetrics.Record(r.ctx, item.kind, item.operation, rtemetrics.ProducerEventOutcomeStopped)
 		}
 
 		close(r.done)
@@ -175,12 +185,12 @@ func (r *Recorder) run() {
 			return
 		case item := <-r.queue:
 			if r.ctx.Err() != nil {
-				r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeStopped)
+				r.eventMetrics.Record(r.ctx, item.kind, item.operation, rtemetrics.ProducerEventOutcomeStopped)
 				return
 			}
 
 			if event, ok := item.event.(rte.BalanceComparisonEvent); ok && time.Since(event.ObservedAt) >= rte.ComparisonObservationTTL {
-				r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeExpired)
+				r.eventMetrics.Record(r.ctx, item.kind, item.operation, rtemetrics.ProducerEventOutcomeExpired)
 				continue
 			}
 
@@ -190,13 +200,13 @@ func (r *Recorder) run() {
 			err := r.config.Publish(ctx, item.event)
 			cancel()
 			if err != nil {
-				r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomeFailed)
+				r.eventMetrics.Record(r.ctx, item.kind, item.operation, rtemetrics.ProducerEventOutcomeFailed)
 				r.config.Logger.DebugContext(r.ctx, "publish RTE comparison event", "error", err)
 
 				continue
 			}
 
-			r.publications.Record(r.ctx, item.kind, item.operation, rtemetrics.PublicationOutcomePublished)
+			r.eventMetrics.Record(r.ctx, item.kind, item.operation, rtemetrics.ProducerEventOutcomePublished)
 		}
 	}
 }

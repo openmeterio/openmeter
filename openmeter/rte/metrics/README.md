@@ -26,7 +26,7 @@ inside the measured operation.
 | `rte.upstream.lag` | Histogram / s | `event` | Time from the CloudEvent's publication timestamp to handling, when that timestamp exists. Does not measure the age of the underlying usage. |
 | `rte.upstream.routing.duration` | Histogram / s | `event`, `outcome` | Target resolution and invalidation, after any stored-usage visibility wait. Includes routing that finds no target. |
 | `rte.rating.lookups` | Counter | `outcome` | With `rte.reuseRatingTotals` enabled, per-charge rating reuse: `hit` or `miss`. Fresh usage is still queried before lookup; a hit only avoids rating work. |
-| `rte.comparison.publications` | Counter | `event`, `kind`, `operation`, `outcome` | Producer-side observation/source publication outcomes. `event` is `observation` or `source`; source facts have empty `kind` and `operation`. |
+| `rte.comparison.publications` | Counter | `event`, `kind`, `operation`, `outcome` | Counts observations and source events by producer outcome, including skips and drops before publishing. `event` is `observation` or `source`; source facts have empty `kind` and `operation`. |
 | `rte.comparison.executions` | Counter | `kind`, `operation`, `outcome` | Worker-side shadow replays: `success`, `error` or `expired`. |
 | `rte.comparison.duration` | Histogram / ms | `kind`, `operation`, `variant` | Paired successful production and RTE timings, with `variant=direct` and `variant=rte`. |
 | `rte.comparison.lag` | Histogram / ms | `kind`, `operation` | Delay from completion of the production observation to worker handling, including observations that have expired. |
@@ -39,7 +39,7 @@ starts are excluded.
 Calculation outcomes do not prove that an enclosing demand transaction committed
 or that Kafka delivered the update.
 
-## Demand and publication outcomes
+## Demand and producer event outcomes
 
 | `rte.demand.operations` operation | Outcomes |
 | --- | --- |
@@ -52,7 +52,7 @@ also increment `process`; do not sum the two to count requests. `routed` upstrea
 events can still match zero active keys.
 Several dirty events can share one calculation.
 
-Publication outcomes are `published`, `failed`, `queue_full`, `stopped`, `expired`,
+Producer event outcomes are `published`, `failed`, `queue_full`, `stopped`, `expired`,
 `sampled_out` and `invalid`. `published` means the publisher returned successfully,
 not that the worker processed the message. Only observations are sampled or expire;
 source facts are eligible regardless of sampling. Sampling exclusions are expected,

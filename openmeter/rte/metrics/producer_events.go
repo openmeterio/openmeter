@@ -9,36 +9,36 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte"
 )
 
-type PublicationOutcome string
+type ProducerEventOutcome string
 
 const (
-	PublicationOutcomeInvalid    PublicationOutcome = "invalid"
-	PublicationOutcomeSampledOut PublicationOutcome = "sampled_out"
-	PublicationOutcomeStopped    PublicationOutcome = "stopped"
-	PublicationOutcomeQueueFull  PublicationOutcome = "queue_full"
-	PublicationOutcomeExpired    PublicationOutcome = "expired"
-	PublicationOutcomeFailed     PublicationOutcome = "failed"
-	PublicationOutcomePublished  PublicationOutcome = "published"
+	ProducerEventOutcomeInvalid    ProducerEventOutcome = "invalid"
+	ProducerEventOutcomeSampledOut ProducerEventOutcome = "sampled_out"
+	ProducerEventOutcomeStopped    ProducerEventOutcome = "stopped"
+	ProducerEventOutcomeQueueFull  ProducerEventOutcome = "queue_full"
+	ProducerEventOutcomeExpired    ProducerEventOutcome = "expired"
+	ProducerEventOutcomeFailed     ProducerEventOutcome = "failed"
+	ProducerEventOutcomePublished  ProducerEventOutcome = "published"
 )
 
-// Publications records producer-side sampling, drops and publication results.
+// ProducerEvents counts observations and source events by their outcome on the producer.
 // Successful publication does not imply the worker has handled the event.
-type Publications struct {
+type ProducerEvents struct {
 	attempts metric.Int64Counter
 }
 
-func NewPublications(meter metric.Meter) (*Publications, error) {
+func NewProducerEvents(meter metric.Meter) (*ProducerEvents, error) {
 	attempts, err := meter.Int64Counter("rte.comparison.publications", metric.WithDescription("Observation and source event delivery attempts by outcome"))
 	if err != nil {
 		return nil, err
 	}
 
-	return &Publications{attempts: attempts}, nil
+	return &ProducerEvents{attempts: attempts}, nil
 }
 
 // Record counts observations by kind and operation. Source facts have neither;
 // one fact can affect multiple kinds and is recorded with event=source.
-func (m *Publications) Record(ctx context.Context, kind rte.CalculationKind, operation rte.ComparisonOperation, outcome PublicationOutcome) {
+func (m *ProducerEvents) Record(ctx context.Context, kind rte.CalculationKind, operation rte.ComparisonOperation, outcome ProducerEventOutcome) {
 	event := "observation"
 	if operation == "" {
 		event = "source"
