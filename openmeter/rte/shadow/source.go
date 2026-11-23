@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -59,7 +60,7 @@ type observedMeteredValues struct {
 
 func (s observedMeteredValues) GetValue(ctx context.Context, ent *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	var record func(context.Context, models.NamespacedID, time.Duration)
-	switch entitlement.CurrentValueOperationFromContext(ctx) {
+	switch entitlementmetrics.GetMetricsContext(ctx).Operation {
 	case entitlement.CurrentValueOperationRead:
 		record = s.observer.ObserveMeteredRead
 	case entitlement.CurrentValueOperationCalculate:

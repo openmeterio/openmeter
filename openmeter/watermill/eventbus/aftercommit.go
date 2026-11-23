@@ -8,13 +8,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-// AfterCommitPublisher observes committed source changes for a best-effort consumer.
-// The event must be immutable once submitted.
-type AfterCommitPublisher func(context.Context, marshaler.Event)
+// AfterCommitEnqueuer registers a best-effort enqueue callback on the current
+// transaction. The event must remain immutable after registration.
+type AfterCommitEnqueuer func(context.Context, marshaler.Event)
 
-// NewAfterCommitPublisher waits for the outer transaction to commit before handing
-// the event to enqueue. enqueue must be nonblocking because it runs on the writer.
-func NewAfterCommitPublisher(enqueue func(marshaler.Event), logger *slog.Logger) AfterCommitPublisher {
+// NewAfterCommitEnqueuer calls enqueue only after the outer transaction commits.
+// The callback runs on the writer and must return without waiting for delivery or
+// retrying a failed enqueue. Registration failures are logged and the event is
+// skipped. Neither registration nor delivery errors propagate to the writer.
+func NewAfterCommitEnqueuer(enqueue func(marshaler.Event), logger *slog.Logger) AfterCommitEnqueuer {
 	return func(ctx context.Context, event marshaler.Event) {
 		tx, err := entutils.GetDriverFromContext(ctx)
 		if err == nil {

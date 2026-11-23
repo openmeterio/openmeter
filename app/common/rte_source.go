@@ -7,10 +7,19 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
-func NewRTESourcePublisher(recorder *shadow.Recorder, logger *slog.Logger) eventbus.AfterCommitPublisher {
+// RTESourcePublisherWithMetrics sends committed facts through the RTE recorder.
+// The recorder counts sends, failures and drops on its best-effort queue.
+// Business events use the durable outbox and have a separate delivery lifecycle.
+type RTESourcePublisherWithMetrics struct {
+	EnqueueAfterCommit eventbus.AfterCommitEnqueuer
+}
+
+func NewRTESourcePublisherWithMetrics(recorder *shadow.Recorder, logger *slog.Logger) RTESourcePublisherWithMetrics {
 	if recorder == nil {
-		return nil
+		return RTESourcePublisherWithMetrics{}
 	}
 
-	return eventbus.NewAfterCommitPublisher(recorder.TryPublishSource, logger)
+	return RTESourcePublisherWithMetrics{
+		EnqueueAfterCommit: eventbus.NewAfterCommitEnqueuer(recorder.TryPublishSource, logger),
+	}
 }

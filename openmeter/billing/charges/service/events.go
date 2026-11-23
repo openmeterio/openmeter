@@ -11,6 +11,6 @@ import (
 
 func (s *service) publishCustomerChargesChanged(ctx context.Context, owners []customer.CustomerID) {
 	for _, owner := range lo.Uniq(owners) {
-		s.customerChargesChangedPublisher(ctx, charges.CustomerChargesChangedEvent{Namespace: owner.Namespace, CustomerID: owner.ID})
+		s.rteSourcePublisherWithMetrics(ctx, charges.CustomerChargesChangedEvent{Namespace: owner.Namespace, CustomerID: owner.ID})
 	}
 }

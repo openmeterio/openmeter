@@ -62,8 +62,8 @@ With `rte.enabled`, root `Create` and `ApplyPatches` report
 `CustomerChargesChangedEvent` per affected customer after the outer transaction
 commits. Several charges in one batch can affect the same customer's balances.
 The event identifies the customer so RTE can refresh every tracked currency and feature
-scope, including pending purchases before any ledger posting. The publisher can drop
-the event if its queue is full or delivery fails. Direct writes
+scope, including pending purchases before any ledger posting. The RTE publisher records sends, failures and drops through the replay recorder.
+It bypasses the business outbox, so a full queue or a failed send can lose the notification. Direct writes
 through concrete charge services or adapters and later payment/invoice lifecycle
 transitions do not emit this fact. A later ledger posting may invalidate the balance. For changes with
 no source event, callers can bound reuse with a maximum age on freshness requests.

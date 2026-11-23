@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	entitlementservice "github.com/openmeterio/openmeter/openmeter/entitlement/service"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte/shadow"
@@ -131,8 +132,12 @@ func TestCurrentMeteredOperations(t *testing.T) {
 
 	// When read, calculated by the worker, or explicitly evaluated at the same time.
 	at := time.Now()
-	read := entitlement.CurrentValueOperationRead.WithContext(t.Context())
-	calculate := entitlement.CurrentValueOperationCalculate.WithContext(t.Context())
+	read := entitlementmetrics.WithMetricsContext(t.Context(), entitlementmetrics.MetricsContext{
+		Operation: entitlement.CurrentValueOperationRead,
+	})
+	calculate := entitlementmetrics.WithMetricsContext(t.Context(), entitlementmetrics.MetricsContext{
+		Operation: entitlement.CurrentValueOperationCalculate,
+	})
 	for _, ctx := range []context.Context{read, calculate, t.Context()} {
 		value, err := svc.GetEntitlementValue(ctx, id.Namespace, "customer", "storage", at)
 		require.NoError(t, err)

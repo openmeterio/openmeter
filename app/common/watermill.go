@@ -32,7 +32,7 @@ var WatermillNoPublisher = wire.NewSet(
 
 	NewDeploymentEventBusPublisher,
 	NewRTEReplayRecorder,
-	NewRTESourcePublisher,
+	NewRTESourcePublisherWithMetrics,
 )
 
 var WatermillRouter = wire.NewSet(

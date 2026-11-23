@@ -45,7 +45,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subscription/validators/itemreference"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -393,24 +392,24 @@ func NewChargesService(
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
 	fsNamespaceLockdown []string,
-	customerChargesChangedPublisher eventbus.AfterCommitPublisher,
+	rteSourcePublisherWithMetrics RTESourcePublisherWithMetrics,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
-		CustomerChargesChangedPublisher: customerChargesChangedPublisher,
-		Logger:                          logger,
-		Adapter:                         rootAdapter,
-		MetaAdapter:                     metaAdapter,
-		FeatureMeterResolver:            featureMeterResolver,
-		FlatFeeService:                  flatFeeSvc,
-		CreditPurchaseService:           creditPurchaseSvc,
-		UsageBasedService:               usageBasedSvc,
-		BillingService:                  billingService,
-		RecognizerService:               recognizerService,
-		TaxCodeService:                  taxCodeService,
-		CurrencyResolver:                currencyResolver,
-		CustomerService:                 customerService,
-		SubscriptionService:             subscriptionService,
-		FSNamespaceLockdown:             fsNamespaceLockdown,
+		RTESourcePublisherWithMetrics: rteSourcePublisherWithMetrics.EnqueueAfterCommit,
+		Logger:                        logger,
+		Adapter:                       rootAdapter,
+		MetaAdapter:                   metaAdapter,
+		FeatureMeterResolver:          featureMeterResolver,
+		FlatFeeService:                flatFeeSvc,
+		CreditPurchaseService:         creditPurchaseSvc,
+		UsageBasedService:             usageBasedSvc,
+		BillingService:                billingService,
+		RecognizerService:             recognizerService,
+		TaxCodeService:                taxCodeService,
+		CurrencyResolver:              currencyResolver,
+		CustomerService:               customerService,
+		SubscriptionService:           subscriptionService,
+		FSNamespaceLockdown:           fsNamespaceLockdown,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges service: %w", err)
@@ -464,7 +463,7 @@ func newChargesRegistry(
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
-	customerChargesChangedPublisher eventbus.AfterCommitPublisher,
+	rteSourcePublisherWithMetrics RTESourcePublisherWithMetrics,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {
@@ -618,7 +617,7 @@ func newChargesRegistry(
 		customerService,
 		subscriptionService,
 		fsNamespaceLockdown,
-		customerChargesChangedPublisher,
+		rteSourcePublisherWithMetrics,
 	)
 	if err != nil {
 		return nil, err

@@ -58,25 +58,25 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	s.Require().NoError(err)
 
 	var published int
-	publisher := eventbus.NewAfterCommitPublisher(func(event marshaler.Event) {
+	publisher := eventbus.NewAfterCommitEnqueuer(func(event marshaler.Event) {
 		published++
 		s.Require().NoError(pipeline.publisher.Publish(ctx, event))
 	}, logger)
 	writer, err := chargesservice.New(chargesservice.Config{
-		Logger:                          logger,
-		Adapter:                         adapter,
-		MetaAdapter:                     metaAdapter,
-		FeatureMeterResolver:            s.FeatureMeterResolver,
-		FlatFeeService:                  s.FlatFeeSvc,
-		CreditPurchaseService:           s.CreditPurchaseSvc,
-		UsageBasedService:               s.UsageBasedSvc,
-		RecognizerService:               s.RevenueRecognizer,
-		BillingService:                  s.BillingService,
-		TaxCodeService:                  s.TaxCodeEnv.Service,
-		CurrencyResolver:                s.CurrencyResolver,
-		CustomerService:                 s.CustomerService,
-		SubscriptionService:             &chargestestutils.FakeSubscriptionService{},
-		CustomerChargesChangedPublisher: publisher,
+		Logger:                        logger,
+		Adapter:                       adapter,
+		MetaAdapter:                   metaAdapter,
+		FeatureMeterResolver:          s.FeatureMeterResolver,
+		FlatFeeService:                s.FlatFeeSvc,
+		CreditPurchaseService:         s.CreditPurchaseSvc,
+		UsageBasedService:             s.UsageBasedSvc,
+		RecognizerService:             s.RevenueRecognizer,
+		BillingService:                s.BillingService,
+		TaxCodeService:                s.TaxCodeEnv.Service,
+		CurrencyResolver:              s.CurrencyResolver,
+		CustomerService:               s.CustomerService,
+		SubscriptionService:           &chargestestutils.FakeSubscriptionService{},
+		RTESourcePublisherWithMetrics: publisher,
 	})
 	s.Require().NoError(err)
 

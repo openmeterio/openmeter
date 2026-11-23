@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
@@ -187,8 +188,10 @@ func (w *Worker) processEntitlementEntity(ctx context.Context, entitlementEntity
 		return snap, nil
 	}
 
-	ctx = entitlement.CurrentValueOperationCalculate.WithContext(ctx)
-	snap, err := w.createSnapshotEvent(ctx, entitlementEntity, calculatedAt, opts)
+	metricsCtx := entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+		Operation: entitlement.CurrentValueOperationCalculate,
+	})
+	snap, err := w.createSnapshotEvent(metricsCtx, entitlementEntity, calculatedAt, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
 	}

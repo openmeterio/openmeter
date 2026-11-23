@@ -40,11 +40,11 @@ func (s *RTEIntegrationSuite) TestLedgerSourceFactFollowsPostingCommit() {
 	cust := s.CreateLedgerBackedCustomer(ns, "rte-ledger-customer")
 	logger := testutils.NewDiscardLogger(s.T())
 	var published []marshaler.Event
-	publisher := eventbus.NewAfterCommitPublisher(func(event marshaler.Event) {
+	publisher := eventbus.NewAfterCommitEnqueuer(func(event marshaler.Event) {
 		published = append(published, event)
 	}, logger)
 	writer := historical.NewLedger(historicaladapter.NewRepo(s.DBClient), s.LedgerAccountService, s.LedgerAccountService,
-		routingrules.DefaultValidator, historical.WithSourcePublisher(publisher))
+		routingrules.DefaultValidator, historical.WithRTESourcePublisher(publisher))
 	inputs, err := transactions.ResolveTransactions(ctx, transactions.ResolverDependencies{
 		AccountService: s.LedgerResolver,
 		AccountCatalog: s.LedgerAccountService,

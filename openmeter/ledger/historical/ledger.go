@@ -45,16 +45,16 @@ type Ledger struct {
 	accountLocker  ledger.AccountLocker
 	repo           Repo
 
-	routingValidator ledger.RoutingValidator
-	writerBuild      WriterBuild
-	publisher        eventbus.AfterCommitPublisher
+	routingValidator   ledger.RoutingValidator
+	writerBuild        WriterBuild
+	rteSourcePublisher eventbus.AfterCommitEnqueuer
 }
 
 type Option func(*Ledger)
 
-// WithSourcePublisher reports posting groups after their transaction commits.
-func WithSourcePublisher(publisher eventbus.AfterCommitPublisher) Option {
-	return func(l *Ledger) { l.publisher = publisher }
+// WithRTESourcePublisher reports posting groups after their transaction commits.
+func WithRTESourcePublisher(publisher eventbus.AfterCommitEnqueuer) Option {
+	return func(l *Ledger) { l.rteSourcePublisher = publisher }
 }
 
 // NewLedger constructs a Ledger with the given repo and account collaborators.
@@ -151,8 +151,8 @@ func (l *Ledger) CommitGroup(ctx context.Context, group ledger.TransactionGroupI
 			txGroup.transactions = append(txGroup.transactions, tx)
 		}
 
-		if l.publisher != nil {
-			l.publisher(ctx, ledger.TransactionGroupCommittedEvent{Namespace: group.Namespace(), GroupID: txG.ID})
+		if l.rteSourcePublisher != nil {
+			l.rteSourcePublisher(ctx, ledger.TransactionGroupCommittedEvent{Namespace: group.Namespace(), GroupID: txG.ID})
 		}
 
 		return txGroup, nil

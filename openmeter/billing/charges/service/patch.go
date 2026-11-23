@@ -47,7 +47,7 @@ func (s *service) ApplyPatches(ctx context.Context, input charges.ApplyPatchesIn
 			}
 		}
 
-		if s.customerChargesChangedPublisher != nil && len(input.PatchesByChargeID) > 0 {
+		if s.rteSourcePublisherWithMetrics != nil && len(input.PatchesByChargeID) > 0 {
 			// A nested create for this owner already announces the whole committed
 			// change. Creates may target other customers, so check their owners.
 			announced := false

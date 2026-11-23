@@ -412,14 +412,14 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	afterCommitPublisher := common.NewRTESourcePublisher(recorder, logger)
+	rteSourcePublisherWithMetrics := common.NewRTESourcePublisherWithMetrics(recorder, logger)
 	repo := common.NewLedgerHistoricalRepo(client)
 	accountRepo := common.NewLedgerAccountRepo(client)
 	accountService := common.NewLedgerAccountService(creditsConfiguration, accountRepo, locker)
 	accountCatalog := common.NewLedgerAccountCatalog(accountService)
 	accountLocker := common.NewLedgerAccountLocker(accountService)
 	routingValidator := common.NewLedgerRoutingValidator()
-	ledgerReadWriter := common.NewLedgerHistoricalLedgerWithSourceEvents(commonMetadata, creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator, afterCommitPublisher)
+	ledgerReadWriter := common.NewLedgerHistoricalLedgerWithSourceEvents(commonMetadata, creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator, rteSourcePublisherWithMetrics)
 	ledger := common.NewLedgerService(ledgerReadWriter)
 	balanceQuerier := common.NewLedgerBalanceQuerier(ledgerReadWriter)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
@@ -438,7 +438,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, validator, client, billingFeatureSwitchesConfiguration, creditsConfiguration, afterCommitPublisher, tracer, taxcodeService, taxCodeResolver, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
+	billingRegistry, err := common.NewBillingRegistry(logger, service, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, validator, client, billingFeatureSwitchesConfiguration, creditsConfiguration, rteSourcePublisherWithMetrics, tracer, taxcodeService, taxCodeResolver, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, accountService, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup9()
 		cleanup8()

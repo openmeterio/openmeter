@@ -13,6 +13,7 @@ import (
 	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -247,7 +248,9 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 			}
 
 			if request.current {
-				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
+				ctx = entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+					Operation: entitlement.CurrentValueOperationRead,
+				})
 			}
 
 			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)

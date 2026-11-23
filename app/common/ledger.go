@@ -23,7 +23,6 @@ import (
 	resolversadapter "github.com/openmeterio/openmeter/openmeter/ledger/resolvers/adapter"
 	"github.com/openmeterio/openmeter/openmeter/ledger/routingrules"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
@@ -103,7 +102,7 @@ func NewLedgerHistoricalLedgerWithMetadata(
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
 ) ledgerReadWriter {
-	return NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfig, repo, accountCatalog, accountLocker, routingValidator, nil)
+	return NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfig, repo, accountCatalog, accountLocker, routingValidator, RTESourcePublisherWithMetrics{})
 }
 
 func NewLedgerHistoricalLedgerWithSourceEvents(
@@ -113,15 +112,15 @@ func NewLedgerHistoricalLedgerWithSourceEvents(
 	accountCatalog ledger.AccountCatalog,
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
-	publisher eventbus.AfterCommitPublisher,
+	rteSourcePublisherWithMetrics RTESourcePublisherWithMetrics,
 ) ledgerReadWriter {
 	if !creditsConfig.Enabled {
 		return ledgernoop.Ledger{}
 	}
 
 	var options []historical.Option
-	if publisher != nil {
-		options = append(options, historical.WithSourcePublisher(publisher))
+	if rteSourcePublisherWithMetrics.EnqueueAfterCommit != nil {
+		options = append(options, historical.WithRTESourcePublisher(rteSourcePublisherWithMetrics.EnqueueAfterCommit))
 	}
 
 	return historical.NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, historical.WriterBuild{

@@ -42,8 +42,8 @@ type service struct {
 	customerService     customer.Service
 	subscriptionService charges.SubscriptionService
 
-	fsNamespaceLockdown             []string
-	customerChargesChangedPublisher eventbus.AfterCommitPublisher
+	fsNamespaceLockdown           []string
+	rteSourcePublisherWithMetrics eventbus.AfterCommitEnqueuer
 }
 
 type Config struct {
@@ -67,8 +67,9 @@ type Config struct {
 	SubscriptionService charges.SubscriptionService
 
 	FSNamespaceLockdown []string
-	// CustomerChargesChangedPublisher notifies balance consumers after the charge transaction commits.
-	CustomerChargesChangedPublisher eventbus.AfterCommitPublisher
+	// RTESourcePublisherWithMetrics reports committed charge changes and records RTE delivery outcomes.
+	// A full queue or failed send can drop the event without failing the charge write.
+	RTESourcePublisherWithMetrics eventbus.AfterCommitEnqueuer
 }
 
 func (c Config) Validate() error {
@@ -143,22 +144,22 @@ func New(config Config) (*service, error) {
 	}
 
 	svc := &service{
-		logger:                          config.Logger,
-		adapter:                         config.Adapter,
-		billingService:                  config.BillingService,
-		invoiceUpdater:                  invoiceUpdater,
-		featureMeterResolver:            config.FeatureMeterResolver,
-		metaAdapter:                     config.MetaAdapter,
-		flatFeeService:                  config.FlatFeeService,
-		creditPurchaseService:           config.CreditPurchaseService,
-		usageBasedService:               config.UsageBasedService,
-		recognizerService:               config.RecognizerService,
-		taxCodeService:                  config.TaxCodeService,
-		currencyResolver:                config.CurrencyResolver,
-		customerService:                 config.CustomerService,
-		subscriptionService:             config.SubscriptionService,
-		fsNamespaceLockdown:             config.FSNamespaceLockdown,
-		customerChargesChangedPublisher: config.CustomerChargesChangedPublisher,
+		logger:                        config.Logger,
+		adapter:                       config.Adapter,
+		billingService:                config.BillingService,
+		invoiceUpdater:                invoiceUpdater,
+		featureMeterResolver:          config.FeatureMeterResolver,
+		metaAdapter:                   config.MetaAdapter,
+		flatFeeService:                config.FlatFeeService,
+		creditPurchaseService:         config.CreditPurchaseService,
+		usageBasedService:             config.UsageBasedService,
+		recognizerService:             config.RecognizerService,
+		taxCodeService:                config.TaxCodeService,
+		currencyResolver:              config.CurrencyResolver,
+		customerService:               config.CustomerService,
+		subscriptionService:           config.SubscriptionService,
+		fsNamespaceLockdown:           config.FSNamespaceLockdown,
+		rteSourcePublisherWithMetrics: config.RTESourcePublisherWithMetrics,
 	}
 
 	standardInvoiceEventHandler := &standardInvoiceEventHandler{

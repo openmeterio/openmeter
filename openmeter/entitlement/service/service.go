@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
@@ -366,7 +367,10 @@ func (c *service) GetAccess(ctx context.Context, namespace string, customerId st
 
 	var result sync.Map
 
-	g, ctx := errgroup.WithContext(entitlement.CurrentValueOperationRead.WithContext(ctx))
+	g, ctx := errgroup.WithContext(ctx)
+	metricsCtx := entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+		Operation: entitlement.CurrentValueOperationRead,
+	})
 
 	// Let's limit concurrency
 	const maxConcurrency = 10 // TODO: Make this configurable
@@ -388,7 +392,7 @@ func (c *service) GetAccess(ctx context.Context, namespace string, customerId st
 			defer sem.Release(weight)
 
 			// Get the entitlement value
-			entValue, err := c.GetEntitlementValue(ctx, namespace, customerId, entit.ID, now)
+			entValue, err := c.GetEntitlementValue(metricsCtx, namespace, customerId, entit.ID, now)
 			if err != nil {
 				return fmt.Errorf("failed to get entitlement value for ID %s: %w", entit.ID, err)
 			}

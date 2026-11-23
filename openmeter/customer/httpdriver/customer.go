@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -437,7 +438,9 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
 			if request.current {
-				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
+				ctx = entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+					Operation: entitlement.CurrentValueOperationRead,
+				})
 			}
 
 			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)
@@ -498,7 +501,9 @@ func (h *handler) GetCustomerEntitlementValueV2() GetCustomerEntitlementValueV2H
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueV2Response, error) {
 			if request.current {
-				ctx = entitlement.CurrentValueOperationRead.WithContext(ctx)
+				ctx = entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+					Operation: entitlement.CurrentValueOperationRead,
+				})
 			}
 
 			val, err := h.entitlementService.GetEntitlementValue(ctx, request.CustomerID.Namespace, request.CustomerID.ID, request.FeatureKey, request.At)

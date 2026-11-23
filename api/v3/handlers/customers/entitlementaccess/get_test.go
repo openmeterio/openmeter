@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -79,7 +80,7 @@ func TestGetCustomerEntitlementAccessHandler(t *testing.T) {
 	capture := func(received *entitlement.GetCustomerEntitlementAccessInput, current bool) fakeEntitlementService {
 		return fakeEntitlementService{
 			get: func(ctx context.Context, input entitlement.GetCustomerEntitlementAccessInput) (entitlement.CustomerEntitlementAccess, error) {
-				require.Equal(t, current, entitlement.CurrentValueOperationFromContext(ctx) == entitlement.CurrentValueOperationRead)
+				require.Equal(t, current, entitlementmetrics.GetMetricsContext(ctx).Operation == entitlement.CurrentValueOperationRead)
 				*received = input
 
 				return entitlement.CustomerEntitlementAccess{FeatureKey: testFeatureKey, Type: entitlement.EntitlementTypeBoolean, Value: &booleanentitlement.BooleanEntitlementValue{}}, nil

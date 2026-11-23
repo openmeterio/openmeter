@@ -309,7 +309,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 			return nil, err
 		}
 
-		if s.customerChargesChangedPublisher != nil {
+		if s.rteSourcePublisherWithMetrics != nil {
 			owners := make([]customer.CustomerID, 0, len(result))
 			for _, charge := range result {
 				owner, err := charge.GetCustomerID()

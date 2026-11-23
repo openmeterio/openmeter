@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/app/common"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/ledger/historical"
 	historicaladapter "github.com/openmeterio/openmeter/openmeter/ledger/historical/adapter"
@@ -71,7 +72,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 	defer closeRecorder()
 
 	postingLedger := historical.NewLedger(historicaladapter.NewRepo(s.DBClient), s.LedgerAccountService,
-		s.LedgerAccountService, routingrules.DefaultValidator, historical.WithSourcePublisher(common.NewRTESourcePublisher(recorder, logger)))
+		s.LedgerAccountService, routingrules.DefaultValidator, historical.WithRTESourcePublisher(common.NewRTESourcePublisherWithMetrics(recorder, logger).EnqueueAfterCommit))
 
 	s.Run("product reads create demand and emit paired timings", func() {
 		t := s.T()
@@ -118,7 +119,10 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 
 		// When the API and balance worker each invoke the calculator.
 		for _, operation := range []entitlement.CurrentValueOperation{entitlement.CurrentValueOperationRead, entitlement.CurrentValueOperationCalculate} {
-			_, err := source.GetValue(operation.WithContext(ctx), fixture.entitlement, time.Now())
+			ctx := entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+				Operation: operation,
+			})
+			_, err := source.GetValue(ctx, fixture.entitlement, time.Now())
 			require.NoError(t, err)
 		}
 

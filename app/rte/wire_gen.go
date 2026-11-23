@@ -135,8 +135,8 @@ func Initialize(ctx context.Context, conf config.Configuration, metadata common.
 		cleanup()
 		return Application{}, nil, err
 	}
-	afterCommitPublisher := common.NewRTESourcePublisher(recorder, logger)
-	ledgerReadWriter := common.NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator, afterCommitPublisher)
+	rteSourcePublisherWithMetrics := common.NewRTESourcePublisherWithMetrics(recorder, logger)
+	ledgerReadWriter := common.NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfiguration, repo, accountCatalog, accountLocker, routingValidator, rteSourcePublisherWithMetrics)
 	ledger := common.NewLedgerService(ledgerReadWriter)
 	balanceQuerier := common.NewLedgerBalanceQuerier(ledgerReadWriter)
 	customerAccountRepo := common.NewLedgerResolversRepo(client)
@@ -460,7 +460,7 @@ func Initialize(ctx context.Context, conf config.Configuration, metadata common.
 		cleanup()
 		return Application{}, nil, err
 	}
-	billingRegistry, err := common.NewBillingRegistry(logger, appService, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, validator, client, billingFeatureSwitchesConfiguration, creditsConfiguration, afterCommitPublisher, tracer, taxcodeService, taxCodeResolver, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, service, breakageService, featureGateChecker)
+	billingRegistry, err := common.NewBillingRegistry(logger, appService, adapter, ratingService, customerService, featureConnector, meterService, meter, connector, eventbusPublisher, billingConfiguration, subscriptionServiceWithWorkflow, validator, client, billingFeatureSwitchesConfiguration, creditsConfiguration, rteSourcePublisherWithMetrics, tracer, taxcodeService, taxCodeResolver, currencyResolver, currenciesService, locker, ledger, balanceQuerier, accountResolver, service, breakageService, featureGateChecker)
 	if err != nil {
 		cleanup10()
 		cleanup9()

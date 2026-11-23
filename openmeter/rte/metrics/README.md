@@ -59,6 +59,11 @@ while queue drops and failed delivery reduce coverage.
 
 ## Reading the performance comparison
 
+For metered entitlements, the API and balance worker mark current value calls with
+`entitlement/metrics.WithMetricsContext`. The shadow observer calls `GetMetricsContext`
+to select the replay. Historical lookups and reset snapshots are excluded, even when
+their evaluation time happens to equal the current time.
+
 Each successful replay records two durations with the same kind and operation. The direct
 sample is the original operation's elapsed time. The RTE sample measures the worker's replay.
 A read includes `EnsureFresh` and `Get`. A calculation includes storage and enqueueing an
