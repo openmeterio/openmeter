@@ -188,6 +188,7 @@ func TestListNotificationEventTypes(t *testing.T) {
 	t.Run("invalid cursors", func(t *testing.T) {
 		for name, page := range map[string]*apiv3models.CursorPaginationQuery{
 			"not base64":         {After: lo.ToPtr("not base64!")},
+			"not an event type":  {Before: lo.ToPtr(base64.StdEncoding.EncodeToString([]byte("invoice.created")))},
 			"unknown event type": {After: lo.ToPtr(base64.StdEncoding.EncodeToString([]byte("v1.unknown.type")))},
 			"after and before": {
 				After:  lo.ToPtr(base64.StdEncoding.EncodeToString([]byte("v1.billing.invoice.created"))),

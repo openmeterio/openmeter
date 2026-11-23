@@ -26,8 +26,8 @@ const defaultListNotificationEventTypesPageSize = 20
 
 type ListNotificationEventTypesRequest struct {
 	PageSize int
-	After    *string
-	Before   *string
+	After    *v4.EventType
+	Before   *v4.EventType
 	Type     *filter.FilterString
 }
 
@@ -67,12 +67,12 @@ func (h *handler) ListNotificationEventTypes() ListNotificationEventTypesHandler
 			// filter between pages does not invalidate it.
 			definitions := h.registry.EventTypes(nil)
 
-			position := func(cursor *string, field string) (int, error) {
+			position := func(cursor *v4.EventType, field string) (int, error) {
 				index := slices.IndexFunc(definitions, func(d v4.EventTypeDefinition) bool {
-					return d.EventType.String() == *cursor
+					return d.EventType == *cursor
 				})
 				if index < 0 {
-					return 0, apierrors.NewBadRequestError(ctx, fmt.Errorf("unknown event type in cursor: %s", *cursor), apierrors.InvalidParameters{
+					return 0, apierrors.NewBadRequestError(ctx, fmt.Errorf("unknown event type in cursor: %s", cursor), apierrors.InvalidParameters{
 						{Field: field, Reason: "the cursor does not point to a registered event type", Source: apierrors.InvalidParamSourceQuery},
 					})
 				}
@@ -143,8 +143,8 @@ func (h *handler) ListNotificationEventTypes() ListNotificationEventTypesHandler
 			var edges response.CursorPageEdges
 
 			if len(page) > 0 {
-				edges.First = lo.ToPtr(encodeEventTypeCursor(page[0].EventType.String()))
-				edges.Last = lo.ToPtr(encodeEventTypeCursor(page[len(page)-1].EventType.String()))
+				edges.First = lo.ToPtr(encodeEventTypeCursor(page[0].EventType))
+				edges.Last = lo.ToPtr(encodeEventTypeCursor(page[len(page)-1].EventType))
 
 				if hasNext {
 					edges.Next = edges.Last
@@ -173,17 +173,24 @@ func (h *handler) ListNotificationEventTypes() ListNotificationEventTypesHandler
 	)
 }
 
-// Event type cursors are opaque to clients; they encode the event type at the
-// page edge.
-func encodeEventTypeCursor(eventType string) string {
-	return base64.StdEncoding.EncodeToString([]byte(eventType))
+// Event type cursors are opaque to clients; they encode the canonical form of
+// the event type at the page edge.
+func encodeEventTypeCursor(eventType v4.EventType) string {
+	return base64.StdEncoding.EncodeToString([]byte(eventType.String()))
 }
 
-func decodeEventTypeCursor(cursor string) (*string, error) {
+// decodeEventTypeCursor rejects a cursor that does not hold a canonical event
+// type, so the handler only has to check that the type is registered.
+func decodeEventTypeCursor(cursor string) (*v4.EventType, error) {
 	decoded, err := base64.StdEncoding.DecodeString(cursor)
-	if err != nil || len(decoded) == 0 {
+	if err != nil {
 		return nil, errors.New("invalid cursor")
 	}
 
-	return lo.ToPtr(string(decoded)), nil
+	eventType, err := v4.ParseEventType(string(decoded))
+	if err != nil {
+		return nil, errors.New("invalid cursor")
+	}
+
+	return &eventType, nil
 }
