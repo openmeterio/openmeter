@@ -157,6 +157,35 @@ func TestResolveCostBasisRequirements(t *testing.T) {
 		}, customCostBasisPairs(spec))
 	})
 
+	t.Run("each pair uses its earliest paid phase", func(t *testing.T) {
+		// Given two paid phases sharing one currency pair, with another pair
+		// introduced only in the later phase.
+		spec := newSpec(productcatalog.CreditThenInvoiceSettlementMode)
+		spec.Phases["default"].StartAfter = datetime.MustParseDuration(t, "P1M")
+		laterSpec := newSpec(productcatalog.CreditThenInvoiceSettlementMode)
+		laterPhase := laterSpec.Phases["default"]
+		laterPhase.PhaseKey = "later"
+		laterPhase.StartAfter = datetime.MustParseDuration(t, "P2M")
+		for _, items := range laterPhase.ItemsByKey {
+			items[0].PhaseKey = "later"
+		}
+
+		points := currenciestestutils.NewManagedCurrency(t, namespace, "01J00000000000000000000002", "POINTS")
+		laterPhase.ItemsByKey["two"][0].RateCard.(*productcatalog.FlatFeeRateCard).Currency = lo.ToPtr(points.Reference())
+		spec.Phases["later"] = laterPhase
+
+		// When the lookup times are collected, each pair retains its first
+		// paid phase regardless of the order in which phases are visited.
+		lookupTimes := customCostBasisPairs(spec)
+
+		// Then the shared pair uses the earlier phase, and the new pair uses
+		// the later phase.
+		require.Equal(t, map[costBasisPair]time.Time{
+			{customCurrencyID: customCurrencyID, invoiceCurrency: "USD"}: at.AddDate(0, 1, 0),
+			{customCurrencyID: points.ID, invoiceCurrency: "USD"}:        at.AddDate(0, 2, 0),
+		}, lookupTimes)
+	})
+
 	t.Run("missing cost basis is a validation error", func(t *testing.T) {
 		// given:
 		// - a credit-then-invoice subscription without an effective mapping
