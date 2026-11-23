@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -433,7 +434,8 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
 	namespace := "ns-simulate-taxconfig"
 	ctx := s.T().Context()
 
-	// given: a customer with a billing profile and a known Stripe-mapped tax code
+	// given: a customer with a billing profile whose default is its own Tax Code, and a known
+	// Stripe-mapped tax code
 	appSandbox := s.InstallSandboxApp(s.T(), namespace)
 
 	cust, err := s.CustomerService.CreateCustomer(ctx, customer.CreateCustomerInput{
@@ -447,7 +449,11 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
 	})
 	s.Require().NoError(err)
 
-	s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
+	profile := s.ProvisionBillingProfile(ctx, namespace, appSandbox.GetID())
+	defaultTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
+	s.SeedProfileDefaultTaxConfigViaAdapter(ctx, profile.ProfileID(), &productcatalog.TaxCodeConfig{
+		TaxCodeID: defaultTaxCode.ID,
+	})
 
 	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 
@@ -497,14 +503,17 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
 		s.Equal(before, s.taxCodeCount(namespace))
 	})
 
-	s.Run("unknown stripe code creates nothing and renders no stripe code", func() {
-		// given: a line with a stripe.code no tax code maps to
+	s.Run("unknown stripe code creates nothing and renders the requested code, not the default", func() {
+		// given: a line with a stripe.code no tax code maps to, behavior included
 		before := s.taxCodeCount(namespace)
 
 		// when: the invoice is simulated
 		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
 			Currency: apiv1models.CurrencyCode(currency.USD),
-			Lines:    []apiv1models.InvoiceSimulationLine{s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "txcd_99000000"}})},
+			Lines: []apiv1models.InvoiceSimulationLine{s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{
+				Behavior: lo.ToPtr(apiv1models.TaxBehaviorExclusive),
+				Stripe:   &apiv1models.StripeTaxConfig{Code: "txcd_99000000"},
+			})},
 		})
 		s.Require().NoError(err)
 
@@ -512,14 +521,25 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
 		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
 		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
 
-		// then: the request succeeds and the line carries neither a tax code reference nor a stripe code:
-		// the domain line cannot hold a stripe code that maps to no Tax Code, so no tax config is rendered
+		// then: the line shows the requested code with no tax code reference, as creating it would
+		// make a new Tax Code for that code; it doesn't fall back to the profile default
 		s.Require().Equal(http.StatusOK, w.Code, w.Body.String())
 
 		var invoice apiv1models.Invoice
 		s.Require().NoError(json.Unmarshal(w.Body.Bytes(), &invoice))
 		s.Require().Len(lo.FromPtr(invoice.Lines), 1)
-		s.Nil((*invoice.Lines)[0].TaxConfig)
+
+		line := (*invoice.Lines)[0]
+		wantTaxConfig := &apiv1models.TaxConfig{
+			Behavior: lo.ToPtr(apiv1models.TaxBehaviorExclusive),
+			Stripe:   &apiv1models.StripeTaxConfig{Code: "txcd_99000000"},
+		}
+		s.Equal(wantTaxConfig, line.TaxConfig)
+		s.Require().NotNil(line.RateCard)
+		s.Equal(wantTaxConfig, line.RateCard.TaxConfig)
+		for _, child := range lo.FromPtr(line.Children) {
+			s.Equal(wantTaxConfig, child.TaxConfig)
+		}
 
 		s.Equal(before, s.taxCodeCount(namespace))
 	})

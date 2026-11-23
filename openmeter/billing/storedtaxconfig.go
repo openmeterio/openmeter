@@ -3,6 +3,8 @@ package billing
 import (
 	"fmt"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
@@ -39,18 +41,19 @@ func newStoredLineTaxConfig(cfg *productcatalog.TaxCodeConfig, taxCodes productc
 		return nil, nil
 	}
 
-	out := &StoredLineTaxConfig{Behavior: cfg.Behavior}
+	// Clone so the stored copy doesn't share the behavior pointer with the line it was built from.
+	cloned := cfg.Clone()
+	out := &StoredLineTaxConfig{Behavior: cloned.Behavior}
 
-	if cfg.TaxCodeID == "" {
+	if cloned.TaxCodeID == "" {
 		return out, nil
 	}
 
-	id := cfg.TaxCodeID
-	out.TaxCodeID = &id
+	out.TaxCodeID = lo.ToPtr(cloned.TaxCodeID)
 
-	tc, ok := taxCodes.Get(id)
+	tc, ok := taxCodes.Get(cloned.TaxCodeID)
 	if !ok {
-		return nil, fmt.Errorf("tax code %q not found", id)
+		return nil, fmt.Errorf("tax code %q not found", cloned.TaxCodeID)
 	}
 
 	if mapping, ok := tc.GetAppMapping(app.AppTypeStripe); ok {

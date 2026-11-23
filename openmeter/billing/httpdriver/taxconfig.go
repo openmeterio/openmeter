@@ -84,10 +84,11 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 
 // resolveSimulationLineTaxConfigs replaces each simulation line's stripe.code with the ID of the
 // Tax Code it maps to. Simulation must not write, so the lookup is read-only: an unknown code
-// leaves the line as sent, and the response shows it without stripe.code. A taxCodeId the
-// request sent must name a live Tax Code, like on create and update; otherwise rendering the
-// response would fail on it.
-func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalog.TransactionalTaxCodeResolver, namespace string, lines []apiv1models.InvoiceSimulationLine) error {
+// leaves the line as sent and is returned by line index, so the response can show the code the
+// request asked for. A taxCodeId the request sent must name a live Tax Code, like on create and
+// update; otherwise rendering the response would fail on it.
+func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalog.TransactionalTaxCodeResolver, namespace string, lines []apiv1models.InvoiceSimulationLine) (map[int]string, error) {
+	unresolved := map[int]string{}
 	var requestRefs []billing.RequestTaxCodeRef
 
 	for i := range lines {
@@ -95,7 +96,7 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 		// would hide a mismatch from the mapper's own check.
 		if lines[i].TaxConfig != nil && lines[i].RateCard != nil && lines[i].RateCard.TaxConfig != nil &&
 			!reflect.DeepEqual(*lines[i].TaxConfig, *lines[i].RateCard.TaxConfig) {
-			return billing.ValidationError{Err: fmt.Errorf("lines/%d: %w", i, errTaxConfigMismatch)}
+			return nil, billing.ValidationError{Err: fmt.Errorf("lines/%d: %w", i, errTaxConfigMismatch)}
 		}
 
 		raw := lineTaxConfig(lines[i].RateCard, lines[i].TaxConfig)
@@ -105,7 +106,7 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 
 		cfg, stripeCode, err := productcataloghttp.ParseAPITaxConfig(*raw)
 		if err != nil {
-			return billing.ValidationError{Err: err}
+			return nil, billing.ValidationError{Err: err}
 		}
 
 		// ParseAPITaxConfig leaves the stripe code empty when the request sent a taxCodeId, so
@@ -124,9 +125,10 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 			})
 			switch {
 			case taxcode.IsTaxCodeNotFoundError(err):
+				unresolved[i] = stripeCode
 				continue
 			case err != nil:
-				return &productcataloghttp.TaxCodeResolutionError{Err: err}
+				return nil, &productcataloghttp.TaxCodeResolutionError{Err: err}
 			}
 
 			cfg.TaxCodeID = tc.ID
@@ -143,9 +145,13 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 		}
 	}
 
-	return billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
+	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
 		Namespace:  namespace,
 		Resolver:   resolver,
 		References: requestRefs,
-	})
+	}); err != nil {
+		return nil, err
+	}
+
+	return unresolved, nil
 }

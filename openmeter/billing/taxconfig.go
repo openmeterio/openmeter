@@ -11,9 +11,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// MergeTaxConfigs merges two line tax configs with overrides taking precedence:
-// the override's Tax Code ID wins when non-empty, and the behavior coalesces
-// override → base. A nil override yields a clone of base and vice versa.
+// MergeTaxConfigs merges two line tax configs with overrides taking precedence: the override's
+// Tax Code ID wins when non-empty, and the behavior coalesces override → base. An override with
+// only a behavior inherits the base's Tax Code ID, so a line without its own Tax Code always gets
+// the invoice default's. A nil override yields a clone of base and vice versa.
 func MergeTaxConfigs(base, overrides *productcatalog.TaxCodeConfig) *productcatalog.TaxCodeConfig {
 	if base != nil && overrides != nil {
 		out := overrides.Clone()

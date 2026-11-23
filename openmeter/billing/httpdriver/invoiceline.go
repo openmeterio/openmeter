@@ -293,7 +293,7 @@ func mapSimulationLineToEntity(line apiv1models.InvoiceSimulationLine) (*billing
 
 	// resolveSimulationLineTaxConfigs rewrote the request's stripe.code to the Tax Code ID it
 	// maps to, so mapping the raw config needs no lookup. An unknown code stays unresolved and
-	// drops here, same as the response rendering it without stripe.code.
+	// drops here; the handler puts it back on the rendered line.
 	var taxConfig *productcatalog.TaxCodeConfig
 	if rateCardParsed.TaxConfig != nil {
 		cfg, _, err := productcataloghttp.ParseAPITaxConfig(*rateCardParsed.TaxConfig)
