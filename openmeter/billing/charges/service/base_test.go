@@ -572,8 +572,9 @@ func (s *BaseSuite) requireChargeCreationFailsWithoutCostBasisAtServiceStart(cur
 
 	// When the backdated charge is submitted, creation reports the missing rate.
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: currency.Namespace,
-		Intents:   charges.NewCreateChargeIntents(intent),
+		Namespace:    currency.Namespace,
+		Intents:      charges.NewCreateChargeIntents(intent),
+		ChangeSource: billing.ChangeSourceSystem,
 	})
 	var issue models.ValidationIssue
 	s.Require().ErrorAs(err, &issue)
