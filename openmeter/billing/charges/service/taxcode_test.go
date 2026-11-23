@@ -255,6 +255,63 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 	}
 }
 
+// A deprecated stripe.code is resolved in the same transaction as the charge create, so a create
+// that fails after the code was resolved doesn't leave a new Tax Code behind.
+func (s *TaxCodePersistenceTestSuite) TestCustomerChargeAPIFailedCreateLeavesNoBackfilledTaxCode() {
+	// given: a namespace without a Tax Code mapped to the Stripe code, and a customer ID that
+	// doesn't exist. The decoder doesn't look customers up, so the request only fails when the
+	// charge row is inserted, after the Stripe code was resolved.
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("customer-charge-api-tax-rollback")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	missingCustomerID := ulid.Make().String()
+
+	servicePeriod := apiv3models.ClosedPeriod{
+		From: time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC),
+	}
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	handler := chargehandlers.New(func(context.Context) (string, error) {
+		return ns, nil
+	}, s.Charges, s.TaxCodeResolver, false)
+
+	body, err := json.Marshal(map[string]any{
+		"type":                    meta.ChargeTypeFlatFee,
+		"name":                    "failed create",
+		"currency":                "USD",
+		"invoice_at":              servicePeriod.To,
+		"service_period":          servicePeriod,
+		"settlement_mode":         "credit_then_invoice",
+		"amount_before_proration": apiv3models.BillingCurrencyAmount{Amount: "10", Currency: "USD"},
+		"payment_term":            "in_arrears",
+		"proration_configuration": apiv3models.BillingRateCardProrationConfiguration{Mode: apiv3models.BillingRateCardProrationModeNoProration},
+		"tax_config":              apiv3models.BillingTaxConfig{Stripe: &apiv3models.BillingTaxConfigStripe{Code: "txcd_30000000"}},
+	})
+	s.Require().NoError(err)
+	request := httptest.NewRequestWithContext(ctx, http.MethodPost, "/api/v3/openmeter/customers/"+missingCustomerID+"/charges", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+
+	// when: the handler creates the charge for the missing customer
+	handler.CreateCustomerCharge().With(chargehandlers.CreateCustomerChargesParams{CustomerID: missingCustomerID}).ServeHTTP(response, request)
+
+	// then: the create fails on the missing customer and the Tax Code resolved for the Stripe
+	// code is rolled back with it
+	s.Require().Equal(http.StatusBadRequest, response.Code, response.Body.String())
+	s.Contains(response.Body.String(), "references a resource that does not exist")
+
+	_, err = s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: ns,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   "txcd_30000000",
+	})
+	s.True(taxcode.IsTaxCodeNotFoundError(err), "expected no Tax Code for the Stripe code, got: %v", err)
+}
+
 // TestFlatFeeChargePersistsTaxConfig verifies that TaxCodeID and TaxBehavior set on a flat fee
 // charge intent survive the create→read round-trip through the database.
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
