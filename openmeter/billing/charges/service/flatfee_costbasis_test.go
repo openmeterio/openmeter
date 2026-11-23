@@ -41,7 +41,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCo
 	// then:
 	// - each charge references its own persisted cost basis and its intent and resolved state survive the normal read path
 	ctx := s.T().Context()
-	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
@@ -134,7 +134,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetrySafe
 	// then:
 	// - the original persisted resolution is returned and remains unchanged
 	ctx := s.T().Context()
-	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
@@ -453,7 +453,7 @@ func (s *FlatFeeCostBasisCreateSuite) newFiatCurrency(code currencyx.Code) *curr
 	return fiatCurrency
 }
 
-func (s *FlatFeeCostBasisCreateSuite) newFlatFeeIntent(
+func (s *BaseSuite) newFlatFeeIntent(
 	customerID string,
 	currency currencies.Currency,
 	taxCodeID string,
