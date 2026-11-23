@@ -36,6 +36,7 @@ func main() {
 	ctx := context.Background()
 
 	config.SetViperDefaultsWithMetadata(v, flags, config.MetadataConfiguration{Revision: revision, Version: version})
+	v.SetDefault("events.outbox.drainAllRoles", true)
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")

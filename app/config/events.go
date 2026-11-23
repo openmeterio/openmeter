@@ -47,8 +47,9 @@ func (c EventsConfiguration) Validate() error {
 }
 
 type OutboxConfiguration struct {
-	MaxAttempts int
-	DrainLimit  int
+	DrainAllRoles bool
+	MaxAttempts   int
+	DrainLimit    int
 	// DrainTimeout limits starting new sends, not finishing in-flight work.
 	DrainTimeout     time.Duration
 	DrainConcurrency int
@@ -269,6 +270,7 @@ func ConfigureEvents(v *viper.Viper) {
 	v.SetDefault("events.systemEvents.topic", "om_sys.api_events")
 	v.SetDefault("events.systemEvents.autoProvision.enabled", true)
 	v.SetDefault("events.systemEvents.autoProvision.partitions", 4)
+	v.SetDefault("events.outbox.drainAllRoles", false)
 	v.SetDefault("events.outbox.drainLimit", 100)
 	v.SetDefault("events.outbox.drainTimeout", 30*time.Second)
 	v.SetDefault("events.outbox.drainConcurrency", 2)

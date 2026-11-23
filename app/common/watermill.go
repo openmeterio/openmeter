@@ -86,11 +86,16 @@ func NewDeploymentEventBusPublisher(
 	metadata Metadata,
 	logger *slog.Logger,
 ) (eventbus.Publisher, func(), error) {
-	if metadata.ServiceName == "" {
+	role := metadata.ServiceName
+	switch role {
+	case "":
 		return nil, nil, fmt.Errorf("service name is required for the outbox")
+	case "openmeter-backend", "openmeter-jobs":
+		// The backend delivers legacy rows and finishes delivery for short-lived jobs.
+		role = ""
 	}
 
-	return newEventBusPublisher(ctx, publisher, db, conf, metadata.ServiceName, logger)
+	return newEventBusPublisher(ctx, publisher, db, conf, role, logger)
 }
 
 // NewEventBusPublisher uses the default queue serviced by the backend.
@@ -109,20 +114,13 @@ func newEventBusPublisher(
 	publisher message.Publisher,
 	db *entdb.Client,
 	conf config.EventsConfiguration,
-	serviceName string,
+	role string,
 	logger *slog.Logger,
 ) (eventbus.Publisher, func(), error) {
-	drainAllRoles := serviceName == "openmeter-backend"
-	role := serviceName
-	if drainAllRoles || serviceName == "openmeter-jobs" {
-		// The backend and short-lived jobs write to the default queue.
-		role = ""
-	}
-
 	outboxPublisher, err := outbox.NewPublisher(ctx, outbox.Config{
 		DB:               db,
 		AppRole:          role,
-		DrainAllRoles:    drainAllRoles,
+		DrainAllRoles:    conf.Outbox.DrainAllRoles,
 		Publisher:        publisher,
 		OutboxTopics:     []string{conf.SystemEvents.Topic},
 		Logger:           logger,

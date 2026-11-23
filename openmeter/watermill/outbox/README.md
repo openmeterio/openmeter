@@ -18,11 +18,12 @@ removed, B's attempt count is persisted, and C waits for a later drain. Other
 transactions can progress. Once B reaches `maxAttempts`, it is logged and retained
 for inspection, skipped by future drains, and C can proceed. Raising the limit makes retained rows eligible again.
 
-Each row carries the producer's `app_role`. Workers normally drain their own
-role. The backend enables `DrainAllRoles` so it can deliver pending events even
-while the deployment that wrote them is offline. It still writes to the default
-(empty) queue shared with short-lived jobs and pre-migration rows. All drainers
-claim one role's rows at a time and only deliver their configured topics.
+Each row carries the producer's `app_role`. Set `events.outbox.drainAllRoles` to
+let a process deliver pending events from any role on its configured topics. The
+backend defaults to `true` so it can drain a deployment's queue while that
+deployment is offline. Other binaries default to `false` and drain their own role.
+This setting only affects delivery. The backend and short-lived jobs still write
+to the default (empty) queue, which also contains pre-migration rows.
 
 Apply the migration before rolling out the new binaries.
 

@@ -327,6 +327,7 @@ func TestComplete(t *testing.T) {
 		},
 		Events: EventsConfiguration{
 			Outbox: OutboxConfiguration{
+				DrainAllRoles:    true,
 				DrainLimit:       100,
 				MaxAttempts:      10,
 				DrainTimeout:     30 * time.Second,
