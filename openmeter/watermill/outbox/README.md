@@ -8,7 +8,7 @@ Other topics still publish directly.
 
 ## Delivery and ordering
 
-After commit, workers drain their deployment’s queue. They also retry periodically
+After commit, workers wake their local drainer. They also retry periodically
 (default: one minute). `events.outbox` configures drain limit, timeout, concurrency,
 retry interval, and `maxAttempts` (default: 10).
 
@@ -18,14 +18,13 @@ removed, B's attempt count is persisted, and C waits for a later drain. Other
 transactions can progress. Once B reaches `maxAttempts`, it is logged and retained
 for inspection, skipped by future drains, and C can proceed. Raising the limit makes retained rows eligible again.
 
-Each row carries the producer's `app_role`. Replicas with the same role share
-delivery and retries across their configured topics. A stopped deployment's
-backlog waits for one of its replicas to return. The backend owns the default
-(empty) role, including pre-migration rows and events from short-lived CLI jobs.
+Each row carries the producer's `app_role`. Workers normally drain their own
+role. The backend enables `DrainAllRoles` so it can deliver pending events even
+while the deployment that wrote them is offline. It still writes to the default
+(empty) queue shared with short-lived jobs and pre-migration rows. All drainers
+claim one role's rows at a time and only deliver their configured topics.
 
-Apply the migration before rolling out the new binaries. Older workers still
-scan every role until replaced. Roll out all existing workers before starting a
-deployment that requires isolation.
+Apply the migration before rolling out the new binaries.
 
 Acknowledged events are **hard-deleted**. A crash or failed database commit can
 resend them, so consumers must tolerate duplicates. Failed-attempt counts survive

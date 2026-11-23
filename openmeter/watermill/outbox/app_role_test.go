@@ -57,3 +57,25 @@ func TestDeploymentQueuesOwnDeliveryAndRetries(t *testing.T) {
 	require.Equal(t, []string{"legacy", "backend", "first", "second"}, raw.deliveredIDs())
 	eventuallyRowCount(t, db, 0)
 }
+
+func TestDrainAllRolesClaimsOneRoleAtATime(t *testing.T) {
+	backend, db, raw := newManualTestPublisher(t)
+	cfg := backend.cfg
+	cfg.AppRole = "worker"
+	worker := &Publisher{cfg: cfg, wake: make(chan struct{}, 1)}
+	backend.cfg.DrainAllRoles = true
+
+	// Given interleaved events for two roles in the same source transaction.
+	ctx := t.Context()
+	require.NoError(t, transaction.RunWithNoValue(ctx, enttx.NewCreator(db), func(ctx context.Context) error {
+		require.NoError(t, worker.Publish(testTopic, testMessage(ctx, "first", "shared")))
+		require.NoError(t, backend.Publish(testTopic, testMessage(ctx, "backend", "shared")))
+
+		return worker.Publish(testTopic, testMessage(ctx, "second", "shared"))
+	}))
+
+	// When the backend claims the worker's head, its entire batch is delivered first.
+	require.NoError(t, backend.drain(ctx))
+	require.Equal(t, []string{"first", "second", "backend"}, raw.deliveredIDs())
+	eventuallyRowCount(t, db, 0)
+}

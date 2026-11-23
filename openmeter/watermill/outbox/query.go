@@ -14,13 +14,13 @@ type pendingTransactionQuery struct {
 	MaxAttempts          int
 	ExcludedTransactions []string
 	AppRole              string
+	DrainAllRoles        bool
 }
 
 func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 	earlier := sql.Table(eventoutbox.Table).As("earlier_outbox")
-	s.Where(sql.And(
+	predicates := []*sql.Predicate{
 		sql.In(s.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
-		sql.EQ(s.C(eventoutbox.FieldAppRole), q.AppRole),
 		sql.LT(s.C(eventoutbox.FieldAttempts), q.MaxAttempts),
 		sql.NotExists(sql.Select(earlier.C(eventoutbox.FieldID)).From(earlier).Where(sql.And(
 			sql.ColumnsEQ(earlier.C(eventoutbox.FieldAppRole), s.C(eventoutbox.FieldAppRole)),
@@ -29,9 +29,15 @@ func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 			sql.ColumnsEQ(earlier.C(eventoutbox.FieldTransactionID), s.C(eventoutbox.FieldTransactionID)),
 			sql.ColumnsLT(earlier.C(eventoutbox.FieldID), s.C(eventoutbox.FieldID)),
 		))),
-	))
+	}
+
+	if !q.DrainAllRoles {
+		predicates = append(predicates, sql.EQ(s.C(eventoutbox.FieldAppRole), q.AppRole))
+	}
 
 	if len(q.ExcludedTransactions) > 0 {
-		s.Where(sql.NotIn(s.C(eventoutbox.FieldTransactionID), lo.ToAnySlice(q.ExcludedTransactions)...))
+		predicates = append(predicates, sql.NotIn(s.C(eventoutbox.FieldTransactionID), lo.ToAnySlice(q.ExcludedTransactions)...))
 	}
+
+	s.Where(sql.And(predicates...))
 }

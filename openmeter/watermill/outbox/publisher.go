@@ -27,9 +27,11 @@ type Config struct {
 	// OutboxTopics lists topics persisted before delivery; all others publish directly.
 	OutboxTopics []string
 
-	// AppRole identifies the deployment that owns delivery and retries. An empty
-	// role selects the default queue, including events written before roles existed.
+	// AppRole selects the queue for new events. An empty role uses the default queue.
 	AppRole string
+
+	// DrainAllRoles allows claiming pending transactions from any role on OutboxTopics.
+	DrainAllRoles bool
 
 	Logger     *slog.Logger
 	DrainLimit int
@@ -88,7 +90,7 @@ func (c Config) Validate() error {
 }
 
 // Publisher persists configured topics in the caller's transaction. Each successful
-// commit wakes a bounded drain of its deployment queue; a periodic tick retries idle work.
+// commit wakes a bounded drain; a periodic tick retries idle work.
 type Publisher struct {
 	cfg     Config
 	ctx     context.Context
@@ -212,8 +214,11 @@ func (p *Publisher) drain(ctx context.Context) error {
 			// Claim only a transaction's first pending row. Its lock prevents
 			// other workers from claiming any sibling while this batch is sent.
 			query := pendingTransactionQuery{
-				Topics: p.cfg.OutboxTopics, MaxAttempts: p.cfg.MaxAttempts,
-				ExcludedTransactions: failedTransactions, AppRole: p.cfg.AppRole,
+				Topics:               p.cfg.OutboxTopics,
+				MaxAttempts:          p.cfg.MaxAttempts,
+				ExcludedTransactions: failedTransactions,
+				AppRole:              p.cfg.AppRole,
+				DrainAllRoles:        p.cfg.DrainAllRoles,
 			}
 			head, err := client.EventOutbox.Query().
 				Where(query.Apply).
@@ -229,12 +234,13 @@ func (p *Publisher) drain(ctx context.Context) error {
 
 			transactionID = head.TransactionID
 			// All siblings became visible in the same source commit. Do not use
-			// SKIP LOCKED or a row limit here: the claim owns the whole group.
+			// SKIP LOCKED or a row limit here: the claim owns the whole group
+			// for this role, even when the drainer can claim from any role.
 			rows, err := client.EventOutbox.Query().
 				Where(
 					eventoutbox.TopicIn(p.cfg.OutboxTopics...),
 					eventoutbox.TransactionIDEQ(transactionID),
-					eventoutbox.AppRoleEQ(p.cfg.AppRole),
+					eventoutbox.AppRoleEQ(head.AppRole),
 					eventoutbox.AttemptsLT(p.cfg.MaxAttempts),
 				).
 				Order(eventoutbox.ByID()).ForUpdate().All(ctx)
