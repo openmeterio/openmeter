@@ -64,11 +64,6 @@ func lineTaxConfig(rateCard *apiv1models.InvoiceUsageBasedRateCard, taxConfig *a
 	return rateCard.TaxConfig
 }
 
-// effectiveLineTaxConfig returns the raw tax config the update mappers use for the line.
-func effectiveLineTaxConfig(line apiv1models.InvoiceLineReplaceUpdate) *apiv1models.TaxConfig {
-	return lineTaxConfig(line.RateCard, line.TaxConfig)
-}
-
 // resolvedLineTaxConfig pairs one request line with the tax config resolved for it.
 type resolvedLineTaxConfig struct {
 	// Line is the request line as the update received it.
@@ -85,7 +80,7 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 	resolved := make([]resolvedLineTaxConfig, 0, len(lines))
 
 	for _, line := range lines {
-		raw := effectiveLineTaxConfig(line)
+		raw := lineTaxConfig(line.RateCard, line.TaxConfig)
 		if raw == nil {
 			resolved = append(resolved, resolvedLineTaxConfig{Line: line})
 
@@ -139,7 +134,7 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 			return billing.ValidationError{Err: fmt.Errorf("lines/%d: %w", i, errTaxConfigMismatch)}
 		}
 
-		raw := simulationLineTaxConfig(lines[i])
+		raw := lineTaxConfig(lines[i].RateCard, lines[i].TaxConfig)
 		if raw == nil {
 			continue
 		}
@@ -176,9 +171,4 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 	}
 
 	return nil
-}
-
-// simulationLineTaxConfig returns the raw tax config the simulation mapper uses for the line.
-func simulationLineTaxConfig(line apiv1models.InvoiceSimulationLine) *apiv1models.TaxConfig {
-	return lineTaxConfig(line.RateCard, line.TaxConfig)
 }
