@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 
-	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	customerbalance "github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
@@ -17,10 +16,8 @@ type Source interface {
 }
 
 type Config struct {
-	Source              Source
-	Logger              *slog.Logger
-	RatingReuse         *usagebasedrating.TotalsReuse
-	RatingReuseObserver func(context.Context, bool)
+	Source Source
+	Logger *slog.Logger
 }
 
 func (c Config) Validate() error {
@@ -43,27 +40,19 @@ func New(config Config) (rte.Calculator[creditbalance.Key, creditbalance.Balance
 	}
 
 	return &calculator{
-		source:              config.Source,
-		logger:              config.Logger,
-		ratingReuse:         config.RatingReuse,
-		ratingReuseObserver: config.RatingReuseObserver,
+		source: config.Source,
+		logger: config.Logger,
 	}, nil
 }
 
 type calculator struct {
-	source              Source
-	logger              *slog.Logger
-	ratingReuse         *usagebasedrating.TotalsReuse
-	ratingReuseObserver func(context.Context, bool)
+	source Source
+	logger *slog.Logger
 }
 
 func (c *calculator) Calculate(ctx context.Context, input rte.CalculateInput[creditbalance.Key]) (creditbalance.Balance, error) {
 	if err := input.Validate(); err != nil {
 		return creditbalance.Balance{}, err
-	}
-
-	if c.ratingReuse != nil {
-		ctx = usagebasedrating.WithTotalsReuse(ctx, c.ratingReuse, c.ratingReuseObserver)
 	}
 
 	// Leave AsOf unset: historical queries intentionally omit live usage.

@@ -173,7 +173,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		require.Equal(t, baselineCredit, stored.CalculatedAt)
 
 		// When credit is funded, the committed ledger event changes this credit
-		// balance, while metered demand stays untouched. Rating inputs are equal.
+		// balance, while metered demand stays untouched.
 		s.fundLiveCredits(ctx, postingLedger, creditKey, 25)
 		require.Eventually(t, func() bool {
 			var err error
@@ -182,13 +182,12 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 			return err == nil && creditState.Value.Live.InexactFloat64() == 125
 		}, 15*time.Second, 50*time.Millisecond)
 
-		// Then only credit changed, and rating reused its unchanged usage inputs.
+		// Then only the credit balance changed.
 		require.True(t, creditState.CalculatedAt.After(baselineCredit))
 
 		storedMetered, err := meteredClient.Get(ctx, meteredKey)
 		require.NoError(t, err)
 		require.Equal(t, baselineMetered, storedMetered.CalculatedAt)
-		require.Greater(t, metricCount(live.metrics(t), "rte_rating_lookups_total", "outcome=\"hit\""), float64(0))
 	})
 
 	s.Run("late usage refresh and redelivery", func() {

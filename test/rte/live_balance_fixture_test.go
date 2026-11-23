@@ -216,7 +216,7 @@ func (live *liveProcess) logBalanceFailure(t *testing.T, client rte.Client, fixt
 		lastCredit.Value.Booked, lastCredit.Value.Live, creditErr, lastMetered.Value.Balance, lastMetered.Value.UsageInPeriod, meteredErr)
 
 	for _, line := range strings.Split(live.metrics(t), "\n") {
-		for _, prefix := range []string{"rte_upstream_events_total{", "rte_demand_operations_total{", "rte_calculations_total{", "rte_rating_lookups_total{"} {
+		for _, prefix := range []string{"rte_upstream_events_total{", "rte_demand_operations_total{", "rte_calculations_total{"} {
 			if strings.HasPrefix(line, prefix) {
 				t.Log(line)
 			}

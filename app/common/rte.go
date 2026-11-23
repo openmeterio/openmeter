@@ -14,7 +14,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/app/config"
-	usagebasedrating "github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased/service/rating"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/openmeter/registry"
@@ -25,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/rte/demand"
 	rtemetered "github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
 	meteredcalculator "github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement/calculator"
-	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	rteservice "github.com/openmeterio/openmeter/openmeter/rte/service"
 	"github.com/openmeterio/openmeter/openmeter/rte/upstream"
 	rteworker "github.com/openmeterio/openmeter/openmeter/rte/worker"
@@ -45,7 +43,7 @@ var RTE = wire.NewSet(
 	RTEGroup,
 )
 
-func NewRTEService(client *db.Client, source customerbalance.Service, entitlements *registry.Entitlement, logger *slog.Logger, credits config.CreditsConfiguration, conf config.RTEConfiguration, publisher eventbus.Publisher, meter metric.Meter) (rte.Service, error) {
+func NewRTEService(client *db.Client, source customerbalance.Service, entitlements *registry.Entitlement, logger *slog.Logger, credits config.CreditsConfiguration, publisher eventbus.Publisher, meter metric.Meter) (rte.Service, error) {
 	if !credits.Enabled {
 		return nil, errors.New("RTE requires credits.enabled")
 	}
@@ -55,23 +53,7 @@ func NewRTEService(client *db.Client, source customerbalance.Service, entitlemen
 		return nil, err
 	}
 
-	creditConfig := creditcalculator.Config{Source: source, Logger: logger}
-	if conf.ReuseRatingTotals {
-		reuse, err := usagebasedrating.NewTotalsReuse(256)
-		if err != nil {
-			return nil, err
-		}
-
-		ratingMetrics, err := rtemetrics.NewRating(meter)
-		if err != nil {
-			return nil, err
-		}
-
-		creditConfig.RatingReuse = reuse
-		creditConfig.RatingReuseObserver = ratingMetrics.Lookup
-	}
-
-	creditCalculator, err := creditcalculator.New(creditConfig)
+	creditCalculator, err := creditcalculator.New(creditcalculator.Config{Source: source, Logger: logger})
 	if err != nil {
 		return nil, err
 	}

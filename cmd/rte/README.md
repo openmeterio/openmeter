@@ -23,11 +23,9 @@ Individual message and calculation failures follow their respective retry polici
 | `rte.pollInterval` | Delay after an idle background slot finds no work or fails to claim it. Defaults to 1s. |
 | `rte.calculationConcurrency` | Background slots per process. Defaults to 4. Message handlers can calculate concurrently with those slots. |
 | `rte.calculationTimeout` | Time budget for an individual demand calculation. Defaults to 30s. |
-| `rte.reuseRatingTotals` | Enables a 256-entry per-worker cache for credit charge rating. Defaults to false. Enable it separately to measure whether rating reuse pays off for the workload. |
 | `rte.shadowSamplePercent` | Percentage of balance keys sampled by producers during the trial. Accepts 1–100 and defaults to 10. |
 
 The Helm chart deploys the worker when `config.rte.enabled` is true. On its telemetry listener,
 `/healthz/subscriptions` reports whether it has subscribed to both topics. Use the routing and
-calculation metrics to see whether keys are being refreshed. RTE can make the first delivery attempt
-for its own updates. An unrestricted outbox worker on the same system-events topic handles retries. [Metrics](../../openmeter/rte/metrics/README.md#instruments) ·
+calculation metrics to see whether keys are being refreshed. RTE replicas deliver and retry updates from their own outbox queue. [Metrics](../../openmeter/rte/metrics/README.md#instruments) ·
 [Outbox delivery](../../openmeter/watermill/outbox/README.md)
