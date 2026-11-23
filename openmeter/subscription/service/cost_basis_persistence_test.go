@@ -230,6 +230,68 @@ func TestSubscriptionUpdatePinsNewCostBasisPairAtEffectiveTime(t *testing.T) {
 	require.NotEqual(t, oldPointsCostBasisID, pinsByCustomCurrencyID[pointsCurrency.ID].CostBasis.ID)
 }
 
+func TestDynamicCostBasisForScheduledPaidPhase(t *testing.T) {
+	// Given a subscription with a free first month and a rate that expires
+	// exactly when its first custom-currency fee starts.
+	now := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	dbDeps := subscriptiontestutils.SetupDBDeps(t)
+	defer dbDeps.Cleanup(t)
+	deps := subscriptiontestutils.NewService(t, dbDeps)
+	namespace := subscriptiontestutils.ExampleNamespace
+	customer := deps.CustomerAdapter.CreateExampleCustomer(t)
+	credits, err := deps.CurrencyService.CreateCurrency(t.Context(), currenciestestutils.NewCreateCurrencyInput(
+		namespace, "CREDITS", "Credits", "CR",
+	))
+	require.NoError(t, err)
+
+	start := now.AddDate(0, 1, 0)
+	firstFee := start.AddDate(0, 1, 0)
+	rate := currencies.CreateCostBasisInput{
+		Namespace:   namespace,
+		CurrencyID:  credits.ID,
+		FiatCode:    "USD",
+		Rate:        alpacadecimal.NewFromInt(1),
+		EffectiveTo: &firstFee,
+	}
+	_, err = deps.CurrencyService.CreateCostBasis(t.Context(), rate)
+	require.NoError(t, err)
+
+	month := datetime.MustParseDuration(t, "P1M")
+	planInput := subscriptiontestutils.BuildTestPlanInput(t).
+		AddPhase(&month, &productcatalog.FlatFeeRateCard{RateCardMeta: productcatalog.RateCardMeta{Key: "trial", Name: "Trial"}}).
+		AddPhase(nil, newCostBasisTestRateCard(t, "fee", nil)).
+		Build()
+	planInput.Plan.Currency = credits.Reference()
+	plan := deps.PlanHelper.CreatePlan(t, planInput)
+	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
+		CustomerId:      customer.ID,
+		InvoiceCurrency: "USD",
+		ActiveFrom:      start,
+		BillingAnchor:   start,
+		CostBasisMode:   subscription.CostBasisModeDynamic,
+		Name:            "Scheduled subscription",
+	})
+	require.NoError(t, err)
+
+	// The cost basis expires exactly when the paid phase starts, so creation fails.
+	_, err = deps.SubscriptionService.Create(t.Context(), namespace, spec)
+	require.ErrorIs(t, err, productcatalog.ErrCurrencyCostBasisNotFound)
+	require.ErrorContains(t, err, firstFee.Format(time.RFC3339))
+
+	// A cost basis effective from the paid phase's start lets creation succeed.
+	rate.EffectiveFrom = &firstFee
+	rate.EffectiveTo = nil
+	_, err = deps.CurrencyService.CreateCostBasis(t.Context(), rate)
+	require.NoError(t, err)
+
+	created, err := deps.SubscriptionService.Create(t.Context(), namespace, spec)
+	require.NoError(t, err)
+	require.Empty(t, created.CostBasisPins)
+}
+
 func newCostBasisTestRateCard(t *testing.T, key string, currencyReference *currencies.CurrencyReference) productcatalog.RateCard {
 	t.Helper()
 

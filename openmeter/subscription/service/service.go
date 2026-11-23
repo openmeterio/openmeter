@@ -162,7 +162,7 @@ func (s *service) Create(ctx context.Context, namespace string, spec subscriptio
 			return def, fmt.Errorf("failed to validate subscription: %w", err)
 		}
 
-		costBases, err := s.resolveCostBasisRequirements(ctx, namespace, spec, spec.ActiveFrom, customCostBasisPairs(spec))
+		costBases, err := s.resolveCostBasisRequirements(ctx, namespace, spec, customCostBasisPairs(spec))
 		if err != nil {
 			return def, err
 		}
@@ -279,7 +279,11 @@ func (s *service) Update(ctx context.Context, subscriptionID models.NamespacedID
 			}
 		}
 
-		costBases, err := s.resolveCostBasisRequirements(ctx, subscriptionID.Namespace, newSpec, updateOptions.CostBasisEffectiveAt, pairsToResolve)
+		for pair := range pairsToResolve {
+			pairsToResolve[pair] = updateOptions.CostBasisEffectiveAt
+		}
+
+		costBases, err := s.resolveCostBasisRequirements(ctx, subscriptionID.Namespace, newSpec, pairsToResolve)
 		if err != nil {
 			return def, err
 		}
