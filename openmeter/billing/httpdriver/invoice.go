@@ -533,26 +533,24 @@ func (h *handler) UpdateInvoice() UpdateInvoiceHandler {
 				return UpdateInvoiceResponse{}, err
 			}
 
-			var updatedInvoice billing.Invoice
-
 			switch invoice.Type() {
 			case billing.InvoiceTypeGathering:
-				updatedInvoice, err = h.updateGatheringInvoice(ctx, invoice, request)
+				resp, err := h.updateGatheringInvoice(ctx, invoice, request)
 				if err != nil {
-					h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 					return UpdateInvoiceResponse{}, fmt.Errorf("updating gathering invoice: %w", err)
 				}
+
+				return resp, nil
 			case billing.InvoiceTypeStandard:
-				updatedInvoice, err = h.updateStandardInvoice(ctx, invoice, request)
+				resp, err := h.updateStandardInvoice(ctx, invoice, request)
 				if err != nil {
-					h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 					return UpdateInvoiceResponse{}, fmt.Errorf("updating standard invoice: %w", err)
 				}
+
+				return resp, nil
 			default:
 				return UpdateInvoiceResponse{}, models.NewNillableGenericValidationError(fmt.Errorf("invalid invoice type: %s", invoice.Type()))
 			}
-
-			return h.MapInvoiceToAPI(ctx, updatedInvoice)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[UpdateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -578,18 +576,20 @@ func (h *handler) logInvoiceEditRejected(ctx context.Context, invoiceType billin
 	)
 }
 
-func (h *handler) updateGatheringInvoice(ctx context.Context, invoice billing.Invoice, request UpdateInvoiceRequest) (billing.Invoice, error) {
+func (h *handler) updateGatheringInvoice(ctx context.Context, invoice billing.Invoice, request UpdateInvoiceRequest) (UpdateInvoiceResponse, error) {
 	gatheringInvoice, err := invoice.AsGatheringInvoice()
 	if err != nil {
-		return billing.Invoice{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
+		return UpdateInvoiceResponse{}, fmt.Errorf("converting invoice to gathering invoice: %w", err)
 	}
 
-	// Resolution shares the update's transaction, so a stripe.code is created with (or rolled
-	// back with) the edit; the EditFn only applies the already-resolved IDs.
-	var updatedGatheringInvoice billing.GatheringInvoice
+	// Resolution, the edit and the response share one transaction, so a stripe.code is created
+	// with (or rolled back with) the edit, and a failed response rolls the edit back too. The
+	// EditFn only applies the already-resolved IDs.
+	var resp UpdateInvoiceResponse
 	if err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
 		resolvedTaxConfigs, err := resolveUpdateLineTaxConfigs(ctx, resolver, request.InvoiceID.Namespace, request.Input.Lines)
 		if err != nil {
+			h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 			return err
 		}
 
@@ -607,31 +607,32 @@ func (h *handler) updateGatheringInvoice(ctx context.Context, invoice billing.In
 			},
 		})
 		if err != nil {
+			h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 			return err
 		}
 
-		updatedGatheringInvoice = result
+		resp, err = h.MapInvoiceToAPI(ctx, billing.NewInvoice(result))
 
-		return nil
+		return err
 	}); err != nil {
-		return billing.Invoice{}, err
+		return UpdateInvoiceResponse{}, err
 	}
 
-	return billing.NewInvoice(updatedGatheringInvoice), nil
+	return resp, nil
 }
 
-func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Invoice, request UpdateInvoiceRequest) (billing.Invoice, error) {
+func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Invoice, request UpdateInvoiceRequest) (UpdateInvoiceResponse, error) {
 	stdInvoice, err := invoice.AsStandardInvoice()
 	if err != nil {
-		return billing.Invoice{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
+		return UpdateInvoiceResponse{}, fmt.Errorf("converting invoice to standard invoice: %w", err)
 	}
 
-	// Resolution shares the update's transaction, so a stripe.code is created with (or rolled
-	// back with) the edit; the EditFn only applies the already-resolved IDs.
-	var updatedStandardInvoice billing.StandardInvoice
+	// Same transaction scope as updateGatheringInvoice.
+	var resp UpdateInvoiceResponse
 	if err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
 		resolvedTaxConfigs, err := resolveUpdateLineTaxConfigs(ctx, resolver, request.InvoiceID.Namespace, request.Input.Lines)
 		if err != nil {
+			h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 			return err
 		}
 
@@ -661,17 +662,18 @@ func (h *handler) updateStandardInvoice(ctx context.Context, invoice billing.Inv
 			},
 		})
 		if err != nil {
+			h.logInvoiceEditRejected(ctx, invoice.Type(), request, err)
 			return err
 		}
 
-		updatedStandardInvoice = result
+		resp, err = h.MapInvoiceToAPI(ctx, billing.NewInvoice(result))
 
-		return nil
+		return err
 	}); err != nil {
-		return billing.Invoice{}, err
+		return UpdateInvoiceResponse{}, err
 	}
 
-	return billing.NewInvoice(updatedStandardInvoice), nil
+	return resp, nil
 }
 
 func (h *handler) MapInvoiceToAPI(ctx context.Context, invoice billing.Invoice) (apiv1models.Invoice, error) {
