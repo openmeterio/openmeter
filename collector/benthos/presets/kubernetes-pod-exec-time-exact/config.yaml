@@ -1,0 +1,171 @@
+# Pod execution time, exact to the second.
+#
+# Like kubernetes-pod-exec-time this sends one event per pod and interval, but
+# duration_seconds is the time the pod ran inside the window, taken from the
+# pod's own start and finish times, and the event id is the pod UID plus the
+# window start.
+#
+# The same window can be sent more than once (after a restart, after a
+# rejected batch, for a pod that just ended), always with the same id and the
+# same duration. The sink must deduplicate by event id: in OpenMeter enable
+# `sink.dedupe` with an expiration longer than SCRAPE_LOOKBACK.
+#
+# One exception: a pod with a container that restarted more than once. Its
+# first container start is no longer in the pod status, so it is counted from
+# the pod start time, which is earlier. A window near the start of such a pod
+# that is sent again after the second restart can carry a longer duration
+# than before, and a window before the first container start can appear.
+#
+# SCRAPE_INTERVAL        window length (default 15s)
+# SCRAPE_SETTLE          how long to wait for the status of a pod before a
+#                        window is final (default 15s)
+# SCRAPE_LOOKBACK        how far back windows are sent again after a start or
+#                        an outage (default 5m)
+# START_TIME_ANNOTATION  annotation with an RFC 3339 time that moves the start
+#                        of a pod later (default openmeter.io/start-time)
+input:
+  schedule:
+    input:
+      kubernetes_resources:
+        namespaces:
+          - ${SCRAPE_NAMESPACE:}
+        label_selector: "app=seed"
+        # A pending pod can have a container that already runs.
+        include_pending_pods: true
+        include_terminated_pods: true
+        include_deleted_pods: true
+    interval: "${SCRAPE_INTERVAL:15s}"
+
+pipeline:
+  processors:
+    # One event per pod and per window. Windows are aligned to the wall clock
+    # (a multiple of the interval since the Unix epoch), so the same pod and
+    # window give the same event id and the same duration, whenever the
+    # collector reads them. A sink that deduplicates by id counts each once.
+    # The exception is a pod with a container that restarted more than once
+    # (see the header of this file): its start moves to the pod start time.
+    - mapping: |
+        let interval = (meta("schedule_interval").parse_duration() / 1000 / 1000 / 1000).round().int64()
+        let settle = ("${SCRAPE_SETTLE:15s}".parse_duration() / 1000 / 1000 / 1000).round().int64()
+        let lookback = ("${SCRAPE_LOOKBACK:5m}".parse_duration() / 1000 / 1000 / 1000).round().int64()
+        # The pods are as of the time they were read, which can be up to one
+        # interval before the schedule time.
+        let now = meta("kubernetes_read_time").ts_unix()
+
+        # Emit the windows since the last acknowledged read, at most the lookback.
+        # Without an acknowledged read (after a start) emit the whole lookback.
+        let since = [meta("kubernetes_last_ack_read_time").ts_unix().or(0), $now - $lookback].max()
+
+        # The pod runs from the start of its first container. An optional
+        # annotation moves the start later, e.g. to when a pooled pod was handed out.
+        let statuses = this.status.containerStatuses.or([])
+        let starts = $statuses.map_each(status -> [
+          status.state.running.startedAt,
+          status.state.terminated.startedAt,
+          status.lastState.terminated.startedAt,
+        ]).flatten().filter(time -> time != null).map_each(time -> time.ts_unix()).filter(time -> time > 0)
+        # A container that restarted more than once no longer shows its first
+        # start. The pod then runs from the time the kubelet took it, which is
+        # a little earlier: it includes pulling the images.
+        let restarted = $statuses.any(status -> status.restartCount.or(0) > 1)
+        let first_start = if $restarted { this.status.startTime.ts_unix().or($starts.min().or(0)) } else { $starts.min().or(0) }
+        let start = [$first_start, this.metadata.annotations."${START_TIME_ANNOTATION:openmeter.io/start-time}".ts_unix().or(0)].max()
+
+        # The pod ended if it is in a terminal phase, was deleted, or is being
+        # deleted and all its containers stopped.
+        let stopped = $statuses.length() > 0 && $statuses.all(status -> status.state.terminated != null)
+        let deleted_time = meta("kubernetes_deleted_time").ts_unix().or(null)
+        let deletion_time = this.metadata.deletionTimestamp.ts_unix().or(null)
+        let terminal = ["Succeeded", "Failed"].contains(this.status.phase.or(""))
+        let ended = $terminal || $deleted_time != null || ($deletion_time != null && $stopped)
+
+        # The end is a time that no later read can change, never the read time:
+        # - every container has a finish time: the latest of them;
+        # - the pod was last seen running and is gone: the time the deletion was
+        #   observed, at the latest the end of its grace period;
+        # - the pod stopped without all finish times (its status was lost, its
+        #   node shut down): the time it stopped being ready, or the latest
+        #   finish time that is known, whichever is later;
+        # - none of these: the end is not known, and no window is sent.
+        let finishes = $statuses.map_each(status -> status.state.terminated.finishedAt.ts_unix().or(0)).filter(time -> time > 0)
+        let not_ready = this.status.conditions.or([]).filter(condition -> condition.type == "Ready" && condition.status != "True").map_each(condition -> condition.lastTransitionTime.ts_unix().or(0)).filter(time -> time > 0)
+        let fixed = if $finishes.length() > 0 { $not_ready.append($finishes.max()) } else { $not_ready }
+        let end = match {
+          !$ended => null,
+          $stopped && $finishes.length() == $statuses.length() => $finishes.max(),
+          !$terminal && !$stopped => [$deleted_time, $deletion_time].filter(time -> time != null).min(),
+          _ => $fixed.max().or(null),
+        }
+        let end_known = !$ended || $end != null
+
+        # A running pod gets the windows that closed at least the settle time
+        # before this read, so a late status update cannot change them. An ended
+        # pod gets every window up to its end: its duration is final.
+        let first = [(($since - $settle) / $interval).floor(), ($start / $interval).floor()].max()
+        let last = if $end == null { (($now - $settle) / $interval).floor() - 1 } else { (($end - 1) / $interval).floor() }
+        let stop = $end.or($now)
+
+        let windows = if $starts.length() == 0 || !$end_known || $first > $last { [] } else {
+          range($first, $last + 1).map_each(index -> {
+            "start": index * $interval,
+            "duration_seconds": [[$stop, (index + 1) * $interval].min() - [$start, index * $interval].max(), 0].max(),
+          }).filter(window -> window.duration_seconds > 0)
+        }
+
+        let uid = this.metadata.uid
+        let subject = this.metadata.annotations."openmeter.io/subject".or(this.metadata.name)
+        let data = this.metadata.annotations.or({}).filter(item -> item.key.has_prefix("data.openmeter.io/")).map_each_key(key -> key.trim_prefix("data.openmeter.io/")).assign({
+          "pod_name": this.metadata.name,
+          "pod_namespace": this.metadata.namespace,
+          "cpu_request_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum(),
+          "cpu_request_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.cpu).number(0)).sum() / $interval,
+          "cpu_limit_millicores": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum(),
+          "cpu_limit_millicores_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.cpu).number(0)).sum() / $interval,
+          "memory_request_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum(),
+          "memory_request_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests.memory).number(0)).sum() / $interval,
+          "memory_limit_bytes": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum(),
+          "memory_limit_bytes_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits.memory).number(0)).sum() / $interval,
+          "gpu_request_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum(),
+          "gpu_request_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.requests."nvidia.com/gpu").number(0)).sum() / $interval,
+          "gpu_limit_count": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum(),
+          "gpu_limit_count_per_second": this.spec.containers.map_each(container -> resource_quantity(container.resources.limits."nvidia.com/gpu").number(0)).sum() / $interval,
+        })
+
+        root = if $windows.length() == 0 { deleted() } else {
+          $windows.map_each(window -> {
+            "id": "%s-%d".format($uid, window.start),
+            "specversion": "1.0",
+            "type": "kubernetes",
+            "source": "kubernetes-api",
+            "time": window.start.ts_format("2006-01-02T15:04:05Z07:00", "UTC"),
+            "subject": $subject,
+            "data": $data.assign({"duration_seconds": window.duration_seconds}),
+          })
+        }
+    - unarchive:
+        format: json_array
+    - json_schema:
+        schema_path: "file://./cloudevents.spec.json"
+    - catch:
+        - log:
+            level: ERROR
+            message: "schema validation failed due to: ${!error()}"
+        - mapping: "root = deleted()"
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          openmeter:
+            url: "${OPENMETER_URL:https://openmeter.cloud}"
+            token: "${OPENMETER_TOKEN:}"
+            batching:
+              count: ${BATCH_SIZE:100}
+              period: ${BATCH_PERIOD:1s}
+
+      - check: '"${DEBUG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines

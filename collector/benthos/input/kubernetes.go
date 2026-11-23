@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/redpanda-data/benthos/v4/public/service"
 	"github.com/samber/lo"
@@ -12,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // import kubernetes auth plugins
+	toolscache "k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,11 +27,22 @@ import (
 
 // TODO: add batching config and policy
 
+// maxDeletedPods bounds the deleted pods kept between two reads. When the
+// pipeline is blocked no read happens, and the oldest entries are dropped.
+const maxDeletedPods = 10000
+
 func kubernetesResourcesInputConfig() *service.ConfigSpec {
 	return service.NewConfigSpec().
 		Beta().
 		Categories("Services").
 		Summary("List resources in Kubernetes.").
+		Description(`
+Each message carries the following metadata:
+
+- `+"`kubernetes_read_time`"+`: the time the resources were read (RFC 3339). A batch is read as soon as the previous one was acknowledged or rejected, which can be some time before it is handed out: the `+"`schedule`"+` input holds it until the next tick.
+- `+"`kubernetes_last_ack_read_time`"+`: the `+"`kubernetes_read_time`"+` of the latest batch that was acknowledged without an error. It is not set until a batch was acknowledged. A mapping can use it to cover the whole time since the last delivered read, so a rejected batch or a skipped read leaves no gap.
+- `+"`kubernetes_deleted_time`"+`: only on a deleted pod (see `+"`include_deleted_pods`"+`), the time the deletion was observed (RFC 3339).
+`).
 		Fields(
 			service.NewStringListField("namespaces").
 				Description("List of namespaces to list resources from."),
@@ -40,6 +54,12 @@ func kubernetesResourcesInputConfig() *service.ConfigSpec {
 				Optional(),
 			service.NewBoolField("include_pending_pods").
 				Description("Include pods in pending state (not all containers are running). Only applies when resource_type is 'pod'.").
+				Default(false),
+			service.NewBoolField("include_terminated_pods").
+				Description("Include pods in a terminal phase (Succeeded or Failed) for as long as they exist. Only applies when resource_type is 'pod'.").
+				Default(false),
+			service.NewBoolField("include_deleted_pods").
+				Description("Emit each pod once more after it is deleted, in its last known state, with the metadata field `kubernetes_deleted_time`. Lets a mapping account for the time between the previous read and the deletion. Only applies when resource_type is 'pod'.").
 				Default(false),
 		)
 }
@@ -61,12 +81,30 @@ type kubernetesResourcesInput struct {
 	logger             *service.Logger
 	resources          *service.Resources
 
+	includeTerminatedPods bool
+	includeDeletedPods    bool
+
 	manager manager.Manager
 	client  client.Client
+
+	// Holds one token while a batch is neither acknowledged nor rejected.
+	inFlight chan struct{}
+
+	mu sync.Mutex
+	// Pods the cache saw deleted since the last read.
+	deletedPods []deletedPod
+	// Read time of the latest batch that was acknowledged without an error.
+	lastAckReadTime time.Time
 
 	// Used for graceful shutdown of the manager.
 	cancel context.CancelFunc
 	done   chan struct{}
+}
+
+// deletedPod is the last known state of a deleted pod.
+type deletedPod struct {
+	pod       *corev1.Pod
+	deletedAt time.Time
 }
 
 func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resources) (*kubernetesResourcesInput, error) {
@@ -86,6 +124,16 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resour
 	}
 
 	includePendingPods, err := conf.FieldBool("include_pending_pods")
+	if err != nil {
+		return nil, err
+	}
+
+	includeTerminatedPods, err := conf.FieldBool("include_terminated_pods")
+	if err != nil {
+		return nil, err
+	}
+
+	includeDeletedPods, err := conf.FieldBool("include_deleted_pods")
 	if err != nil {
 		return nil, err
 	}
@@ -141,18 +189,36 @@ func newKubernetesResourcesInput(conf *service.ParsedConfig, res *service.Resour
 	client := mgr.GetClient()
 
 	return &kubernetesResourcesInput{
-		namespaces:         namespaces,
-		labelSelector:      selector,
-		resourceType:       resourceType,
-		includePendingPods: includePendingPods,
-		manager:            mgr,
-		client:             client,
-		logger:             logger,
-		resources:          res,
+		namespaces:            namespaces,
+		labelSelector:         selector,
+		resourceType:          resourceType,
+		includePendingPods:    includePendingPods,
+		includeTerminatedPods: includeTerminatedPods,
+		includeDeletedPods:    includeDeletedPods,
+		inFlight:              make(chan struct{}, 1),
+		manager:               mgr,
+		client:                client,
+		logger:                logger,
+		resources:             res,
 	}, nil
 }
 
 func (in *kubernetesResourcesInput) Connect(ctx context.Context) error {
+	// Watch for deleted pods. The handler is registered before the manager
+	// starts, so no deletion is missed once the cache is in sync.
+	if in.resourceType == "pod" && in.includeDeletedPods {
+		informer, err := in.manager.GetCache().GetInformer(ctx, &corev1.Pod{})
+		if err != nil {
+			return err
+		}
+
+		if _, err := informer.AddEventHandler(toolscache.ResourceEventHandlerFuncs{
+			DeleteFunc: in.onPodDeleted,
+		}); err != nil {
+			return err
+		}
+	}
+
 	// Create a cancellable context for the manager.
 	mgrCtx, cancel := context.WithCancel(ctx)
 	in.cancel = cancel
@@ -178,12 +244,98 @@ func (in *kubernetesResourcesInput) Connect(ctx context.Context) error {
 	return nil
 }
 
+// onPodDeleted keeps the last known state of a deleted pod until the next read.
+func (in *kubernetesResourcesInput) onPodDeleted(obj any) {
+	// The cache missed the delete event and only knows a possibly stale state.
+	if tombstone, ok := obj.(toolscache.DeletedFinalStateUnknown); ok {
+		obj = tombstone.Obj
+	}
+
+	pod, ok := obj.(*corev1.Pod)
+	if !ok {
+		return
+	}
+
+	// Only the leader reads, so other replicas have nothing to hand over.
+	if !leaderelection.IsLeader(in.resources) {
+		return
+	}
+
+	if !lo.Contains(in.namespaces, corev1.NamespaceAll) && !lo.Contains(in.namespaces, pod.Namespace) {
+		return
+	}
+
+	if in.labelSelector != nil && !in.labelSelector.Matches(labels.Set(pod.Labels)) {
+		return
+	}
+
+	in.requeueDeletedPods([]deletedPod{{pod: pod, deletedAt: time.Now().UTC()}})
+}
+
+// requeueDeletedPods adds deleted pods to hand over with the next read.
+func (in *kubernetesResourcesInput) requeueDeletedPods(pods []deletedPod) {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+
+	in.deletedPods = append(in.deletedPods, pods...)
+
+	if dropped := len(in.deletedPods) - maxDeletedPods; dropped > 0 {
+		in.logger.Warnf("dropping %d deleted pods that were not read in time", dropped)
+		in.deletedPods = in.deletedPods[dropped:]
+	}
+}
+
+// takeDeletedPods returns the deleted pods seen since the last read.
+func (in *kubernetesResourcesInput) takeDeletedPods() []deletedPod {
+	in.mu.Lock()
+	defer in.mu.Unlock()
+
+	pods := in.deletedPods
+	in.deletedPods = nil
+
+	return pods
+}
+
 func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.MessageBatch, service.AckFunc, error) {
 	batch := make([]*service.Message, 0)
 
+	// Read the next batch only once the previous one was acknowledged or
+	// rejected. A batch read earlier would not know what was delivered.
+	select {
+	case in.inFlight <- struct{}{}:
+	case <-ctx.Done():
+		return nil, nil, ctx.Err()
+	}
+
+	release := func() {
+		select {
+		case <-in.inFlight:
+		default:
+		}
+	}
+
+	// An empty batch is never acknowledged, and neither is a failed read.
+	handedOver := false
+
+	defer func() {
+		if !handedOver {
+			release()
+		}
+	}()
+
 	if !leaderelection.IsLeader(in.resources) {
+		// Deletions seen while this replica was the leader are not handed over.
+		in.takeDeletedPods()
+
 		return batch, func(context.Context, error) error { return nil }, nil
 	}
+
+	// Taken before the resources are listed, so they are at least this recent.
+	readTime := time.Now().UTC()
+
+	in.mu.Lock()
+	lastAckReadTime := in.lastAckReadTime
+	in.mu.Unlock()
 
 	// Iterate over each namespace and list pods.
 	for _, ns := range in.namespaces {
@@ -211,6 +363,8 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 					shouldInclude = true
 				case corev1.PodPending:
 					shouldInclude = in.includePendingPods
+				case corev1.PodSucceeded, corev1.PodFailed:
+					shouldInclude = in.includeTerminatedPods
 				// Phase not set, check container statuses
 				case "":
 					in.logger.Warnf("pod %s has no phase", pod.Name)
@@ -229,7 +383,7 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 					}
 				default:
 					in.logger.Warnf("pod %s has unknown phase", pod.Name)
-					// Skip pods in other phases (Succeeded, Failed, Unknown)
+					// Skip pods in other phases (Unknown)
 					shouldInclude = false
 				}
 
@@ -293,11 +447,53 @@ func (in *kubernetesResourcesInput) ReadBatch(ctx context.Context) (service.Mess
 		}
 	}
 
+	// Hand over the pods deleted since the last read, each exactly once.
+	deletedPods := in.takeDeletedPods()
+
+	for _, deleted := range deletedPods {
+		encoded, err := json.Marshal(deleted.pod)
+		if err != nil {
+			in.requeueDeletedPods(deletedPods)
+
+			return nil, nil, err
+		}
+
+		msg := service.NewMessage(encoded)
+		msg.MetaSet("kubernetes_deleted_time", deleted.deletedAt.Format(time.RFC3339))
+
+		in.logger.Debugf("adding deleted pod %s to batch", deleted.pod.Name)
+		batch = append(batch, msg)
+	}
+
+	for _, msg := range batch {
+		msg.MetaSet("kubernetes_read_time", readTime.Format(time.RFC3339))
+
+		if !lastAckReadTime.IsZero() {
+			msg.MetaSet("kubernetes_last_ack_read_time", lastAckReadTime.Format(time.RFC3339))
+		}
+	}
+
 	in.logger.Debugf("batch size of %s: %d", in.resourceType, len(batch))
 
-	return batch, func(context.Context, error) error {
-		// A nack (when err is non-nil) is handled automatically when we
-		// construct using service.AutoRetryNacks.
+	handedOver = len(batch) > 0
+
+	return batch, func(_ context.Context, err error) error {
+		defer release()
+
+		// The input is not wrapped in service.AutoRetryNacks, so a rejected
+		// batch is not sent again. Listed resources are read again next time;
+		// deleted pods are gone from the cache, so keep them.
+		if err != nil {
+			in.requeueDeletedPods(deletedPods)
+
+			return nil
+		}
+
+		in.mu.Lock()
+		defer in.mu.Unlock()
+
+		in.lastAckReadTime = readTime
+
 		return nil
 	}, nil
 }
