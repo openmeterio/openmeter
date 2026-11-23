@@ -73,6 +73,7 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 		RecognizerService:             s.RevenueRecognizer,
 		BillingService:                s.BillingService,
 		TaxCodeService:                s.TaxCodeEnv.Service,
+		TaxCodeResolver:               s.TaxCodeResolver,
 		CurrencyResolver:              s.CurrencyResolver,
 		CustomerService:               s.CustomerService,
 		SubscriptionService:           &chargestestutils.FakeSubscriptionService{},
@@ -98,7 +99,8 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	s.Zero(baseline.Value.Pending.InexactFloat64())
 	period := timeutil.ClosedPeriod{From: start.Add(24 * time.Hour), To: start.AddDate(0, 1, 0)}
 	input := charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(charges.NewChargeIntent(creditpurchase.Intent{
 			Intent: meta.Intent{
 				ManagedBy:  billing.ManuallyManagedLine,
@@ -184,7 +186,8 @@ func (s *RTEIntegrationSuite) TestPendingPurchaseInputFactRefreshesCreditsBefore
 	// Patching a future credit-only charge also waits for the outer commit,
 	// even though neither creation nor deletion needs a ledger posting yet.
 	created, err := writer.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(creditstest.CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
