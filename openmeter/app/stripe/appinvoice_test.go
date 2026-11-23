@@ -70,7 +70,7 @@ type fakeTaxCodeResolver struct {
 	calls    int
 }
 
-func (r *fakeTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (r *fakeTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (productcatalog.TaxCodesByID, error) {
 	r.calls++
 
 	return lo.PickByKeys(r.taxCodes, ids), nil
