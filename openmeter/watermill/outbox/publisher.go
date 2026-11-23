@@ -27,10 +27,9 @@ type Config struct {
 	// OutboxTopics lists topics persisted before delivery; all others publish directly.
 	OutboxTopics []string
 
-	// DrainEventType limits which transactions this worker may claim. Every
-	// remaining row on its outbox topics must match and have zero failures.
-	// An unrestricted worker (empty type) handles retries.
-	DrainEventType string
+	// AppRole identifies the deployment that owns delivery and retries. An empty
+	// role selects the default queue, including events written before roles existed.
+	AppRole string
 
 	Logger     *slog.Logger
 	DrainLimit int
@@ -89,7 +88,7 @@ func (c Config) Validate() error {
 }
 
 // Publisher persists configured topics in the caller's transaction. Each successful
-// commit wakes a bounded drain of the shared queue; a periodic tick retries idle work.
+// commit wakes a bounded drain of its deployment queue; a periodic tick retries idle work.
 type Publisher struct {
 	cfg     Config
 	ctx     context.Context
@@ -145,6 +144,7 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 			client := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig()).Client()
 			_, err = client.EventOutbox.Create().
 				SetMessageID(msg.UUID).
+				SetAppRole(p.cfg.AppRole).
 				SetTransactionID(tx.ID()).
 				SetTopic(topic).
 				SetPayload(msg.Payload).
@@ -213,7 +213,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 			// other workers from claiming any sibling while this batch is sent.
 			query := pendingTransactionQuery{
 				Topics: p.cfg.OutboxTopics, MaxAttempts: p.cfg.MaxAttempts,
-				ExcludedTransactions: failedTransactions, EventType: p.cfg.DrainEventType,
+				ExcludedTransactions: failedTransactions, AppRole: p.cfg.AppRole,
 			}
 			head, err := client.EventOutbox.Query().
 				Where(query.Apply).
@@ -234,6 +234,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 				Where(
 					eventoutbox.TopicIn(p.cfg.OutboxTopics...),
 					eventoutbox.TransactionIDEQ(transactionID),
+					eventoutbox.AppRoleEQ(p.cfg.AppRole),
 					eventoutbox.AttemptsLT(p.cfg.MaxAttempts),
 				).
 				Order(eventoutbox.ByID()).ForUpdate().All(ctx)
@@ -262,7 +263,7 @@ func (p *Publisher) drain(ctx context.Context) error {
 						return fmt.Errorf("record failed delivery attempt: %w", err)
 					}
 
-					if p.cfg.DrainEventType == "" && row.Attempts+1 >= p.cfg.MaxAttempts {
+					if row.Attempts+1 >= p.cfg.MaxAttempts {
 						exhausted = append(exhausted, row.MessageID)
 						continue
 					}

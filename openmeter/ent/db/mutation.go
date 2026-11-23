@@ -90051,6 +90051,7 @@ type EventOutboxMutation struct {
 	op             Op
 	typ            string
 	id             *int64
+	app_role       *string
 	created_at     *time.Time
 	message_id     *string
 	transaction_id *string
@@ -90167,6 +90168,42 @@ func (m *EventOutboxMutation) IDs(ctx context.Context) ([]int64, error) {
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
+}
+
+// SetAppRole sets the "app_role" field.
+func (m *EventOutboxMutation) SetAppRole(s string) {
+	m.app_role = &s
+}
+
+// AppRole returns the value of the "app_role" field in the mutation.
+func (m *EventOutboxMutation) AppRole() (r string, exists bool) {
+	v := m.app_role
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAppRole returns the old "app_role" field's value of the EventOutbox entity.
+// If the EventOutbox object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EventOutboxMutation) OldAppRole(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAppRole is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAppRole requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAppRole: %w", err)
+	}
+	return oldValue.AppRole, nil
+}
+
+// ResetAppRole resets all changes to the "app_role" field.
+func (m *EventOutboxMutation) ResetAppRole() {
+	m.app_role = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -90475,7 +90512,10 @@ func (m *EventOutboxMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EventOutboxMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
+	if m.app_role != nil {
+		fields = append(fields, eventoutbox.FieldAppRole)
+	}
 	if m.created_at != nil {
 		fields = append(fields, eventoutbox.FieldCreatedAt)
 	}
@@ -90505,6 +90545,8 @@ func (m *EventOutboxMutation) Fields() []string {
 // schema.
 func (m *EventOutboxMutation) Field(name string) (ent.Value, bool) {
 	switch name {
+	case eventoutbox.FieldAppRole:
+		return m.AppRole()
 	case eventoutbox.FieldCreatedAt:
 		return m.CreatedAt()
 	case eventoutbox.FieldMessageID:
@@ -90528,6 +90570,8 @@ func (m *EventOutboxMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *EventOutboxMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
+	case eventoutbox.FieldAppRole:
+		return m.OldAppRole(ctx)
 	case eventoutbox.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case eventoutbox.FieldMessageID:
@@ -90551,6 +90595,13 @@ func (m *EventOutboxMutation) OldField(ctx context.Context, name string) (ent.Va
 // type.
 func (m *EventOutboxMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case eventoutbox.FieldAppRole:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAppRole(v)
+		return nil
 	case eventoutbox.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -90664,6 +90715,9 @@ func (m *EventOutboxMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *EventOutboxMutation) ResetField(name string) error {
 	switch name {
+	case eventoutbox.FieldAppRole:
+		m.ResetAppRole()
+		return nil
 	case eventoutbox.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil

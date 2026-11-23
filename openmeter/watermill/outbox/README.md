@@ -8,7 +8,7 @@ Other topics still publish directly.
 
 ## Delivery and ordering
 
-After commit, workers drain the shared queue. They also retry periodically
+After commit, workers drain their deployment’s queue. They also retry periodically
 (default: one minute). `events.outbox` configures drain limit, timeout, concurrency,
 retry interval, and `maxAttempts` (default: 10).
 
@@ -18,18 +18,20 @@ removed, B's attempt count is persisted, and C waits for a later drain. Other
 transactions can progress. Once B reaches `maxAttempts`, it is logged and retained
 for inspection, skipped by future drains, and C can proceed. Raising the limit makes retained rows eligible again.
 
-By default, a worker drains all event types on its configured outbox topics. A worker
-with limited delivery responsibilities can set `Config.DrainEventType`. It can then
-claim a transaction only when every remaining row on those topics has that type
-and has never failed. On the first send failure it records the attempt and stops
-that batch. Run an unrestricted worker to retry it. This keeps one retry policy
-in charge of when later siblings may pass a failed event.
+Each row carries the producer's `app_role`. Replicas with the same role share
+delivery and retries across their configured topics. A stopped deployment's
+backlog waits for one of its replicas to return. The backend owns the default
+(empty) role, including pre-migration rows and events from short-lived CLI jobs.
+
+Apply the migration before rolling out the new binaries. Older workers still
+scan every role until replaced. Roll out all existing workers before starting a
+deployment that requires isolation.
 
 Acknowledged events are **hard-deleted**. A crash or failed database commit can
 resend them, so consumers must tolerate duplicates. Failed-attempt counts survive
 successful drain commits; crashes or database failures can cause extra attempts.
 Finite retries mean some events may never be delivered. Ordering applies within
-a source transaction, until an event is abandoned; there is no ordering guarantee
+a role and source transaction, until an event is abandoned; there is no ordering guarantee
 between transactions or for consumer delivery across Kafka topics/partitions.
 
 ## Concurrency and shutdown

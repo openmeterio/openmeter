@@ -126,7 +126,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		Tracer:      tracer,
 		Config:      consumerConfiguration,
 	}
-	eventbusPublisher, cleanup7, err := common.NewEventBusPublisher(ctx, publisher, client, eventsConfiguration, logger)
+	eventbusPublisher, cleanup7, err := common.NewDeploymentEventBusPublisher(ctx, publisher, client, eventsConfiguration, commonMetadata, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()

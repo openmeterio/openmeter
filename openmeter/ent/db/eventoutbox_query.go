@@ -264,12 +264,12 @@ func (_q *EventOutboxQuery) Clone() *EventOutboxQuery {
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		AppRole string `json:"app_role,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.EventOutbox.Query().
-//		GroupBy(eventoutbox.FieldCreatedAt).
+//		GroupBy(eventoutbox.FieldAppRole).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *EventOutboxQuery) GroupBy(field string, fields ...string) *EventOutboxGroupBy {
@@ -287,11 +287,11 @@ func (_q *EventOutboxQuery) GroupBy(field string, fields ...string) *EventOutbox
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		AppRole string `json:"app_role,omitempty"`
 //	}
 //
 //	client.EventOutbox.Query().
-//		Select(eventoutbox.FieldCreatedAt).
+//		Select(eventoutbox.FieldAppRole).
 //		Scan(ctx, &v)
 func (_q *EventOutboxQuery) Select(fields ...string) *EventOutboxSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

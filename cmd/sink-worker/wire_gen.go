@@ -99,7 +99,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	db := common.NewDB(driver)
 	entPostgresDriver, cleanup6 := common.NewEntPostgresDriver(db, logger)
 	client := common.NewEntClient(entPostgresDriver)
-	eventbusPublisher, cleanup7, err := common.NewEventBusPublisher(ctx, publisher, client, eventsConfiguration, logger)
+	eventbusPublisher, cleanup7, err := common.NewDeploymentEventBusPublisher(ctx, publisher, client, eventsConfiguration, commonMetadata, logger)
 	if err != nil {
 		cleanup6()
 		cleanup5()
