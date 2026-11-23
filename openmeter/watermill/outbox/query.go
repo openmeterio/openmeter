@@ -13,37 +13,31 @@ type pendingTransactionQuery struct {
 	Topics               []string
 	MaxAttempts          int
 	ExcludedTransactions []string
+	AppRole              string
+	DrainAllRoles        bool
 }
 
-// Equivalent claim SQL, including the ordering, limit, and lock added by drain:
-//
-//	SELECT e.* FROM event_outboxes e
-//	WHERE e.topic IN (:topics)
-//	  AND e.attempts < :max_attempts
-//	  AND NOT EXISTS (
-//	    SELECT 1 FROM event_outboxes earlier
-//	    WHERE earlier.topic IN (:topics)
-//	      AND earlier.transaction_id = e.transaction_id
-//	      AND earlier.attempts < :max_attempts
-//	      AND earlier.id < e.id
-//	  )
-//	  AND e.transaction_id NOT IN (:excluded_transactions)
-//	ORDER BY e.id LIMIT 1 FOR UPDATE SKIP LOCKED;
-//
-// The NOT IN clause is omitted when there are no excluded transactions.
 func (q pendingTransactionQuery) Apply(s *sql.Selector) {
 	earlier := sql.Table(eventoutbox.Table).As("earlier_outbox")
-	s.Where(sql.And(
+	predicates := []*sql.Predicate{
 		sql.In(s.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
 		sql.LT(s.C(eventoutbox.FieldAttempts), q.MaxAttempts),
 		sql.NotExists(sql.Select(earlier.C(eventoutbox.FieldID)).From(earlier).Where(sql.And(
+			sql.ColumnsEQ(earlier.C(eventoutbox.FieldAppRole), s.C(eventoutbox.FieldAppRole)),
 			sql.LT(earlier.C(eventoutbox.FieldAttempts), q.MaxAttempts),
 			sql.In(earlier.C(eventoutbox.FieldTopic), lo.ToAnySlice(q.Topics)...),
 			sql.ColumnsEQ(earlier.C(eventoutbox.FieldTransactionID), s.C(eventoutbox.FieldTransactionID)),
 			sql.ColumnsLT(earlier.C(eventoutbox.FieldID), s.C(eventoutbox.FieldID)),
 		))),
-	))
-	if len(q.ExcludedTransactions) > 0 {
-		s.Where(sql.NotIn(s.C(eventoutbox.FieldTransactionID), lo.ToAnySlice(q.ExcludedTransactions)...))
 	}
+
+	if !q.DrainAllRoles {
+		predicates = append(predicates, sql.EQ(s.C(eventoutbox.FieldAppRole), q.AppRole))
+	}
+
+	if len(q.ExcludedTransactions) > 0 {
+		predicates = append(predicates, sql.NotIn(s.C(eventoutbox.FieldTransactionID), lo.ToAnySlice(q.ExcludedTransactions)...))
+	}
+
+	s.Where(sql.And(predicates...))
 }

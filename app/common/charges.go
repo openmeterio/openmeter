@@ -392,22 +392,24 @@ func NewChargesService(
 	customerService customer.Service,
 	subscriptionService charges.SubscriptionService,
 	fsNamespaceLockdown []string,
+	rteSourcePublisherWithMetrics RTESourcePublisherWithMetrics,
 ) (charges.Service, error) {
 	chargesSvc, err := chargesservice.New(chargesservice.Config{
-		Logger:                logger,
-		Adapter:               rootAdapter,
-		MetaAdapter:           metaAdapter,
-		FeatureMeterResolver:  featureMeterResolver,
-		FlatFeeService:        flatFeeSvc,
-		CreditPurchaseService: creditPurchaseSvc,
-		UsageBasedService:     usageBasedSvc,
-		BillingService:        billingService,
-		RecognizerService:     recognizerService,
-		TaxCodeService:        taxCodeService,
-		CurrencyResolver:      currencyResolver,
-		CustomerService:       customerService,
-		SubscriptionService:   subscriptionService,
-		FSNamespaceLockdown:   fsNamespaceLockdown,
+		RTESourcePublisherWithMetrics: rteSourcePublisherWithMetrics.EnqueueAfterCommit,
+		Logger:                        logger,
+		Adapter:                       rootAdapter,
+		MetaAdapter:                   metaAdapter,
+		FeatureMeterResolver:          featureMeterResolver,
+		FlatFeeService:                flatFeeSvc,
+		CreditPurchaseService:         creditPurchaseSvc,
+		UsageBasedService:             usageBasedSvc,
+		BillingService:                billingService,
+		RecognizerService:             recognizerService,
+		TaxCodeService:                taxCodeService,
+		CurrencyResolver:              currencyResolver,
+		CustomerService:               customerService,
+		SubscriptionService:           subscriptionService,
+		FSNamespaceLockdown:           fsNamespaceLockdown,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create charges service: %w", err)
@@ -461,6 +463,7 @@ func newChargesRegistry(
 	fsNamespaceLockdown []string,
 	creditsConfig config.CreditsConfiguration,
 	featureGate *featuregate.FeatureGateChecker,
+	rteSourcePublisherWithMetrics RTESourcePublisherWithMetrics,
 ) (*ChargesRegistry, error) {
 	metaAdapter, err := NewChargesMetaAdapter(db, logger)
 	if err != nil {
@@ -614,6 +617,7 @@ func newChargesRegistry(
 		customerService,
 		subscriptionService,
 		fsNamespaceLockdown,
+		rteSourcePublisherWithMetrics,
 	)
 	if err != nil {
 		return nil, err

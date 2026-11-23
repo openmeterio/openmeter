@@ -42,7 +42,7 @@ var BillingWorker = wire.NewSet(
 
 	Subscription,
 	ProductCatalog,
-	Entitlement,
+	NewEntitlementRegistry,
 	Billing,
 	LedgerStack,
 

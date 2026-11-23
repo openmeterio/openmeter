@@ -15,10 +15,22 @@ type Runner struct {
 }
 
 func (r Runner) Run() {
+	if err := r.RunWithError(); err != nil {
+		r.Logger.Error("application stopped due to error", slog.Any("error", err))
+	}
+}
+
+// RunWithError lets a command report unexpected actor failures in its exit status.
+func (r Runner) RunWithError() error {
 	err := r.Group.Run(run.WithReverseShutdownOrder())
 	if e := &(run.SignalError{}); errors.As(err, &e) {
 		r.Logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
-	} else if !errors.Is(err, http.ErrServerClosed) {
-		r.Logger.Error("application stopped due to error", slog.Any("error", err))
+		return nil
 	}
+
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+
+	return err
 }

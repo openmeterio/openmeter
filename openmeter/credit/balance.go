@@ -40,6 +40,14 @@ type BalanceConnector interface {
 
 var _ BalanceConnector = &connector{}
 
+type skipBalanceSnapshotWrite struct{}
+
+// WithoutBalanceSnapshotWrites lets a shadow reader reuse existing snapshots without
+// taking the owner lock or saving checkpoints that would change later production reads.
+func WithoutBalanceSnapshotWrites(ctx context.Context) context.Context {
+	return context.WithValue(ctx, skipBalanceSnapshotWrite{}, true)
+}
+
 // GetBalanceSinceSnapshot returns the result of the engine.Run since a given snapshot.
 func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
@@ -99,6 +107,10 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	err = m.removeInactiveGrantsFromSnapshotAt(&result.Snapshot, grants, at)
 	if err != nil {
 		return def, fmt.Errorf("failed to remove inactive grants from snapshot: %w", err)
+	}
+
+	if ctx.Value(skipBalanceSnapshotWrite{}) == true {
+		return result, nil
 	}
 
 	periodStart, err := m.OwnerConnector.GetUsagePeriodStartAt(ctx, ownerID, at)

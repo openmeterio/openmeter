@@ -13,6 +13,7 @@ import (
 	apiv1models "github.com/openmeterio/openmeter/api/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/subject"
@@ -206,6 +207,7 @@ type GetEntitlementValueHandlerRequest struct {
 	SubjectKey                string
 	Namespace                 string
 	At                        time.Time
+	current                   bool
 }
 type (
 	GetEntitlementValueHandlerResponse = apiv1models.EntitlementValue
@@ -230,6 +232,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
 				At:                        defaultx.WithDefault(params.Params.Time, clock.Now()),
+				current:                   params.Params.Time == nil,
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (apiv1models.EntitlementValue, error) {
@@ -242,6 +245,12 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				return apiv1models.EntitlementValue{}, models.NewGenericPreConditionFailedError(
 					fmt.Errorf("customer not found [namespace=%s subject.id=%s]", request.Namespace, request.SubjectKey),
 				)
+			}
+
+			if request.current {
+				ctx = entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+					Operation: entitlement.CurrentValueOperationRead,
+				})
 			}
 
 			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, cust.ID, request.EntitlementIdOrFeatureKey, request.At)

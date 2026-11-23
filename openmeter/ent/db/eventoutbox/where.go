@@ -54,6 +54,11 @@ func IDLTE(id int64) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldLTE(FieldID, id))
 }
 
+// AppRole applies equality check predicate on the "app_role" field. It's identical to AppRoleEQ.
+func AppRole(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldAppRole, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldEQ(FieldCreatedAt, v))
@@ -82,6 +87,71 @@ func Topic(v string) predicate.EventOutbox {
 // Payload applies equality check predicate on the "payload" field. It's identical to PayloadEQ.
 func Payload(v []byte) predicate.EventOutbox {
 	return predicate.EventOutbox(sql.FieldEQ(FieldPayload, v))
+}
+
+// AppRoleEQ applies the EQ predicate on the "app_role" field.
+func AppRoleEQ(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEQ(FieldAppRole, v))
+}
+
+// AppRoleNEQ applies the NEQ predicate on the "app_role" field.
+func AppRoleNEQ(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNEQ(FieldAppRole, v))
+}
+
+// AppRoleIn applies the In predicate on the "app_role" field.
+func AppRoleIn(vs ...string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldIn(FieldAppRole, vs...))
+}
+
+// AppRoleNotIn applies the NotIn predicate on the "app_role" field.
+func AppRoleNotIn(vs ...string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldNotIn(FieldAppRole, vs...))
+}
+
+// AppRoleGT applies the GT predicate on the "app_role" field.
+func AppRoleGT(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGT(FieldAppRole, v))
+}
+
+// AppRoleGTE applies the GTE predicate on the "app_role" field.
+func AppRoleGTE(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldGTE(FieldAppRole, v))
+}
+
+// AppRoleLT applies the LT predicate on the "app_role" field.
+func AppRoleLT(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLT(FieldAppRole, v))
+}
+
+// AppRoleLTE applies the LTE predicate on the "app_role" field.
+func AppRoleLTE(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldLTE(FieldAppRole, v))
+}
+
+// AppRoleContains applies the Contains predicate on the "app_role" field.
+func AppRoleContains(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldContains(FieldAppRole, v))
+}
+
+// AppRoleHasPrefix applies the HasPrefix predicate on the "app_role" field.
+func AppRoleHasPrefix(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldHasPrefix(FieldAppRole, v))
+}
+
+// AppRoleHasSuffix applies the HasSuffix predicate on the "app_role" field.
+func AppRoleHasSuffix(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldHasSuffix(FieldAppRole, v))
+}
+
+// AppRoleEqualFold applies the EqualFold predicate on the "app_role" field.
+func AppRoleEqualFold(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldEqualFold(FieldAppRole, v))
+}
+
+// AppRoleContainsFold applies the ContainsFold predicate on the "app_role" field.
+func AppRoleContainsFold(v string) predicate.EventOutbox {
+	return predicate.EventOutbox(sql.FieldContainsFold(FieldAppRole, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

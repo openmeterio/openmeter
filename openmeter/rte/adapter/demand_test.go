@@ -1,0 +1,1168 @@
+package adapter_test
+
+import (
+	"bytes"
+	"context"
+	stdsql "database/sql"
+	"errors"
+	"testing"
+	"time"
+
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/sql"
+	"github.com/alpacahq/alpacadecimal"
+	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	demanddb "github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
+	"github.com/openmeterio/openmeter/openmeter/rte"
+	"github.com/openmeterio/openmeter/openmeter/rte/adapter"
+	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
+
+type demandFixture struct {
+	repository rte.DemandRepository
+	client     *db.Client
+	pool       *stdsql.DB
+	store      rte.Store[creditbalance.Key, creditbalance.Balance]
+	key        creditbalance.Key
+	target     rte.CalculationTarget
+	input      rte.ProcessDemandInput
+}
+
+func newDemandFixture(t *testing.T) demandFixture {
+	t.Helper()
+	database := testutils.InitPostgresDB(t, testutils.PostgresDBStateAtlasMigrated)
+	t.Cleanup(func() {
+		require.NoError(t, database.EntDriver.Close())
+		require.NoError(t, database.PGDriver.Close())
+	})
+	config := adapter.Config{Client: database.EntDriver.Client(), Logger: testutils.NewDiscardLogger(t)}
+	repository, err := adapter.NewDemandRepository(config)
+	require.NoError(t, err)
+
+	store, err := adapter.NewCreditBalanceStore(config)
+	require.NoError(t, err)
+
+	key := creditbalance.Key{
+		CustomerID: customer.CustomerID{Namespace: "rte-demand", ID: ulid.Make().String()},
+		Currency:   currencies.NewCurrencyReference("USD"),
+	}
+	event, err := rte.NewCalculationRequestedEvent(key)
+	require.NoError(t, err)
+
+	return demandFixture{
+		repository: repository,
+		client:     config.Client,
+		pool:       database.PGDriver.DB(),
+		store:      store,
+		key:        key,
+		target:     event.CalculationTarget,
+		input:      rte.ProcessDemandInput{CalculationTimeout: time.Second, RetryMinDelay: time.Minute, RetryMaxDelay: time.Hour},
+	}
+}
+
+func TestDemandRegistrationCanonicalizesAndRepairsStoredKey(t *testing.T) {
+	f := newDemandFixture(t)
+	now := clock.Now().UTC().Truncate(time.Second)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	// Given a valid credit request with a noncanonical JSON field spelling.
+	incoming := f.target
+	incoming.Key = bytes.Replace(f.target.Key, []byte(`"currency"`), []byte(`"Currency"`), 1)
+	require.NotEqual(t, f.target.Key, incoming.Key)
+	pull := rte.EnsureFreshInput{Target: incoming, PullTTL: time.Hour}
+	confirmedClean, err := f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+	targeted := f.input
+	targeted.Target = &f.target
+	row, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.JSONEq(t, string(f.target.Key), string(row.Key))
+
+	// When an existing clean row was created by a writer that saved raw JSON.
+	result, err := f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	query, args := sql.Dialect(dialect.Postgres).Update(demanddb.Table).
+		Set(demanddb.FieldKey, string(incoming.Key)).Where(sql.EQ(demanddb.FieldID, row.ID)).Query()
+	_, err = f.client.ExecContext(t.Context(), query, args...)
+	require.NoError(t, err)
+	pull.Target = f.target
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+
+	// Then registration repairs the same identity and wakes it once to cover missed facts.
+	repaired, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, row.ID, repaired.ID)
+	require.JSONEq(t, string(f.target.Key), string(repaired.Key))
+	require.Equal(t, repaired.CompletedVersion+1, repaired.DirtyVersion)
+	require.True(t, repaired.NextAttemptAt.Equal(now))
+	result, err = f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	pull.Target = incoming
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.True(t, confirmedClean)
+	clean, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, repaired.DirtyVersion, clean.DirtyVersion)
+	require.Equal(t, clean.DirtyVersion, clean.CompletedVersion)
+}
+
+func TestDemandInvalidationCoalescesRepeatedDeliveries(t *testing.T) {
+	// Given a clean key with background change tracking enabled.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	before, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+
+	input := rte.InvalidateInput{
+		Selectors: []rte.DemandSelector{{
+			Namespace: f.key.CustomerID.Namespace,
+			Kind:      f.target.Kind,
+			OwnerIDs:  []string{f.key.CustomerID.ID},
+		}, {
+			Namespace: f.key.CustomerID.Namespace,
+			Kind:      f.target.Kind,
+			Targets:   []rte.CalculationTarget{f.target},
+		}},
+	}
+
+	// When the same fact arrives twice before the worker claims the key.
+	for range 2 {
+		marked, err := f.repository.Invalidate(t.Context(), input)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), marked)
+	}
+
+	row, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, before.DirtyVersion+2, row.DirtyVersion)
+
+	// Then one calculation covers both deliveries, and deactivation stops scheduling.
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error {
+		t.Fatal("clean key recalculated")
+		return nil
+	})
+	require.NoError(t, err)
+	require.False(t, result.Processed)
+	require.NoError(t, f.repository.Deactivate(t.Context(), f.target))
+
+	marked, err := f.repository.Invalidate(t.Context(), input)
+	require.NoError(t, err)
+	require.Zero(t, marked)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+}
+
+func TestOverlappingInvalidationsLockDemandsInIDOrder(t *testing.T) {
+	f := newDemandFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	// Given two demands, renew the older one last so its latest row version
+	// and its ID need not appear in the same order.
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+	secondKey := f.key
+	secondKey.CustomerID.ID = ulid.Make().String()
+	secondTarget, err := rte.NewCalculationTarget(secondKey)
+	require.NoError(t, err)
+	require.NoError(t, f.repository.Activate(ctx, secondTarget))
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+
+	before, err := f.client.RTEDemand.Query().Order(demanddb.ByID()).All(ctx)
+	require.NoError(t, err)
+	require.Len(t, before, 2)
+
+	waiting := make(chan error, 1)
+	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
+		// When one event holds the higher ID and another selects both keys in reverse order.
+		input := rte.InvalidateInput{
+			Selectors: []rte.DemandSelector{{
+				Namespace: secondKey.CustomerID.Namespace,
+				Kind:      secondTarget.Kind,
+				Targets:   []rte.CalculationTarget{secondTarget},
+			}},
+		}
+		result, err := f.repository.Invalidate(txCtx, input)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), result)
+
+		input.Selectors[0].Targets = append(input.Selectors[0].Targets, f.target)
+		go func() {
+			_, err := f.repository.Invalidate(ctx, input)
+			waiting <- err
+		}()
+		waitForDemandLock(t, ctx, f.client)
+
+		// Then the waiting invalidation must already hold the lower ID.
+		available, err := f.client.RTEDemand.Query().Where(demanddb.IDEQ(before[0].ID)).
+			ForUpdate(sql.WithLockAction(sql.SkipLocked)).IDs(ctx)
+		require.NoError(t, err)
+		require.Empty(t, available)
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, <-waiting)
+
+	after, err := f.client.RTEDemand.Query().Order(demanddb.ByID()).All(ctx)
+	require.NoError(t, err)
+	require.Len(t, after, 2)
+	require.Equal(t, before[0].DirtyVersion+1, after[0].DirtyVersion)
+	require.Equal(t, before[1].DirtyVersion+2, after[1].DirtyVersion)
+}
+
+func TestDemandFailedAttemptRollsBackStateAndPersistsRetry(t *testing.T) {
+	// Given a demanded balance whose calculator fails after writing its result.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	failure := errors.New("attempt failed")
+	result, err := f.repository.Process(t.Context(), f.input, func(ctx context.Context, _ rte.CalculationTarget) error {
+		_, err := f.store.Store(ctx, rte.StoreInput[creditbalance.Key, creditbalance.Balance]{
+			Key:   f.key,
+			State: rte.State[creditbalance.Balance]{CalculatedAt: clock.Now(), Value: creditbalance.Balance{Live: alpacadecimal.NewFromInt(10)}},
+		})
+		if err != nil {
+			return err
+		}
+
+		return failure
+	})
+
+	// When the failed attempt commits only retry bookkeeping.
+	require.NoError(t, err)
+	require.ErrorIs(t, result.CalculationError, failure)
+	_, err = f.store.Get(t.Context(), f.key)
+	require.True(t, models.IsGenericNotFoundError(err))
+	row, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 1, row.Attempts)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+	require.True(t, row.NextAttemptAt.After(clock.Now()))
+
+	// Another source change adds work, but a busy key must respect its retry deadline.
+	invalidation, err := f.repository.Invalidate(t.Context(), rte.InvalidateInput{
+		Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), invalidation)
+	dirty, err := f.client.RTEDemand.Get(t.Context(), row.ID)
+	require.NoError(t, err)
+	require.Equal(t, row.DirtyVersion+1, dirty.DirtyVersion)
+	require.Equal(t, row.NextAttemptAt, dirty.NextAttemptAt)
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error {
+		t.Fatal("retry backoff ignored")
+		return nil
+	})
+	require.NoError(t, err)
+	require.False(t, result.Processed)
+
+	// Then an immediate pull bypasses backoff and successful work clears failure.
+	input := f.input
+	input.Target = &f.target
+	result, err = f.repository.Process(t.Context(), input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	require.NoError(t, result.CalculationError)
+
+	row, err = f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, row.DirtyVersion, row.CompletedVersion)
+	require.Zero(t, row.Attempts)
+}
+
+func TestDemandCompletionRollsBackWithOuterTransaction(t *testing.T) {
+	// Given committed dirty work and an attempt whose transaction never commits.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	abort := errors.New("simulate interrupted transaction")
+	err := transaction.RunWithNoValue(t.Context(), f.repository.(transaction.Creator), func(ctx context.Context) error {
+		result, err := f.repository.Process(ctx, f.input, func(ctx context.Context, _ rte.CalculationTarget) error {
+			_, err := f.store.Store(ctx, rte.StoreInput[creditbalance.Key, creditbalance.Balance]{Key: f.key, State: rte.State[creditbalance.Balance]{CalculatedAt: clock.Now()}})
+			return err
+		})
+		require.NoError(t, err)
+		require.True(t, result.Processed)
+
+		return abort
+	})
+
+	// When its outer transaction rolls back, both result and completion disappear.
+	require.ErrorIs(t, err, abort)
+	_, err = f.store.Get(t.Context(), f.key)
+	require.True(t, models.IsGenericNotFoundError(err))
+	row, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+
+	// Then a fresh worker can recover the same work without a lease timeout.
+	result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+}
+
+func TestDemandConcurrentWorkersAndInvalidationDuringCalculation(t *testing.T) {
+	// Given a worker holding a demanded key inside its calculation transaction.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	started, release, finished := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+	defer func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+	}()
+	go func() {
+		_, err := f.repository.Process(ctx, f.input, func(context.Context, rte.CalculationTarget) error {
+			close(started)
+			select {
+			case <-release:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})
+		finished <- err
+	}()
+	select {
+	case <-started:
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+
+	// When another worker polls, it skips the key, but invalidation can commit immediately.
+	result, err := f.repository.Process(ctx, f.input, func(context.Context, rte.CalculationTarget) error {
+		t.Error("duplicate concurrent calculation")
+		return nil
+	})
+	require.NoError(t, err)
+	require.False(t, result.Processed)
+	invalidated := make(chan error, 1)
+	go func() {
+		_, err := f.repository.Invalidate(ctx, rte.InvalidateInput{
+			Selectors: []rte.DemandSelector{{
+				Namespace: f.key.CustomerID.Namespace,
+				Kind:      f.target.Kind,
+				Targets:   []rte.CalculationTarget{f.target},
+			}},
+		})
+		invalidated <- err
+	}()
+	require.NoError(t, <-invalidated)
+	close(release)
+	require.NoError(t, <-finished)
+
+	// Then the in-flight invalidation survives completion and is calculated next.
+	row, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+	result, err = f.repository.Process(ctx, f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+}
+
+func TestDemandPullWaitsForClaimedVersion(t *testing.T) {
+	for _, outerTransaction := range []bool{false, true} {
+		name := "standalone"
+		if outerTransaction {
+			name = "caller transaction"
+		}
+
+		t.Run(name, func(t *testing.T) {
+			f := newDemandFixture(t)
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+			f.input.CalculationTimeout = 8 * time.Second
+			require.NoError(t, f.repository.Activate(ctx, f.target))
+
+			// Given a worker is calculating the version the pull will ask for.
+			pulled := make(chan error, 1)
+			work, err := f.repository.Process(ctx, f.input, func(context.Context, rte.CalculationTarget) error {
+				pull := func(ctx context.Context) error {
+					clean, err := f.repository.EnsurePull(ctx, rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour})
+					if err != nil || clean {
+						return err
+					}
+
+					targeted := f.input
+					targeted.Target = &f.target
+					result, err := f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error {
+						return errors.New("pull recalculated a version the worker already covered")
+					})
+
+					return errors.Join(err, result.CalculationError)
+				}
+
+				// When the pull reaches PostgreSQL, let the worker finish. Both
+				// transaction shapes must acquire locks in the same order.
+				go func() {
+					if outerTransaction {
+						pulled <- transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), pull)
+					} else {
+						pulled <- pull(ctx)
+					}
+				}()
+				waitForDemandLock(t, ctx, f.client)
+
+				return nil
+			})
+
+			// Then the worker commits and the waiting pull reuses its result.
+			require.NoError(t, err)
+			require.True(t, work.Processed)
+			require.NoError(t, work.CalculationError)
+			require.NoError(t, <-pulled)
+		})
+	}
+}
+
+func TestDemandPollProcessesOneOfSeveralKeys(t *testing.T) {
+	// Given multiple dirty keys, a single poll must lock exactly one of them.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	other := f.key
+	other.CustomerID.ID = ulid.Make().String()
+	event, err := rte.NewCalculationRequestedEvent(other)
+	require.NoError(t, err)
+	require.NoError(t, f.repository.Activate(t.Context(), event.CalculationTarget))
+
+	// When independent polls process the ready queue.
+	seen := map[string]bool{}
+	for range 2 {
+		result, err := f.repository.Process(t.Context(), f.input, func(_ context.Context, target rte.CalculationTarget) error {
+			identity, err := target.Identity()
+			if err != nil {
+				return err
+			}
+
+			require.False(t, seen[identity.KeyHash])
+			seen[identity.KeyHash] = true
+
+			return nil
+		})
+		require.NoError(t, err)
+		require.True(t, result.Processed)
+	}
+
+	// Then both keys have completed once and no ready work remains.
+	require.Len(t, seen, 2)
+	result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error {
+		t.Fatal("clean key processed")
+		return nil
+	})
+	require.NoError(t, err)
+	require.False(t, result.Processed)
+}
+
+func TestDemandPullExpiryAgeAndActivation(t *testing.T) {
+	// Given pull-only demand with a bounded lifetime and a completed version.
+	f := newDemandFixture(t)
+	now := time.Date(2026, time.November, 11, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Minute}
+	confirmedClean, err := f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+	targeted := f.input
+	targeted.Target = &f.target
+	result, err := f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	// When its age bound expires, a pull dirties it; expiry stops background work.
+	clock.FreezeTime(now.Add(30 * time.Second))
+	pull.MaxAge = 10 * time.Second
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+	row, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+	result, err = f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	clock.FreezeTime(now.Add(2 * time.Minute))
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error {
+		t.Fatal("expired pull processed")
+		return nil
+	})
+	require.NoError(t, err)
+	require.False(t, result.Processed)
+
+	// Even a request with no age limit must recalculate after change tracking expires.
+	pull.MaxAge = 0
+	confirmedClean, err = f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+	row, err = f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+
+	// Then activation picks up pending changes. A clean key stays idle across
+	// repeated activation and elapsed time until a new fact arrives.
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	clock.FreezeTime(now.Add(24 * time.Hour))
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error {
+		t.Fatal("clean key recalculated")
+		return nil
+	})
+	require.NoError(t, err)
+	require.False(t, result.Processed)
+
+	_, err = f.repository.Invalidate(t.Context(), rte.InvalidateInput{
+		Selectors: []rte.DemandSelector{{
+			Namespace: f.key.CustomerID.Namespace,
+			Kind:      f.target.Kind,
+			Targets:   []rte.CalculationTarget{f.target},
+		}},
+	})
+	require.NoError(t, err)
+
+	result, err = f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+}
+
+func TestDemandClearsObsoleteDeadlineWithoutCalculating(t *testing.T) {
+	// Given a clean balance with a deadline persisted by an older worker.
+	f := newDemandFixture(t)
+	ctx := t.Context()
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+
+	initial, err := f.repository.Process(ctx, f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, initial.Processed)
+	row, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+
+	past := clock.Now().Add(-time.Hour)
+	require.NoError(t, f.client.RTEDemand.UpdateOne(row).SetSourceDeleteAt(past).SetNextAttemptAt(past).Exec(ctx))
+
+	// When the worker claims the old deadline, the clean balance stays untouched.
+	_, err = f.repository.Process(ctx, f.input, func(context.Context, rte.CalculationTarget) error {
+		t.Fatal("obsolete deadline triggered a calculation")
+		return nil
+	})
+	require.NoError(t, err)
+
+	// Then future polls skip this row until a relevant change arrives.
+	updated, err := f.client.RTEDemand.Get(ctx, row.ID)
+	require.NoError(t, err)
+	require.Nil(t, updated.SourceDeleteAt)
+	require.Equal(t, row.LastCalculatedAt, updated.LastCalculatedAt)
+	require.Equal(t, row.CompletedVersion, updated.DirtyVersion)
+}
+
+func TestDemandPullOnlyCoalescesWithoutBackgroundCalculations(t *testing.T) {
+	// Given a completed calculation with active change tracking and background refresh disabled.
+	f := newDemandFixture(t)
+	confirmedClean, err := f.repository.EnsurePull(t.Context(), rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour})
+	require.NoError(t, err)
+	require.False(t, confirmedClean)
+	targeted := f.input
+	targeted.Target = &f.target
+	result, err := f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	// When several facts arrive and background workers poll after every fact.
+	for range 3 {
+		marked, err := f.repository.Invalidate(t.Context(), rte.InvalidateInput{
+			Selectors: []rte.DemandSelector{{
+				Namespace: f.key.CustomerID.Namespace,
+				Kind:      f.target.Kind,
+				Targets:   []rte.CalculationTarget{f.target},
+			}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, int64(1), marked)
+		result, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error {
+			t.Fatal("pull-only key processed in background")
+			return nil
+		})
+		require.NoError(t, err)
+		require.False(t, result.Processed)
+	}
+
+	// Then a single explicit pull consumes all dirtiness and the next pull is clean.
+	result, err = f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	result, err = f.repository.Process(t.Context(), targeted, func(context.Context, rte.CalculationTarget) error {
+		t.Fatal("clean pull recalculated")
+		return nil
+	})
+	require.NoError(t, err)
+	require.False(t, result.Processed)
+}
+
+func TestPullRenewalSeesConcurrentInvalidation(t *testing.T) {
+	// Given a completed calculation tracked for an hour between requests.
+	f := newDemandFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour}
+	clean, err := f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.False(t, clean)
+	targeted := f.input
+	targeted.Target = &f.target
+	result, err := f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	row, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	pull.PullTTL = time.Minute
+	clean, err = f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.True(t, clean)
+	renewed, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.Equal(t, row.PullUntil, renewed.PullUntil, "a shorter TTL must preserve the later tracking deadline")
+
+	// When an invalidation holds the row lock, a pull must wait for its dirty version.
+	pull.PullTTL = 2 * time.Hour
+	var done <-chan pullResult
+	err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
+		marked, err := f.repository.Invalidate(txCtx, rte.InvalidateInput{
+			Selectors: []rte.DemandSelector{{
+				Namespace: f.key.CustomerID.Namespace,
+				Kind:      f.target.Kind,
+				Targets:   []rte.CalculationTarget{f.target},
+			}},
+		})
+		require.NoError(t, err)
+		require.Equal(t, int64(1), marked)
+
+		done = f.startPull(ctx, pull)
+		waitForDemandLock(t, ctx, f.client)
+
+		return nil
+	})
+	require.NoError(t, err)
+
+	// Then renewal reports work due, and the next completed calculation restores a clean hit.
+	select {
+	case renewal := <-done:
+		require.NoError(t, renewal.err)
+		require.False(t, renewal.clean)
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+
+	renewed, err = f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.True(t, renewed.PullUntil.After(*row.PullUntil))
+
+	result, err = f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	clean, err = f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.True(t, clean)
+}
+
+func TestPullRenewalRechecksTimeAfterWaiting(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		initialTTL time.Duration
+		maxAge     time.Duration
+	}{
+		{name: "lease expires and a fact is missed", initialTTL: time.Minute},
+		{name: "calculation exceeds maximum age", initialTTL: time.Hour, maxAge: time.Minute},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Given a calculation has finished but its transaction still holds the demand row.
+			f := newDemandFixture(t)
+			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+			defer cancel()
+			start := clock.Now().UTC().Truncate(time.Second)
+			clock.FreezeTime(start)
+			defer clock.UnFreeze()
+
+			_, err := f.repository.EnsurePull(ctx, rte.EnsureFreshInput{Target: f.target, PullTTL: test.initialTTL})
+			require.NoError(t, err)
+
+			targeted := f.input
+			targeted.Target = &f.target
+			pull := rte.EnsureFreshInput{Target: f.target, PullTTL: 2 * time.Hour, MaxAge: test.maxAge}
+			var renewal <-chan pullResult
+			releasedAt := start.Add(65 * time.Second)
+			err = transaction.RunWithNoValue(ctx, f.repository.(transaction.Creator), func(txCtx context.Context) error {
+				result, err := f.repository.Process(txCtx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+				require.NoError(t, err)
+				require.True(t, result.Processed)
+
+				// When a pull arrives before either deadline and waits across it.
+				clock.FreezeTime(start.Add(45 * time.Second))
+				renewal = f.startPull(ctx, pull)
+				waitForDemandLock(t, ctx, f.client)
+				clock.FreezeTime(releasedAt)
+				if releasedAt.After(start.Add(test.initialTTL)) {
+					marked, err := f.repository.Invalidate(ctx, rte.InvalidateInput{
+						Selectors: []rte.DemandSelector{{
+							Namespace: f.key.CustomerID.Namespace,
+							Kind:      f.target.Kind,
+							Targets:   []rte.CalculationTarget{f.target},
+						}},
+					})
+					require.NoError(t, err)
+					require.Zero(t, marked)
+				}
+
+				return nil
+			})
+			require.NoError(t, err)
+
+			got := <-renewal
+			require.NoError(t, got.err)
+			require.False(t, got.clean)
+
+			// Then a new calculation is due and the full lease starts after the wait.
+			row, err := f.client.RTEDemand.Query().Only(ctx)
+			require.NoError(t, err)
+			require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+			require.True(t, row.PullUntil.Equal(releasedAt.Add(pull.PullTTL)))
+		})
+	}
+}
+
+func waitForDemandLock(t *testing.T, ctx context.Context, client *db.Client) {
+	t.Helper()
+
+	// Each fixture has its own database, so a lock wait on this table belongs
+	// to the competing pull. Let it reach PostgreSQL before advancing the clock.
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		pg := sql.Dialect(dialect.Postgres)
+		waiter := pg.Select().From(pg.Table("pg_stat_activity")).Where(sql.And(
+			sql.EQ("datname", sql.Raw("current_database()")),
+			sql.EQ("wait_event_type", "Lock"),
+			sql.Like("query", "%"+demanddb.Table+"%"),
+		))
+		query, args := pg.SelectExpr(sql.Exists(waiter)).Query()
+		rows, err := client.QueryContext(ctx, query, args...)
+		require.NoError(collect, err)
+
+		defer rows.Close()
+
+		waiting, err := sql.ScanBool(rows)
+		require.NoError(collect, err)
+		require.True(collect, waiting)
+	}, 5*time.Second, 10*time.Millisecond)
+}
+
+// Hold the calculation's PostgreSQL connection until its deadline interrupts the query.
+func waitForDatabaseTimeout(ctx context.Context, client *db.Client) error {
+	query, args := sql.Dialect(dialect.Postgres).SelectExpr(sql.Raw("pg_sleep(1)")).Query()
+	_, err := client.ExecContext(ctx, query, args...)
+
+	return err
+}
+
+func TestPullRenewalRechecksTimeAfterConnectionWait(t *testing.T) {
+	// Given a clean key and the only database connection is in use.
+	f := newDemandFixture(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	start := clock.Now().UTC().Truncate(time.Second)
+	clock.FreezeTime(start)
+	defer clock.UnFreeze()
+
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Minute}
+	_, err := f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+
+	targeted := f.input
+	targeted.Target = &f.target
+	result, err := f.repository.Process(ctx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+
+	f.pool.SetMaxOpenConns(1)
+	conn, err := f.pool.Conn(ctx)
+	require.NoError(t, err)
+
+	defer conn.Close()
+	waits := f.pool.Stats().WaitCount
+
+	// When a pull starts during the lease but cannot reach PostgreSQL before expiry.
+	clock.FreezeTime(start.Add(45 * time.Second))
+	renewal := f.startPull(ctx, pull)
+	require.Eventually(t, func() bool { return f.pool.Stats().WaitCount > waits }, 5*time.Second, 10*time.Millisecond)
+	releasedAt := start.Add(65 * time.Second)
+	clock.FreezeTime(releasedAt)
+	require.NoError(t, conn.Close())
+
+	// Then it must calculate and track the full TTL from its renewed lease.
+	got := <-renewal
+	require.NoError(t, got.err)
+	require.False(t, got.clean)
+	row, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.Greater(t, row.DirtyVersion, row.CompletedVersion)
+	require.True(t, row.PullUntil.Equal(releasedAt.Add(pull.PullTTL)))
+}
+
+type pullResult struct {
+	clean bool
+	err   error
+}
+
+func (f demandFixture) startPull(ctx context.Context, pull rte.EnsureFreshInput) <-chan pullResult {
+	done := make(chan pullResult, 1)
+	go func() {
+		clean, err := f.repository.EnsurePull(ctx, pull)
+		done <- pullResult{clean: clean, err: err}
+	}()
+
+	return done
+}
+
+func TestDemandLargeInvalidationUsesArrayBindings(t *testing.T) {
+	// Given one active key selected by more identities than PostgreSQL's bind limit.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	owners := make([]string, 65536)
+	targets := make([]rte.CalculationTarget, 65536)
+	for n := range owners {
+		owners[n] = f.key.CustomerID.ID
+		targets[n] = f.target
+	}
+
+	// When the large selector reaches the real PostgreSQL adapter.
+	result, err := f.repository.Invalidate(t.Context(), rte.InvalidateInput{
+		Selectors: []rte.DemandSelector{{Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind, OwnerIDs: owners, Targets: targets}},
+	})
+
+	// Then the key is marked once, without one bind parameter per identity.
+	require.NoError(t, err)
+	require.Equal(t, int64(1), result)
+}
+
+func TestDemandAttemptTimeoutPreservesRetryAndOtherReadyKeys(t *testing.T) {
+	// Given a demanded key whose calculation stalls, plus another ready key.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	other := f.key
+	other.CustomerID.ID = ulid.Make().String()
+	event, err := rte.NewCalculationRequestedEvent(other)
+	require.NoError(t, err)
+	require.NoError(t, f.repository.Activate(t.Context(), event.CalculationTarget))
+
+	input := f.input
+	input.CalculationTimeout = 50 * time.Millisecond
+
+	// When the calculation writes state and exceeds only its attempt deadline.
+	result, err := f.repository.Process(t.Context(), input, func(ctx context.Context, _ rte.CalculationTarget) error {
+		_, err := f.store.Store(ctx, rte.StoreInput[creditbalance.Key, creditbalance.Balance]{Key: f.key, State: rte.State[creditbalance.Balance]{CalculatedAt: clock.Now()}})
+		if err != nil {
+			return err
+		}
+
+		<-ctx.Done()
+
+		return ctx.Err()
+	})
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	require.ErrorIs(t, result.CalculationError, context.DeadlineExceeded)
+	_, err = f.store.Get(t.Context(), f.key)
+	require.True(t, models.IsGenericNotFoundError(err))
+	row, err := f.client.RTEDemand.Query().Where(demanddb.OwnerIDEQ(f.key.CustomerID.ID)).Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 1, row.Attempts)
+	require.True(t, row.NextAttemptAt.After(clock.Now()))
+
+	// Then the retry has durable backoff and another ready key can make progress.
+	result, err = f.repository.Process(t.Context(), f.input, func(_ context.Context, target rte.CalculationTarget) error {
+		identity, err := target.Identity()
+		if err != nil {
+			return err
+		}
+
+		require.Equal(t, other.CustomerID.ID, identity.OwnerID)
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+	require.NoError(t, result.CalculationError)
+}
+
+func TestDemandDatabaseTimeoutPersistsRetry(t *testing.T) {
+	// Given an attempt that times out inside a PostgreSQL read on its transaction.
+	f := newDemandFixture(t)
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	other := f.key
+	other.CustomerID.ID = ulid.Make().String()
+	event, err := rte.NewCalculationRequestedEvent(other)
+	require.NoError(t, err)
+	require.NoError(t, f.repository.Activate(t.Context(), event.CalculationTarget))
+
+	input := f.input
+	input.CalculationTimeout = 100 * time.Millisecond
+	result, err := f.repository.Process(t.Context(), input, func(ctx context.Context, _ rte.CalculationTarget) error {
+		driver, err := entutils.GetDriverFromContext(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := db.NewTxClientFromRawConfig(ctx, *driver.GetConfig()).Client()
+		err = waitForDatabaseTimeout(ctx, client)
+
+		return errors.Join(ctx.Err(), err)
+	})
+
+	// Then cancellation cannot leave the failed key hot at the front of the queue.
+	require.NoError(t, err)
+	require.ErrorIs(t, result.CalculationError, context.DeadlineExceeded)
+	row, err := f.client.RTEDemand.Query().Where(demanddb.OwnerIDEQ(f.key.CustomerID.ID)).Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, 1, row.Attempts)
+	require.True(t, row.NextAttemptAt.After(clock.Now()))
+	result, err = f.repository.Process(t.Context(), f.input, func(_ context.Context, target rte.CalculationTarget) error {
+		identity, err := target.Identity()
+		if err != nil {
+			return err
+		}
+
+		require.Equal(t, other.CustomerID.ID, identity.OwnerID)
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.True(t, result.Processed)
+}
+
+func TestDemandAttemptRequiresPositiveTimeout(t *testing.T) {
+	input := rte.ProcessDemandInput{RetryMinDelay: time.Second, RetryMaxDelay: time.Minute}
+	require.ErrorContains(t, input.Validate(), "calculation timeout must be positive")
+	input.CalculationTimeout = time.Second
+	require.NoError(t, input.Validate())
+}
+
+func TestDemandTimeoutRecoveryRetainsConcurrentSuccess(t *testing.T) {
+	// Given an activated key with one new fact to process.
+	f := newDemandFixture(t)
+	now := time.Date(2026, time.November, 11, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+	require.NoError(t, f.repository.Activate(t.Context(), f.target))
+
+	_, err := f.repository.Process(t.Context(), f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+
+	before, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	clock.FreezeTime(now.Add(time.Minute))
+	_, err = f.repository.Invalidate(t.Context(), rte.InvalidateInput{
+		Selectors: []rte.DemandSelector{{
+			Namespace: f.key.CustomerID.Namespace,
+			Kind:      f.target.Kind,
+			Targets:   []rte.CalculationTarget{f.target},
+		}},
+	})
+	require.NoError(t, err)
+
+	input := f.input
+	input.CalculationTimeout = 100 * time.Millisecond
+	input.RetryMinDelay = 10 * time.Minute
+
+	// When a database timeout releases the lock and another worker finishes the
+	// same dirty version before the failed worker can record retry bookkeeping.
+	result, err := f.repository.Process(t.Context(), input, func(ctx context.Context, _ rte.CalculationTarget) error {
+		driver, err := entutils.GetDriverFromContext(ctx)
+		if err != nil {
+			return err
+		}
+
+		client := db.NewTxClientFromRawConfig(ctx, *driver.GetConfig()).Client()
+		timeoutErr := waitForDatabaseTimeout(ctx, client)
+		otherCtx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+		defer cancel()
+		targeted := f.input
+		targeted.Target = &f.target
+		other, err := f.repository.Process(otherCtx, targeted, func(context.Context, rte.CalculationTarget) error { return nil })
+		if err != nil {
+			return err
+		}
+
+		require.True(t, other.Processed)
+
+		return errors.Join(ctx.Err(), timeoutErr)
+	})
+
+	// Then failure recovery preserves the successful version without scheduling a retry.
+	require.NoError(t, err)
+	require.ErrorIs(t, result.CalculationError, context.DeadlineExceeded)
+	row, err := f.client.RTEDemand.Query().Only(t.Context())
+	require.NoError(t, err)
+	require.Equal(t, before.DirtyVersion+1, row.DirtyVersion)
+	require.Equal(t, row.DirtyVersion, row.CompletedVersion)
+	require.Zero(t, row.Attempts)
+	require.True(t, row.NextAttemptAt.Equal(now.Add(time.Minute)))
+}
+
+func TestDemandQueuePositionAcrossCalculation(t *testing.T) {
+	f := newDemandFixture(t)
+	ctx := t.Context()
+	now := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
+	clock.FreezeTime(now)
+	defer clock.UnFreeze()
+
+	other := f.key
+	other.CustomerID.ID = ulid.Make().String()
+	b, err := rte.NewCalculationTarget(other)
+	require.NoError(t, err)
+	// Given A enters the queue before B and receives another event while waiting.
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+	clock.FreezeTime(now.Add(time.Second))
+	defer clock.UnFreeze()
+	require.NoError(t, f.repository.Activate(ctx, b))
+
+	invalidate := func(targets ...rte.CalculationTarget) {
+		t.Helper()
+		result, err := f.repository.Invalidate(ctx, rte.InvalidateInput{Selectors: []rte.DemandSelector{{
+			Namespace: f.key.CustomerID.Namespace, Kind: f.target.Kind, Targets: targets,
+		}}})
+		require.NoError(t, err)
+		require.Equal(t, int64(len(targets)), result)
+	}
+	clock.FreezeTime(now.Add(2 * time.Second))
+	defer clock.UnFreeze()
+	invalidate(f.target)
+
+	// When A is calculating, one event affects both keys and another affects A.
+	// The callback holds the calculation lock until those invalidations commit.
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	claimed := make(chan rte.CalculationTarget, 1)
+	release := make(chan struct{})
+	finished := make(chan error, 1)
+	var first rte.DemandWorkResult
+	go func() {
+		var err error
+		first, err = f.repository.Process(ctx, f.input, func(ctx context.Context, target rte.CalculationTarget) error {
+			claimed <- target
+			select {
+			case <-release:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})
+		finished <- err
+	}()
+	select {
+	case target := <-claimed:
+		require.JSONEq(t, string(f.target.Key), string(target.Key))
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+
+	clock.FreezeTime(now.Add(3 * time.Second))
+	defer clock.UnFreeze()
+	invalidate(f.target, b)
+	invalidate(f.target)
+
+	clock.FreezeTime(now.Add(4 * time.Second))
+	defer clock.UnFreeze()
+	close(release)
+	require.NoError(t, <-finished)
+	require.NoError(t, first.CalculationError)
+	require.NotNil(t, first.Timing)
+	require.Equal(t, 2*time.Second, first.Timing.QueueWait)
+
+	// Then B keeps its original place. A's second turn becomes eligible at
+	// completion (t=4). Both intervening events fit into that one extra pass.
+	clock.FreezeTime(now.Add(6 * time.Second))
+	defer clock.UnFreeze()
+	for i, want := range []rte.CalculationTarget{b, f.target} {
+		work, err := f.repository.Process(ctx, f.input, func(_ context.Context, target rte.CalculationTarget) error {
+			require.JSONEq(t, string(want.Key), string(target.Key))
+			return nil
+		})
+		require.NoError(t, err)
+		require.True(t, work.Processed)
+		require.NoError(t, work.CalculationError)
+		require.NotNil(t, work.Timing)
+		require.Equal(t, []time.Duration{5 * time.Second, 2 * time.Second}[i], work.Timing.QueueWait)
+	}
+
+	row, err := f.client.RTEDemand.Query().Where(demanddb.OwnerIDEQ(f.key.CustomerID.ID)).Only(ctx)
+	require.NoError(t, err)
+	require.Equal(t, row.DirtyVersion, row.CompletedVersion)
+}
+
+func TestBoundedPullConfirmsCleanAtRegistration(t *testing.T) {
+	f := newDemandFixture(t)
+	ctx := t.Context()
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour, MaxAge: time.Minute}
+	// Given a continuously tracked balance with a completed calculation.
+	require.NoError(t, f.repository.Activate(ctx, f.target))
+	work, err := f.repository.Process(ctx, f.input, func(context.Context, rte.CalculationTarget) error { return nil })
+	require.NoError(t, err)
+	require.True(t, work.Processed)
+
+	// When a bounded pull renews the key, it can immediately confirm a clean result.
+	clean, err := f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.True(t, clean)
+
+	// A due deletion must still be checked even when age and versions match.
+	row, err := f.client.RTEDemand.Query().Only(ctx)
+	require.NoError(t, err)
+	require.NoError(t, f.client.RTEDemand.UpdateOne(row).SetSourceDeleteAt(clock.Now()).Exec(ctx))
+	clean, err = f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+	require.False(t, clean)
+}

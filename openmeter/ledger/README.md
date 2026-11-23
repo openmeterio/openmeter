@@ -92,6 +92,13 @@ persist the returned group reference with its own lifecycle state. Ledger
 annotations and entry identity preserve accounting meaning and provenance; they
 are not operation idempotency keys.
 
+With `rte.enabled`, `CommitGroup` reports `TransactionGroupCommittedEvent` after
+the outer posting transaction commits. The shadow publisher can drop the event
+if its queue is full or delivery fails. Journal writes do not wait for delivery.
+The event identifies changed journal facts, including historical and future-dated
+postings. A future-dated posting emits this event at commit. Reaching its booked time
+later does not emit another event.
+
 ## Error diagnostics
 
 Accounting guards use fixed diagnostic reasons, such as

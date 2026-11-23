@@ -17,6 +17,8 @@ type EventOutbox struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int64 `json:"id,omitempty"`
+	// AppRole holds the value of the "app_role" field.
+	AppRole string `json:"app_role,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// MessageID holds the value of the "message_id" field.
@@ -43,7 +45,7 @@ func (*EventOutbox) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case eventoutbox.FieldID, eventoutbox.FieldAttempts:
 			values[i] = new(sql.NullInt64)
-		case eventoutbox.FieldMessageID, eventoutbox.FieldTransactionID, eventoutbox.FieldTopic:
+		case eventoutbox.FieldAppRole, eventoutbox.FieldMessageID, eventoutbox.FieldTransactionID, eventoutbox.FieldTopic:
 			values[i] = new(sql.NullString)
 		case eventoutbox.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -70,6 +72,12 @@ func (_m *EventOutbox) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			_m.ID = int64(value.Int64)
+		case eventoutbox.FieldAppRole:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field app_role", values[i])
+			} else if value.Valid {
+				_m.AppRole = value.String
+			}
 		case eventoutbox.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -148,6 +156,9 @@ func (_m *EventOutbox) String() string {
 	var builder strings.Builder
 	builder.WriteString("EventOutbox(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	builder.WriteString("app_role=")
+	builder.WriteString(_m.AppRole)
+	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")

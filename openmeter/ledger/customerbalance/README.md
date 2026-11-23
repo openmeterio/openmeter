@@ -2,7 +2,7 @@
 
 This package exposes customer-facing credit balance and credit transaction views.
 
-> The current balance calculation path is temporary. It is expected to move to the **real-time-engine (RTE)** shortly. The API semantics below should remain stable even if the implementation stops querying the ledger directly for every balance view.
+The [RTE credit calculator](../../rte/creditbalance/README.md) uses this package to calculate a current balance and stores the result for its own consumers. Customer-facing balance and history reads continue to use this package directly.
 
 ## Balance Semantics
 

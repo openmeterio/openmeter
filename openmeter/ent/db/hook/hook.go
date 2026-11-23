@@ -957,6 +957,54 @@ func (f PlanRateCardFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.PlanRateCardMutation", m)
 }
 
+// The RTECreditBalanceFunc type is an adapter to allow the use of ordinary
+// function as RTECreditBalance mutator.
+type RTECreditBalanceFunc func(context.Context, *db.RTECreditBalanceMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTECreditBalanceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTECreditBalanceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTECreditBalanceMutation", m)
+}
+
+// The RTEDemandFunc type is an adapter to allow the use of ordinary
+// function as RTEDemand mutator.
+type RTEDemandFunc func(context.Context, *db.RTEDemandMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTEDemandFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTEDemandMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEDemandMutation", m)
+}
+
+// The RTEDemandLockFunc type is an adapter to allow the use of ordinary
+// function as RTEDemandLock mutator.
+type RTEDemandLockFunc func(context.Context, *db.RTEDemandLockMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTEDemandLockFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTEDemandLockMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEDemandLockMutation", m)
+}
+
+// The RTEMeteredEntitlementBalanceFunc type is an adapter to allow the use of ordinary
+// function as RTEMeteredEntitlementBalance mutator.
+type RTEMeteredEntitlementBalanceFunc func(context.Context, *db.RTEMeteredEntitlementBalanceMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RTEMeteredEntitlementBalanceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.RTEMeteredEntitlementBalanceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.RTEMeteredEntitlementBalanceMutation", m)
+}
+
 // The SubjectFunc type is an adapter to allow the use of ordinary
 // function as Subject mutator.
 type SubjectFunc func(context.Context, *db.SubjectMutation) (db.Value, error)

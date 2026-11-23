@@ -82,8 +82,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			Namespace:  eventmodels.NamespaceID{ID: message.Namespace},
 			SubjectKey: message.Serialized.Subject,
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
-			// Warning: Given this is called after the clickhouse writes have completed, it's a fair assumption that
-			// the event was stored at this time to clickhouse.
+			// A buffered ClickHouse insert can still be waiting to flush at this point.
 			StoredAt: now,
 		}
 

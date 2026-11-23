@@ -14,6 +14,8 @@ const (
 	Label = "event_outbox"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldAppRole holds the string denoting the app_role field in the database.
+	FieldAppRole = "app_role"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldMessageID holds the string denoting the message_id field in the database.
@@ -35,6 +37,7 @@ const (
 // Columns holds all SQL columns for eventoutbox fields.
 var Columns = []string{
 	FieldID,
+	FieldAppRole,
 	FieldCreatedAt,
 	FieldMessageID,
 	FieldTransactionID,
@@ -55,6 +58,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultAppRole holds the default value on creation for the "app_role" field.
+	DefaultAppRole string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// MessageIDValidator is a validator for the "message_id" field. It is called by the builders before save.
@@ -79,6 +84,11 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByAppRole orders the results by the app_role field.
+func ByAppRole(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAppRole, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

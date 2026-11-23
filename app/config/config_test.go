@@ -328,6 +328,7 @@ func TestComplete(t *testing.T) {
 		},
 		Events: EventsConfiguration{
 			Outbox: OutboxConfiguration{
+				DrainAllRoles:    true,
 				DrainLimit:       100,
 				MaxAttempts:      10,
 				DrainTimeout:     30 * time.Second,
@@ -354,6 +355,31 @@ func TestComplete(t *testing.T) {
 					Enabled:    true,
 					Partitions: 4,
 				},
+			},
+		},
+		RTE: RTEConfiguration{
+			ShadowSamplePercent:    10,
+			CalculationConcurrency: 4,
+			CalculationTimeout:     30 * time.Second,
+			PollInterval:           time.Second,
+			ConsumerConfiguration: ConsumerConfiguration{
+				ProcessingTimeout: 30 * time.Second,
+				Retry: RetryConfiguration{
+					MaxRetries:      10,
+					InitialInterval: 10 * time.Millisecond,
+					MaxInterval:     time.Second,
+					MaxElapsedTime:  time.Minute,
+				},
+				DLQ: DLQConfiguration{
+					Enabled: true,
+					Topic:   "om_sys.rte_dlq",
+					AutoProvision: DLQAutoProvisionConfiguration{
+						Enabled:    true,
+						Partitions: 1,
+						Retention:  90 * 24 * time.Hour,
+					},
+				},
+				ConsumerGroupName: "om_rte",
 			},
 		},
 		BalanceWorker: BalanceWorkerConfiguration{
