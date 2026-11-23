@@ -1,11 +1,11 @@
 package entitlementaccess
 
 import (
-	"github.com/oapi-codegen/nullable"
 	"github.com/samber/lo"
 
 	customershandler "github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
+	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
 )
 
@@ -83,27 +83,18 @@ func toAPIQueryErrorCode(code entitlementaccess.QueryErrorCode) apiv3models.Enti
 
 // toAPICursorMeta builds cursor pagination metadata from the domain result.
 func toAPICursorMeta(res entitlementaccess.QueryResult, pageSize int) apiv3models.CursorMeta {
-	meta := apiv3models.CursorMeta{
-		Page: apiv3models.CursorMetaPage{
-			Next:     nullable.NewNullNullable[string](),
-			Previous: nullable.NewNullNullable[string](),
-			Size:     float32(pageSize),
-		},
+	edges := response.CursorPageEdges{
+		First: res.First.EncodePtr(),
+		Last:  res.Last.EncodePtr(),
 	}
 
-	if res.First != nil {
-		meta.Page.First = lo.ToPtr(res.First.Encode())
-		if res.HasPrev {
-			meta.Page.Previous = nullable.NewNullableWithValue(res.First.Encode())
-		}
+	if res.HasPrev {
+		edges.Previous = edges.First
 	}
 
-	if res.Last != nil {
-		meta.Page.Last = lo.ToPtr(res.Last.Encode())
-		if res.HasNext {
-			meta.Page.Next = nullable.NewNullableWithValue(res.Last.Encode())
-		}
+	if res.HasNext {
+		edges.Next = edges.Last
 	}
 
-	return meta
+	return response.NewCursorMeta(pageSize, edges)
 }

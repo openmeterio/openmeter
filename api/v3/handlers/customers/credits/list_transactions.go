@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/oapi-codegen/nullable"
-	"github.com/samber/lo"
-
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
+	"github.com/openmeterio/openmeter/api/v3/request"
+	"github.com/openmeterio/openmeter/api/v3/response"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/ledger/customerbalance"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -35,21 +35,11 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				return ListCreditTransactionsRequest{}, err
 			}
 
-			size := 20
-			if args.Params.Page != nil {
-				size = lo.FromPtrOr(args.Params.Page.Size, 20)
-			}
-
-			if size < 1 {
-				err := fmt.Errorf("must be greater than 0")
-
-				return ListCreditTransactionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-					{
-						Field:  "page.size",
-						Reason: "must be greater than 0",
-						Source: apierrors.InvalidParamSourceQuery,
-					},
-				})
+			page, err := request.ParseCursorPage(ctx, args.Params.Page, 20, func(cursor string) (*ledger.TransactionCursor, error) {
+				return decodeBillingCreditTransactionCursor(cursor, ns)
+			})
+			if err != nil {
+				return ListCreditTransactionsRequest{}, err
 			}
 
 			req := customerbalance.ListCreditTransactionsInput{
@@ -57,39 +47,9 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 					Namespace: ns,
 					ID:        args.CustomerID,
 				},
-				Limit: size,
-			}
-
-			if args.Params.Page != nil {
-				if args.Params.Page.After != nil {
-					after, err := decodeBillingCreditTransactionCursor(*args.Params.Page.After, ns)
-					if err != nil {
-						return ListCreditTransactionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-							{
-								Field:  "page.after",
-								Reason: err.Error(),
-								Source: apierrors.InvalidParamSourceQuery,
-							},
-						})
-					}
-
-					req.After = after
-				}
-
-				if args.Params.Page.Before != nil {
-					before, err := decodeBillingCreditTransactionCursor(*args.Params.Page.Before, ns)
-					if err != nil {
-						return ListCreditTransactionsRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
-							{
-								Field:  "page.before",
-								Reason: err.Error(),
-								Source: apierrors.InvalidParamSourceQuery,
-							},
-						})
-					}
-
-					req.Before = before
-				}
+				Limit:  page.Size,
+				After:  page.After,
+				Before: page.Before,
 			}
 
 			if args.Params.Filter != nil {
@@ -116,16 +76,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 				return ListCreditTransactionsResponse{}, fmt.Errorf("list credit transactions: %w", err)
 			}
 
-			// We intentionally expose opaque cursor tokens instead of URI links.
-			// This endpoint reuses the shared cursor metadata schema, but still emits
-			// opaque token values rather than fully qualified URLs.
-			meta := apiv3models.CursorMeta{
-				Page: apiv3models.CursorMetaPage{
-					Next:     nullable.NewNullNullable[string](),
-					Previous: nullable.NewNullNullable[string](),
-					Size:     float32(request.Limit),
-				},
-			}
+			var edges response.CursorPageEdges
 
 			if result.NextCursor != nil {
 				next, err := encodeBillingCreditTransactionCursor(*result.NextCursor)
@@ -133,7 +84,7 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 					return ListCreditTransactionsResponse{}, fmt.Errorf("encode next cursor: %w", err)
 				}
 
-				meta.Page.Next = nullable.NewNullableWithValue(next)
+				edges.Next = &next
 			}
 
 			if result.PreviousCursor != nil {
@@ -142,12 +93,12 @@ func (h *handler) ListCreditTransactions() ListCreditTransactionsHandler {
 					return ListCreditTransactionsResponse{}, fmt.Errorf("encode previous cursor: %w", err)
 				}
 
-				meta.Page.Previous = nullable.NewNullableWithValue(previous)
+				edges.Previous = &previous
 			}
 
 			return apiv3models.CreditTransactionPaginatedResponse{
 				Data: toAPIBillingCreditTransactions(result.Items),
-				Meta: meta,
+				Meta: response.NewCursorMeta(request.Limit, edges),
 			}, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[ListCreditTransactionsResponse](http.StatusOK),

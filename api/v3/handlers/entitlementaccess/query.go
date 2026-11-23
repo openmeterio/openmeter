@@ -2,11 +2,11 @@ package entitlementaccess
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api/v3/apierrors"
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
+	"github.com/openmeterio/openmeter/api/v3/request"
 	"github.com/openmeterio/openmeter/openmeter/entitlementaccess"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -39,7 +39,6 @@ func (h *handler) QueryEntitlementAccess() QueryEntitlementAccessHandler {
 			req := QueryEntitlementAccessRequest{
 				Namespace:    ns,
 				CustomerKeys: body.Customer.Keys,
-				PageSize:     defaultPageSize,
 			}
 
 			if body.Feature != nil {
@@ -50,9 +49,15 @@ func (h *handler) QueryEntitlementAccess() QueryEntitlementAccessHandler {
 				req.IncludeCredits = *body.IncludeCredits
 			}
 
-			if err := applyPaging(ctx, &req, params); err != nil {
+			// The request validator already limits page[size] to 1..100.
+			page, err := request.ParseCursorPage(ctx, (*apiv3models.CursorPaginationQueryPage)(params.Page), defaultPageSize, pagination.DecodeCursor)
+			if err != nil {
 				return QueryEntitlementAccessRequest{}, err
 			}
+
+			req.PageSize = page.Size
+			req.After = page.After
+			req.Before = page.Before
 
 			return req, nil
 		},
@@ -71,60 +76,4 @@ func (h *handler) QueryEntitlementAccess() QueryEntitlementAccessHandler {
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
-}
-
-// applyPaging parses page[size]/page[after]/page[before] into the service input.
-func applyPaging(ctx context.Context, req *QueryEntitlementAccessRequest, params QueryEntitlementAccessParams) error {
-	if params.Page == nil {
-		return nil
-	}
-
-	// The request validator already limits page[size] to 1..100.
-	if params.Page.Size != nil {
-		req.PageSize = *params.Page.Size
-	}
-
-	if params.Page.After != nil && params.Page.Before != nil {
-		return apierrors.NewBadRequestError(ctx,
-			fmt.Errorf("page[after] and page[before] are mutually exclusive"),
-			apierrors.InvalidParameters{{
-				Field:  "page[after]",
-				Reason: "cannot be combined with page[before]",
-				Source: apierrors.InvalidParamSourceQuery,
-			}},
-		)
-	}
-
-	if params.Page.After != nil {
-		cursor, err := decodeCursorParam(ctx, "page[after]", *params.Page.After)
-		if err != nil {
-			return err
-		}
-
-		req.After = cursor
-	}
-
-	if params.Page.Before != nil {
-		cursor, err := decodeCursorParam(ctx, "page[before]", *params.Page.Before)
-		if err != nil {
-			return err
-		}
-
-		req.Before = cursor
-	}
-
-	return nil
-}
-
-func decodeCursorParam(ctx context.Context, field, raw string) (*pagination.Cursor, error) {
-	cursor, err := pagination.DecodeCursor(raw)
-	if err != nil {
-		return nil, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{{
-			Field:  field,
-			Reason: err.Error(),
-			Source: apierrors.InvalidParamSourceQuery,
-		}})
-	}
-
-	return cursor, nil
 }

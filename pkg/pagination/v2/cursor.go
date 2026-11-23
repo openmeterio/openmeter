@@ -53,12 +53,15 @@ func DecodeCursor(s string) (*Cursor, error) {
 }
 
 // Encode converts the cursor to a base64-encoded string representation.
-// The encoded string is formatted as <RFC3339 time>,<ID>.
+// The encoded string is formatted as <RFC3339 time>,<ID>. The time keeps its
+// fractional seconds: a cursor that lost them would make the next page repeat
+// the items of that second when the sort key is more precise than a second.
+// A whole-second time encodes without a fraction, as before.
 func (c Cursor) Encode() string {
 	// Ensure time is in UTC
 	t := c.Time.UTC()
 
-	s := fmt.Sprintf("%s%s%s", t.Format(time.RFC3339), cursorDelimiter, c.ID)
+	s := fmt.Sprintf("%s%s%s", t.Format(time.RFC3339Nano), cursorDelimiter, c.ID)
 
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
@@ -95,7 +98,8 @@ func (c *Cursor) UnmarshalText(text []byte) error {
 		return fmt.Errorf("cursor is invalid: no delimiter found")
 	}
 
-	// Parse the time
+	// The RFC3339 layout also accepts fractional seconds, so this parses both
+	// whole-second cursors and ones with a fraction.
 	timestamp, err := time.Parse(time.RFC3339, parts[0])
 	if err != nil {
 		return fmt.Errorf("parse cursor timestamp: %w", err)
