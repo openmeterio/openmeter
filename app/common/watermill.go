@@ -30,7 +30,7 @@ var WatermillNoPublisher = wire.NewSet(
 	NewBrokerConfiguration,
 	wire.Struct(new(watermillkafka.PublisherOptions), "*"),
 
-	NewEventBusPublisher,
+	NewDeploymentEventBusPublisher,
 )
 
 var WatermillRouter = wire.NewSet(
@@ -77,6 +77,28 @@ func NewPublisher(
 	}, nil
 }
 
+// NewDeploymentEventBusPublisher gives replicas of a service the same outbox.
+func NewDeploymentEventBusPublisher(
+	ctx context.Context,
+	publisher message.Publisher,
+	db *entdb.Client,
+	conf config.EventsConfiguration,
+	metadata Metadata,
+	logger *slog.Logger,
+) (eventbus.Publisher, func(), error) {
+	role := metadata.ServiceName
+	switch role {
+	case "":
+		return nil, nil, fmt.Errorf("service name is required for the outbox")
+	case "openmeter-backend", "openmeter-jobs":
+		// The backend delivers legacy rows and finishes delivery for short-lived jobs.
+		role = ""
+	}
+
+	return newEventBusPublisher(ctx, publisher, db, conf, role, logger)
+}
+
+// NewEventBusPublisher uses the default queue serviced by the backend.
 func NewEventBusPublisher(
 	ctx context.Context,
 	publisher message.Publisher,
@@ -84,8 +106,21 @@ func NewEventBusPublisher(
 	conf config.EventsConfiguration,
 	logger *slog.Logger,
 ) (eventbus.Publisher, func(), error) {
+	return newEventBusPublisher(ctx, publisher, db, conf, "", logger)
+}
+
+func newEventBusPublisher(
+	ctx context.Context,
+	publisher message.Publisher,
+	db *entdb.Client,
+	conf config.EventsConfiguration,
+	role string,
+	logger *slog.Logger,
+) (eventbus.Publisher, func(), error) {
 	outboxPublisher, err := outbox.NewPublisher(ctx, outbox.Config{
 		DB:               db,
+		AppRole:          role,
+		DrainAllRoles:    conf.Outbox.DrainAllRoles,
 		Publisher:        publisher,
 		OutboxTopics:     []string{conf.SystemEvents.Topic},
 		Logger:           logger,

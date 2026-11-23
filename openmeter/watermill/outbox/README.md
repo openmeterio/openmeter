@@ -8,7 +8,7 @@ Other topics still publish directly.
 
 ## Delivery and ordering
 
-After commit, workers drain the shared queue. They also retry periodically
+After commit, workers wake their local drainer. They also retry periodically
 (default: one minute). `events.outbox` configures drain limit, timeout, concurrency,
 retry interval, and `maxAttempts` (default: 10).
 
@@ -18,11 +18,20 @@ removed, B's attempt count is persisted, and C waits for a later drain. Other
 transactions can progress. Once B reaches `maxAttempts`, it is logged and retained
 for inspection, skipped by future drains, and C can proceed. Raising the limit makes retained rows eligible again.
 
+Each row carries the producer's `app_role`. Set `events.outbox.drainAllRoles` to
+let a process deliver pending events from any role on its configured topics. The
+backend defaults to `true` so it can drain a deployment's queue while that
+deployment is offline. Other binaries default to `false` and drain their own role.
+This setting only affects delivery. The backend and short-lived jobs still write
+to the default (empty) queue, which also contains pre-migration rows.
+
+Apply the migration before rolling out the new binaries.
+
 Acknowledged events are **hard-deleted**. A crash or failed database commit can
 resend them, so consumers must tolerate duplicates. Failed-attempt counts survive
 successful drain commits; crashes or database failures can cause extra attempts.
 Finite retries mean some events may never be delivered. Ordering applies within
-a source transaction, until an event is abandoned; there is no ordering guarantee
+a role and source transaction, until an event is abandoned; there is no ordering guarantee
 between transactions or for consumer delivery across Kafka topics/partitions.
 
 ## Concurrency and shutdown

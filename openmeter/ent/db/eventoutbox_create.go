@@ -22,6 +22,20 @@ type EventOutboxCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetAppRole sets the "app_role" field.
+func (_c *EventOutboxCreate) SetAppRole(v string) *EventOutboxCreate {
+	_c.mutation.SetAppRole(v)
+	return _c
+}
+
+// SetNillableAppRole sets the "app_role" field if the given value is not nil.
+func (_c *EventOutboxCreate) SetNillableAppRole(v *string) *EventOutboxCreate {
+	if v != nil {
+		_c.SetAppRole(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *EventOutboxCreate) SetCreatedAt(v time.Time) *EventOutboxCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -121,6 +135,10 @@ func (_c *EventOutboxCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *EventOutboxCreate) defaults() {
+	if _, ok := _c.mutation.AppRole(); !ok {
+		v := eventoutbox.DefaultAppRole
+		_c.mutation.SetAppRole(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := eventoutbox.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -133,6 +151,9 @@ func (_c *EventOutboxCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *EventOutboxCreate) check() error {
+	if _, ok := _c.mutation.AppRole(); !ok {
+		return &ValidationError{Name: "app_role", err: errors.New(`db: missing required field "EventOutbox.app_role"`)}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "EventOutbox.created_at"`)}
 	}
@@ -210,6 +231,10 @@ func (_c *EventOutboxCreate) createSpec() (*EventOutbox, *sqlgraph.CreateSpec, e
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.AppRole(); ok {
+		_spec.SetField(eventoutbox.FieldAppRole, field.TypeString, value)
+		_node.AppRole = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(eventoutbox.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -249,7 +274,7 @@ func (_c *EventOutboxCreate) createSpec() (*EventOutbox, *sqlgraph.CreateSpec, e
 // of the `INSERT` statement. For example:
 //
 //	client.EventOutbox.Create().
-//		SetCreatedAt(v).
+//		SetAppRole(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -258,7 +283,7 @@ func (_c *EventOutboxCreate) createSpec() (*EventOutbox, *sqlgraph.CreateSpec, e
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.EventOutboxUpsert) {
-//			SetCreatedAt(v+v).
+//			SetAppRole(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *EventOutboxCreate) OnConflict(opts ...sql.ConflictOption) *EventOutboxUpsertOne {
@@ -328,6 +353,9 @@ func (u *EventOutboxUpsertOne) UpdateNewValues() *EventOutboxUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(eventoutbox.FieldID)
+		}
+		if _, exists := u.create.mutation.AppRole(); exists {
+			s.SetIgnore(eventoutbox.FieldAppRole)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(eventoutbox.FieldCreatedAt)
@@ -537,7 +565,7 @@ func (_c *EventOutboxCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.EventOutboxUpsert) {
-//			SetCreatedAt(v+v).
+//			SetAppRole(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *EventOutboxCreateBulk) OnConflict(opts ...sql.ConflictOption) *EventOutboxUpsertBulk {
@@ -583,6 +611,9 @@ func (u *EventOutboxUpsertBulk) UpdateNewValues() *EventOutboxUpsertBulk {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(eventoutbox.FieldID)
+			}
+			if _, exists := b.mutation.AppRole(); exists {
+				s.SetIgnore(eventoutbox.FieldAppRole)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(eventoutbox.FieldCreatedAt)

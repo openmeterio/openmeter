@@ -19,6 +19,7 @@ type EventOutbox struct {
 func (EventOutbox) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id"),
+		field.String("app_role").Default("").Immutable(),
 		field.Time("created_at").Default(clock.Now).Immutable(),
 		field.String("message_id").NotEmpty().Immutable(),
 		field.String("transaction_id").NotEmpty().Immutable().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
@@ -35,7 +36,7 @@ func (EventOutbox) Fields() []ent.Field {
 
 func (EventOutbox) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("topic", "id"),
-		index.Fields("topic", "transaction_id", "id"),
+		index.Fields("app_role", "topic", "id"),
+		index.Fields("app_role", "topic", "transaction_id", "id"),
 	}
 }
