@@ -24,14 +24,14 @@ func TestRTEDemandCalculationLocksMigration(t *testing.T) {
 	var existingID int
 	runner{stops: stops{
 		{
-			version: 20261119143226, direction: directionUp,
+			version: 20261123131708, direction: directionUp,
 			action: func(t *testing.T, db *sql.DB) {
 				// Given a demand created before the migration.
 				existingID = insertDemand(t, db, "existing")
 			},
 		},
 		{
-			version: 20261119143321, direction: directionUp,
+			version: 20261123131709, direction: directionUp,
 			action: func(t *testing.T, db *sql.DB) {
 				// When an older binary also registers a key after migration.
 				newID := insertDemand(t, db, "new")
@@ -50,7 +50,7 @@ func TestRTEDemandCalculationLocksMigration(t *testing.T) {
 			},
 		},
 		{
-			version: 20261119143226, direction: directionDown,
+			version: 20261123131708, direction: directionDown,
 			action: func(t *testing.T, db *sql.DB) {
 				// A rolled-back writer can still register a demand after the lock table is dropped.
 				insertDemand(t, db, "after-rollback")
