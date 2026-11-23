@@ -229,6 +229,93 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 	}
 }
 
+func TestFromAPIChargeTaxConfig(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          *apiv3models.BillingTaxConfig
+		want           productcatalog.TaxCodeConfig
+		wantStripeCode string
+		wantErr        string
+	}{
+		{
+			name: "no tax config",
+		},
+		{
+			name: "tax code reference",
+			input: &apiv3models.BillingTaxConfig{
+				Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorExclusive),
+				TaxCode:  &apiv3models.TaxCodeReference{Id: "01JTEST00000000000000000001"},
+			},
+			want: productcatalog.TaxCodeConfig{
+				Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+				TaxCodeID: "01JTEST00000000000000000001",
+			},
+		},
+		{
+			name: "deprecated tax code id",
+			input: &apiv3models.BillingTaxConfig{
+				TaxCodeId: lo.ToPtr("01JTEST00000000000000000001"),
+			},
+			want: productcatalog.TaxCodeConfig{TaxCodeID: "01JTEST00000000000000000001"},
+		},
+		{
+			name: "tax code reference wins over the deprecated tax code id",
+			input: &apiv3models.BillingTaxConfig{
+				TaxCode:   &apiv3models.TaxCodeReference{Id: "01JTEST00000000000000000001"},
+				TaxCodeId: lo.ToPtr("01JTEST00000000000000000002"),
+			},
+			want: productcatalog.TaxCodeConfig{TaxCodeID: "01JTEST00000000000000000001"},
+		},
+		{
+			name: "tax code reference wins over stripe code, leaving nothing to resolve",
+			input: &apiv3models.BillingTaxConfig{
+				TaxCode: &apiv3models.TaxCodeReference{Id: "01JTEST00000000000000000001"},
+				Stripe:  &apiv3models.BillingTaxConfigStripe{Code: "txcd_10000000"},
+			},
+			want: productcatalog.TaxCodeConfig{TaxCodeID: "01JTEST00000000000000000001"},
+		},
+		{
+			name: "stripe code only is left to resolve",
+			input: &apiv3models.BillingTaxConfig{
+				Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorInclusive),
+				Stripe:   &apiv3models.BillingTaxConfigStripe{Code: "txcd_10000000"},
+			},
+			want:           productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
+			wantStripeCode: "txcd_10000000",
+		},
+		{
+			name: "malformed stripe code is rejected even when an id wins",
+			input: &apiv3models.BillingTaxConfig{
+				TaxCode: &apiv3models.TaxCodeReference{Id: "01JTEST00000000000000000001"},
+				Stripe:  &apiv3models.BillingTaxConfigStripe{Code: "not-a-stripe-code"},
+			},
+			wantErr: "stripe.code",
+		},
+		{
+			name: "empty tax code id is rejected",
+			input: &apiv3models.BillingTaxConfig{
+				TaxCode: &apiv3models.TaxCodeReference{Id: ""},
+				Stripe:  &apiv3models.BillingTaxConfigStripe{Code: "txcd_10000000"},
+			},
+			wantErr: "tax code id must not be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, stripeCode, err := fromAPIChargeTaxConfig(tt.input)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.wantStripeCode, stripeCode)
+		})
+	}
+}
+
 func TestToAPIBillingChargeUsageBasedSystemIntentMapsLegacyDynamicPrice(t *testing.T) {
 	now := time.Date(2026, 7, 6, 10, 0, 0, 0, time.UTC)
 	period := timeutil.ClosedPeriod{
@@ -392,7 +479,7 @@ func TestFromAPICreateChargeUsageBasedRequestMapsRatingConfiguration(t *testing.
 		Type:   apiv3models.BillingPriceUnitTypeUnit,
 	}))
 
-	input, _, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
+	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
 		Commitments: &apiv3models.BillingSpendCommitments{
 			MaximumAmount: lo.ToPtr(apiv3models.Numeric("50")),
 			MinimumAmount: lo.ToPtr(apiv3models.Numeric("5")),
@@ -1161,7 +1248,7 @@ func TestFromAPICreateChargeUsageBasedRequestMapsCostBasis(t *testing.T) {
 		Rate:         "0.5",
 	}))
 
-	input, _, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
+	input, err := fromAPICreateChargeUsageBasedRequest("namespace", "customer-id", apiv3models.CreateChargeUsageBasedRequest{
 		CostBasis:      &costBasis,
 		Currency:       apiv3models.CurrencyCode("TOKENS"),
 		Feature:        apiv3models.FeatureReference{Id: "feature-id"},

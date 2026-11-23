@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
-	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	"github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	"github.com/openmeterio/openmeter/api/v3/handlers/features"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
@@ -932,21 +931,57 @@ func fromAPIChargesExpands(ctx context.Context, expand *[]apiv3models.BillingCha
 	return meta.ExpandNone.With(expands...), nil
 }
 
-func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, *productcatalog.TaxConfig, error) {
-	var zero billingcharges.CreateCustomerChargeInput
-
-	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(flatFee.TaxConfig)
-	if err != nil {
-		return zero, nil, fmt.Errorf("invalid tax config: %w", err)
+// fromAPIChargeTaxConfig reads a v3 charge tax config without lookups. It returns the Tax Code
+// reference the charge stores and the deprecated stripe.code still to resolve. That code is empty
+// when tax_code (or the deprecated tax_code_id) is set, because the ID wins, or when none was sent.
+//
+// stripe.code is format-checked even when the ID wins: the API always rejected malformed codes.
+func fromAPIChargeTaxConfig(in *apiv3models.BillingTaxConfig) (productcatalog.TaxCodeConfig, string, error) {
+	if in == nil {
+		return productcatalog.TaxCodeConfig{}, "", nil
 	}
 
+	stripeCode := lo.FromPtr(in.Stripe).Code
+	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {
+		return productcatalog.TaxCodeConfig{}, "", models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(models.NewFieldSelector("stripe"), models.NewFieldSelector("code")),
+			err,
+		)
+	}
+
+	out := productcatalog.TaxCodeConfig{
+		Behavior: (*productcatalog.TaxBehavior)(in.Behavior),
+	}
+
+	switch {
+	case in.TaxCode != nil:
+		out.TaxCodeID = in.TaxCode.Id
+	case in.TaxCodeId != nil:
+		out.TaxCodeID = *in.TaxCodeId
+	}
+
+	// An explicit empty ID was always rejected; don't let it fall through to the Stripe code.
+	if (in.TaxCode != nil || in.TaxCodeId != nil) && out.TaxCodeID == "" {
+		return productcatalog.TaxCodeConfig{}, "", models.NewGenericValidationError(errors.New("tax code id must not be empty"))
+	}
+
+	if out.TaxCodeID != "" {
+		stripeCode = ""
+	}
+
+	return out, stripeCode, nil
+}
+
+func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
+	var zero billingcharges.CreateCustomerChargeInput
+
 	if flatFee.AmountBeforeProration.Currency != flatFee.Currency {
-		return zero, nil, models.NewGenericValidationError(errors.New("currency mismatch, amount_before_proration.currency should match currency field"))
+		return zero, models.NewGenericValidationError(errors.New("currency mismatch, amount_before_proration.currency should match currency field"))
 	}
 
 	amountBeforeProration, err := alpacadecimal.NewFromString(flatFee.AmountBeforeProration.Amount)
 	if err != nil {
-		return zero, nil, models.NewGenericValidationError(errors.New("invalid amount_before_proration.amount, must be a valid decimal string"))
+		return zero, models.NewGenericValidationError(errors.New("invalid amount_before_proration.amount, must be a valid decimal string"))
 	}
 
 	var metadata models.Metadata
@@ -982,7 +1017,7 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 
 	costBasis, err := billingcommon.FromAPIChargeCostBasis(flatFee.CostBasis)
 	if err != nil {
-		return zero, nil, err
+		return zero, err
 	}
 
 	return billingcharges.CreateCustomerChargeInput{
@@ -1010,16 +1045,11 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 			FeatureID:      featureID,
 			SettlementMode: productcatalog.SettlementMode(flatFee.SettlementMode),
 		},
-	}, taxConfig, nil
+	}, nil
 }
 
-func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee apiv3models.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, *productcatalog.TaxConfig, error) {
+func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee apiv3models.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
-
-	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(usageBasedFee.TaxConfig)
-	if err != nil {
-		return zero, nil, fmt.Errorf("invalid tax config: %w", err)
-	}
 
 	var metadata models.Metadata
 	if usageBasedFee.Labels != nil {
@@ -1037,7 +1067,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		if usageBasedFee.Discounts.Usage != nil {
 			quantity, err := alpacadecimal.NewFromString(lo.FromPtr(usageBasedFee.Discounts.Usage))
 			if err != nil {
-				return zero, nil, fmt.Errorf("invalid usage discount quantity: %w", err)
+				return zero, fmt.Errorf("invalid usage discount quantity: %w", err)
 			}
 
 			discounts.Usage = &productcatalog.UsageDiscount{
@@ -1050,20 +1080,20 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 
 	price, err := plans.FromAPIBillingPriceUsageBased(usageBasedFee.Price, usageBasedFee.Commitments)
 	if err != nil {
-		return zero, nil, fmt.Errorf("invalid price: %w", err)
+		return zero, fmt.Errorf("invalid price: %w", err)
 	}
 
 	var unitConfig *productcatalog.UnitConfig
 	if usageBasedFee.UnitConfig != nil {
 		unitConfig, err = plans.FromAPIBillingUnitConfig(*usageBasedFee.UnitConfig)
 		if err != nil {
-			return zero, nil, fmt.Errorf("invalid unit config: %w", err)
+			return zero, fmt.Errorf("invalid unit config: %w", err)
 		}
 	}
 
 	costBasis, err := billingcommon.FromAPIChargeCostBasis(usageBasedFee.CostBasis)
 	if err != nil {
-		return zero, nil, err
+		return zero, err
 	}
 
 	return billingcharges.CreateCustomerChargeInput{
@@ -1090,7 +1120,7 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 			FeatureID:      usageBasedFee.Feature.Id,
 			SettlementMode: productcatalog.SettlementMode(usageBasedFee.SettlementMode),
 		},
-	}, taxConfig, nil
+	}, nil
 }
 
 // maxListChargesPageSize bounds a single page: every listed charge loads its
