@@ -4,30 +4,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
+	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+const ErrCodeChargeCostBasisUnavailable models.ErrorCode = "charge_cost_basis_unavailable"
+
 type Resolver interface {
-	// ResolveInitialState resolves the initial state of the cost basis for a given intent,
-	// dynamic costbasis is resolved once we hit current service period's start so we are not
-	// doing the resolution during creation.
+	// ResolveInitialState returns the state to store at charge creation. Manual
+	// and pinned intents resolve immediately. For a dynamic intent, it checks
+	// that a rate covers the service-period start and returns nil on success.
+	// This lets a scheduled charge use a replacement rate effective at that start.
 	ResolveInitialState(ctx context.Context, input ResolveInitialStateInput) (*State, error)
 
-	// ResolveDynamicState resolves the dynamic state of the cost basis for a given intent,
-	// dynamic costbasis is resolved once we hit current service period's start so we are not
-	// doing the resolution during creation.
+	// ResolveDynamicState returns the rate effective at the charge's service-period
+	// start, even if activation runs later. The charge state machine persists
+	// that rate when it first applies it. Previews only read it.
 	ResolveDynamicState(ctx context.Context, input ResolveDynamicStateInput) (State, error)
 }
 
 type ResolveInitialStateInput struct {
-	CurrencyID models.NamespacedID
-	Intent     Intent
-	ResolvedAt time.Time
+	CurrencyID        models.NamespacedID
+	Intent            Intent
+	ResolvedAt        time.Time
+	ServicePeriodFrom time.Time
 }
 
 func (i ResolveInitialStateInput) Validate() error {
@@ -173,7 +179,26 @@ func (r *resolver) ResolveInitialState(ctx context.Context, input ResolveInitial
 
 	switch input.Intent.kind {
 	case ModeDynamic:
-		return nil, nil
+		_, err := r.ResolveDynamicState(ctx, ResolveDynamicStateInput{
+			CurrencyID:        input.CurrencyID,
+			Intent:            input.Intent,
+			ServicePeriodFrom: input.ServicePeriodFrom,
+		})
+		if models.IsGenericNotFoundError(err) {
+			return nil, models.NewGenericValidationError(models.NewValidationIssue(
+				ErrCodeChargeCostBasisUnavailable,
+				fmt.Sprintf("custom currency %s has no %s cost basis at the service-period start %s",
+					input.CurrencyID.ID,
+					input.Intent.dynamic.FiatCurrency.Details().Code,
+					input.ServicePeriodFrom.UTC().Format(time.RFC3339),
+				),
+				models.WithCriticalSeverity(),
+				models.WithFieldString("cost_basis"),
+				commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
+			))
+		}
+
+		return nil, err
 	case ModePinned:
 		return r.resolvePinnedState(ctx, input.CurrencyID, input.Intent, input.ResolvedAt)
 	case ModeManual:

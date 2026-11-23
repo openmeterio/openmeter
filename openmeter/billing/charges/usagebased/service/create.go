@@ -50,9 +50,10 @@ func (s *service) Create(ctx context.Context, input usagebased.CreateInput) ([]u
 				var err error
 
 				resolvedCostBasis, err = s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
-					CurrencyID: chargeIntent.Currency.NamespacedID,
-					Intent:     *chargeIntent.CostBasis,
-					ResolvedAt: now,
+					CurrencyID:        chargeIntent.Currency.NamespacedID,
+					Intent:            *chargeIntent.CostBasis,
+					ResolvedAt:        now,
+					ServicePeriodFrom: chargeIntent.ServicePeriod.From,
 				})
 				if err != nil {
 					return usagebased.CreateIntentAdapterInput{}, fmt.Errorf("resolving cost basis: %w", err)

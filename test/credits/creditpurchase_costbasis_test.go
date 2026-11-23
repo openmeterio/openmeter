@@ -276,9 +276,9 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 	})
 }
 
-func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementResolutionFailureIsAtomic() {
+func (s *CreditPurchaseCostBasisSuite) TestInvoiceRollsBackWhenReplacementRateExpiresAtServiceStart() {
 	// given:
-	// - an unresolved dynamic invoice credit purchase without a cost basis at its service-period start
+	// - a scheduled dynamic invoice credit purchase whose rate is superseded before service starts
 	// when:
 	// - billing attempts to materialize the invoice
 	// then:
@@ -286,6 +286,10 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementResolutionFai
 	t := s.T()
 	ctx := t.Context()
 	namespace := s.GetUniqueNamespace("dynamic-invoice-credit-purchase-resolution-failure")
+
+	setupAt := time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC)
+	clock.FreezeTime(setupAt)
+	defer clock.UnFreeze()
 
 	customInvoicing := s.SetupCustomInvoicing(namespace)
 	_ = s.ProvisionBillingProfile(ctx, namespace, customInvoicing.App.GetID(),
@@ -295,6 +299,15 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementResolutionFai
 	)
 
 	fixture := s.provisionDynamicCreditPurchaseFixtureWithoutThresholdCostBasis(namespace)
+	rate := currencies.CreateCostBasisInput{
+		Namespace:  namespace,
+		CurrencyID: fixture.customCurrency.ID,
+		FiatCode:   fixture.settlementCurrency,
+		Rate:       fixture.resolvedRate,
+	}
+	_, err := s.CurrencyService.CreateCostBasis(ctx, rate)
+	s.Require().NoError(err)
+
 	created, err := s.creditPurchaseService.Create(ctx, creditpurchase.CreateInput{
 		Namespace: namespace,
 		Intent:    fixture.newIntent(creditpurchase.NewInvoiceSettlement()),
@@ -309,7 +322,15 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementResolutionFai
 	})
 	s.Require().NoError(err)
 
-	asOf := clock.Now()
+	// The replacement ends exactly when service starts, leaving the purchase uncovered.
+	rate.EffectiveFrom = lo.ToPtr(setupAt.Add(24 * time.Hour))
+	rate.EffectiveTo = lo.ToPtr(fixture.servicePeriod.From)
+	_, err = s.CurrencyService.CreateCostBasis(ctx, rate)
+	s.Require().NoError(err)
+
+	asOf := fixture.servicePeriod.To
+	clock.FreezeTime(asOf)
+	defer clock.UnFreeze()
 	_, err = s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
 		Customer: fixture.customerID,
 		AsOf:     &asOf,

@@ -13,9 +13,10 @@ import (
 )
 
 type resolveInitialCostBasisInput struct {
-	Currency   currencies.Currency
-	CostBasis  creditpurchase.CostBasis
-	ResolvedAt time.Time
+	Currency          currencies.Currency
+	CostBasis         creditpurchase.CostBasis
+	ResolvedAt        time.Time
+	ServicePeriodFrom time.Time
 }
 
 var _ models.Validator = (*resolveInitialCostBasisInput)(nil)
@@ -60,9 +61,10 @@ func (s *service) resolveInitialCostBasis(ctx context.Context, input resolveInit
 		}
 
 		resolvedCostBasis, err := s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
-			CurrencyID: input.Currency.NamespacedID,
-			Intent:     customCostBasis,
-			ResolvedAt: input.ResolvedAt,
+			CurrencyID:        input.Currency.NamespacedID,
+			Intent:            customCostBasis,
+			ResolvedAt:        input.ResolvedAt,
+			ServicePeriodFrom: input.ServicePeriodFrom,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("resolving cost basis: %w", err)

@@ -26,9 +26,10 @@ func (s *service) Create(ctx context.Context, input creditpurchase.CreateInput) 
 		resolvedAt := clock.Now().UTC()
 
 		initialCostBasisState, err := s.resolveInitialCostBasis(ctx, resolveInitialCostBasisInput{
-			Currency:   input.Intent.Currency,
-			CostBasis:  input.Intent.CostBasis,
-			ResolvedAt: resolvedAt,
+			Currency:          input.Intent.Currency,
+			CostBasis:         input.Intent.CostBasis,
+			ResolvedAt:        resolvedAt,
+			ServicePeriodFrom: input.Intent.ServicePeriod.From,
 		})
 		if err != nil {
 			return creditpurchase.ChargeWithGatheringLine{}, err

@@ -503,6 +503,11 @@ namespace plus managed currency ID for custom currencies. A display code is not
 globally sufficient identity: distinct managed currencies may reuse one.
 Credit-grant reads expose that managed ID.
 
+Creating a flat fee, usage-based charge, or credit purchase with a dynamic cost
+basis requires a rate for its custom currency and settlement fiat at the
+normalized service-period start. Creation checks coverage. The charge selects
+and persists its rate when its state machine first needs it.
+
 Within the charges domain, custom-currency `credit_then_invoice`:
 
 - allocates and realizes in the custom currency first

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
@@ -33,6 +34,18 @@ func (s *FlatFeeCostBasisCreateSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }
 
+func (s *FlatFeeCostBasisCreateSuite) TestCreateRejectsDynamicCostBasisWhenServicePredatesFirstRate() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("flatfee-before-first-rate")
+	customer := s.CreateTestCustomer(namespace, "backdated-service")
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	currency := s.createTestCustomCurrency(ctx, namespace)
+	dynamic := costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: s.newFiatCurrency(USD)})
+	intent := s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "flat-fee", productcatalog.CreditThenInvoiceSettlementMode, &dynamic)
+
+	s.requireChargeCreationFailsWithoutCostBasisAtServiceStart(currency, intent.ServicePeriod.From, charges.NewChargeIntent(intent))
+}
+
 func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCostBasesInInputOrder() {
 	// given:
 	// - manual, pinned, and dynamic cost-basis intents in one custom-currency batch
@@ -41,7 +54,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCo
 	// then:
 	// - each charge references its own persisted cost basis and its intent and resolved state survive the normal read path
 	ctx := s.T().Context()
-	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 
@@ -134,7 +147,7 @@ func (s *FlatFeeCostBasisCreateSuite) TestSetResolvedDynamicCostBasisIsRetrySafe
 	// then:
 	// - the original persisted resolution is returned and remains unchanged
 	ctx := s.T().Context()
-	now := time.Date(2026, time.January, 15, 12, 0, 0, 0, time.UTC)
+	now := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
 	clock.FreezeTime(now)
 	defer clock.UnFreeze()
 

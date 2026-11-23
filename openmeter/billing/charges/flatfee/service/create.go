@@ -52,9 +52,10 @@ func (s *service) Create(ctx context.Context, input flatfee.CreateInput) ([]flat
 				var err error
 
 				resolvedCostBasis, err = s.costbasisResolver.ResolveInitialState(ctx, costbasis.ResolveInitialStateInput{
-					CurrencyID: chargeIntent.Currency.NamespacedID,
-					Intent:     *chargeIntent.CostBasis,
-					ResolvedAt: now,
+					CurrencyID:        chargeIntent.Currency.NamespacedID,
+					Intent:            *chargeIntent.CostBasis,
+					ResolvedAt:        now,
+					ServicePeriodFrom: chargeIntent.ServicePeriod.From,
 				})
 				if err != nil {
 					return flatfee.IntentWithInitialStatus{}, fmt.Errorf("resolving cost basis: %w", err)
