@@ -90,6 +90,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planaddon"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtecreditbalance"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtedemand"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/rtemeteredentitlementbalance"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subject"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionaddon"
@@ -3148,6 +3151,118 @@ func init() {
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.
 	planratecard.DefaultID = planratecardDescID.Default.(func() string)
+	rtecreditbalanceMixin := schema.RTECreditBalance{}.Mixin()
+	rtecreditbalanceMixinFields0 := rtecreditbalanceMixin[0].Fields()
+	_ = rtecreditbalanceMixinFields0
+	rtecreditbalanceMixinFields1 := rtecreditbalanceMixin[1].Fields()
+	_ = rtecreditbalanceMixinFields1
+	rtecreditbalanceFields := schema.RTECreditBalance{}.Fields()
+	_ = rtecreditbalanceFields
+	// rtecreditbalanceDescNamespace is the schema descriptor for namespace field.
+	rtecreditbalanceDescNamespace := rtecreditbalanceMixinFields0[0].Descriptor()
+	// rtecreditbalance.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	rtecreditbalance.NamespaceValidator = rtecreditbalanceDescNamespace.Validators[0].(func(string) error)
+	// rtecreditbalanceDescCreatedAt is the schema descriptor for created_at field.
+	rtecreditbalanceDescCreatedAt := rtecreditbalanceMixinFields1[0].Descriptor()
+	// rtecreditbalance.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rtecreditbalance.DefaultCreatedAt = rtecreditbalanceDescCreatedAt.Default.(func() time.Time)
+	// rtecreditbalanceDescUpdatedAt is the schema descriptor for updated_at field.
+	rtecreditbalanceDescUpdatedAt := rtecreditbalanceMixinFields1[1].Descriptor()
+	// rtecreditbalance.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rtecreditbalance.DefaultUpdatedAt = rtecreditbalanceDescUpdatedAt.Default.(func() time.Time)
+	// rtecreditbalance.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rtecreditbalance.UpdateDefaultUpdatedAt = rtecreditbalanceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rtecreditbalanceDescCustomerID is the schema descriptor for customer_id field.
+	rtecreditbalanceDescCustomerID := rtecreditbalanceFields[0].Descriptor()
+	// rtecreditbalance.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	rtecreditbalance.CustomerIDValidator = rtecreditbalanceDescCustomerID.Validators[0].(func(string) error)
+	// rtecreditbalanceDescCurrencyKey is the schema descriptor for currency_key field.
+	rtecreditbalanceDescCurrencyKey := rtecreditbalanceFields[1].Descriptor()
+	// rtecreditbalance.CurrencyKeyValidator is a validator for the "currency_key" field. It is called by the builders before save.
+	rtecreditbalance.CurrencyKeyValidator = rtecreditbalanceDescCurrencyKey.Validators[0].(func(string) error)
+	// rtecreditbalanceDescFeatureScope is the schema descriptor for feature_scope field.
+	rtecreditbalanceDescFeatureScope := rtecreditbalanceFields[2].Descriptor()
+	// rtecreditbalance.FeatureScopeValidator is a validator for the "feature_scope" field. It is called by the builders before save.
+	rtecreditbalance.FeatureScopeValidator = rtecreditbalanceDescFeatureScope.Validators[0].(func(string) error)
+	rtedemandMixin := schema.RTEDemand{}.Mixin()
+	rtedemandMixinFields0 := rtedemandMixin[0].Fields()
+	_ = rtedemandMixinFields0
+	rtedemandMixinFields1 := rtedemandMixin[1].Fields()
+	_ = rtedemandMixinFields1
+	rtedemandFields := schema.RTEDemand{}.Fields()
+	_ = rtedemandFields
+	// rtedemandDescNamespace is the schema descriptor for namespace field.
+	rtedemandDescNamespace := rtedemandMixinFields0[0].Descriptor()
+	// rtedemand.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	rtedemand.NamespaceValidator = rtedemandDescNamespace.Validators[0].(func(string) error)
+	// rtedemandDescCreatedAt is the schema descriptor for created_at field.
+	rtedemandDescCreatedAt := rtedemandMixinFields1[0].Descriptor()
+	// rtedemand.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rtedemand.DefaultCreatedAt = rtedemandDescCreatedAt.Default.(func() time.Time)
+	// rtedemandDescUpdatedAt is the schema descriptor for updated_at field.
+	rtedemandDescUpdatedAt := rtedemandMixinFields1[1].Descriptor()
+	// rtedemand.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rtedemand.DefaultUpdatedAt = rtedemandDescUpdatedAt.Default.(func() time.Time)
+	// rtedemand.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rtedemand.UpdateDefaultUpdatedAt = rtedemandDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rtedemandDescKind is the schema descriptor for kind field.
+	rtedemandDescKind := rtedemandFields[0].Descriptor()
+	// rtedemand.KindValidator is a validator for the "kind" field. It is called by the builders before save.
+	rtedemand.KindValidator = rtedemandDescKind.Validators[0].(func(string) error)
+	// rtedemandDescOwnerID is the schema descriptor for owner_id field.
+	rtedemandDescOwnerID := rtedemandFields[1].Descriptor()
+	// rtedemand.OwnerIDValidator is a validator for the "owner_id" field. It is called by the builders before save.
+	rtedemand.OwnerIDValidator = rtedemandDescOwnerID.Validators[0].(func(string) error)
+	// rtedemandDescKeyHash is the schema descriptor for key_hash field.
+	rtedemandDescKeyHash := rtedemandFields[2].Descriptor()
+	// rtedemand.KeyHashValidator is a validator for the "key_hash" field. It is called by the builders before save.
+	rtedemand.KeyHashValidator = rtedemandDescKeyHash.Validators[0].(func(string) error)
+	// rtedemandDescPushEnabled is the schema descriptor for push_enabled field.
+	rtedemandDescPushEnabled := rtedemandFields[4].Descriptor()
+	// rtedemand.DefaultPushEnabled holds the default value on creation for the push_enabled field.
+	rtedemand.DefaultPushEnabled = rtedemandDescPushEnabled.Default.(bool)
+	// rtedemandDescDirtyVersion is the schema descriptor for dirty_version field.
+	rtedemandDescDirtyVersion := rtedemandFields[6].Descriptor()
+	// rtedemand.DefaultDirtyVersion holds the default value on creation for the dirty_version field.
+	rtedemand.DefaultDirtyVersion = rtedemandDescDirtyVersion.Default.(int64)
+	// rtedemandDescCompletedVersion is the schema descriptor for completed_version field.
+	rtedemandDescCompletedVersion := rtedemandFields[7].Descriptor()
+	// rtedemand.DefaultCompletedVersion holds the default value on creation for the completed_version field.
+	rtedemand.DefaultCompletedVersion = rtedemandDescCompletedVersion.Default.(int64)
+	// rtedemandDescAttempts is the schema descriptor for attempts field.
+	rtedemandDescAttempts := rtedemandFields[11].Descriptor()
+	// rtedemand.DefaultAttempts holds the default value on creation for the attempts field.
+	rtedemand.DefaultAttempts = rtedemandDescAttempts.Default.(int)
+	// rtedemand.AttemptsValidator is a validator for the "attempts" field. It is called by the builders before save.
+	rtedemand.AttemptsValidator = rtedemandDescAttempts.Validators[0].(func(int) error)
+	rtemeteredentitlementbalanceMixin := schema.RTEMeteredEntitlementBalance{}.Mixin()
+	rtemeteredentitlementbalanceMixinFields0 := rtemeteredentitlementbalanceMixin[0].Fields()
+	_ = rtemeteredentitlementbalanceMixinFields0
+	rtemeteredentitlementbalanceMixinFields1 := rtemeteredentitlementbalanceMixin[1].Fields()
+	_ = rtemeteredentitlementbalanceMixinFields1
+	rtemeteredentitlementbalanceFields := schema.RTEMeteredEntitlementBalance{}.Fields()
+	_ = rtemeteredentitlementbalanceFields
+	// rtemeteredentitlementbalanceDescNamespace is the schema descriptor for namespace field.
+	rtemeteredentitlementbalanceDescNamespace := rtemeteredentitlementbalanceMixinFields0[0].Descriptor()
+	// rtemeteredentitlementbalance.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	rtemeteredentitlementbalance.NamespaceValidator = rtemeteredentitlementbalanceDescNamespace.Validators[0].(func(string) error)
+	// rtemeteredentitlementbalanceDescCreatedAt is the schema descriptor for created_at field.
+	rtemeteredentitlementbalanceDescCreatedAt := rtemeteredentitlementbalanceMixinFields1[0].Descriptor()
+	// rtemeteredentitlementbalance.DefaultCreatedAt holds the default value on creation for the created_at field.
+	rtemeteredentitlementbalance.DefaultCreatedAt = rtemeteredentitlementbalanceDescCreatedAt.Default.(func() time.Time)
+	// rtemeteredentitlementbalanceDescUpdatedAt is the schema descriptor for updated_at field.
+	rtemeteredentitlementbalanceDescUpdatedAt := rtemeteredentitlementbalanceMixinFields1[1].Descriptor()
+	// rtemeteredentitlementbalance.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	rtemeteredentitlementbalance.DefaultUpdatedAt = rtemeteredentitlementbalanceDescUpdatedAt.Default.(func() time.Time)
+	// rtemeteredentitlementbalance.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	rtemeteredentitlementbalance.UpdateDefaultUpdatedAt = rtemeteredentitlementbalanceDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// rtemeteredentitlementbalanceDescEntitlementID is the schema descriptor for entitlement_id field.
+	rtemeteredentitlementbalanceDescEntitlementID := rtemeteredentitlementbalanceFields[0].Descriptor()
+	// rtemeteredentitlementbalance.EntitlementIDValidator is a validator for the "entitlement_id" field. It is called by the builders before save.
+	rtemeteredentitlementbalance.EntitlementIDValidator = rtemeteredentitlementbalanceDescEntitlementID.Validators[0].(func(string) error)
+	// rtemeteredentitlementbalanceDescBalance is the schema descriptor for balance field.
+	rtemeteredentitlementbalanceDescBalance := rtemeteredentitlementbalanceFields[2].Descriptor()
+	rtemeteredentitlementbalance.ValueScanner.Balance = rtemeteredentitlementbalanceDescBalance.ValueScanner.(field.TypeValueScanner[jsontext.Value])
 	subjectMixin := schema.Subject{}.Mixin()
 	subjectMixinFields0 := subjectMixin[0].Fields()
 	_ = subjectMixinFields0

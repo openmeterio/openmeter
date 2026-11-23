@@ -8,6 +8,7 @@ import (
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -37,6 +38,9 @@ func (h *handler) GetCustomerEntitlementAccess() GetCustomerEntitlementAccessHan
 			}, nil
 		},
 		func(ctx context.Context, request entitlement.GetCustomerEntitlementAccessInput) (GetCustomerEntitlementAccessResponse, error) {
+			ctx = entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+				Operation: entitlement.CurrentValueOperationRead,
+			})
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request)
 			if err != nil {
 				return GetCustomerEntitlementAccessResponse{}, err

@@ -30,6 +30,8 @@ import (
 )
 
 type EntitlementOptions struct {
+	// WrapMeteredConnector can observe GetValue calls after feature/ID resolution.
+	WrapMeteredConnector      func(meteredentitlement.Connector) meteredentitlement.Connector
 	DatabaseClient            *db.Client
 	EntitlementsConfiguration config.EntitlementsConfiguration
 	StreamingConnector        streaming.Connector
@@ -97,6 +99,10 @@ func GetEntitlementRegistry(opts EntitlementOptions) *registry.Entitlement {
 	meteredEntitlementConnector.RegisterHooks(
 		meteredentitlement.ConvertHook(entitlementsubscriptionhook.NewEntitlementSubscriptionHook(entitlementsubscriptionhook.EntitlementSubscriptionHookConfig{})),
 	)
+
+	if opts.WrapMeteredConnector != nil {
+		meteredEntitlementConnector = opts.WrapMeteredConnector(meteredEntitlementConnector)
+	}
 
 	entitlementConnector := entitlementservice.NewEntitlementService(
 		entitlementservice.ServiceConfig{

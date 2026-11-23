@@ -43,7 +43,7 @@ var LedgerStack = wire.NewSet(
 	NewLedgerAccountRepo,
 	NewLedgerHistoricalRepo,
 	NewLedgerResolversRepo,
-	NewLedgerHistoricalLedgerWithMetadata,
+	NewLedgerHistoricalLedgerWithSourceEvents,
 	NewLedgerAccountService,
 	NewLedgerAccountCatalog,
 	NewLedgerAccountLocker,
@@ -102,14 +102,31 @@ func NewLedgerHistoricalLedgerWithMetadata(
 	accountLocker ledger.AccountLocker,
 	routingValidator ledger.RoutingValidator,
 ) ledgerReadWriter {
+	return NewLedgerHistoricalLedgerWithSourceEvents(metadata, creditsConfig, repo, accountCatalog, accountLocker, routingValidator, RTESourcePublisherWithMetrics{})
+}
+
+func NewLedgerHistoricalLedgerWithSourceEvents(
+	metadata Metadata,
+	creditsConfig config.CreditsConfiguration,
+	repo historical.Repo,
+	accountCatalog ledger.AccountCatalog,
+	accountLocker ledger.AccountLocker,
+	routingValidator ledger.RoutingValidator,
+	rteSourcePublisherWithMetrics RTESourcePublisherWithMetrics,
+) ledgerReadWriter {
 	if !creditsConfig.Enabled {
 		return ledgernoop.Ledger{}
+	}
+
+	var options []historical.Option
+	if rteSourcePublisherWithMetrics.EnqueueAfterCommit != nil {
+		options = append(options, historical.WithRTESourcePublisher(rteSourcePublisherWithMetrics.EnqueueAfterCommit))
 	}
 
 	return historical.NewLedgerWithWriterBuild(repo, accountCatalog, accountLocker, routingValidator, historical.WriterBuild{
 		CommitSHA: metadata.Revision,
 		Version:   metadata.Version,
-	})
+	}, options...)
 }
 
 func NewLedgerBalanceQuerier(historicalLedger ledgerReadWriter) ledger.BalanceQuerier {

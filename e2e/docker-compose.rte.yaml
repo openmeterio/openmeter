@@ -1,0 +1,29 @@
+# Opt-in companion for the local e2e stack. The Go client connects from the host.
+services:
+  kafka:
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:39092
+  openmeter:
+    environment:
+      RTE_ENABLED: "true"
+  rte:
+    build:
+      context: ..
+      args:
+        COMMIT_SHA: ${OPENMETER_E2E_EXPECTED_COMMIT_SHA:-}
+        VERSION: ${OPENMETER_E2E_EXPECTED_VERSION:-}
+    command: openmeter-rte --config /etc/openmeter/config.yaml
+    environment:
+      RTE_ENABLED: "true"
+    ports:
+      - "127.0.0.1:30002:10000"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml:ro
+    depends_on:
+      openmeter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:10000/healthz/subscriptions"]
+      interval: 2s
+      timeout: 2s
+      retries: 60

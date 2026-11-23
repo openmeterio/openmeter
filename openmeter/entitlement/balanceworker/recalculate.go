@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/filters"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 	"github.com/openmeterio/openmeter/openmeter/event/models"
@@ -355,7 +356,10 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 
 	calculatedAt := time.Now()
 
-	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(ctx, ent.Namespace, ent.CustomerID, ent.ID, calculatedAt)
+	metricsCtx := entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+		Operation: entitlement.CurrentValueOperationCalculate,
+	})
+	value, err := r.opts.Entitlement.Entitlement.GetEntitlementValue(metricsCtx, ent.Namespace, ent.CustomerID, ent.ID, calculatedAt)
 	if err != nil {
 		return empty, fmt.Errorf("failed to get entitlement value: %w", err)
 	}

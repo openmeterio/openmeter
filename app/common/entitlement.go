@@ -10,18 +10,18 @@ import (
 	"github.com/openmeterio/openmeter/app/config"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	entitlementvalidator "github.com/openmeterio/openmeter/openmeter/entitlement/validators/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	"github.com/openmeterio/openmeter/openmeter/rte/shadow"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 )
 
-var Entitlement = wire.NewSet(
-	NewEntitlementRegistry,
-)
+var Entitlement = wire.NewSet(NewEntitlementRegistryWithRTEReplay)
 
 func NewEntitlementRegistry(
 	logger *slog.Logger,
@@ -34,7 +34,23 @@ func NewEntitlementRegistry(
 	locker *lockr.Locker,
 	customerService customer.Service,
 ) (*registry.Entitlement, error) {
-	entRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
+	return NewEntitlementRegistryWithRTEReplay(logger, db, tracer, entitlementConfig, streamingConnector, meterService, eventPublisher, locker, customerService, nil)
+}
+
+// NewEntitlementRegistryWithRTEReplay records sampled metered reads and recalculations for the RTE worker to replay.
+func NewEntitlementRegistryWithRTEReplay(
+	logger *slog.Logger,
+	db *entdb.Client,
+	tracer trace.Tracer,
+	entitlementConfig config.EntitlementsConfiguration,
+	streamingConnector streaming.Connector,
+	meterService meter.Service,
+	eventPublisher eventbus.Publisher,
+	locker *lockr.Locker,
+	customerService customer.Service,
+	recorder *shadow.Recorder,
+) (*registry.Entitlement, error) {
+	opts := registrybuilder.EntitlementOptions{
 		DatabaseClient:            db,
 		StreamingConnector:        streamingConnector,
 		MeterService:              meterService,
@@ -44,7 +60,14 @@ func NewEntitlementRegistry(
 		EntitlementsConfiguration: entitlementConfig,
 		Tracer:                    tracer,
 		Locker:                    locker,
-	})
+	}
+	if recorder != nil {
+		opts.WrapMeteredConnector = func(connector meteredentitlement.Connector) meteredentitlement.Connector {
+			return shadow.ObserveMeteredValues(connector, recorder)
+		}
+	}
+
+	entRegistry := registrybuilder.GetEntitlementRegistry(opts)
 
 	// Create and register the entitlement validator
 	validator, err := entitlementvalidator.NewValidator(entRegistry.EntitlementRepo)

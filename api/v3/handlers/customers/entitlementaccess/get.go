@@ -11,6 +11,7 @@ import (
 	apiv3models "github.com/openmeterio/openmeter/api/v3/models"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementmetrics "github.com/openmeterio/openmeter/openmeter/entitlement/metrics"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -39,6 +40,7 @@ type (
 type GetCustomerEntitlementValueRequest struct {
 	entitlement.GetCustomerEntitlementAccessInput
 	Expands []apiv3models.BillingEntitlementAccessExpand
+	current bool
 }
 
 func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandler {
@@ -50,16 +52,22 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 			}
 
 			return GetCustomerEntitlementValueRequest{
-				CustomerID: customer.CustomerID{
-					Namespace: ns,
-					ID:        params.CustomerID,
+				GetCustomerEntitlementAccessInput: entitlement.GetCustomerEntitlementAccessInput{
+					CustomerID:    customer.CustomerID{Namespace: ns, ID: params.CustomerID},
+					EntitlementID: params.EntitlementID,
+					At:            lo.FromPtrOr(params.At, clock.Now()),
 				},
-				EntitlementID: params.EntitlementID,
-				At:            lo.FromPtrOr(params.At, clock.Now()),
-				Expands:       params.Expand,
+				current: params.At == nil,
+				Expands: params.Expand,
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueResponse, error) {
+			if request.current {
+				ctx = entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+					Operation: entitlement.CurrentValueOperationRead,
+				})
+			}
+
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request.GetCustomerEntitlementAccessInput)
 			if err != nil {
 				return GetCustomerEntitlementValueResponse{}, err
@@ -90,10 +98,17 @@ func (h *handler) GetCustomerEntitlementValueByFeatureKey() GetCustomerEntitleme
 					FeatureKey: params.FeatureKey,
 					At:         lo.FromPtrOr(params.At, clock.Now()),
 				},
+				current: params.At == nil,
 				Expands: params.Expand,
 			}, nil
 		},
 		func(ctx context.Context, request GetCustomerEntitlementValueRequest) (GetCustomerEntitlementValueByFeatureKeyResponse, error) {
+			if request.current {
+				ctx = entitlementmetrics.WithMetricsContext(ctx, entitlementmetrics.MetricsContext{
+					Operation: entitlement.CurrentValueOperationRead,
+				})
+			}
+
 			access, err := h.entitlementService.GetCustomerEntitlementAccess(ctx, request.GetCustomerEntitlementAccessInput)
 			if err != nil {
 				return GetCustomerEntitlementValueByFeatureKeyResponse{}, err
