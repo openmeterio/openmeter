@@ -17,12 +17,15 @@ import (
 const ErrCodeChargeCostBasisUnavailable models.ErrorCode = "charge_cost_basis_unavailable"
 
 type Resolver interface {
-	// ResolveInitialState checks that a dynamic rate covers the service-period start.
-	// The charge chooses its rate later, when its state machine resolves the intent.
+	// ResolveInitialState returns the state to store at charge creation. Manual
+	// and pinned intents resolve immediately. For a dynamic intent, it checks
+	// that a rate covers the service-period start and returns nil on success.
+	// This lets a scheduled charge use a replacement rate effective at that start.
 	ResolveInitialState(ctx context.Context, input ResolveInitialStateInput) (*State, error)
 
-	// ResolveDynamicState looks up the rate at the service-period start. The charge
-	// state machine persists the returned state when it applies the rate.
+	// ResolveDynamicState returns the rate effective at the charge's service-period
+	// start, even if activation runs later. The charge state machine persists
+	// that rate when it first applies it. Previews only read it.
 	ResolveDynamicState(ctx context.Context, input ResolveDynamicStateInput) (State, error)
 }
 

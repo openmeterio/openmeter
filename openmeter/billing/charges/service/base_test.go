@@ -40,6 +40,7 @@ import (
 	currencyservice "github.com/openmeterio/openmeter/openmeter/currencies/service"
 	currenciestestutils "github.com/openmeterio/openmeter/openmeter/currencies/testutils"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinggatheringinvoiceline"
 	enttx "github.com/openmeterio/openmeter/openmeter/ent/tx"
 	advancetestutils "github.com/openmeterio/openmeter/openmeter/ledger/advance/testutils"
 	ledgerbreakage "github.com/openmeterio/openmeter/openmeter/ledger/breakage"
@@ -58,6 +59,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/featuregate"
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
@@ -547,6 +549,43 @@ func (s *BaseSuite) grantPromotionalCredits(ctx context.Context, customerID cust
 	s.Len(res, 1)
 
 	return res
+}
+
+func (s *BaseSuite) requireChargeCreationFailsWithoutCostBasisAtServiceStart(currency currencies.Currency, serviceStart time.Time, intent charges.ChargeIntent) {
+	s.T().Helper()
+	ctx := s.T().Context()
+
+	// Given a USD rate available at creation, one day after service started.
+	clock.FreezeTime(serviceStart.Add(24 * time.Hour))
+	defer clock.UnFreeze()
+
+	_, err := s.CurrencyService.CreateCostBasis(ctx, currencies.CreateCostBasisInput{
+		Namespace:  currency.Namespace,
+		CurrencyID: currency.ID,
+		FiatCode:   USD,
+		Rate:       alpacadecimal.NewFromInt(1),
+	})
+	s.Require().NoError(err)
+
+	// When the backdated charge is submitted, creation reports the missing rate.
+	_, err = s.Charges.Create(ctx, charges.CreateInput{
+		Namespace: currency.Namespace,
+		Intents:   charges.NewCreateChargeIntents(intent),
+	})
+	var issue models.ValidationIssue
+	s.Require().ErrorAs(err, &issue)
+	s.Equal(costbasis.ErrCodeChargeCostBasisUnavailable, issue.Code())
+
+	// Then no charge or gathering line remains for billing to process.
+	persisted, err := s.Charges.ListCharges(ctx, charges.ListChargesInput{Namespace: currency.Namespace})
+	s.Require().NoError(err)
+	s.Empty(persisted.Items)
+
+	hasLines, err := s.DBClient.BillingGatheringInvoiceLine.Query().
+		Where(billinggatheringinvoiceline.Namespace(currency.Namespace)).
+		Exist(ctx)
+	s.Require().NoError(err)
+	s.False(hasLines)
 }
 
 func (s *BaseSuite) newFiatCurrency(code currencyx.Code) *currencyx.FiatCurrency {

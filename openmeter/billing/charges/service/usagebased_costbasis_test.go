@@ -31,6 +31,19 @@ func (s *UsageBasedCostBasisCreateSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
 }
 
+func (s *UsageBasedCostBasisCreateSuite) TestCreateRejectsDynamicCostBasisWhenServicePredatesFirstRate() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("usagebased-before-first-rate")
+	customer := s.CreateTestCustomer(namespace, "backdated-service")
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	currency := s.createTestCustomCurrency(ctx, namespace)
+	dynamic := costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: s.newFiatCurrency(USD)})
+	s.createFeatureMeters(ctx, namespace, "requests")
+	intent := s.newUsageBasedIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "usage", "requests", productcatalog.CreditThenInvoiceSettlementMode, &dynamic)
+
+	s.requireChargeCreationFailsWithoutCostBasisAtServiceStart(currency, intent.ServicePeriod.From, charges.NewChargeIntent(intent))
+}
+
 func (s *UsageBasedCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCostBasesInInputOrder() {
 	// given:
 	// - manual, pinned, and dynamic cost-basis intents in one custom-currency batch

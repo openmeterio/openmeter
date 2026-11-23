@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase"
 	creditpurchaseservice "github.com/openmeterio/openmeter/openmeter/billing/charges/creditpurchase/service"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -23,6 +24,18 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
+
+func (s *CreditPurchaseTestSuite) TestCreateRejectsDynamicCostBasisWhenServicePredatesFirstRate() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("creditpurchase-before-first-rate")
+	customer := s.CreateTestCustomer(namespace, "backdated-service")
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	currency := s.createTestCustomCurrency(ctx, namespace)
+	dynamic := costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: s.newFiatCurrency(USD)})
+	intent := newCustomCurrencyInvoiceCreditPurchaseIntent(customer.ID, currency, defaults.CreditGrantTaxCodeID, dynamic)
+
+	s.requireChargeCreationFailsWithoutCostBasisAtServiceStart(currency, intent.ServicePeriod.From, charges.NewChargeIntent(intent))
+}
 
 func (s *CreditPurchaseTestSuite) TestInvoiceCreditPurchaseResolvesInitialCostBasis() {
 	// given:

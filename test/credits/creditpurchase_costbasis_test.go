@@ -276,7 +276,7 @@ func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementLifecycle() {
 	})
 }
 
-func (s *CreditPurchaseCostBasisSuite) TestDynamicInvoiceSettlementResolutionFailureIsAtomic() {
+func (s *CreditPurchaseCostBasisSuite) TestInvoiceRollsBackWhenReplacementRateExpiresAtServiceStart() {
 	// given:
 	// - a scheduled dynamic invoice credit purchase whose rate is superseded before service starts
 	// when:

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/flatfee"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/costbasis"
@@ -31,6 +32,18 @@ type FlatFeeCostBasisCreateSuite struct {
 
 func (s *FlatFeeCostBasisCreateSuite) SetupSuite() {
 	s.BaseSuite.SetupSuite()
+}
+
+func (s *FlatFeeCostBasisCreateSuite) TestCreateRejectsDynamicCostBasisWhenServicePredatesFirstRate() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("flatfee-before-first-rate")
+	customer := s.CreateTestCustomer(namespace, "backdated-service")
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	currency := s.createTestCustomCurrency(ctx, namespace)
+	dynamic := costbasis.NewIntent(costbasis.DynamicIntent{FiatCurrency: s.newFiatCurrency(USD)})
+	intent := s.newFlatFeeIntent(customer.ID, currency, defaults.InvoicingTaxCodeID, "flat-fee", productcatalog.CreditThenInvoiceSettlementMode, &dynamic)
+
+	s.requireChargeCreationFailsWithoutCostBasisAtServiceStart(currency, intent.ServicePeriod.From, charges.NewChargeIntent(intent))
 }
 
 func (s *FlatFeeCostBasisCreateSuite) TestCreatePersistsManualPinnedAndDynamicCostBasesInInputOrder() {
@@ -453,7 +466,7 @@ func (s *FlatFeeCostBasisCreateSuite) newFiatCurrency(code currencyx.Code) *curr
 	return fiatCurrency
 }
 
-func (s *BaseSuite) newFlatFeeIntent(
+func (s *FlatFeeCostBasisCreateSuite) newFlatFeeIntent(
 	customerID string,
 	currency currencies.Currency,
 	taxCodeID string,
