@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -46,10 +48,11 @@ func TestErrorEncoder(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			r := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
+			ctx := context.WithValue(t.Context(), middleware.RequestIDKey, "test-request-id")
+			r := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
 			w := httptest.NewRecorder()
 
-			require.True(t, errorEncoder()(t.Context(), tt.err, w, r))
+			require.True(t, errorEncoder()(ctx, tt.err, w, r))
 
 			assert.Equal(t, tt.wantStatus, w.Code)
 			assert.Equal(t, apierrors.ContentTypeProblemValue, w.Header().Get("Content-Type"))
@@ -61,6 +64,7 @@ func TestErrorEncoder(t *testing.T) {
 			assert.Equal(t, tt.wantType, body.Type)
 			assert.Equal(t, tt.wantStatus, body.Status)
 			assert.Equal(t, tt.wantDetail, body.Detail)
+			assert.Equal(t, "urn:request:test-request-id", body.Instance)
 		})
 	}
 
