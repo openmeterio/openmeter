@@ -230,6 +230,9 @@ func (NotificationEvent) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "type"),
+		// Event lists are newest first within a namespace; id breaks ties so
+		// cursor pages stay stable when events share a timestamp.
+		index.Fields("namespace", "created_at", "id"),
 	}
 }
 

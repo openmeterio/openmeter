@@ -1,4 +1,4 @@
-h1:a0m6puJHA636ajTsZOT+5BLFjXf9fb30abH5I4eWysI=
+h1:CtFtbFe6PtBesnNjlefzXkpM9univxS77zCxvJ55830=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -345,3 +345,4 @@ h1:a0m6puJHA636ajTsZOT+5BLFjXf9fb30abH5I4eWysI=
 20261124090200_notification_event_type_normalization.up.sql h1:aqF9gxcuEUHgnkCL6PRJosojfX23sdO1zv0q2H3yDiw=
 20261124090300_notification_delivery_state_normalization.up.sql h1:CL5NiQ53mUIPcxRG6+2LdtT/MVLE38enF87xlco9cqc=
 20261124090400_notification_rule_config_normalization.up.sql h1:w4Ji+tr7HAJ2lVr30Jj+DMpVTaBJHQL0hQaTfWHdZXc=
+20261124154809_notification_events_created_at_index.up.sql h1:3eCexZNhsOE/veanpk7Gl8yz28W7X7OBrIqsuvgTQMU=
