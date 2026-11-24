@@ -2028,6 +2028,190 @@ func (e *ChargeUsageBasedOverride) GetNamespace() string {
 	return e.Namespace
 }
 
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetRunID() string {
+	return e.RunID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetType() creditrealization.Type {
+	return e.Type
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetLedgerTransactionGroupID() *string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetMetadata() map[string]string {
+	return e.Metadata
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetName() string {
+	return e.Name
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetDescription() *string {
+	return e.Description
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetAnnotations() models.Annotations {
+	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetRunID() string {
+	return e.RunID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetType() creditrealization.Type {
+	return e.Type
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetLedgerTransactionGroupID() *string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetID() string {
+	return e.ID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetTaxesTotal() alpacadecimal.Decimal {
+	return e.TaxesTotal
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetTaxesInclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesInclusiveTotal
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetTaxesExclusiveTotal() alpacadecimal.Decimal {
+	return e.TaxesExclusiveTotal
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetChargesTotal() alpacadecimal.Decimal {
+	return e.ChargesTotal
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetDiscountsTotal() alpacadecimal.Decimal {
+	return e.DiscountsTotal
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetCreditsTotal() alpacadecimal.Decimal {
+	return e.CreditsTotal
+}
+
+func (e *ChargeUsageBasedRevenueRecognitions) GetTotal() alpacadecimal.Decimal {
+	return e.Total
+}
+
 func (e *ChargeUsageBasedRunCreditAllocations) GetID() string {
 	return e.ID
 }

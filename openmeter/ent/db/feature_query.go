@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -27,18 +28,19 @@ import (
 // FeatureQuery is the builder for querying Feature entities.
 type FeatureQuery struct {
 	config
-	ctx                   *QueryContext
-	order                 []dbfeature.OrderOption
-	inters                []Interceptor
-	predicates            []predicate.Feature
-	withEntitlement       *EntitlementQuery
-	withRatecard          *PlanRateCardQuery
-	withAddonRatecard     *AddonRateCardQuery
-	withUsageBasedCharges *ChargeUsageBasedQuery
-	withUsageBasedRuns    *ChargeUsageBasedRunsQuery
-	withFlatFeeCharges    *ChargeFlatFeeQuery
-	withMeter             *MeterQuery
-	modifiers             []func(*sql.Selector)
+	ctx                               *QueryContext
+	order                             []dbfeature.OrderOption
+	inters                            []Interceptor
+	predicates                        []predicate.Feature
+	withEntitlement                   *EntitlementQuery
+	withRatecard                      *PlanRateCardQuery
+	withAddonRatecard                 *AddonRateCardQuery
+	withUsageBasedCharges             *ChargeUsageBasedQuery
+	withUsageBasedRuns                *ChargeUsageBasedRunsQuery
+	withUsageBasedRevenueRecognitions *ChargeUsageBasedRevenueRecognitionsQuery
+	withFlatFeeCharges                *ChargeFlatFeeQuery
+	withMeter                         *MeterQuery
+	modifiers                         []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -178,6 +180,28 @@ func (_q *FeatureQuery) QueryUsageBasedRuns() *ChargeUsageBasedRunsQuery {
 			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedRunsTable, dbfeature.UsageBasedRunsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryUsageBasedRevenueRecognitions chains the current query on the "usage_based_revenue_recognitions" edge.
+func (_q *FeatureQuery) QueryUsageBasedRevenueRecognitions() *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, selector),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedRevenueRecognitionsTable, dbfeature.UsageBasedRevenueRecognitionsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -416,18 +440,19 @@ func (_q *FeatureQuery) Clone() *FeatureQuery {
 		return nil
 	}
 	return &FeatureQuery{
-		config:                _q.config,
-		ctx:                   _q.ctx.Clone(),
-		order:                 append([]dbfeature.OrderOption{}, _q.order...),
-		inters:                append([]Interceptor{}, _q.inters...),
-		predicates:            append([]predicate.Feature{}, _q.predicates...),
-		withEntitlement:       _q.withEntitlement.Clone(),
-		withRatecard:          _q.withRatecard.Clone(),
-		withAddonRatecard:     _q.withAddonRatecard.Clone(),
-		withUsageBasedCharges: _q.withUsageBasedCharges.Clone(),
-		withUsageBasedRuns:    _q.withUsageBasedRuns.Clone(),
-		withFlatFeeCharges:    _q.withFlatFeeCharges.Clone(),
-		withMeter:             _q.withMeter.Clone(),
+		config:                            _q.config,
+		ctx:                               _q.ctx.Clone(),
+		order:                             append([]dbfeature.OrderOption{}, _q.order...),
+		inters:                            append([]Interceptor{}, _q.inters...),
+		predicates:                        append([]predicate.Feature{}, _q.predicates...),
+		withEntitlement:                   _q.withEntitlement.Clone(),
+		withRatecard:                      _q.withRatecard.Clone(),
+		withAddonRatecard:                 _q.withAddonRatecard.Clone(),
+		withUsageBasedCharges:             _q.withUsageBasedCharges.Clone(),
+		withUsageBasedRuns:                _q.withUsageBasedRuns.Clone(),
+		withUsageBasedRevenueRecognitions: _q.withUsageBasedRevenueRecognitions.Clone(),
+		withFlatFeeCharges:                _q.withFlatFeeCharges.Clone(),
+		withMeter:                         _q.withMeter.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -486,6 +511,17 @@ func (_q *FeatureQuery) WithUsageBasedRuns(opts ...func(*ChargeUsageBasedRunsQue
 		opt(query)
 	}
 	_q.withUsageBasedRuns = query
+	return _q
+}
+
+// WithUsageBasedRevenueRecognitions tells the query-builder to eager-load the nodes that are connected to
+// the "usage_based_revenue_recognitions" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *FeatureQuery) WithUsageBasedRevenueRecognitions(opts ...func(*ChargeUsageBasedRevenueRecognitionsQuery)) *FeatureQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withUsageBasedRevenueRecognitions = query
 	return _q
 }
 
@@ -589,12 +625,13 @@ func (_q *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 	var (
 		nodes       = []*Feature{}
 		_spec       = _q.querySpec()
-		loadedTypes = [7]bool{
+		loadedTypes = [8]bool{
 			_q.withEntitlement != nil,
 			_q.withRatecard != nil,
 			_q.withAddonRatecard != nil,
 			_q.withUsageBasedCharges != nil,
 			_q.withUsageBasedRuns != nil,
+			_q.withUsageBasedRevenueRecognitions != nil,
 			_q.withFlatFeeCharges != nil,
 			_q.withMeter != nil,
 		}
@@ -654,6 +691,15 @@ func (_q *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 		if err := _q.loadUsageBasedRuns(ctx, query, nodes,
 			func(n *Feature) { n.Edges.UsageBasedRuns = []*ChargeUsageBasedRuns{} },
 			func(n *Feature, e *ChargeUsageBasedRuns) { n.Edges.UsageBasedRuns = append(n.Edges.UsageBasedRuns, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withUsageBasedRevenueRecognitions; query != nil {
+		if err := _q.loadUsageBasedRevenueRecognitions(ctx, query, nodes,
+			func(n *Feature) { n.Edges.UsageBasedRevenueRecognitions = []*ChargeUsageBasedRevenueRecognitions{} },
+			func(n *Feature, e *ChargeUsageBasedRevenueRecognitions) {
+				n.Edges.UsageBasedRevenueRecognitions = append(n.Edges.UsageBasedRevenueRecognitions, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -817,6 +863,36 @@ func (_q *FeatureQuery) loadUsageBasedRuns(ctx context.Context, query *ChargeUsa
 	}
 	query.Where(predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(dbfeature.UsageBasedRunsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FeatureID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "feature_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *FeatureQuery) loadUsageBasedRevenueRecognitions(ctx context.Context, query *ChargeUsageBasedRevenueRecognitionsQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *ChargeUsageBasedRevenueRecognitions)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Feature)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedrevenuerecognitions.FieldFeatureID)
+	}
+	query.Where(predicate.ChargeUsageBasedRevenueRecognitions(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(dbfeature.UsageBasedRevenueRecognitionsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

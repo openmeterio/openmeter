@@ -66,6 +66,8 @@ const (
 	EdgeUsageBasedCharges = "usage_based_charges"
 	// EdgeUsageBasedRuns holds the string denoting the usage_based_runs edge name in mutations.
 	EdgeUsageBasedRuns = "usage_based_runs"
+	// EdgeUsageBasedRevenueRecognitions holds the string denoting the usage_based_revenue_recognitions edge name in mutations.
+	EdgeUsageBasedRevenueRecognitions = "usage_based_revenue_recognitions"
 	// EdgeFlatFeeCharges holds the string denoting the flat_fee_charges edge name in mutations.
 	EdgeFlatFeeCharges = "flat_fee_charges"
 	// EdgeMeter holds the string denoting the meter edge name in mutations.
@@ -107,6 +109,13 @@ const (
 	UsageBasedRunsInverseTable = "charge_usage_based_runs"
 	// UsageBasedRunsColumn is the table column denoting the usage_based_runs relation/edge.
 	UsageBasedRunsColumn = "feature_id"
+	// UsageBasedRevenueRecognitionsTable is the table that holds the usage_based_revenue_recognitions relation/edge.
+	UsageBasedRevenueRecognitionsTable = "charge_usage_based_revenue_recognitions"
+	// UsageBasedRevenueRecognitionsInverseTable is the table name for the ChargeUsageBasedRevenueRecognitions entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrevenuerecognitions" package.
+	UsageBasedRevenueRecognitionsInverseTable = "charge_usage_based_revenue_recognitions"
+	// UsageBasedRevenueRecognitionsColumn is the table column denoting the usage_based_revenue_recognitions relation/edge.
+	UsageBasedRevenueRecognitionsColumn = "feature_id"
 	// FlatFeeChargesTable is the table that holds the flat_fee_charges relation/edge.
 	FlatFeeChargesTable = "charge_flat_fees"
 	// FlatFeeChargesInverseTable is the table name for the ChargeFlatFee entity.
@@ -346,6 +355,20 @@ func ByUsageBasedRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByUsageBasedRevenueRecognitionsCount orders the results by usage_based_revenue_recognitions count.
+func ByUsageBasedRevenueRecognitionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUsageBasedRevenueRecognitionsStep(), opts...)
+	}
+}
+
+// ByUsageBasedRevenueRecognitions orders the results by usage_based_revenue_recognitions terms.
+func ByUsageBasedRevenueRecognitions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUsageBasedRevenueRecognitionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByFlatFeeChargesCount orders the results by flat_fee_charges count.
 func ByFlatFeeChargesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -399,6 +422,13 @@ func newUsageBasedRunsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UsageBasedRunsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, UsageBasedRunsTable, UsageBasedRunsColumn),
+	)
+}
+func newUsageBasedRevenueRecognitionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UsageBasedRevenueRecognitionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, UsageBasedRevenueRecognitionsTable, UsageBasedRevenueRecognitionsColumn),
 	)
 }
 func newFlatFeeChargesStep() *sqlgraph.Step {

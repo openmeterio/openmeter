@@ -81,13 +81,15 @@ type FeatureEdges struct {
 	UsageBasedCharges []*ChargeUsageBased `json:"usage_based_charges,omitempty"`
 	// UsageBasedRuns holds the value of the usage_based_runs edge.
 	UsageBasedRuns []*ChargeUsageBasedRuns `json:"usage_based_runs,omitempty"`
+	// UsageBasedRevenueRecognitions holds the value of the usage_based_revenue_recognitions edge.
+	UsageBasedRevenueRecognitions []*ChargeUsageBasedRevenueRecognitions `json:"usage_based_revenue_recognitions,omitempty"`
 	// FlatFeeCharges holds the value of the flat_fee_charges edge.
 	FlatFeeCharges []*ChargeFlatFee `json:"flat_fee_charges,omitempty"`
 	// Meter holds the value of the meter edge.
 	Meter *Meter `json:"meter,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [7]bool
+	loadedTypes [8]bool
 }
 
 // EntitlementOrErr returns the Entitlement value or an error if the edge
@@ -135,10 +137,19 @@ func (e FeatureEdges) UsageBasedRunsOrErr() ([]*ChargeUsageBasedRuns, error) {
 	return nil, &NotLoadedError{edge: "usage_based_runs"}
 }
 
+// UsageBasedRevenueRecognitionsOrErr returns the UsageBasedRevenueRecognitions value or an error if the edge
+// was not loaded in eager-loading.
+func (e FeatureEdges) UsageBasedRevenueRecognitionsOrErr() ([]*ChargeUsageBasedRevenueRecognitions, error) {
+	if e.loadedTypes[5] {
+		return e.UsageBasedRevenueRecognitions, nil
+	}
+	return nil, &NotLoadedError{edge: "usage_based_revenue_recognitions"}
+}
+
 // FlatFeeChargesOrErr returns the FlatFeeCharges value or an error if the edge
 // was not loaded in eager-loading.
 func (e FeatureEdges) FlatFeeChargesOrErr() ([]*ChargeFlatFee, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.FlatFeeCharges, nil
 	}
 	return nil, &NotLoadedError{edge: "flat_fee_charges"}
@@ -149,7 +160,7 @@ func (e FeatureEdges) FlatFeeChargesOrErr() ([]*ChargeFlatFee, error) {
 func (e FeatureEdges) MeterOrErr() (*Meter, error) {
 	if e.Meter != nil {
 		return e.Meter, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: dbmeter.Label}
 	}
 	return nil, &NotLoadedError{edge: "meter"}
@@ -370,6 +381,11 @@ func (_m *Feature) QueryUsageBasedCharges() *ChargeUsageBasedQuery {
 // QueryUsageBasedRuns queries the "usage_based_runs" edge of the Feature entity.
 func (_m *Feature) QueryUsageBasedRuns() *ChargeUsageBasedRunsQuery {
 	return NewFeatureClient(_m.config).QueryUsageBasedRuns(_m)
+}
+
+// QueryUsageBasedRevenueRecognitions queries the "usage_based_revenue_recognitions" edge of the Feature entity.
+func (_m *Feature) QueryUsageBasedRevenueRecognitions() *ChargeUsageBasedRevenueRecognitionsQuery {
+	return NewFeatureClient(_m.config).QueryUsageBasedRevenueRecognitions(_m)
 }
 
 // QueryFlatFeeCharges queries the "flat_fee_charges" edge of the Feature entity.

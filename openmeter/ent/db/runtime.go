@@ -54,6 +54,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioncredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitiondetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitionoveragecredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
@@ -1661,6 +1665,138 @@ func init() {
 	chargeusagebasedoverrideDescID := chargeusagebasedoverrideMixinFields1[0].Descriptor()
 	// chargeusagebasedoverride.DefaultID holds the default value on creation for the id field.
 	chargeusagebasedoverride.DefaultID = chargeusagebasedoverrideDescID.Default.(func() string)
+	chargeusagebasedrevenuerecognitioncreditsMixin := schema.ChargeUsageBasedRevenueRecognitionCredits{}.Mixin()
+	chargeusagebasedrevenuerecognitioncreditsMixinFields0 := chargeusagebasedrevenuerecognitioncreditsMixin[0].Fields()
+	_ = chargeusagebasedrevenuerecognitioncreditsMixinFields0
+	chargeusagebasedrevenuerecognitioncreditsMixinFields1 := chargeusagebasedrevenuerecognitioncreditsMixin[1].Fields()
+	_ = chargeusagebasedrevenuerecognitioncreditsMixinFields1
+	chargeusagebasedrevenuerecognitioncreditsMixinFields2 := chargeusagebasedrevenuerecognitioncreditsMixin[2].Fields()
+	_ = chargeusagebasedrevenuerecognitioncreditsMixinFields2
+	chargeusagebasedrevenuerecognitioncreditsMixinFields4 := chargeusagebasedrevenuerecognitioncreditsMixin[4].Fields()
+	_ = chargeusagebasedrevenuerecognitioncreditsMixinFields4
+	chargeusagebasedrevenuerecognitioncreditsFields := schema.ChargeUsageBasedRevenueRecognitionCredits{}.Fields()
+	_ = chargeusagebasedrevenuerecognitioncreditsFields
+	// chargeusagebasedrevenuerecognitioncreditsDescNamespace is the schema descriptor for namespace field.
+	chargeusagebasedrevenuerecognitioncreditsDescNamespace := chargeusagebasedrevenuerecognitioncreditsMixinFields0[0].Descriptor()
+	// chargeusagebasedrevenuerecognitioncredits.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitioncredits.NamespaceValidator = chargeusagebasedrevenuerecognitioncreditsDescNamespace.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitioncreditsDescCreatedAt is the schema descriptor for created_at field.
+	chargeusagebasedrevenuerecognitioncreditsDescCreatedAt := chargeusagebasedrevenuerecognitioncreditsMixinFields2[0].Descriptor()
+	// chargeusagebasedrevenuerecognitioncredits.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargeusagebasedrevenuerecognitioncredits.DefaultCreatedAt = chargeusagebasedrevenuerecognitioncreditsDescCreatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitioncreditsDescUpdatedAt is the schema descriptor for updated_at field.
+	chargeusagebasedrevenuerecognitioncreditsDescUpdatedAt := chargeusagebasedrevenuerecognitioncreditsMixinFields2[1].Descriptor()
+	// chargeusagebasedrevenuerecognitioncredits.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargeusagebasedrevenuerecognitioncredits.DefaultUpdatedAt = chargeusagebasedrevenuerecognitioncreditsDescUpdatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitioncredits.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargeusagebasedrevenuerecognitioncredits.UpdateDefaultUpdatedAt = chargeusagebasedrevenuerecognitioncreditsDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedrevenuerecognitioncreditsDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
+	chargeusagebasedrevenuerecognitioncreditsDescLedgerTransactionGroupID := chargeusagebasedrevenuerecognitioncreditsMixinFields4[5].Descriptor()
+	// chargeusagebasedrevenuerecognitioncredits.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitioncredits.LedgerTransactionGroupIDValidator = chargeusagebasedrevenuerecognitioncreditsDescLedgerTransactionGroupID.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitioncreditsDescID is the schema descriptor for id field.
+	chargeusagebasedrevenuerecognitioncreditsDescID := chargeusagebasedrevenuerecognitioncreditsMixinFields1[0].Descriptor()
+	// chargeusagebasedrevenuerecognitioncredits.DefaultID holds the default value on creation for the id field.
+	chargeusagebasedrevenuerecognitioncredits.DefaultID = chargeusagebasedrevenuerecognitioncreditsDescID.Default.(func() string)
+	chargeusagebasedrevenuerecognitiondetailedlineMixin := schema.ChargeUsageBasedRevenueRecognitionDetailedLine{}.Mixin()
+	chargeusagebasedrevenuerecognitiondetailedlineMixinFields0 := chargeusagebasedrevenuerecognitiondetailedlineMixin[0].Fields()
+	_ = chargeusagebasedrevenuerecognitiondetailedlineMixinFields0
+	chargeusagebasedrevenuerecognitiondetailedlineFields := schema.ChargeUsageBasedRevenueRecognitionDetailedLine{}.Fields()
+	_ = chargeusagebasedrevenuerecognitiondetailedlineFields
+	// chargeusagebasedrevenuerecognitiondetailedlineDescNamespace is the schema descriptor for namespace field.
+	chargeusagebasedrevenuerecognitiondetailedlineDescNamespace := chargeusagebasedrevenuerecognitiondetailedlineMixinFields0[1].Descriptor()
+	// chargeusagebasedrevenuerecognitiondetailedline.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitiondetailedline.NamespaceValidator = chargeusagebasedrevenuerecognitiondetailedlineDescNamespace.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitiondetailedlineDescCreatedAt is the schema descriptor for created_at field.
+	chargeusagebasedrevenuerecognitiondetailedlineDescCreatedAt := chargeusagebasedrevenuerecognitiondetailedlineMixinFields0[3].Descriptor()
+	// chargeusagebasedrevenuerecognitiondetailedline.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargeusagebasedrevenuerecognitiondetailedline.DefaultCreatedAt = chargeusagebasedrevenuerecognitiondetailedlineDescCreatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitiondetailedlineDescUpdatedAt is the schema descriptor for updated_at field.
+	chargeusagebasedrevenuerecognitiondetailedlineDescUpdatedAt := chargeusagebasedrevenuerecognitiondetailedlineMixinFields0[4].Descriptor()
+	// chargeusagebasedrevenuerecognitiondetailedline.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargeusagebasedrevenuerecognitiondetailedline.DefaultUpdatedAt = chargeusagebasedrevenuerecognitiondetailedlineDescUpdatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitiondetailedline.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargeusagebasedrevenuerecognitiondetailedline.UpdateDefaultUpdatedAt = chargeusagebasedrevenuerecognitiondetailedlineDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedrevenuerecognitiondetailedlineDescCurrency is the schema descriptor for currency field.
+	chargeusagebasedrevenuerecognitiondetailedlineDescCurrency := chargeusagebasedrevenuerecognitiondetailedlineFields[1].Descriptor()
+	// chargeusagebasedrevenuerecognitiondetailedline.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitiondetailedline.CurrencyValidator = chargeusagebasedrevenuerecognitiondetailedlineDescCurrency.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitiondetailedlineDescChildUniqueReferenceID is the schema descriptor for child_unique_reference_id field.
+	chargeusagebasedrevenuerecognitiondetailedlineDescChildUniqueReferenceID := chargeusagebasedrevenuerecognitiondetailedlineFields[4].Descriptor()
+	// chargeusagebasedrevenuerecognitiondetailedline.ChildUniqueReferenceIDValidator is a validator for the "child_unique_reference_id" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitiondetailedline.ChildUniqueReferenceIDValidator = chargeusagebasedrevenuerecognitiondetailedlineDescChildUniqueReferenceID.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitiondetailedlineDescID is the schema descriptor for id field.
+	chargeusagebasedrevenuerecognitiondetailedlineDescID := chargeusagebasedrevenuerecognitiondetailedlineMixinFields0[0].Descriptor()
+	// chargeusagebasedrevenuerecognitiondetailedline.DefaultID holds the default value on creation for the id field.
+	chargeusagebasedrevenuerecognitiondetailedline.DefaultID = chargeusagebasedrevenuerecognitiondetailedlineDescID.Default.(func() string)
+	chargeusagebasedrevenuerecognitionoveragecreditsMixin := schema.ChargeUsageBasedRevenueRecognitionOverageCredits{}.Mixin()
+	chargeusagebasedrevenuerecognitionoveragecreditsMixinFields0 := chargeusagebasedrevenuerecognitionoveragecreditsMixin[0].Fields()
+	_ = chargeusagebasedrevenuerecognitionoveragecreditsMixinFields0
+	chargeusagebasedrevenuerecognitionoveragecreditsMixinFields1 := chargeusagebasedrevenuerecognitionoveragecreditsMixin[1].Fields()
+	_ = chargeusagebasedrevenuerecognitionoveragecreditsMixinFields1
+	chargeusagebasedrevenuerecognitionoveragecreditsMixinFields2 := chargeusagebasedrevenuerecognitionoveragecreditsMixin[2].Fields()
+	_ = chargeusagebasedrevenuerecognitionoveragecreditsMixinFields2
+	chargeusagebasedrevenuerecognitionoveragecreditsMixinFields4 := chargeusagebasedrevenuerecognitionoveragecreditsMixin[4].Fields()
+	_ = chargeusagebasedrevenuerecognitionoveragecreditsMixinFields4
+	chargeusagebasedrevenuerecognitionoveragecreditsFields := schema.ChargeUsageBasedRevenueRecognitionOverageCredits{}.Fields()
+	_ = chargeusagebasedrevenuerecognitionoveragecreditsFields
+	// chargeusagebasedrevenuerecognitionoveragecreditsDescNamespace is the schema descriptor for namespace field.
+	chargeusagebasedrevenuerecognitionoveragecreditsDescNamespace := chargeusagebasedrevenuerecognitionoveragecreditsMixinFields0[0].Descriptor()
+	// chargeusagebasedrevenuerecognitionoveragecredits.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitionoveragecredits.NamespaceValidator = chargeusagebasedrevenuerecognitionoveragecreditsDescNamespace.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitionoveragecreditsDescCreatedAt is the schema descriptor for created_at field.
+	chargeusagebasedrevenuerecognitionoveragecreditsDescCreatedAt := chargeusagebasedrevenuerecognitionoveragecreditsMixinFields2[0].Descriptor()
+	// chargeusagebasedrevenuerecognitionoveragecredits.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargeusagebasedrevenuerecognitionoveragecredits.DefaultCreatedAt = chargeusagebasedrevenuerecognitionoveragecreditsDescCreatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitionoveragecreditsDescUpdatedAt is the schema descriptor for updated_at field.
+	chargeusagebasedrevenuerecognitionoveragecreditsDescUpdatedAt := chargeusagebasedrevenuerecognitionoveragecreditsMixinFields2[1].Descriptor()
+	// chargeusagebasedrevenuerecognitionoveragecredits.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargeusagebasedrevenuerecognitionoveragecredits.DefaultUpdatedAt = chargeusagebasedrevenuerecognitionoveragecreditsDescUpdatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitionoveragecredits.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargeusagebasedrevenuerecognitionoveragecredits.UpdateDefaultUpdatedAt = chargeusagebasedrevenuerecognitionoveragecreditsDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedrevenuerecognitionoveragecreditsDescLedgerTransactionGroupID is the schema descriptor for ledger_transaction_group_id field.
+	chargeusagebasedrevenuerecognitionoveragecreditsDescLedgerTransactionGroupID := chargeusagebasedrevenuerecognitionoveragecreditsMixinFields4[5].Descriptor()
+	// chargeusagebasedrevenuerecognitionoveragecredits.LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitionoveragecredits.LedgerTransactionGroupIDValidator = chargeusagebasedrevenuerecognitionoveragecreditsDescLedgerTransactionGroupID.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitionoveragecreditsDescID is the schema descriptor for id field.
+	chargeusagebasedrevenuerecognitionoveragecreditsDescID := chargeusagebasedrevenuerecognitionoveragecreditsMixinFields1[0].Descriptor()
+	// chargeusagebasedrevenuerecognitionoveragecredits.DefaultID holds the default value on creation for the id field.
+	chargeusagebasedrevenuerecognitionoveragecredits.DefaultID = chargeusagebasedrevenuerecognitionoveragecreditsDescID.Default.(func() string)
+	chargeusagebasedrevenuerecognitionsMixin := schema.ChargeUsageBasedRevenueRecognitions{}.Mixin()
+	chargeusagebasedrevenuerecognitionsMixinFields0 := chargeusagebasedrevenuerecognitionsMixin[0].Fields()
+	_ = chargeusagebasedrevenuerecognitionsMixinFields0
+	chargeusagebasedrevenuerecognitionsMixinFields1 := chargeusagebasedrevenuerecognitionsMixin[1].Fields()
+	_ = chargeusagebasedrevenuerecognitionsMixinFields1
+	chargeusagebasedrevenuerecognitionsMixinFields2 := chargeusagebasedrevenuerecognitionsMixin[2].Fields()
+	_ = chargeusagebasedrevenuerecognitionsMixinFields2
+	chargeusagebasedrevenuerecognitionsFields := schema.ChargeUsageBasedRevenueRecognitions{}.Fields()
+	_ = chargeusagebasedrevenuerecognitionsFields
+	// chargeusagebasedrevenuerecognitionsDescNamespace is the schema descriptor for namespace field.
+	chargeusagebasedrevenuerecognitionsDescNamespace := chargeusagebasedrevenuerecognitionsMixinFields0[0].Descriptor()
+	// chargeusagebasedrevenuerecognitions.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitions.NamespaceValidator = chargeusagebasedrevenuerecognitionsDescNamespace.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitionsDescCreatedAt is the schema descriptor for created_at field.
+	chargeusagebasedrevenuerecognitionsDescCreatedAt := chargeusagebasedrevenuerecognitionsMixinFields2[0].Descriptor()
+	// chargeusagebasedrevenuerecognitions.DefaultCreatedAt holds the default value on creation for the created_at field.
+	chargeusagebasedrevenuerecognitions.DefaultCreatedAt = chargeusagebasedrevenuerecognitionsDescCreatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitionsDescUpdatedAt is the schema descriptor for updated_at field.
+	chargeusagebasedrevenuerecognitionsDescUpdatedAt := chargeusagebasedrevenuerecognitionsMixinFields2[1].Descriptor()
+	// chargeusagebasedrevenuerecognitions.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	chargeusagebasedrevenuerecognitions.DefaultUpdatedAt = chargeusagebasedrevenuerecognitionsDescUpdatedAt.Default.(func() time.Time)
+	// chargeusagebasedrevenuerecognitions.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	chargeusagebasedrevenuerecognitions.UpdateDefaultUpdatedAt = chargeusagebasedrevenuerecognitionsDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// chargeusagebasedrevenuerecognitionsDescFeatureID is the schema descriptor for feature_id field.
+	chargeusagebasedrevenuerecognitionsDescFeatureID := chargeusagebasedrevenuerecognitionsFields[1].Descriptor()
+	// chargeusagebasedrevenuerecognitions.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
+	chargeusagebasedrevenuerecognitions.FeatureIDValidator = chargeusagebasedrevenuerecognitionsDescFeatureID.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitionsDescDetailedLinesIncludeCreditAllocations is the schema descriptor for detailed_lines_include_credit_allocations field.
+	chargeusagebasedrevenuerecognitionsDescDetailedLinesIncludeCreditAllocations := chargeusagebasedrevenuerecognitionsFields[6].Descriptor()
+	// chargeusagebasedrevenuerecognitions.DefaultDetailedLinesIncludeCreditAllocations holds the default value on creation for the detailed_lines_include_credit_allocations field.
+	chargeusagebasedrevenuerecognitions.DefaultDetailedLinesIncludeCreditAllocations = chargeusagebasedrevenuerecognitionsDescDetailedLinesIncludeCreditAllocations.Default.(bool)
+	// chargeusagebasedrevenuerecognitionsDescID is the schema descriptor for id field.
+	chargeusagebasedrevenuerecognitionsDescID := chargeusagebasedrevenuerecognitionsMixinFields1[0].Descriptor()
+	// chargeusagebasedrevenuerecognitions.DefaultID holds the default value on creation for the id field.
+	chargeusagebasedrevenuerecognitions.DefaultID = chargeusagebasedrevenuerecognitionsDescID.Default.(func() string)
 	chargeusagebasedruncreditallocationsMixin := schema.ChargeUsageBasedRunCreditAllocations{}.Mixin()
 	chargeusagebasedruncreditallocationsMixinFields0 := chargeusagebasedruncreditallocationsMixin[0].Fields()
 	_ = chargeusagebasedruncreditallocationsMixinFields0

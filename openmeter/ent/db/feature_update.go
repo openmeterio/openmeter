@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -387,6 +388,21 @@ func (_u *FeatureUpdate) AddUsageBasedRuns(v ...*ChargeUsageBasedRuns) *FeatureU
 	return _u.AddUsageBasedRunIDs(ids...)
 }
 
+// AddUsageBasedRevenueRecognitionIDs adds the "usage_based_revenue_recognitions" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *FeatureUpdate) AddUsageBasedRevenueRecognitionIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.AddUsageBasedRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// AddUsageBasedRevenueRecognitions adds the "usage_based_revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *FeatureUpdate) AddUsageBasedRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUsageBasedRevenueRecognitionIDs(ids...)
+}
+
 // AddFlatFeeChargeIDs adds the "flat_fee_charges" edge to the ChargeFlatFee entity by IDs.
 func (_u *FeatureUpdate) AddFlatFeeChargeIDs(ids ...string) *FeatureUpdate {
 	_u.mutation.AddFlatFeeChargeIDs(ids...)
@@ -510,6 +526,27 @@ func (_u *FeatureUpdate) RemoveUsageBasedRuns(v ...*ChargeUsageBasedRuns) *Featu
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUsageBasedRunIDs(ids...)
+}
+
+// ClearUsageBasedRevenueRecognitions clears all "usage_based_revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *FeatureUpdate) ClearUsageBasedRevenueRecognitions() *FeatureUpdate {
+	_u.mutation.ClearUsageBasedRevenueRecognitions()
+	return _u
+}
+
+// RemoveUsageBasedRevenueRecognitionIDs removes the "usage_based_revenue_recognitions" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *FeatureUpdate) RemoveUsageBasedRevenueRecognitionIDs(ids ...string) *FeatureUpdate {
+	_u.mutation.RemoveUsageBasedRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// RemoveUsageBasedRevenueRecognitions removes "usage_based_revenue_recognitions" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *FeatureUpdate) RemoveUsageBasedRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *FeatureUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUsageBasedRevenueRecognitionIDs(ids...)
 }
 
 // ClearFlatFeeCharges clears all "flat_fee_charges" edges to the ChargeFlatFee entity.
@@ -907,6 +944,51 @@ func (_u *FeatureUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedRevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRevenueRecognitionsTable,
+			Columns: []string{dbfeature.UsageBasedRevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUsageBasedRevenueRecognitionsIDs(); len(nodes) > 0 && !_u.mutation.UsageBasedRevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRevenueRecognitionsTable,
+			Columns: []string{dbfeature.UsageBasedRevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedRevenueRecognitionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRevenueRecognitionsTable,
+			Columns: []string{dbfeature.UsageBasedRevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1330,6 +1412,21 @@ func (_u *FeatureUpdateOne) AddUsageBasedRuns(v ...*ChargeUsageBasedRuns) *Featu
 	return _u.AddUsageBasedRunIDs(ids...)
 }
 
+// AddUsageBasedRevenueRecognitionIDs adds the "usage_based_revenue_recognitions" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *FeatureUpdateOne) AddUsageBasedRevenueRecognitionIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.AddUsageBasedRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// AddUsageBasedRevenueRecognitions adds the "usage_based_revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *FeatureUpdateOne) AddUsageBasedRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddUsageBasedRevenueRecognitionIDs(ids...)
+}
+
 // AddFlatFeeChargeIDs adds the "flat_fee_charges" edge to the ChargeFlatFee entity by IDs.
 func (_u *FeatureUpdateOne) AddFlatFeeChargeIDs(ids ...string) *FeatureUpdateOne {
 	_u.mutation.AddFlatFeeChargeIDs(ids...)
@@ -1453,6 +1550,27 @@ func (_u *FeatureUpdateOne) RemoveUsageBasedRuns(v ...*ChargeUsageBasedRuns) *Fe
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveUsageBasedRunIDs(ids...)
+}
+
+// ClearUsageBasedRevenueRecognitions clears all "usage_based_revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *FeatureUpdateOne) ClearUsageBasedRevenueRecognitions() *FeatureUpdateOne {
+	_u.mutation.ClearUsageBasedRevenueRecognitions()
+	return _u
+}
+
+// RemoveUsageBasedRevenueRecognitionIDs removes the "usage_based_revenue_recognitions" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *FeatureUpdateOne) RemoveUsageBasedRevenueRecognitionIDs(ids ...string) *FeatureUpdateOne {
+	_u.mutation.RemoveUsageBasedRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// RemoveUsageBasedRevenueRecognitions removes "usage_based_revenue_recognitions" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *FeatureUpdateOne) RemoveUsageBasedRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *FeatureUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveUsageBasedRevenueRecognitionIDs(ids...)
 }
 
 // ClearFlatFeeCharges clears all "flat_fee_charges" edges to the ChargeFlatFee entity.
@@ -1880,6 +1998,51 @@ func (_u *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.UsageBasedRevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRevenueRecognitionsTable,
+			Columns: []string{dbfeature.UsageBasedRevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedUsageBasedRevenueRecognitionsIDs(); len(nodes) > 0 && !_u.mutation.UsageBasedRevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRevenueRecognitionsTable,
+			Columns: []string{dbfeature.UsageBasedRevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.UsageBasedRevenueRecognitionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRevenueRecognitionsTable,
+			Columns: []string{dbfeature.UsageBasedRevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

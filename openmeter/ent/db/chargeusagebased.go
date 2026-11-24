@@ -128,6 +128,8 @@ type ChargeUsageBasedEdges struct {
 	Runs []*ChargeUsageBasedRuns `json:"runs,omitempty"`
 	// DetailedLines holds the value of the detailed_lines edge.
 	DetailedLines []*ChargeUsageBasedRunDetailedLine `json:"detailed_lines,omitempty"`
+	// RevenueRecognitions holds the value of the revenue_recognitions edge.
+	RevenueRecognitions []*ChargeUsageBasedRevenueRecognitions `json:"revenue_recognitions,omitempty"`
 	// CurrentRun holds the value of the current_run edge.
 	CurrentRun *ChargeUsageBasedRuns `json:"current_run,omitempty"`
 	// CostBasis holds the value of the cost_basis edge.
@@ -152,7 +154,7 @@ type ChargeUsageBasedEdges struct {
 	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [13]bool
+	loadedTypes [14]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -173,12 +175,21 @@ func (e ChargeUsageBasedEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRunDetai
 	return nil, &NotLoadedError{edge: "detailed_lines"}
 }
 
+// RevenueRecognitionsOrErr returns the RevenueRecognitions value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedEdges) RevenueRecognitionsOrErr() ([]*ChargeUsageBasedRevenueRecognitions, error) {
+	if e.loadedTypes[2] {
+		return e.RevenueRecognitions, nil
+	}
+	return nil, &NotLoadedError{edge: "revenue_recognitions"}
+}
+
 // CurrentRunOrErr returns the CurrentRun value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedEdges) CurrentRunOrErr() (*ChargeUsageBasedRuns, error) {
 	if e.CurrentRun != nil {
 		return e.CurrentRun, nil
-	} else if e.loadedTypes[2] {
+	} else if e.loadedTypes[3] {
 		return nil, &NotFoundError{label: chargeusagebasedruns.Label}
 	}
 	return nil, &NotLoadedError{edge: "current_run"}
@@ -189,7 +200,7 @@ func (e ChargeUsageBasedEdges) CurrentRunOrErr() (*ChargeUsageBasedRuns, error) 
 func (e ChargeUsageBasedEdges) CostBasisOrErr() (*ChargeUsageBasedCostBasis, error) {
 	if e.CostBasis != nil {
 		return e.CostBasis, nil
-	} else if e.loadedTypes[3] {
+	} else if e.loadedTypes[4] {
 		return nil, &NotFoundError{label: chargeusagebasedcostbasis.Label}
 	}
 	return nil, &NotLoadedError{edge: "cost_basis"}
@@ -200,7 +211,7 @@ func (e ChargeUsageBasedEdges) CostBasisOrErr() (*ChargeUsageBasedCostBasis, err
 func (e ChargeUsageBasedEdges) ChargeOrErr() (*Charge, error) {
 	if e.Charge != nil {
 		return e.Charge, nil
-	} else if e.loadedTypes[4] {
+	} else if e.loadedTypes[5] {
 		return nil, &NotFoundError{label: charge.Label}
 	}
 	return nil, &NotLoadedError{edge: "charge"}
@@ -211,7 +222,7 @@ func (e ChargeUsageBasedEdges) ChargeOrErr() (*Charge, error) {
 func (e ChargeUsageBasedEdges) IntentOverrideOrErr() (*ChargeUsageBasedOverride, error) {
 	if e.IntentOverride != nil {
 		return e.IntentOverride, nil
-	} else if e.loadedTypes[5] {
+	} else if e.loadedTypes[6] {
 		return nil, &NotFoundError{label: chargeusagebasedoverride.Label}
 	}
 	return nil, &NotLoadedError{edge: "intent_override"}
@@ -222,7 +233,7 @@ func (e ChargeUsageBasedEdges) IntentOverrideOrErr() (*ChargeUsageBasedOverride,
 func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[7] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -233,7 +244,7 @@ func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -244,7 +255,7 @@ func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, err
 func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -255,7 +266,7 @@ func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error
 func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -266,7 +277,7 @@ func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[11] {
 		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -277,7 +288,7 @@ func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[11] {
+	} else if e.loadedTypes[12] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -288,7 +299,7 @@ func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
 func (e ChargeUsageBasedEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
 	if e.CustomCurrency != nil {
 		return e.CustomCurrency, nil
-	} else if e.loadedTypes[12] {
+	} else if e.loadedTypes[13] {
 		return nil, &NotFoundError{label: customcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "custom_currency"}
@@ -615,6 +626,11 @@ func (_m *ChargeUsageBased) QueryRuns() *ChargeUsageBasedRunsQuery {
 // QueryDetailedLines queries the "detailed_lines" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryDetailedLines() *ChargeUsageBasedRunDetailedLineQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryDetailedLines(_m)
+}
+
+// QueryRevenueRecognitions queries the "revenue_recognitions" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryRevenueRecognitions() *ChargeUsageBasedRevenueRecognitionsQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryRevenueRecognitions(_m)
 }
 
 // QueryCurrentRun queries the "current_run" edge of the ChargeUsageBased entity.

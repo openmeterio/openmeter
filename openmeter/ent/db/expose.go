@@ -175,6 +175,14 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		ChargeUsageBasedOverride: NewChargeUsageBasedOverrideClient(config),
 
+		ChargeUsageBasedRevenueRecognitionCredits: NewChargeUsageBasedRevenueRecognitionCreditsClient(config),
+
+		ChargeUsageBasedRevenueRecognitionDetailedLine: NewChargeUsageBasedRevenueRecognitionDetailedLineClient(config),
+
+		ChargeUsageBasedRevenueRecognitionOverageCredits: NewChargeUsageBasedRevenueRecognitionOverageCreditsClient(config),
+
+		ChargeUsageBasedRevenueRecognitions: NewChargeUsageBasedRevenueRecognitionsClient(config),
+
 		ChargeUsageBasedRunCreditAllocations: NewChargeUsageBasedRunCreditAllocationsClient(config),
 
 		ChargeUsageBasedRunDetailedLine: NewChargeUsageBasedRunDetailedLineClient(config),

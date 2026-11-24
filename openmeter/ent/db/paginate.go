@@ -2763,6 +2763,262 @@ var _ pagination.Paginator[*ChargeUsageBasedOverride] = (*ChargeUsageBasedOverri
 
 // Paginate runs the query and returns a paginated response.
 // If page is its zero value, it returns all items and derives the total from them.
+func (_m *ChargeUsageBasedRevenueRecognitionCreditsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRevenueRecognitionCredits], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRevenueRecognitionCredits]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*ChargeUsageBasedRevenueRecognitionCredits, 0)
+		return pagedResponse, nil
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*ChargeUsageBasedRevenueRecognitionCredits] = (*ChargeUsageBasedRevenueRecognitionCreditsQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its zero value, it returns all items and derives the total from them.
+func (_m *ChargeUsageBasedRevenueRecognitionDetailedLineQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRevenueRecognitionDetailedLine], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRevenueRecognitionDetailedLine]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*ChargeUsageBasedRevenueRecognitionDetailedLine, 0)
+		return pagedResponse, nil
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*ChargeUsageBasedRevenueRecognitionDetailedLine] = (*ChargeUsageBasedRevenueRecognitionDetailedLineQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its zero value, it returns all items and derives the total from them.
+func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*ChargeUsageBasedRevenueRecognitionOverageCredits, 0)
+		return pagedResponse, nil
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*ChargeUsageBasedRevenueRecognitionOverageCredits] = (*ChargeUsageBasedRevenueRecognitionOverageCreditsQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its zero value, it returns all items and derives the total from them.
+func (_m *ChargeUsageBasedRevenueRecognitionsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRevenueRecognitions], error) {
+	// Get the limit and offset
+	limit, offset := page.Limit(), page.Offset()
+
+	// Unset previous pagination settings
+	zero := 0
+	_m.ctx.Offset = &zero
+	_m.ctx.Limit = &zero
+
+	pagedResponse := pagination.Result[*ChargeUsageBasedRevenueRecognitions]{
+		Page: page,
+	}
+
+	if page.IsZero() {
+		// All matching rows are loaded, so a separate count would repeat the work.
+		items, err := _m.All(ctx)
+		if err != nil {
+			return pagedResponse, err
+		}
+
+		pagedResponse.Items = items
+		pagedResponse.TotalCount = len(items)
+		return pagedResponse, nil
+	}
+
+	// Create duplicate of the query to run for
+	countQuery := _m.Clone()
+	pagedQuery := _m
+
+	// Unset select for count query
+	countQuery.ctx.Fields = []string{}
+
+	// Unset ordering for count query
+	countQuery.order = nil
+
+	// Get the total count
+	count, err := countQuery.Count(ctx)
+	if err != nil {
+		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
+	}
+	pagedResponse.TotalCount = count
+
+	// If there are no items, return the empty response early
+	if count == 0 {
+		// Items should be [] not null.
+		pagedResponse.Items = make([]*ChargeUsageBasedRevenueRecognitions, 0)
+		return pagedResponse, nil
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
+	// Get the paged items
+	items, err := pagedQuery.All(ctx)
+	pagedResponse.Items = items
+	return pagedResponse, err
+}
+
+// type check
+var _ pagination.Paginator[*ChargeUsageBasedRevenueRecognitions] = (*ChargeUsageBasedRevenueRecognitionsQuery)(nil)
+
+// Paginate runs the query and returns a paginated response.
+// If page is its zero value, it returns all items and derives the total from them.
 func (_m *ChargeUsageBasedRunCreditAllocationsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRunCreditAllocations], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()

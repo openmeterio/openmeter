@@ -105,6 +105,8 @@ const (
 	EdgeRuns = "runs"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
 	EdgeDetailedLines = "detailed_lines"
+	// EdgeRevenueRecognitions holds the string denoting the revenue_recognitions edge name in mutations.
+	EdgeRevenueRecognitions = "revenue_recognitions"
 	// EdgeCurrentRun holds the string denoting the current_run edge name in mutations.
 	EdgeCurrentRun = "current_run"
 	// EdgeCostBasis holds the string denoting the cost_basis edge name in mutations.
@@ -143,6 +145,13 @@ const (
 	DetailedLinesInverseTable = "charge_usage_based_run_detailed_line"
 	// DetailedLinesColumn is the table column denoting the detailed_lines relation/edge.
 	DetailedLinesColumn = "charge_id"
+	// RevenueRecognitionsTable is the table that holds the revenue_recognitions relation/edge.
+	RevenueRecognitionsTable = "charge_usage_based_revenue_recognitions"
+	// RevenueRecognitionsInverseTable is the table name for the ChargeUsageBasedRevenueRecognitions entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrevenuerecognitions" package.
+	RevenueRecognitionsInverseTable = "charge_usage_based_revenue_recognitions"
+	// RevenueRecognitionsColumn is the table column denoting the revenue_recognitions relation/edge.
+	RevenueRecognitionsColumn = "charge_id"
 	// CurrentRunTable is the table that holds the current_run relation/edge.
 	CurrentRunTable = "charge_usage_based"
 	// CurrentRunInverseTable is the table name for the ChargeUsageBasedRuns entity.
@@ -590,6 +599,20 @@ func ByDetailedLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
+// ByRevenueRecognitionsCount orders the results by revenue_recognitions count.
+func ByRevenueRecognitionsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRevenueRecognitionsStep(), opts...)
+	}
+}
+
+// ByRevenueRecognitions orders the results by revenue_recognitions terms.
+func ByRevenueRecognitions(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRevenueRecognitionsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // ByCurrentRunField orders the results by current_run field.
 func ByCurrentRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -678,6 +701,13 @@ func newDetailedLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(DetailedLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, DetailedLinesTable, DetailedLinesColumn),
+	)
+}
+func newRevenueRecognitionsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RevenueRecognitionsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, RevenueRecognitionsTable, RevenueRecognitionsColumn),
 	)
 }
 func newCurrentRunStep() *sqlgraph.Step {

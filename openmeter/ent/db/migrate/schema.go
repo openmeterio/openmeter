@@ -3181,6 +3181,248 @@ var (
 			},
 		},
 	}
+	// ChargeUsageBasedRevenueRecognitionCreditsColumns holds the columns for the "charge_usage_based_revenue_recognition_credits" table.
+	ChargeUsageBasedRevenueRecognitionCreditsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"allocation", "correction"}},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRevenueRecognitionCreditsTable holds the schema information for the "charge_usage_based_revenue_recognition_credits" table.
+	ChargeUsageBasedRevenueRecognitionCreditsTable = &schema.Table{
+		Name:       "charge_usage_based_revenue_recognition_credits",
+		Columns:    ChargeUsageBasedRevenueRecognitionCreditsColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRevenueRecognitionCreditsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_ub_revrec_credits_run",
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionCreditsColumns[11]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedrevenuerecognitioncredits_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionCreditsColumns[1]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitioncredits_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionCreditsColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitioncredits_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionCreditsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "chargeubrevreccredits_ns_run",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionCreditsColumns[1], ChargeUsageBasedRevenueRecognitionCreditsColumns[11]},
+			},
+		},
+	}
+	// ChargeUsageBasedRevenueRecognitionDetailedLineColumns holds the columns for the "charge_usage_based_revenue_recognition_detailed_line" table.
+	ChargeUsageBasedRevenueRecognitionDetailedLineColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "currency", Type: field.TypeString},
+		{Name: "service_period_start", Type: field.TypeTime},
+		{Name: "service_period_end", Type: field.TypeTime},
+		{Name: "child_unique_reference_id", Type: field.TypeString},
+		{Name: "index", Type: field.TypeInt, Nullable: true},
+		{Name: "quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "per_unit_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "amount_discounts", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "credits_applied", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRevenueRecognitionDetailedLineTable holds the schema information for the "charge_usage_based_revenue_recognition_detailed_line" table.
+	ChargeUsageBasedRevenueRecognitionDetailedLineTable = &schema.Table{
+		Name:       "charge_usage_based_revenue_recognition_detailed_line",
+		Columns:    ChargeUsageBasedRevenueRecognitionDetailedLineColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRevenueRecognitionDetailedLineColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_ub_revrec_detailed_line_run",
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionDetailedLineColumns[19]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedrevenuerecognitiondetailedline_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionDetailedLineColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitiondetailedline_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionDetailedLineColumns[1]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitiondetailedline_namespace_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionDetailedLineColumns[1], ChargeUsageBasedRevenueRecognitionDetailedLineColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitiondetailedline_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionDetailedLineColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "chargeubrevrecdetailedline_ns_run",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionDetailedLineColumns[1], ChargeUsageBasedRevenueRecognitionDetailedLineColumns[19]},
+			},
+		},
+	}
+	// ChargeUsageBasedRevenueRecognitionOverageCreditsColumns holds the columns for the "charge_usage_based_revenue_recognition_overage_credits" table.
+	ChargeUsageBasedRevenueRecognitionOverageCreditsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "service_period_from", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"allocation", "correction"}},
+		{Name: "ledger_transaction_group_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRevenueRecognitionOverageCreditsTable holds the schema information for the "charge_usage_based_revenue_recognition_overage_credits" table.
+	ChargeUsageBasedRevenueRecognitionOverageCreditsTable = &schema.Table{
+		Name:       "charge_usage_based_revenue_recognition_overage_credits",
+		Columns:    ChargeUsageBasedRevenueRecognitionOverageCreditsColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRevenueRecognitionOverageCreditsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_ub_revrec_overage_credits_run",
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionOverageCreditsColumns[11]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedrevenuerecognitionoveragecredits_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionOverageCreditsColumns[1]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitionoveragecredits_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionOverageCreditsColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitionoveragecredits_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionOverageCreditsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
+			},
+			{
+				Name:    "chargeubrevrecoveragecredits_ns_run",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionOverageCreditsColumns[1], ChargeUsageBasedRevenueRecognitionOverageCreditsColumns[11]},
+			},
+		},
+	}
+	// ChargeUsageBasedRevenueRecognitionsColumns holds the columns for the "charge_usage_based_revenue_recognitions" table.
+	ChargeUsageBasedRevenueRecognitionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_inclusive_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "taxes_exclusive_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "charges_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "discounts_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "credits_total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "stored_at_lt", Type: field.TypeTime},
+		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "delta_metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "detailed_lines_include_credit_allocations", Type: field.TypeBool, Default: false},
+		{Name: "invoice_usage_total", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
+		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// ChargeUsageBasedRevenueRecognitionsTable holds the schema information for the "charge_usage_based_revenue_recognitions" table.
+	ChargeUsageBasedRevenueRecognitionsTable = &schema.Table{
+		Name:       "charge_usage_based_revenue_recognitions",
+		Columns:    ChargeUsageBasedRevenueRecognitionsColumns,
+		PrimaryKey: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "charge_usage_based_revenue_recognitions_charge_usage_based_revenue_recognitions",
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[19]},
+				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "charge_usage_based_revenue_recognitions_features_usage_based_revenue_recognitions",
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[20]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "chargeusagebasedrevenuerecognitions_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[1]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitions_id",
+				Unique:  true,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[0]},
+			},
+			{
+				Name:    "chargeusagebasedrevenuerecognitions_namespace_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[1], ChargeUsageBasedRevenueRecognitionsColumns[19]},
+			},
+		},
+	}
 	// ChargeUsageBasedRunCreditAllocationsColumns holds the columns for the "charge_usage_based_run_credit_allocations" table.
 	ChargeUsageBasedRunCreditAllocationsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -6414,6 +6656,10 @@ var (
 		ChargeUsageBasedTable,
 		ChargeUsageBasedCostBasesTable,
 		ChargeUsageBasedOverridesTable,
+		ChargeUsageBasedRevenueRecognitionCreditsTable,
+		ChargeUsageBasedRevenueRecognitionDetailedLineTable,
+		ChargeUsageBasedRevenueRecognitionOverageCreditsTable,
+		ChargeUsageBasedRevenueRecognitionsTable,
 		ChargeUsageBasedRunCreditAllocationsTable,
 		ChargeUsageBasedRunDetailedLineTable,
 		ChargeUsageBasedRunInvoicedUsagesTable,
@@ -6667,6 +6913,14 @@ func init() {
 	}
 	ChargeUsageBasedOverridesTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
 	ChargeUsageBasedOverridesTable.ForeignKeys[1].RefTable = TaxCodesTable
+	ChargeUsageBasedRevenueRecognitionCreditsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRevenueRecognitionsTable
+	ChargeUsageBasedRevenueRecognitionDetailedLineTable.ForeignKeys[0].RefTable = ChargeUsageBasedRevenueRecognitionsTable
+	ChargeUsageBasedRevenueRecognitionDetailedLineTable.Annotation = &entsql.Annotation{
+		Table: "charge_usage_based_revenue_recognition_detailed_line",
+	}
+	ChargeUsageBasedRevenueRecognitionOverageCreditsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRevenueRecognitionsTable
+	ChargeUsageBasedRevenueRecognitionsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
+	ChargeUsageBasedRevenueRecognitionsTable.ForeignKeys[1].RefTable = FeaturesTable
 	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunCreditAllocationsTable
 	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunDetailedLineTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable

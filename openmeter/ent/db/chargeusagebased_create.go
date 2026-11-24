@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customcurrency"
@@ -452,6 +453,21 @@ func (_c *ChargeUsageBasedCreate) AddDetailedLines(v ...*ChargeUsageBasedRunDeta
 		ids[i] = v[i].ID
 	}
 	return _c.AddDetailedLineIDs(ids...)
+}
+
+// AddRevenueRecognitionIDs adds the "revenue_recognitions" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_c *ChargeUsageBasedCreate) AddRevenueRecognitionIDs(ids ...string) *ChargeUsageBasedCreate {
+	_c.mutation.AddRevenueRecognitionIDs(ids...)
+	return _c
+}
+
+// AddRevenueRecognitions adds the "revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_c *ChargeUsageBasedCreate) AddRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddRevenueRecognitionIDs(ids...)
 }
 
 // SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID.
@@ -957,6 +973,22 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.RevenueRecognitionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.RevenueRecognitionsTable,
+			Columns: []string{chargeusagebased.RevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

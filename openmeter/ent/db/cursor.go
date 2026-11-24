@@ -1900,6 +1900,210 @@ func (_m *ChargeUsageBasedCostBasisQuery) Cursor(ctx context.Context, cursor *pa
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
+func (_m *ChargeUsageBasedRevenueRecognitionCreditsQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRevenueRecognitionCredits], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeUsageBasedRevenueRecognitionCredits]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeUsageBasedRevenueRecognitionCredits]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeUsageBasedRevenueRecognitionCredits, 0)
+	}
+
+	result := pagination.Result[*ChargeUsageBasedRevenueRecognitionCredits]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeUsageBasedRevenueRecognitionDetailedLineQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRevenueRecognitionDetailedLine], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeUsageBasedRevenueRecognitionDetailedLine]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeUsageBasedRevenueRecognitionDetailedLine]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeUsageBasedRevenueRecognitionDetailedLine, 0)
+	}
+
+	result := pagination.Result[*ChargeUsageBasedRevenueRecognitionDetailedLine]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeUsageBasedRevenueRecognitionOverageCredits, 0)
+	}
+
+	result := pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
+func (_m *ChargeUsageBasedRevenueRecognitionsQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRevenueRecognitions], error) {
+	if cursor != nil {
+		if err := cursor.Validate(); err != nil {
+			return pagination.Result[*ChargeUsageBasedRevenueRecognitions]{}, fmt.Errorf("invalid cursor: %w", err)
+		}
+
+		_m.Where(func(s *sql.Selector) {
+			s.Where(
+				sql.Or(
+					sql.GT(s.C("created_at"), cursor.Time),
+					sql.And(
+						sql.EQ(s.C("created_at"), cursor.Time),
+						sql.P(func(b *sql.Builder) {
+							b.WriteString("CAST(")
+							b.WriteString(s.C("id"))
+							b.WriteString(" AS TEXT) > ")
+							b.Args(cursor.ID)
+						}),
+					),
+				),
+			)
+		})
+	}
+
+	_m.Order(func(s *sql.Selector) {
+		s.OrderBy(sql.Asc(s.C("created_at")), sql.Asc(s.C("id")))
+	})
+
+	items, err := _m.All(ctx)
+	if err != nil {
+		return pagination.Result[*ChargeUsageBasedRevenueRecognitions]{}, err
+	}
+
+	if items == nil {
+		items = make([]*ChargeUsageBasedRevenueRecognitions, 0)
+	}
+
+	result := pagination.Result[*ChargeUsageBasedRevenueRecognitions]{
+		Items: items,
+	}
+
+	if len(items) > 0 {
+		last := items[len(items)-1]
+		result.NextCursor = lo.ToPtr(pagination.NewCursor(last.CreatedAt, fmt.Sprint(last.ID)))
+	}
+
+	return result, nil
+}
+
+// Cursor runs the query and returns a cursor-paginated response.
+// Ordering is always by created_at asc, id asc.
 func (_m *ChargeUsageBasedRunCreditAllocationsQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRunCreditAllocations], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {
