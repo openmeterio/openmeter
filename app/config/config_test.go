@@ -141,6 +141,7 @@ func TestComplete(t *testing.T) {
 		Aggregation: AggregationConfiguration{
 			ClickHouse: ClickHouseAggregationConfiguration{
 				Address:         "127.0.0.1:9440",
+				Protocol:        ClickHouseProtocolNative,
 				TLS:             true,
 				Username:        "default",
 				Password:        "default",

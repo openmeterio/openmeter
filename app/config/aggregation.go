@@ -60,9 +60,19 @@ func (c AggregationConfiguration) Validate() error {
 	return nil
 }
 
+const (
+	// ClickHouseProtocolNative is the ClickHouse native TCP protocol (default, usually port 9000/9440).
+	ClickHouseProtocolNative = "native"
+	// ClickHouseProtocolHTTP is the ClickHouse HTTP(S) protocol (usually port 8123/8443).
+	// Use it to go through HTTP-only proxies such as chproxy.
+	ClickHouseProtocolHTTP = "http"
+)
+
 // ClickHouseAggregationConfiguration is the configuration for the ClickHouse aggregation engine
 type ClickHouseAggregationConfiguration struct {
-	Address  string
+	Address string
+	// Protocol selects the wire protocol: "native" (default) or "http".
+	Protocol string
 	TLS      bool
 	Username string
 	Password string
@@ -87,6 +97,12 @@ func (c ClickHouseAggregationConfiguration) Validate() error {
 
 	if c.Address == "" {
 		errs = append(errs, errors.New("address is required"))
+	}
+
+	switch c.Protocol {
+	case ClickHouseProtocolNative, ClickHouseProtocolHTTP:
+	default:
+		errs = append(errs, fmt.Errorf("protocol must be %q or %q, got %q", ClickHouseProtocolNative, ClickHouseProtocolHTTP, c.Protocol))
 	}
 
 	if c.DialTimeout <= 0 {
@@ -135,6 +151,10 @@ func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Optio
 		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
 		BlockBufferSize:  c.BlockBufferSize,
 	}
+	if c.Protocol == ClickHouseProtocolHTTP {
+		options.Protocol = clickhouse.HTTP
+	}
+
 	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
 	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
 	if c.TLS {
@@ -201,6 +221,7 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.asyncInsertWait", false)
 
 	v.SetDefault("aggregation.clickhouse.address", "127.0.0.1:9000")
+	v.SetDefault("aggregation.clickhouse.protocol", ClickHouseProtocolNative)
 	v.SetDefault("aggregation.clickhouse.tls", false)
 	v.SetDefault("aggregation.clickhouse.database", "openmeter")
 	v.SetDefault("aggregation.clickhouse.username", "default")
