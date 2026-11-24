@@ -658,6 +658,7 @@ func TestListEvents_Sort(t *testing.T) {
 		for range 3 {
 			want = append(want, seedEvent(t, env, tiedNS, tiedRule, frozen, nil).ID)
 		}
+
 		slices.Sort(want)
 		slices.Reverse(want)
 
