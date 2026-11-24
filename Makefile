@@ -288,6 +288,8 @@ lint-openapi: ## Lint OpenAPI spec
 lint-helm: ## Lint Helm charts
 	$(call print-target)
 	helm lint deploy/charts/openmeter
+	# The charges jobs only render with credits on, so the default lint never sees them.
+	helm lint deploy/charts/openmeter --set config.credits.enabled=true
 	helm lint deploy/charts/benthos-collector
 
 # Package a helm chart for release.
