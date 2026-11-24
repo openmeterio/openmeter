@@ -69,6 +69,9 @@ server:
 #    topicMetadataRefreshInterval: 1m
 #    # Use this config parameter to enable TCP keep-alive in order to prevent the Kafka broker to close idle network connection.
 #    socketKeepAliveEnabled: true
+#    # Negotiate request versions with the broker in the Sarama clients of the event bus (like librdkafka's api.version.request).
+#    # Disabled by default. Enable it for brokers that reject Kafka 2.8 request versions, such as Redpanda.
+#    apiVersionRequest: false
 #    # Set list of debug contexts to enable for librdkafka
 #    # See: https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md#debug-contexts
 #    debugContexts:
