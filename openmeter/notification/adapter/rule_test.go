@@ -3,6 +3,9 @@ package adapter
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
+	"maps"
+	"path"
 	"slices"
 	"testing"
 	"time"
@@ -19,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 // createRule seeds an invoice.created rule via the adapter directly, mirroring
@@ -559,10 +563,6 @@ func TestRuleConfigMappingPrecedence(t *testing.T) {
 			name: "envelope takes precedence over flat fields",
 			data: `{"type":"entitlements.reset","data":{"features":["legacy"]},"features":["flat"]}`,
 		},
-		{
-			name: "legacy unknown fields remain readable",
-			data: `{"type":"entitlements.reset","data":{"features":["legacy"],"historical_field":true}}`,
-		},
 	}
 
 	for _, tt := range tests {
@@ -579,19 +579,25 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 	env := newChannelTestEnv(t)
 	namespace := ulid.Make().String()
 
-	// given: two public types with both legacy and versioned rows
+	// Seed types in reverse public order so sorting only by ID gives a different first page.
 	idsByType := make(map[string][]string)
-	var allIDs []string
-	for _, eventType := range []notification.EventType{notification.EventTypeEntitlementReset, notification.EventTypeInvoiceCreated} {
+	for _, eventType := range []notification.EventType{
+		notification.EventTypeInvoiceUpdated,
+		notification.EventTypeInvoiceCreated,
+		notification.EventTypeEntitlementReset,
+		notification.EventTypeBalanceThreshold,
+	} {
 		var ids []string
 		for _, legacy := range []bool{true, false} {
 			created := createRule(t, env, namespace, clock.Now(), func(input *notification.CreateRuleInput) {
 				input.Type = eventType
 				input.Config = notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: eventType}}
 				switch eventType {
+				case notification.EventTypeBalanceThreshold:
+					input.Config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{Thresholds: []notification.BalanceThreshold{{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50}}}
 				case notification.EventTypeEntitlementReset:
 					input.Config.EntitlementReset = &notification.EntitlementResetRuleConfig{}
-				case notification.EventTypeInvoiceCreated:
+				case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 					input.Config.Invoice = &notification.InvoiceRuleConfig{}
 				}
 			})
@@ -607,8 +613,16 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 
 		slices.Sort(ids)
 		idsByType[string(eventType)] = ids
-		allIDs = append(allIDs, ids...)
 	}
+
+	var allIDs []string
+	for _, publicType := range slices.Sorted(maps.Keys(idsByType)) {
+		allIDs = append(allIDs, idsByType[publicType]...)
+	}
+
+	excludingInvoiceCreated := lo.Filter(allIDs, func(id string, _ int) bool {
+		return !slices.Contains(idsByType["invoice.created"], id)
+	})
 
 	tests := []struct {
 		name   string
@@ -617,38 +631,275 @@ func TestListRules_MixedTypeSpellingsAcrossPages(t *testing.T) {
 	}{
 		{name: "all", want: allIDs},
 		{name: "equal", filter: &filter.FilterString{Eq: new("invoice.created")}, want: idsByType["invoice.created"]},
-		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: idsByType["entitlements.reset"]},
-		{name: "in", filter: &filter.FilterString{In: &[]string{"invoice.created", "entitlements.reset"}}, want: allIDs},
-		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: idsByType["entitlements.reset"]},
+		{name: "not equal", filter: &filter.FilterString{Ne: new("invoice.created")}, want: excludingInvoiceCreated},
+		{
+			name:   "in",
+			filter: &filter.FilterString{In: &[]string{"entitlements.reset", "invoice.created"}},
+			want:   slices.Concat(idsByType["entitlements.reset"], idsByType["invoice.created"]),
+		},
+		{name: "not in", filter: &filter.FilterString{Nin: &[]string{"invoice.created"}}, want: excludingInvoiceCreated},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
-				t.Run(string(order), func(t *testing.T) {
-					want := slices.Clone(tt.want)
-					if order == sortx.OrderDesc {
-						slices.Reverse(want)
-					}
+	for _, stage := range []struct {
+		name, direction string
+	}{
+		{name: "mixed spellings"},
+		{name: "after upgrade", direction: "up"},
+		{name: "after rollback", direction: "down"},
+		{name: "after re-upgrade", direction: "up"},
+	} {
+		t.Run(stage.name, func(t *testing.T) {
+			if stage.direction != "" {
+				migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(
+					migrate.OMMigrationsConfig.FSPath,
+					"20261124090200_notification_event_type_normalization."+stage.direction+".sql",
+				))
+				require.NoError(t, err)
 
-					// when: each page contains one row ordered by public type and ID
-					var got []string
-					for page := 1; page <= len(want)+1; page++ {
-						listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
-							Namespace: namespace,
-							Type:      tt.filter, OrderBy: notification.OrderByType, Order: order,
-							Page: pagination.NewPage(page, 1),
+				_, err = env.sqlDB.ExecContext(t.Context(), string(migration))
+				require.NoError(t, err)
+			}
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					for _, order := range []sortx.Order{sortx.OrderAsc, sortx.OrderDesc} {
+						t.Run(string(order), func(t *testing.T) {
+							want := slices.Clone(tt.want)
+							if order == sortx.OrderDesc {
+								slices.Reverse(want)
+							}
+
+							// when: each page contains one row ordered by public type and ID
+							var got []string
+							for page := 1; page <= len(want)+1; page++ {
+								listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
+									Namespace: namespace,
+									Type:      tt.filter, OrderBy: notification.OrderByType, Order: order,
+									Page: pagination.NewPage(page, 1),
+								})
+								require.NoError(t, err)
+
+								for _, item := range listed.Items {
+									got = append(got, item.ID)
+								}
+							}
+
+							// then: pagination includes each matching row once, regardless of storage spelling
+							assert.Equal(t, want, got)
 						})
-						require.NoError(t, err)
-
-						for _, item := range listed.Items {
-							got = append(got, item.ID)
-						}
 					}
-
-					// then: pagination includes each matching row once, regardless of storage spelling
-					assert.Equal(t, want, got)
 				})
 			}
 		})
 	}
+}
+
+func TestRuleConfigNormalizationMigration(t *testing.T) {
+	env := newChannelTestEnv(t)
+
+	migrations := make(map[string]string)
+	for _, direction := range []string{"up", "down"} {
+		name := "20261124090400_notification_rule_config_normalization." + direction + ".sql"
+		migration, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, path.Join(migrate.OMMigrationsConfig.FSPath, name))
+		require.NoError(t, err)
+
+		migrations[direction] = string(migration)
+	}
+
+	t.Run("preserves Rule data across upgrade and rollback", func(t *testing.T) {
+		type fixture struct {
+			storedType  string
+			legacyType  string
+			data        string
+			flat        bool
+			annotations string
+			disabled    bool
+			deleted     bool
+		}
+
+		fixtures := []fixture{
+			{
+				storedType: "v1.entitlement.balance_threshold.triggered", legacyType: "entitlements.balance.threshold",
+				data: `{"thresholds":[{"type":"usage_percentage","value":50}],"features":[]}`, disabled: true,
+			},
+			{
+				storedType: "entitlements.reset", legacyType: "entitlements.reset", data: `{"features":null}`, deleted: true,
+				annotations: `{"keep":9007199254740993}`,
+			},
+			{
+				storedType: "invoice.created", legacyType: "invoice.created", data: `{}`,
+			},
+			{storedType: "entitlements.balance.threshold", legacyType: "entitlements.balance.threshold", data: `{"thresholds":[]}`},
+			{storedType: "v1.entitlement.usage_period.reset", legacyType: "entitlements.reset", data: `{"features":[]}`},
+			{storedType: "invoice.updated", legacyType: "invoice.updated", data: `{}`},
+			{storedType: "v1.billing.invoice.updated", legacyType: "invoice.updated", data: `{}`, annotations: `null`},
+			{storedType: "v1.billing.invoice.created", legacyType: "invoice.created", data: `{}`, flat: true},
+			{storedType: "future.event", data: `{"type":"future.event","data":{"mode":"future"}}`},
+		}
+
+		for _, f := range fixtures {
+			t.Run(f.storedType, func(t *testing.T) {
+				// given: a persisted Rule and the fields that must survive config conversion
+				tx, err := env.sqlDB.BeginTx(t.Context(), nil)
+				require.NoError(t, err)
+
+				defer func() { require.NoError(t, tx.Rollback()) }()
+
+				id := ulid.Make().String()
+				original := f.data
+				envelope := fmt.Sprintf(`{"type":%q,"data":%s}`, f.legacyType, f.data)
+				if f.legacyType != "" && !f.flat {
+					original = envelope
+				}
+
+				var otherFields string
+				err = tx.QueryRowContext(t.Context(), `
+					INSERT INTO notification_rules AS r
+						(id, namespace, type, name, config, annotations, disabled, deleted_at, created_at, updated_at)
+					VALUES ($1, $2, $3, 'rule', $4, NULLIF($5, '')::jsonb, $6,
+						CASE WHEN $7 THEN now() END, now(), now())
+					RETURNING (to_jsonb(r) - 'config' - 'annotations')::text`,
+					id, ulid.Make().String(), f.storedType, original, f.annotations, f.disabled, f.deleted).Scan(&otherFields)
+				require.NoError(t, err)
+
+				for _, direction := range []string{"up", "up", "down", "down", "up"} {
+					// when: applying the same migration twice, rolling back, then upgrading again
+					_, err := tx.ExecContext(t.Context(), migrations[direction])
+					require.NoError(t, err)
+
+					// then: only the config representation changes
+					wantConfig := f.data
+					if f.legacyType != "" && direction == "down" {
+						wantConfig = envelope
+					}
+
+					var configMatches, annotationsMatch bool
+					var currentFields string
+					err = tx.QueryRowContext(t.Context(), `
+						SELECT config = $2::jsonb, annotations IS NOT DISTINCT FROM NULLIF($3, '')::jsonb,
+							(to_jsonb(r) - 'config' - 'annotations')::text
+						FROM notification_rules AS r WHERE id = $1`, id, wantConfig, f.annotations).
+						Scan(&configMatches, &annotationsMatch, &currentFields)
+					require.NoError(t, err)
+
+					assert.True(t, configMatches, "%s config", direction)
+					assert.True(t, annotationsMatch, "%s annotations", direction)
+					assert.Equal(t, otherFields, currentFields)
+				}
+			})
+		}
+	})
+
+	t.Run("rollback wraps the latest config and newly created Rules", func(t *testing.T) {
+		// given: a threshold Rule with a legacy config envelope
+		namespace := ulid.Make().String()
+		channel := createChannel(t, env, namespace, clock.Now(), nil)
+		rule := createRule(t, env, namespace, clock.Now(), func(input *notification.CreateRuleInput) {
+			input.Type = notification.EventTypeBalanceThreshold
+			input.Config = notification.RuleConfig{
+				RuleConfigMeta: notification.RuleConfigMeta{Type: input.Type},
+				BalanceThreshold: &notification.BalanceThresholdRuleConfig{
+					Thresholds: []notification.BalanceThreshold{{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50}},
+				},
+			}
+			input.Channels = []string{channel.ID}
+		})
+
+		_, err := env.sqlDB.ExecContext(t.Context(), `
+			UPDATE notification_rules SET config = jsonb_build_object('type', 'entitlements.balance.threshold', 'data', config)
+			WHERE id = $1`, rule.ID)
+		require.NoError(t, err)
+
+		_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
+		require.NoError(t, err)
+
+		// when: changing the threshold after upgrade and creating another Rule
+		current, err := env.adapter.GetRule(t.Context(), notification.GetRuleInput(rule.NamespacedID))
+		require.NoError(t, err)
+
+		current.Config.BalanceThreshold.Thresholds[0].Value = 80
+		_, err = env.adapter.UpdateRule(t.Context(), notification.UpdateRuleInput{
+			NamespacedID: current.NamespacedID,
+			Type:         current.Type,
+			Name:         current.Name,
+			Config:       current.Config,
+			Channels:     []string{channel.ID},
+		})
+		require.NoError(t, err)
+
+		created := createRule(t, env, namespace, clock.Now(), nil)
+
+		_, err = env.sqlDB.ExecContext(t.Context(), migrations["down"])
+		require.NoError(t, err)
+
+		// then: both Rules have legacy envelopes and the edited threshold is preserved
+		var discriminator, threshold string
+		err = env.sqlDB.QueryRowContext(t.Context(), `
+			SELECT config->>'type', config #>> '{data,thresholds,0,value}'
+			FROM notification_rules WHERE id = $1`, rule.ID).Scan(&discriminator, &threshold)
+		require.NoError(t, err)
+
+		assert.Equal(t, "entitlements.balance.threshold", discriminator)
+		assert.Equal(t, "80", threshold)
+
+		var config string
+		err = env.sqlDB.QueryRowContext(t.Context(), "SELECT config::text FROM notification_rules WHERE id = $1", created.ID).Scan(&config)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, `{"type":"invoice.created","data":{}}`, config)
+
+		_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
+		require.NoError(t, err)
+
+		err = env.sqlDB.QueryRowContext(t.Context(), `
+			SELECT config #>> '{thresholds,0,value}'
+			FROM notification_rules WHERE id = $1`, rule.ID).Scan(&threshold)
+		require.NoError(t, err)
+
+		assert.Equal(t, "80", threshold)
+	})
+
+	t.Run("invalid envelopes abort all conversions", func(t *testing.T) {
+		for _, tc := range []struct{ name, config string }{
+			{name: "wrong discriminator", config: `{"type":"invoice.updated","data":{}}`},
+			{name: "missing discriminator", config: `{"data":{}}`},
+			{name: "missing data", config: `{"type":"invoice.created"}`},
+			{name: "array data", config: `{"type":"invoice.created","data":[]}`},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				// given: a valid Rule ordered before an invalid Rule
+				namespace := ulid.Make().String()
+				firstID, invalidID := ulid.Make().String(), ulid.Make().String()
+				_, err := env.sqlDB.ExecContext(t.Context(), `
+					INSERT INTO notification_rules (id, namespace, name, type, config, created_at, updated_at)
+					VALUES ($1, $2, 'valid', 'invoice.created', '{"type":"invoice.created","data":{}}', now(), now()),
+						($3, $2, 'invalid', 'v1.billing.invoice.created', $4, now(), now())`, firstID, namespace, invalidID, tc.config)
+				require.NoError(t, err)
+
+				defer func() {
+					_, err := env.sqlDB.ExecContext(t.Context(), "DELETE FROM notification_rules WHERE namespace = $1", namespace)
+					require.NoError(t, err)
+				}()
+
+				// when: the migration reaches the invalid Rule
+				_, err = env.sqlDB.ExecContext(t.Context(), migrations["up"])
+				require.ErrorContains(t, err, "invalid rule config envelope")
+
+				assert.Contains(t, err.Error(), namespace)
+				assert.Contains(t, err.Error(), invalidID)
+				assert.Contains(t, err.Error(), `expected type "invoice.created"`)
+				assert.Contains(t, err.Error(), "If schema_om shows version 20261124090400 as dirty")
+				assert.Contains(t, err.Error(), "force 20261124090300 (the previous successful version), then rerun the migration")
+
+				// then: the failed migration preserves both rows
+				var preserved int
+				err = env.sqlDB.QueryRowContext(t.Context(), `
+					SELECT count(*) FROM notification_rules WHERE namespace = $1 AND annotations IS NULL
+					AND ((id = $2 AND config = '{"type":"invoice.created","data":{}}') OR (id = $3 AND config = $4::jsonb))`,
+					namespace, firstID, invalidID, tc.config).Scan(&preserved)
+				require.NoError(t, err)
+
+				assert.Equal(t, 2, preserved)
+			})
+		}
+	})
 }

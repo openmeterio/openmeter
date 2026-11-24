@@ -1,0 +1,2 @@
+-- No-op: beta.237 already reads lowercase Channel types. Reversing this update
+-- would also rewrite Channels originally created with the canonical spelling.
