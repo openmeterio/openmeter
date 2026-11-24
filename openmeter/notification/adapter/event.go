@@ -121,7 +121,7 @@ func (a *adapter) ListEvents(ctx context.Context, params notification.ListEvents
 
 		switch params.OrderBy {
 		case notification.OrderByCreatedAt:
-			query = query.Order(eventdb.ByCreatedAt(order...))
+			query = query.Order(eventdb.ByCreatedAt(order...), eventdb.ByID(order...))
 		case notification.OrderByType:
 			query = query.Order(byLegacyEventType(eventdb.FieldType, sortOrder), eventdb.ByID(order...))
 		case notification.OrderByID:
