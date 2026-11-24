@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
+	dbchargeusagebasedrevenuerecognitions "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -78,6 +79,50 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateAndGetByID() {
 	})
 	s.Require().Error(err)
 	s.True(models.IsGenericNotFoundError(err))
+}
+
+func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateRollsBackWhenChildInsertFails() {
+	ctx := s.T().Context()
+	namespace := "usagebased-revenue-recognition-run-rollback"
+
+	// Given a usage-based charge.
+	charge, _, servicePeriod := s.createChargeWithRun(namespace)
+	dayPeriod := timeutil.ClosedPeriod{
+		From: servicePeriod.From,
+		To:   servicePeriod.From.AddDate(0, 0, 1),
+	}
+	duplicateID := ulid.Make().String()
+
+	// When a run is created with two credits that share an ID, so the credit
+	// insert fails after the run row was written.
+	_, err := s.adapter.CreateRevenueRecognitionRun(ctx, usagebased.CreateRevenueRecognitionRunInput{
+		ChargeID:        charge.GetChargeID(),
+		FeatureID:       charge.State.FeatureID,
+		StoredAtLT:      dayPeriod.To,
+		ServicePeriodTo: dayPeriod.To,
+		CreditsAllocated: creditrealization.CreateInputs{
+			{
+				ID:            duplicateID,
+				ServicePeriod: dayPeriod,
+				Amount:        alpacadecimal.NewFromInt(1),
+				Type:          creditrealization.TypeAllocation,
+			},
+			{
+				ID:            duplicateID,
+				ServicePeriod: dayPeriod,
+				Amount:        alpacadecimal.NewFromInt(2),
+				Type:          creditrealization.TypeAllocation,
+			},
+		},
+	})
+	s.Require().Error(err)
+
+	// Then the run is not stored either.
+	runCount, err := s.dbClient.ChargeUsageBasedRevenueRecognitions.Query().
+		Where(dbchargeusagebasedrevenuerecognitions.Namespace(namespace)).
+		Count(ctx)
+	s.Require().NoError(err)
+	s.Equal(0, runCount)
 }
 
 func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoiceUsageAndDetailedLines() {
