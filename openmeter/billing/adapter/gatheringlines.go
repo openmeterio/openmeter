@@ -344,6 +344,15 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 }
 
 func (a *adapter) mapGatheringInvoiceLinesFromDB(dbLines []*db.BillingInvoiceLine) (billing.GatheringLines, error) {
+	// Ent loads lines and their usage based configs in separate queries, and under READ COMMITTED
+	// a concurrent invoicing can hard delete a gathering line between the two. The config FK
+	// cascades, so a missing config means the line is gone too: skip it as if we had read a bit later.
+	//
+	// TODO: move gathering lines to dedicated tables so the line and its config are a single row.
+	dbLines = lo.Filter(dbLines, func(dbLine *db.BillingInvoiceLine, _ int) bool {
+		return dbLine.Type != billing.InvoiceLineAdapterTypeUsageBased || dbLine.Edges.UsageBasedLine != nil
+	})
+
 	return slicesx.MapWithErr(dbLines, func(dbLine *db.BillingInvoiceLine) (billing.GatheringLine, error) {
 		return a.mapGatheringInvoiceLineFromDB(dbLine)
 	})

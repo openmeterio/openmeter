@@ -213,6 +213,7 @@ func (s *BillingAdapterTestSuite) TestInvoiceLineReadRejectsCrossNamespaceUsageC
 	// - the line is read through the billing adapter
 	// then:
 	// - the scoped expansion omits the foreign config and the required-edge check rejects the line
+	// - the gathering read drops the line instead, as a missing config there normally means a concurrent hard delete
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("line-config-read")
 	invoice := s.setupInvoice(ctx, namespace)
@@ -248,11 +249,12 @@ func (s *BillingAdapterTestSuite) TestInvoiceLineReadRejectsCrossNamespaceUsageC
 	})
 
 	require.ErrorContains(s.T(), err, "manual usage based line is missing")
-	_, err = s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
+	gatheringInvoice, err := s.BillingAdapter.GetGatheringInvoiceById(ctx, billing.GetGatheringInvoiceByIdInput{
 		Invoice: invoice.GetInvoiceID(),
 		Expand:  billing.GatheringInvoiceExpands{billing.GatheringInvoiceExpandLines},
 	})
-	require.ErrorContains(s.T(), err, "usage based line data is missing")
+	require.NoError(s.T(), err)
+	require.Empty(s.T(), gatheringInvoice.Lines.OrEmpty())
 }
 
 func (s *BillingAdapterTestSuite) TestInvoiceReadsFilterCrossNamespaceLineCollections() {
