@@ -404,6 +404,12 @@ the lifecycle operation.
 
 ## Consistency invariants
 
+Customer lock rows are created lazily in the same transaction that acquires
+their update lock. Concurrent first use waits for the competing insert to commit
+or roll back; nested invoice operations reuse the caller's connection. A failed
+billing transaction also rolls back any lock row it created. Lock acquisition
+uses separate insert and select statements under READ COMMITTED isolation.
+
 - invoice manipulation is serialized per customer and runs under the billing
   transaction and customer update lock
 - product-catalog discounts describe commercial configuration without billing

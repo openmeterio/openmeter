@@ -46,8 +46,7 @@ type CustomerBillingProfileAdapter interface {
 }
 
 type CustomerSynchronizationAdapter interface {
-	// UpsertCustomerLock creates the customer synchronization row outside the transactional context.
-	UpsertCustomerLock(ctx context.Context, input UpsertCustomerLockAdapterInput) error
+	// LockCustomerForUpdate creates and locks the customer synchronization row in the caller's transaction.
 	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 }
 

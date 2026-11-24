@@ -156,13 +156,6 @@ func transactionForInvoiceManipulation[T any](ctx context.Context, svc *Service,
 		return empty, fmt.Errorf("validating customer: %w", err)
 	}
 
-	// NOTE: This should not be in transaction, or we can get a conflict for parallel writes
-	err := svc.adapter.UpsertCustomerLock(ctx, customerID)
-	if err != nil {
-		var empty T
-		return empty, fmt.Errorf("upserting customer lock: %w", err)
-	}
-
 	return transaction.Run(ctx, svc.adapter, func(ctx context.Context) (T, error) {
 		if err := svc.adapter.LockCustomerForUpdate(ctx, customerID); err != nil {
 			var empty T
