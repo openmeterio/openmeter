@@ -496,3 +496,26 @@ jobs:
     # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the advance invoices job.
     # @default -- The chart-wide `affinity` value.
     affinity: {}
+
+  # -- Advance charges job advances non-final charges. It is the backup for charge advancement that otherwise
+  # only happens while a charge is created. The job is created only when charges are enabled (`config.credits.enabled: true`).
+  billingAdvanceCharges:
+    # -- Schedule for the advance charges job.
+    # Default is every minute, the same interval the quickstart scheduler uses.
+    schedule: "* * * * *"
+
+    # -- Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the advance charges job.
+    # @default -- The chart-wide `resources` value.
+    resources: {}
+
+    # -- [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the advance charges job.
+    # @default -- The chart-wide `nodeSelector` value.
+    nodeSelector: {}
+
+    # -- [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the advance charges job.
+    # @default -- The chart-wide `tolerations` value.
+    tolerations: []
+
+    # -- [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the advance charges job.
+    # @default -- The chart-wide `affinity` value.
+    affinity: {}
