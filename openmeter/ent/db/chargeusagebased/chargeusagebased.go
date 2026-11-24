@@ -113,6 +113,10 @@ const (
 	EdgeCharge = "charge"
 	// EdgeIntentOverride holds the string denoting the intent_override edge name in mutations.
 	EdgeIntentOverride = "intent_override"
+	// EdgePeriodicRealizationState holds the string denoting the periodic_realization_state edge name in mutations.
+	EdgePeriodicRealizationState = "periodic_realization_state"
+	// EdgePeriodicRealizationErrors holds the string denoting the periodic_realization_errors edge name in mutations.
+	EdgePeriodicRealizationErrors = "periodic_realization_errors"
 	// EdgeSubscription holds the string denoting the subscription edge name in mutations.
 	EdgeSubscription = "subscription"
 	// EdgeSubscriptionPhase holds the string denoting the subscription_phase edge name in mutations.
@@ -171,6 +175,20 @@ const (
 	IntentOverrideInverseTable = "charge_usage_based_overrides"
 	// IntentOverrideColumn is the table column denoting the intent_override relation/edge.
 	IntentOverrideColumn = "charge_id"
+	// PeriodicRealizationStateTable is the table that holds the periodic_realization_state relation/edge.
+	PeriodicRealizationStateTable = "billing_periodic_realization_charge_states"
+	// PeriodicRealizationStateInverseTable is the table name for the BillingPeriodicRealizationChargeState entity.
+	// It exists in this package in order to avoid circular dependency with the "billingperiodicrealizationchargestate" package.
+	PeriodicRealizationStateInverseTable = "billing_periodic_realization_charge_states"
+	// PeriodicRealizationStateColumn is the table column denoting the periodic_realization_state relation/edge.
+	PeriodicRealizationStateColumn = "charge_id"
+	// PeriodicRealizationErrorsTable is the table that holds the periodic_realization_errors relation/edge.
+	PeriodicRealizationErrorsTable = "billing_periodic_realization_run_errors"
+	// PeriodicRealizationErrorsInverseTable is the table name for the BillingPeriodicRealizationRunError entity.
+	// It exists in this package in order to avoid circular dependency with the "billingperiodicrealizationrunerror" package.
+	PeriodicRealizationErrorsInverseTable = "billing_periodic_realization_run_errors"
+	// PeriodicRealizationErrorsColumn is the table column denoting the periodic_realization_errors relation/edge.
+	PeriodicRealizationErrorsColumn = "charge_id"
 	// SubscriptionTable is the table that holds the subscription relation/edge.
 	SubscriptionTable = "charge_usage_based"
 	// SubscriptionInverseTable is the table name for the Subscription entity.
@@ -618,6 +636,27 @@ func ByIntentOverrideField(field string, opts ...sql.OrderTermOption) OrderOptio
 	}
 }
 
+// ByPeriodicRealizationStateField orders the results by periodic_realization_state field.
+func ByPeriodicRealizationStateField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPeriodicRealizationStateStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByPeriodicRealizationErrorsCount orders the results by periodic_realization_errors count.
+func ByPeriodicRealizationErrorsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPeriodicRealizationErrorsStep(), opts...)
+	}
+}
+
+// ByPeriodicRealizationErrors orders the results by periodic_realization_errors terms.
+func ByPeriodicRealizationErrors(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPeriodicRealizationErrorsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
 // BySubscriptionField orders the results by subscription field.
 func BySubscriptionField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -706,6 +745,20 @@ func newIntentOverrideStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(IntentOverrideInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, IntentOverrideTable, IntentOverrideColumn),
+	)
+}
+func newPeriodicRealizationStateStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PeriodicRealizationStateInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, PeriodicRealizationStateTable, PeriodicRealizationStateColumn),
+	)
+}
+func newPeriodicRealizationErrorsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PeriodicRealizationErrorsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PeriodicRealizationErrorsTable, PeriodicRealizationErrorsColumn),
 	)
 }
 func newSubscriptionStep() *sqlgraph.Step {

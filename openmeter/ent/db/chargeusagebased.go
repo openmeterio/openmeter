@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
@@ -136,6 +137,10 @@ type ChargeUsageBasedEdges struct {
 	Charge *Charge `json:"charge,omitempty"`
 	// IntentOverride holds the value of the intent_override edge.
 	IntentOverride *ChargeUsageBasedOverride `json:"intent_override,omitempty"`
+	// PeriodicRealizationState holds the value of the periodic_realization_state edge.
+	PeriodicRealizationState *BillingPeriodicRealizationChargeState `json:"periodic_realization_state,omitempty"`
+	// PeriodicRealizationErrors holds the value of the periodic_realization_errors edge.
+	PeriodicRealizationErrors []*BillingPeriodicRealizationRunError `json:"periodic_realization_errors,omitempty"`
 	// Subscription holds the value of the subscription edge.
 	Subscription *Subscription `json:"subscription,omitempty"`
 	// SubscriptionPhase holds the value of the subscription_phase edge.
@@ -152,7 +157,7 @@ type ChargeUsageBasedEdges struct {
 	CustomCurrency *CustomCurrency `json:"custom_currency,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [13]bool
+	loadedTypes [15]bool
 }
 
 // RunsOrErr returns the Runs value or an error if the edge
@@ -217,12 +222,32 @@ func (e ChargeUsageBasedEdges) IntentOverrideOrErr() (*ChargeUsageBasedOverride,
 	return nil, &NotLoadedError{edge: "intent_override"}
 }
 
+// PeriodicRealizationStateOrErr returns the PeriodicRealizationState value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedEdges) PeriodicRealizationStateOrErr() (*BillingPeriodicRealizationChargeState, error) {
+	if e.PeriodicRealizationState != nil {
+		return e.PeriodicRealizationState, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: billingperiodicrealizationchargestate.Label}
+	}
+	return nil, &NotLoadedError{edge: "periodic_realization_state"}
+}
+
+// PeriodicRealizationErrorsOrErr returns the PeriodicRealizationErrors value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedEdges) PeriodicRealizationErrorsOrErr() ([]*BillingPeriodicRealizationRunError, error) {
+	if e.loadedTypes[7] {
+		return e.PeriodicRealizationErrors, nil
+	}
+	return nil, &NotLoadedError{edge: "periodic_realization_errors"}
+}
+
 // SubscriptionOrErr returns the Subscription value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 	if e.Subscription != nil {
 		return e.Subscription, nil
-	} else if e.loadedTypes[6] {
+	} else if e.loadedTypes[8] {
 		return nil, &NotFoundError{label: subscription.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription"}
@@ -233,7 +258,7 @@ func (e ChargeUsageBasedEdges) SubscriptionOrErr() (*Subscription, error) {
 func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, error) {
 	if e.SubscriptionPhase != nil {
 		return e.SubscriptionPhase, nil
-	} else if e.loadedTypes[7] {
+	} else if e.loadedTypes[9] {
 		return nil, &NotFoundError{label: subscriptionphase.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_phase"}
@@ -244,7 +269,7 @@ func (e ChargeUsageBasedEdges) SubscriptionPhaseOrErr() (*SubscriptionPhase, err
 func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
 	if e.SubscriptionItem != nil {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[8] {
+	} else if e.loadedTypes[10] {
 		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
@@ -255,7 +280,7 @@ func (e ChargeUsageBasedEdges) SubscriptionItemOrErr() (*SubscriptionItem, error
 func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 	if e.Customer != nil {
 		return e.Customer, nil
-	} else if e.loadedTypes[9] {
+	} else if e.loadedTypes[11] {
 		return nil, &NotFoundError{label: customer.Label}
 	}
 	return nil, &NotLoadedError{edge: "customer"}
@@ -266,7 +291,7 @@ func (e ChargeUsageBasedEdges) CustomerOrErr() (*Customer, error) {
 func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 	if e.Feature != nil {
 		return e.Feature, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[12] {
 		return nil, &NotFoundError{label: dbfeature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
@@ -277,7 +302,7 @@ func (e ChargeUsageBasedEdges) FeatureOrErr() (*Feature, error) {
 func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
 	if e.TaxCode != nil {
 		return e.TaxCode, nil
-	} else if e.loadedTypes[11] {
+	} else if e.loadedTypes[13] {
 		return nil, &NotFoundError{label: dbtaxcode.Label}
 	}
 	return nil, &NotLoadedError{edge: "tax_code"}
@@ -288,7 +313,7 @@ func (e ChargeUsageBasedEdges) TaxCodeOrErr() (*TaxCode, error) {
 func (e ChargeUsageBasedEdges) CustomCurrencyOrErr() (*CustomCurrency, error) {
 	if e.CustomCurrency != nil {
 		return e.CustomCurrency, nil
-	} else if e.loadedTypes[12] {
+	} else if e.loadedTypes[14] {
 		return nil, &NotFoundError{label: customcurrency.Label}
 	}
 	return nil, &NotLoadedError{edge: "custom_currency"}
@@ -635,6 +660,16 @@ func (_m *ChargeUsageBased) QueryCharge() *ChargeQuery {
 // QueryIntentOverride queries the "intent_override" edge of the ChargeUsageBased entity.
 func (_m *ChargeUsageBased) QueryIntentOverride() *ChargeUsageBasedOverrideQuery {
 	return NewChargeUsageBasedClient(_m.config).QueryIntentOverride(_m)
+}
+
+// QueryPeriodicRealizationState queries the "periodic_realization_state" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryPeriodicRealizationState() *BillingPeriodicRealizationChargeStateQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryPeriodicRealizationState(_m)
+}
+
+// QueryPeriodicRealizationErrors queries the "periodic_realization_errors" edge of the ChargeUsageBased entity.
+func (_m *ChargeUsageBased) QueryPeriodicRealizationErrors() *BillingPeriodicRealizationRunErrorQuery {
+	return NewChargeUsageBasedClient(_m.config).QueryPeriodicRealizationErrors(_m)
 }
 
 // QuerySubscription queries the "subscription" edge of the ChargeUsageBased entity.

@@ -15,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrunerror"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
@@ -514,6 +516,40 @@ func (_c *ChargeUsageBasedCreate) SetNillableIntentOverrideID(id *string) *Charg
 // SetIntentOverride sets the "intent_override" edge to the ChargeUsageBasedOverride entity.
 func (_c *ChargeUsageBasedCreate) SetIntentOverride(v *ChargeUsageBasedOverride) *ChargeUsageBasedCreate {
 	return _c.SetIntentOverrideID(v.ID)
+}
+
+// SetPeriodicRealizationStateID sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity by ID.
+func (_c *ChargeUsageBasedCreate) SetPeriodicRealizationStateID(id string) *ChargeUsageBasedCreate {
+	_c.mutation.SetPeriodicRealizationStateID(id)
+	return _c
+}
+
+// SetNillablePeriodicRealizationStateID sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity by ID if the given value is not nil.
+func (_c *ChargeUsageBasedCreate) SetNillablePeriodicRealizationStateID(id *string) *ChargeUsageBasedCreate {
+	if id != nil {
+		_c = _c.SetPeriodicRealizationStateID(*id)
+	}
+	return _c
+}
+
+// SetPeriodicRealizationState sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity.
+func (_c *ChargeUsageBasedCreate) SetPeriodicRealizationState(v *BillingPeriodicRealizationChargeState) *ChargeUsageBasedCreate {
+	return _c.SetPeriodicRealizationStateID(v.ID)
+}
+
+// AddPeriodicRealizationErrorIDs adds the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity by IDs.
+func (_c *ChargeUsageBasedCreate) AddPeriodicRealizationErrorIDs(ids ...string) *ChargeUsageBasedCreate {
+	_c.mutation.AddPeriodicRealizationErrorIDs(ids...)
+	return _c
+}
+
+// AddPeriodicRealizationErrors adds the "periodic_realization_errors" edges to the BillingPeriodicRealizationRunError entity.
+func (_c *ChargeUsageBasedCreate) AddPeriodicRealizationErrors(v ...*BillingPeriodicRealizationRunError) *ChargeUsageBasedCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPeriodicRealizationErrorIDs(ids...)
 }
 
 // SetSubscription sets the "subscription" edge to the Subscription entity.
@@ -1023,6 +1059,38 @@ func (_c *ChargeUsageBasedCreate) createSpec() (*ChargeUsageBased, *sqlgraph.Cre
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PeriodicRealizationStateIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationStateTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationStateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationchargestate.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PeriodicRealizationErrorsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationErrorsTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationErrorsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrunerror.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

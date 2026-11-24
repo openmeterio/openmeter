@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
+	"github.com/openmeterio/openmeter/openmeter/billing/periodicrealization"
 	"github.com/openmeterio/openmeter/openmeter/billing/worker/subscriptionsync"
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
@@ -49,6 +50,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicewriteschemalevel"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrunerror"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -165,6 +169,9 @@ const (
 	TypeBillingInvoiceUsageBasedLineConfig               = "BillingInvoiceUsageBasedLineConfig"
 	TypeBillingInvoiceValidationIssue                    = "BillingInvoiceValidationIssue"
 	TypeBillingInvoiceWriteSchemaLevel                   = "BillingInvoiceWriteSchemaLevel"
+	TypeBillingPeriodicRealizationChargeState            = "BillingPeriodicRealizationChargeState"
+	TypeBillingPeriodicRealizationRun                    = "BillingPeriodicRealizationRun"
+	TypeBillingPeriodicRealizationRunError               = "BillingPeriodicRealizationRunError"
 	TypeBillingProfile                                   = "BillingProfile"
 	TypeBillingSequenceNumbers                           = "BillingSequenceNumbers"
 	TypeBillingStandardInvoiceDetailedLine               = "BillingStandardInvoiceDetailedLine"
@@ -30420,6 +30427,3481 @@ func (m *BillingInvoiceWriteSchemaLevelMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *BillingInvoiceWriteSchemaLevelMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown BillingInvoiceWriteSchemaLevel edge %s", name)
+}
+
+// BillingPeriodicRealizationChargeStateMutation represents an operation that mutates the BillingPeriodicRealizationChargeState nodes in the graph.
+type BillingPeriodicRealizationChargeStateMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	customer_id               *string
+	status                    *periodicrealization.ChargeStatus
+	realized_through          *time.Time
+	clearedFields             map[string]struct{}
+	usage_based_charge        *string
+	clearedusage_based_charge bool
+	target_run                *string
+	clearedtarget_run         bool
+	done                      bool
+	oldValue                  func(context.Context) (*BillingPeriodicRealizationChargeState, error)
+	predicates                []predicate.BillingPeriodicRealizationChargeState
+}
+
+var _ ent.Mutation = (*BillingPeriodicRealizationChargeStateMutation)(nil)
+
+// billingperiodicrealizationchargestateOption allows management of the mutation configuration using functional options.
+type billingperiodicrealizationchargestateOption func(*BillingPeriodicRealizationChargeStateMutation)
+
+// newBillingPeriodicRealizationChargeStateMutation creates new mutation for the BillingPeriodicRealizationChargeState entity.
+func newBillingPeriodicRealizationChargeStateMutation(c config, op Op, opts ...billingperiodicrealizationchargestateOption) *BillingPeriodicRealizationChargeStateMutation {
+	m := &BillingPeriodicRealizationChargeStateMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingPeriodicRealizationChargeState,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingPeriodicRealizationChargeStateID sets the ID field of the mutation.
+func withBillingPeriodicRealizationChargeStateID(id string) billingperiodicrealizationchargestateOption {
+	return func(m *BillingPeriodicRealizationChargeStateMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingPeriodicRealizationChargeState
+		)
+		m.oldValue = func(ctx context.Context) (*BillingPeriodicRealizationChargeState, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingPeriodicRealizationChargeState.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingPeriodicRealizationChargeState sets the old BillingPeriodicRealizationChargeState of the mutation.
+func withBillingPeriodicRealizationChargeState(node *BillingPeriodicRealizationChargeState) billingperiodicrealizationchargestateOption {
+	return func(m *BillingPeriodicRealizationChargeStateMutation) {
+		m.oldValue = func(context.Context) (*BillingPeriodicRealizationChargeState, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingPeriodicRealizationChargeStateMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingPeriodicRealizationChargeStateMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingPeriodicRealizationChargeState entities.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingPeriodicRealizationChargeStateMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingPeriodicRealizationChargeState.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[billingperiodicrealizationchargestate.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationchargestate.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, billingperiodicrealizationchargestate.FieldDeletedAt)
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetChargeID(s string) {
+	m.usage_based_charge = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) ChargeID() (r string, exists bool) {
+	v := m.usage_based_charge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldChargeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetChargeID() {
+	m.usage_based_charge = nil
+}
+
+// SetCustomerID sets the "customer_id" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetCustomerID(s string) {
+	m.customer_id = &s
+}
+
+// CustomerID returns the value of the "customer_id" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) CustomerID() (r string, exists bool) {
+	v := m.customer_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomerID returns the old "customer_id" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldCustomerID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomerID: %w", err)
+	}
+	return oldValue.CustomerID, nil
+}
+
+// ResetCustomerID resets all changes to the "customer_id" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetCustomerID() {
+	m.customer_id = nil
+}
+
+// SetTargetRunID sets the "target_run_id" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetTargetRunID(s string) {
+	m.target_run = &s
+}
+
+// TargetRunID returns the value of the "target_run_id" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) TargetRunID() (r string, exists bool) {
+	v := m.target_run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTargetRunID returns the old "target_run_id" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldTargetRunID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTargetRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTargetRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTargetRunID: %w", err)
+	}
+	return oldValue.TargetRunID, nil
+}
+
+// ResetTargetRunID resets all changes to the "target_run_id" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetTargetRunID() {
+	m.target_run = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetStatus(ps periodicrealization.ChargeStatus) {
+	m.status = &ps
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) Status() (r periodicrealization.ChargeStatus, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldStatus(ctx context.Context) (v periodicrealization.ChargeStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetRealizedThrough sets the "realized_through" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetRealizedThrough(t time.Time) {
+	m.realized_through = &t
+}
+
+// RealizedThrough returns the value of the "realized_through" field in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) RealizedThrough() (r time.Time, exists bool) {
+	v := m.realized_through
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRealizedThrough returns the old "realized_through" field's value of the BillingPeriodicRealizationChargeState entity.
+// If the BillingPeriodicRealizationChargeState object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldRealizedThrough(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRealizedThrough is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRealizedThrough requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRealizedThrough: %w", err)
+	}
+	return oldValue.RealizedThrough, nil
+}
+
+// ClearRealizedThrough clears the value of the "realized_through" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearRealizedThrough() {
+	m.realized_through = nil
+	m.clearedFields[billingperiodicrealizationchargestate.FieldRealizedThrough] = struct{}{}
+}
+
+// RealizedThroughCleared returns if the "realized_through" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) RealizedThroughCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationchargestate.FieldRealizedThrough]
+	return ok
+}
+
+// ResetRealizedThrough resets all changes to the "realized_through" field.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetRealizedThrough() {
+	m.realized_through = nil
+	delete(m.clearedFields, billingperiodicrealizationchargestate.FieldRealizedThrough)
+}
+
+// SetUsageBasedChargeID sets the "usage_based_charge" edge to the ChargeUsageBased entity by id.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetUsageBasedChargeID(id string) {
+	m.usage_based_charge = &id
+}
+
+// ClearUsageBasedCharge clears the "usage_based_charge" edge to the ChargeUsageBased entity.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearUsageBasedCharge() {
+	m.clearedusage_based_charge = true
+	m.clearedFields[billingperiodicrealizationchargestate.FieldChargeID] = struct{}{}
+}
+
+// UsageBasedChargeCleared reports if the "usage_based_charge" edge to the ChargeUsageBased entity was cleared.
+func (m *BillingPeriodicRealizationChargeStateMutation) UsageBasedChargeCleared() bool {
+	return m.clearedusage_based_charge
+}
+
+// UsageBasedChargeID returns the "usage_based_charge" edge ID in the mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) UsageBasedChargeID() (id string, exists bool) {
+	if m.usage_based_charge != nil {
+		return *m.usage_based_charge, true
+	}
+	return
+}
+
+// UsageBasedChargeIDs returns the "usage_based_charge" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UsageBasedChargeID instead. It exists only for internal usage by the builders.
+func (m *BillingPeriodicRealizationChargeStateMutation) UsageBasedChargeIDs() (ids []string) {
+	if id := m.usage_based_charge; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUsageBasedCharge resets all changes to the "usage_based_charge" edge.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetUsageBasedCharge() {
+	m.usage_based_charge = nil
+	m.clearedusage_based_charge = false
+}
+
+// ClearTargetRun clears the "target_run" edge to the BillingPeriodicRealizationRun entity.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearTargetRun() {
+	m.clearedtarget_run = true
+	m.clearedFields[billingperiodicrealizationchargestate.FieldTargetRunID] = struct{}{}
+}
+
+// TargetRunCleared reports if the "target_run" edge to the BillingPeriodicRealizationRun entity was cleared.
+func (m *BillingPeriodicRealizationChargeStateMutation) TargetRunCleared() bool {
+	return m.clearedtarget_run
+}
+
+// TargetRunIDs returns the "target_run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TargetRunID instead. It exists only for internal usage by the builders.
+func (m *BillingPeriodicRealizationChargeStateMutation) TargetRunIDs() (ids []string) {
+	if id := m.target_run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTargetRun resets all changes to the "target_run" edge.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetTargetRun() {
+	m.target_run = nil
+	m.clearedtarget_run = false
+}
+
+// Where appends a list predicates to the BillingPeriodicRealizationChargeStateMutation builder.
+func (m *BillingPeriodicRealizationChargeStateMutation) Where(ps ...predicate.BillingPeriodicRealizationChargeState) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingPeriodicRealizationChargeStateMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingPeriodicRealizationChargeStateMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingPeriodicRealizationChargeState, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingPeriodicRealizationChargeStateMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingPeriodicRealizationChargeState).
+func (m *BillingPeriodicRealizationChargeStateMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingPeriodicRealizationChargeStateMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.namespace != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldDeletedAt)
+	}
+	if m.usage_based_charge != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldChargeID)
+	}
+	if m.customer_id != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldCustomerID)
+	}
+	if m.target_run != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldTargetRunID)
+	}
+	if m.status != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldStatus)
+	}
+	if m.realized_through != nil {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldRealizedThrough)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingPeriodicRealizationChargeStateMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billingperiodicrealizationchargestate.FieldNamespace:
+		return m.Namespace()
+	case billingperiodicrealizationchargestate.FieldCreatedAt:
+		return m.CreatedAt()
+	case billingperiodicrealizationchargestate.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billingperiodicrealizationchargestate.FieldDeletedAt:
+		return m.DeletedAt()
+	case billingperiodicrealizationchargestate.FieldChargeID:
+		return m.ChargeID()
+	case billingperiodicrealizationchargestate.FieldCustomerID:
+		return m.CustomerID()
+	case billingperiodicrealizationchargestate.FieldTargetRunID:
+		return m.TargetRunID()
+	case billingperiodicrealizationchargestate.FieldStatus:
+		return m.Status()
+	case billingperiodicrealizationchargestate.FieldRealizedThrough:
+		return m.RealizedThrough()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingPeriodicRealizationChargeStateMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billingperiodicrealizationchargestate.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingperiodicrealizationchargestate.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billingperiodicrealizationchargestate.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billingperiodicrealizationchargestate.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billingperiodicrealizationchargestate.FieldChargeID:
+		return m.OldChargeID(ctx)
+	case billingperiodicrealizationchargestate.FieldCustomerID:
+		return m.OldCustomerID(ctx)
+	case billingperiodicrealizationchargestate.FieldTargetRunID:
+		return m.OldTargetRunID(ctx)
+	case billingperiodicrealizationchargestate.FieldStatus:
+		return m.OldStatus(ctx)
+	case billingperiodicrealizationchargestate.FieldRealizedThrough:
+		return m.OldRealizedThrough(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingPeriodicRealizationChargeState field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingPeriodicRealizationChargeStateMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billingperiodicrealizationchargestate.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldCustomerID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomerID(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldTargetRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTargetRunID(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldStatus:
+		v, ok := value.(periodicrealization.ChargeStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case billingperiodicrealizationchargestate.FieldRealizedThrough:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRealizedThrough(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationChargeState field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingPeriodicRealizationChargeStateMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingPeriodicRealizationChargeStateMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationChargeState numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(billingperiodicrealizationchargestate.FieldDeletedAt) {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldDeletedAt)
+	}
+	if m.FieldCleared(billingperiodicrealizationchargestate.FieldRealizedThrough) {
+		fields = append(fields, billingperiodicrealizationchargestate.FieldRealizedThrough)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearField(name string) error {
+	switch name {
+	case billingperiodicrealizationchargestate.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case billingperiodicrealizationchargestate.FieldRealizedThrough:
+		m.ClearRealizedThrough()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationChargeState nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetField(name string) error {
+	switch name {
+	case billingperiodicrealizationchargestate.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billingperiodicrealizationchargestate.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case billingperiodicrealizationchargestate.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case billingperiodicrealizationchargestate.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case billingperiodicrealizationchargestate.FieldChargeID:
+		m.ResetChargeID()
+		return nil
+	case billingperiodicrealizationchargestate.FieldCustomerID:
+		m.ResetCustomerID()
+		return nil
+	case billingperiodicrealizationchargestate.FieldTargetRunID:
+		m.ResetTargetRunID()
+		return nil
+	case billingperiodicrealizationchargestate.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case billingperiodicrealizationchargestate.FieldRealizedThrough:
+		m.ResetRealizedThrough()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationChargeState field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.usage_based_charge != nil {
+		edges = append(edges, billingperiodicrealizationchargestate.EdgeUsageBasedCharge)
+	}
+	if m.target_run != nil {
+		edges = append(edges, billingperiodicrealizationchargestate.EdgeTargetRun)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case billingperiodicrealizationchargestate.EdgeUsageBasedCharge:
+		if id := m.usage_based_charge; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingperiodicrealizationchargestate.EdgeTargetRun:
+		if id := m.target_run; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedusage_based_charge {
+		edges = append(edges, billingperiodicrealizationchargestate.EdgeUsageBasedCharge)
+	}
+	if m.clearedtarget_run {
+		edges = append(edges, billingperiodicrealizationchargestate.EdgeTargetRun)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingPeriodicRealizationChargeStateMutation) EdgeCleared(name string) bool {
+	switch name {
+	case billingperiodicrealizationchargestate.EdgeUsageBasedCharge:
+		return m.clearedusage_based_charge
+	case billingperiodicrealizationchargestate.EdgeTargetRun:
+		return m.clearedtarget_run
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingPeriodicRealizationChargeStateMutation) ClearEdge(name string) error {
+	switch name {
+	case billingperiodicrealizationchargestate.EdgeUsageBasedCharge:
+		m.ClearUsageBasedCharge()
+		return nil
+	case billingperiodicrealizationchargestate.EdgeTargetRun:
+		m.ClearTargetRun()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationChargeState unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingPeriodicRealizationChargeStateMutation) ResetEdge(name string) error {
+	switch name {
+	case billingperiodicrealizationchargestate.EdgeUsageBasedCharge:
+		m.ResetUsageBasedCharge()
+		return nil
+	case billingperiodicrealizationchargestate.EdgeTargetRun:
+		m.ResetTargetRun()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationChargeState edge %s", name)
+}
+
+// BillingPeriodicRealizationRunMutation represents an operation that mutates the BillingPeriodicRealizationRun nodes in the graph.
+type BillingPeriodicRealizationRunMutation struct {
+	config
+	op                      Op
+	typ                     string
+	id                      *string
+	namespace               *string
+	created_at              *time.Time
+	updated_at              *time.Time
+	deleted_at              *time.Time
+	period_to               *time.Time
+	realize_after           *time.Time
+	status                  *periodicrealization.RunStatus
+	started_at              *time.Time
+	finished_at             *time.Time
+	charges_total           *int
+	addcharges_total        *int
+	charges_done            *int
+	addcharges_done         *int
+	charges_failed          *int
+	addcharges_failed       *int
+	charges_skipped         *int
+	addcharges_skipped      *int
+	clearedFields           map[string]struct{}
+	next_run                *string
+	clearednext_run         bool
+	previous_run            *string
+	clearedprevious_run     bool
+	errors                  map[string]struct{}
+	removederrors           map[string]struct{}
+	clearederrors           bool
+	charge_states           map[string]struct{}
+	removedcharge_states    map[string]struct{}
+	clearedcharge_states    bool
+	usage_based_runs        map[string]struct{}
+	removedusage_based_runs map[string]struct{}
+	clearedusage_based_runs bool
+	done                    bool
+	oldValue                func(context.Context) (*BillingPeriodicRealizationRun, error)
+	predicates              []predicate.BillingPeriodicRealizationRun
+}
+
+var _ ent.Mutation = (*BillingPeriodicRealizationRunMutation)(nil)
+
+// billingperiodicrealizationrunOption allows management of the mutation configuration using functional options.
+type billingperiodicrealizationrunOption func(*BillingPeriodicRealizationRunMutation)
+
+// newBillingPeriodicRealizationRunMutation creates new mutation for the BillingPeriodicRealizationRun entity.
+func newBillingPeriodicRealizationRunMutation(c config, op Op, opts ...billingperiodicrealizationrunOption) *BillingPeriodicRealizationRunMutation {
+	m := &BillingPeriodicRealizationRunMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingPeriodicRealizationRun,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingPeriodicRealizationRunID sets the ID field of the mutation.
+func withBillingPeriodicRealizationRunID(id string) billingperiodicrealizationrunOption {
+	return func(m *BillingPeriodicRealizationRunMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingPeriodicRealizationRun
+		)
+		m.oldValue = func(ctx context.Context) (*BillingPeriodicRealizationRun, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingPeriodicRealizationRun.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingPeriodicRealizationRun sets the old BillingPeriodicRealizationRun of the mutation.
+func withBillingPeriodicRealizationRun(node *BillingPeriodicRealizationRun) billingperiodicrealizationrunOption {
+	return func(m *BillingPeriodicRealizationRunMutation) {
+		m.oldValue = func(context.Context) (*BillingPeriodicRealizationRun, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingPeriodicRealizationRunMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingPeriodicRealizationRunMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingPeriodicRealizationRun entities.
+func (m *BillingPeriodicRealizationRunMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingPeriodicRealizationRunMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingPeriodicRealizationRunMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingPeriodicRealizationRun.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingPeriodicRealizationRunMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BillingPeriodicRealizationRunMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BillingPeriodicRealizationRunMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BillingPeriodicRealizationRunMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldDeletedAt)
+}
+
+// SetPreviousRunID sets the "previous_run_id" field.
+func (m *BillingPeriodicRealizationRunMutation) SetPreviousRunID(s string) {
+	m.next_run = &s
+}
+
+// PreviousRunID returns the value of the "previous_run_id" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) PreviousRunID() (r string, exists bool) {
+	v := m.next_run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreviousRunID returns the old "previous_run_id" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldPreviousRunID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreviousRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreviousRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreviousRunID: %w", err)
+	}
+	return oldValue.PreviousRunID, nil
+}
+
+// ClearPreviousRunID clears the value of the "previous_run_id" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearPreviousRunID() {
+	m.next_run = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldPreviousRunID] = struct{}{}
+}
+
+// PreviousRunIDCleared returns if the "previous_run_id" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) PreviousRunIDCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldPreviousRunID]
+	return ok
+}
+
+// ResetPreviousRunID resets all changes to the "previous_run_id" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetPreviousRunID() {
+	m.next_run = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldPreviousRunID)
+}
+
+// SetPeriodTo sets the "period_to" field.
+func (m *BillingPeriodicRealizationRunMutation) SetPeriodTo(t time.Time) {
+	m.period_to = &t
+}
+
+// PeriodTo returns the value of the "period_to" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) PeriodTo() (r time.Time, exists bool) {
+	v := m.period_to
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPeriodTo returns the old "period_to" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldPeriodTo(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPeriodTo is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPeriodTo requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPeriodTo: %w", err)
+	}
+	return oldValue.PeriodTo, nil
+}
+
+// ResetPeriodTo resets all changes to the "period_to" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetPeriodTo() {
+	m.period_to = nil
+}
+
+// SetRealizeAfter sets the "realize_after" field.
+func (m *BillingPeriodicRealizationRunMutation) SetRealizeAfter(t time.Time) {
+	m.realize_after = &t
+}
+
+// RealizeAfter returns the value of the "realize_after" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) RealizeAfter() (r time.Time, exists bool) {
+	v := m.realize_after
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRealizeAfter returns the old "realize_after" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldRealizeAfter(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRealizeAfter is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRealizeAfter requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRealizeAfter: %w", err)
+	}
+	return oldValue.RealizeAfter, nil
+}
+
+// ResetRealizeAfter resets all changes to the "realize_after" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetRealizeAfter() {
+	m.realize_after = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *BillingPeriodicRealizationRunMutation) SetStatus(ps periodicrealization.RunStatus) {
+	m.status = &ps
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) Status() (r periodicrealization.RunStatus, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldStatus(ctx context.Context) (v periodicrealization.RunStatus, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *BillingPeriodicRealizationRunMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ClearStartedAt clears the value of the "started_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearStartedAt() {
+	m.started_at = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldStartedAt] = struct{}{}
+}
+
+// StartedAtCleared returns if the "started_at" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) StartedAtCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldStartedAt]
+	return ok
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetStartedAt() {
+	m.started_at = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldStartedAt)
+}
+
+// SetFinishedAt sets the "finished_at" field.
+func (m *BillingPeriodicRealizationRunMutation) SetFinishedAt(t time.Time) {
+	m.finished_at = &t
+}
+
+// FinishedAt returns the value of the "finished_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) FinishedAt() (r time.Time, exists bool) {
+	v := m.finished_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFinishedAt returns the old "finished_at" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldFinishedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFinishedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFinishedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFinishedAt: %w", err)
+	}
+	return oldValue.FinishedAt, nil
+}
+
+// ClearFinishedAt clears the value of the "finished_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearFinishedAt() {
+	m.finished_at = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldFinishedAt] = struct{}{}
+}
+
+// FinishedAtCleared returns if the "finished_at" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) FinishedAtCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldFinishedAt]
+	return ok
+}
+
+// ResetFinishedAt resets all changes to the "finished_at" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetFinishedAt() {
+	m.finished_at = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldFinishedAt)
+}
+
+// SetChargesTotal sets the "charges_total" field.
+func (m *BillingPeriodicRealizationRunMutation) SetChargesTotal(i int) {
+	m.charges_total = &i
+	m.addcharges_total = nil
+}
+
+// ChargesTotal returns the value of the "charges_total" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesTotal() (r int, exists bool) {
+	v := m.charges_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargesTotal returns the old "charges_total" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldChargesTotal(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargesTotal is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargesTotal requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargesTotal: %w", err)
+	}
+	return oldValue.ChargesTotal, nil
+}
+
+// AddChargesTotal adds i to the "charges_total" field.
+func (m *BillingPeriodicRealizationRunMutation) AddChargesTotal(i int) {
+	if m.addcharges_total != nil {
+		*m.addcharges_total += i
+	} else {
+		m.addcharges_total = &i
+	}
+}
+
+// AddedChargesTotal returns the value that was added to the "charges_total" field in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) AddedChargesTotal() (r int, exists bool) {
+	v := m.addcharges_total
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearChargesTotal clears the value of the "charges_total" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearChargesTotal() {
+	m.charges_total = nil
+	m.addcharges_total = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldChargesTotal] = struct{}{}
+}
+
+// ChargesTotalCleared returns if the "charges_total" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesTotalCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldChargesTotal]
+	return ok
+}
+
+// ResetChargesTotal resets all changes to the "charges_total" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetChargesTotal() {
+	m.charges_total = nil
+	m.addcharges_total = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldChargesTotal)
+}
+
+// SetChargesDone sets the "charges_done" field.
+func (m *BillingPeriodicRealizationRunMutation) SetChargesDone(i int) {
+	m.charges_done = &i
+	m.addcharges_done = nil
+}
+
+// ChargesDone returns the value of the "charges_done" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesDone() (r int, exists bool) {
+	v := m.charges_done
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargesDone returns the old "charges_done" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldChargesDone(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargesDone is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargesDone requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargesDone: %w", err)
+	}
+	return oldValue.ChargesDone, nil
+}
+
+// AddChargesDone adds i to the "charges_done" field.
+func (m *BillingPeriodicRealizationRunMutation) AddChargesDone(i int) {
+	if m.addcharges_done != nil {
+		*m.addcharges_done += i
+	} else {
+		m.addcharges_done = &i
+	}
+}
+
+// AddedChargesDone returns the value that was added to the "charges_done" field in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) AddedChargesDone() (r int, exists bool) {
+	v := m.addcharges_done
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearChargesDone clears the value of the "charges_done" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearChargesDone() {
+	m.charges_done = nil
+	m.addcharges_done = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldChargesDone] = struct{}{}
+}
+
+// ChargesDoneCleared returns if the "charges_done" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesDoneCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldChargesDone]
+	return ok
+}
+
+// ResetChargesDone resets all changes to the "charges_done" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetChargesDone() {
+	m.charges_done = nil
+	m.addcharges_done = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldChargesDone)
+}
+
+// SetChargesFailed sets the "charges_failed" field.
+func (m *BillingPeriodicRealizationRunMutation) SetChargesFailed(i int) {
+	m.charges_failed = &i
+	m.addcharges_failed = nil
+}
+
+// ChargesFailed returns the value of the "charges_failed" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesFailed() (r int, exists bool) {
+	v := m.charges_failed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargesFailed returns the old "charges_failed" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldChargesFailed(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargesFailed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargesFailed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargesFailed: %w", err)
+	}
+	return oldValue.ChargesFailed, nil
+}
+
+// AddChargesFailed adds i to the "charges_failed" field.
+func (m *BillingPeriodicRealizationRunMutation) AddChargesFailed(i int) {
+	if m.addcharges_failed != nil {
+		*m.addcharges_failed += i
+	} else {
+		m.addcharges_failed = &i
+	}
+}
+
+// AddedChargesFailed returns the value that was added to the "charges_failed" field in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) AddedChargesFailed() (r int, exists bool) {
+	v := m.addcharges_failed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearChargesFailed clears the value of the "charges_failed" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearChargesFailed() {
+	m.charges_failed = nil
+	m.addcharges_failed = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldChargesFailed] = struct{}{}
+}
+
+// ChargesFailedCleared returns if the "charges_failed" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesFailedCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldChargesFailed]
+	return ok
+}
+
+// ResetChargesFailed resets all changes to the "charges_failed" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetChargesFailed() {
+	m.charges_failed = nil
+	m.addcharges_failed = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldChargesFailed)
+}
+
+// SetChargesSkipped sets the "charges_skipped" field.
+func (m *BillingPeriodicRealizationRunMutation) SetChargesSkipped(i int) {
+	m.charges_skipped = &i
+	m.addcharges_skipped = nil
+}
+
+// ChargesSkipped returns the value of the "charges_skipped" field in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesSkipped() (r int, exists bool) {
+	v := m.charges_skipped
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargesSkipped returns the old "charges_skipped" field's value of the BillingPeriodicRealizationRun entity.
+// If the BillingPeriodicRealizationRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunMutation) OldChargesSkipped(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargesSkipped is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargesSkipped requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargesSkipped: %w", err)
+	}
+	return oldValue.ChargesSkipped, nil
+}
+
+// AddChargesSkipped adds i to the "charges_skipped" field.
+func (m *BillingPeriodicRealizationRunMutation) AddChargesSkipped(i int) {
+	if m.addcharges_skipped != nil {
+		*m.addcharges_skipped += i
+	} else {
+		m.addcharges_skipped = &i
+	}
+}
+
+// AddedChargesSkipped returns the value that was added to the "charges_skipped" field in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) AddedChargesSkipped() (r int, exists bool) {
+	v := m.addcharges_skipped
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearChargesSkipped clears the value of the "charges_skipped" field.
+func (m *BillingPeriodicRealizationRunMutation) ClearChargesSkipped() {
+	m.charges_skipped = nil
+	m.addcharges_skipped = nil
+	m.clearedFields[billingperiodicrealizationrun.FieldChargesSkipped] = struct{}{}
+}
+
+// ChargesSkippedCleared returns if the "charges_skipped" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargesSkippedCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrun.FieldChargesSkipped]
+	return ok
+}
+
+// ResetChargesSkipped resets all changes to the "charges_skipped" field.
+func (m *BillingPeriodicRealizationRunMutation) ResetChargesSkipped() {
+	m.charges_skipped = nil
+	m.addcharges_skipped = nil
+	delete(m.clearedFields, billingperiodicrealizationrun.FieldChargesSkipped)
+}
+
+// SetNextRunID sets the "next_run" edge to the BillingPeriodicRealizationRun entity by id.
+func (m *BillingPeriodicRealizationRunMutation) SetNextRunID(id string) {
+	m.next_run = &id
+}
+
+// ClearNextRun clears the "next_run" edge to the BillingPeriodicRealizationRun entity.
+func (m *BillingPeriodicRealizationRunMutation) ClearNextRun() {
+	m.clearednext_run = true
+	m.clearedFields[billingperiodicrealizationrun.FieldPreviousRunID] = struct{}{}
+}
+
+// NextRunCleared reports if the "next_run" edge to the BillingPeriodicRealizationRun entity was cleared.
+func (m *BillingPeriodicRealizationRunMutation) NextRunCleared() bool {
+	return m.PreviousRunIDCleared() || m.clearednext_run
+}
+
+// NextRunID returns the "next_run" edge ID in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) NextRunID() (id string, exists bool) {
+	if m.next_run != nil {
+		return *m.next_run, true
+	}
+	return
+}
+
+// NextRunIDs returns the "next_run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// NextRunID instead. It exists only for internal usage by the builders.
+func (m *BillingPeriodicRealizationRunMutation) NextRunIDs() (ids []string) {
+	if id := m.next_run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetNextRun resets all changes to the "next_run" edge.
+func (m *BillingPeriodicRealizationRunMutation) ResetNextRun() {
+	m.next_run = nil
+	m.clearednext_run = false
+}
+
+// ClearPreviousRun clears the "previous_run" edge to the BillingPeriodicRealizationRun entity.
+func (m *BillingPeriodicRealizationRunMutation) ClearPreviousRun() {
+	m.clearedprevious_run = true
+	m.clearedFields[billingperiodicrealizationrun.FieldPreviousRunID] = struct{}{}
+}
+
+// PreviousRunCleared reports if the "previous_run" edge to the BillingPeriodicRealizationRun entity was cleared.
+func (m *BillingPeriodicRealizationRunMutation) PreviousRunCleared() bool {
+	return m.PreviousRunIDCleared() || m.clearedprevious_run
+}
+
+// PreviousRunIDs returns the "previous_run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PreviousRunID instead. It exists only for internal usage by the builders.
+func (m *BillingPeriodicRealizationRunMutation) PreviousRunIDs() (ids []string) {
+	if id := m.previous_run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPreviousRun resets all changes to the "previous_run" edge.
+func (m *BillingPeriodicRealizationRunMutation) ResetPreviousRun() {
+	m.previous_run = nil
+	m.clearedprevious_run = false
+}
+
+// AddErrorIDs adds the "errors" edge to the BillingPeriodicRealizationRunError entity by ids.
+func (m *BillingPeriodicRealizationRunMutation) AddErrorIDs(ids ...string) {
+	if m.errors == nil {
+		m.errors = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.errors[ids[i]] = struct{}{}
+	}
+}
+
+// ClearErrors clears the "errors" edge to the BillingPeriodicRealizationRunError entity.
+func (m *BillingPeriodicRealizationRunMutation) ClearErrors() {
+	m.clearederrors = true
+}
+
+// ErrorsCleared reports if the "errors" edge to the BillingPeriodicRealizationRunError entity was cleared.
+func (m *BillingPeriodicRealizationRunMutation) ErrorsCleared() bool {
+	return m.clearederrors
+}
+
+// RemoveErrorIDs removes the "errors" edge to the BillingPeriodicRealizationRunError entity by IDs.
+func (m *BillingPeriodicRealizationRunMutation) RemoveErrorIDs(ids ...string) {
+	if m.removederrors == nil {
+		m.removederrors = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.errors, ids[i])
+		m.removederrors[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedErrors returns the removed IDs of the "errors" edge to the BillingPeriodicRealizationRunError entity.
+func (m *BillingPeriodicRealizationRunMutation) RemovedErrorsIDs() (ids []string) {
+	for id := range m.removederrors {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ErrorsIDs returns the "errors" edge IDs in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) ErrorsIDs() (ids []string) {
+	for id := range m.errors {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetErrors resets all changes to the "errors" edge.
+func (m *BillingPeriodicRealizationRunMutation) ResetErrors() {
+	m.errors = nil
+	m.clearederrors = false
+	m.removederrors = nil
+}
+
+// AddChargeStateIDs adds the "charge_states" edge to the BillingPeriodicRealizationChargeState entity by ids.
+func (m *BillingPeriodicRealizationRunMutation) AddChargeStateIDs(ids ...string) {
+	if m.charge_states == nil {
+		m.charge_states = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.charge_states[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChargeStates clears the "charge_states" edge to the BillingPeriodicRealizationChargeState entity.
+func (m *BillingPeriodicRealizationRunMutation) ClearChargeStates() {
+	m.clearedcharge_states = true
+}
+
+// ChargeStatesCleared reports if the "charge_states" edge to the BillingPeriodicRealizationChargeState entity was cleared.
+func (m *BillingPeriodicRealizationRunMutation) ChargeStatesCleared() bool {
+	return m.clearedcharge_states
+}
+
+// RemoveChargeStateIDs removes the "charge_states" edge to the BillingPeriodicRealizationChargeState entity by IDs.
+func (m *BillingPeriodicRealizationRunMutation) RemoveChargeStateIDs(ids ...string) {
+	if m.removedcharge_states == nil {
+		m.removedcharge_states = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.charge_states, ids[i])
+		m.removedcharge_states[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChargeStates returns the removed IDs of the "charge_states" edge to the BillingPeriodicRealizationChargeState entity.
+func (m *BillingPeriodicRealizationRunMutation) RemovedChargeStatesIDs() (ids []string) {
+	for id := range m.removedcharge_states {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChargeStatesIDs returns the "charge_states" edge IDs in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) ChargeStatesIDs() (ids []string) {
+	for id := range m.charge_states {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChargeStates resets all changes to the "charge_states" edge.
+func (m *BillingPeriodicRealizationRunMutation) ResetChargeStates() {
+	m.charge_states = nil
+	m.clearedcharge_states = false
+	m.removedcharge_states = nil
+}
+
+// AddUsageBasedRunIDs adds the "usage_based_runs" edge to the ChargeUsageBasedRuns entity by ids.
+func (m *BillingPeriodicRealizationRunMutation) AddUsageBasedRunIDs(ids ...string) {
+	if m.usage_based_runs == nil {
+		m.usage_based_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.usage_based_runs[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUsageBasedRuns clears the "usage_based_runs" edge to the ChargeUsageBasedRuns entity.
+func (m *BillingPeriodicRealizationRunMutation) ClearUsageBasedRuns() {
+	m.clearedusage_based_runs = true
+}
+
+// UsageBasedRunsCleared reports if the "usage_based_runs" edge to the ChargeUsageBasedRuns entity was cleared.
+func (m *BillingPeriodicRealizationRunMutation) UsageBasedRunsCleared() bool {
+	return m.clearedusage_based_runs
+}
+
+// RemoveUsageBasedRunIDs removes the "usage_based_runs" edge to the ChargeUsageBasedRuns entity by IDs.
+func (m *BillingPeriodicRealizationRunMutation) RemoveUsageBasedRunIDs(ids ...string) {
+	if m.removedusage_based_runs == nil {
+		m.removedusage_based_runs = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.usage_based_runs, ids[i])
+		m.removedusage_based_runs[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUsageBasedRuns returns the removed IDs of the "usage_based_runs" edge to the ChargeUsageBasedRuns entity.
+func (m *BillingPeriodicRealizationRunMutation) RemovedUsageBasedRunsIDs() (ids []string) {
+	for id := range m.removedusage_based_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UsageBasedRunsIDs returns the "usage_based_runs" edge IDs in the mutation.
+func (m *BillingPeriodicRealizationRunMutation) UsageBasedRunsIDs() (ids []string) {
+	for id := range m.usage_based_runs {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUsageBasedRuns resets all changes to the "usage_based_runs" edge.
+func (m *BillingPeriodicRealizationRunMutation) ResetUsageBasedRuns() {
+	m.usage_based_runs = nil
+	m.clearedusage_based_runs = false
+	m.removedusage_based_runs = nil
+}
+
+// Where appends a list predicates to the BillingPeriodicRealizationRunMutation builder.
+func (m *BillingPeriodicRealizationRunMutation) Where(ps ...predicate.BillingPeriodicRealizationRun) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingPeriodicRealizationRunMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingPeriodicRealizationRunMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingPeriodicRealizationRun, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingPeriodicRealizationRunMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingPeriodicRealizationRunMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingPeriodicRealizationRun).
+func (m *BillingPeriodicRealizationRunMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingPeriodicRealizationRunMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.namespace != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldDeletedAt)
+	}
+	if m.next_run != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldPreviousRunID)
+	}
+	if m.period_to != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldPeriodTo)
+	}
+	if m.realize_after != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldRealizeAfter)
+	}
+	if m.status != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldStatus)
+	}
+	if m.started_at != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldStartedAt)
+	}
+	if m.finished_at != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldFinishedAt)
+	}
+	if m.charges_total != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesTotal)
+	}
+	if m.charges_done != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesDone)
+	}
+	if m.charges_failed != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesFailed)
+	}
+	if m.charges_skipped != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesSkipped)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingPeriodicRealizationRunMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billingperiodicrealizationrun.FieldNamespace:
+		return m.Namespace()
+	case billingperiodicrealizationrun.FieldCreatedAt:
+		return m.CreatedAt()
+	case billingperiodicrealizationrun.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billingperiodicrealizationrun.FieldDeletedAt:
+		return m.DeletedAt()
+	case billingperiodicrealizationrun.FieldPreviousRunID:
+		return m.PreviousRunID()
+	case billingperiodicrealizationrun.FieldPeriodTo:
+		return m.PeriodTo()
+	case billingperiodicrealizationrun.FieldRealizeAfter:
+		return m.RealizeAfter()
+	case billingperiodicrealizationrun.FieldStatus:
+		return m.Status()
+	case billingperiodicrealizationrun.FieldStartedAt:
+		return m.StartedAt()
+	case billingperiodicrealizationrun.FieldFinishedAt:
+		return m.FinishedAt()
+	case billingperiodicrealizationrun.FieldChargesTotal:
+		return m.ChargesTotal()
+	case billingperiodicrealizationrun.FieldChargesDone:
+		return m.ChargesDone()
+	case billingperiodicrealizationrun.FieldChargesFailed:
+		return m.ChargesFailed()
+	case billingperiodicrealizationrun.FieldChargesSkipped:
+		return m.ChargesSkipped()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingPeriodicRealizationRunMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billingperiodicrealizationrun.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingperiodicrealizationrun.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billingperiodicrealizationrun.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billingperiodicrealizationrun.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billingperiodicrealizationrun.FieldPreviousRunID:
+		return m.OldPreviousRunID(ctx)
+	case billingperiodicrealizationrun.FieldPeriodTo:
+		return m.OldPeriodTo(ctx)
+	case billingperiodicrealizationrun.FieldRealizeAfter:
+		return m.OldRealizeAfter(ctx)
+	case billingperiodicrealizationrun.FieldStatus:
+		return m.OldStatus(ctx)
+	case billingperiodicrealizationrun.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case billingperiodicrealizationrun.FieldFinishedAt:
+		return m.OldFinishedAt(ctx)
+	case billingperiodicrealizationrun.FieldChargesTotal:
+		return m.OldChargesTotal(ctx)
+	case billingperiodicrealizationrun.FieldChargesDone:
+		return m.OldChargesDone(ctx)
+	case billingperiodicrealizationrun.FieldChargesFailed:
+		return m.OldChargesFailed(ctx)
+	case billingperiodicrealizationrun.FieldChargesSkipped:
+		return m.OldChargesSkipped(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingPeriodicRealizationRun field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingPeriodicRealizationRunMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billingperiodicrealizationrun.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billingperiodicrealizationrun.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case billingperiodicrealizationrun.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case billingperiodicrealizationrun.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case billingperiodicrealizationrun.FieldPreviousRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreviousRunID(v)
+		return nil
+	case billingperiodicrealizationrun.FieldPeriodTo:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPeriodTo(v)
+		return nil
+	case billingperiodicrealizationrun.FieldRealizeAfter:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRealizeAfter(v)
+		return nil
+	case billingperiodicrealizationrun.FieldStatus:
+		v, ok := value.(periodicrealization.RunStatus)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case billingperiodicrealizationrun.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case billingperiodicrealizationrun.FieldFinishedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFinishedAt(v)
+		return nil
+	case billingperiodicrealizationrun.FieldChargesTotal:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargesTotal(v)
+		return nil
+	case billingperiodicrealizationrun.FieldChargesDone:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargesDone(v)
+		return nil
+	case billingperiodicrealizationrun.FieldChargesFailed:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargesFailed(v)
+		return nil
+	case billingperiodicrealizationrun.FieldChargesSkipped:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargesSkipped(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRun field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingPeriodicRealizationRunMutation) AddedFields() []string {
+	var fields []string
+	if m.addcharges_total != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesTotal)
+	}
+	if m.addcharges_done != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesDone)
+	}
+	if m.addcharges_failed != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesFailed)
+	}
+	if m.addcharges_skipped != nil {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesSkipped)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingPeriodicRealizationRunMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case billingperiodicrealizationrun.FieldChargesTotal:
+		return m.AddedChargesTotal()
+	case billingperiodicrealizationrun.FieldChargesDone:
+		return m.AddedChargesDone()
+	case billingperiodicrealizationrun.FieldChargesFailed:
+		return m.AddedChargesFailed()
+	case billingperiodicrealizationrun.FieldChargesSkipped:
+		return m.AddedChargesSkipped()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingPeriodicRealizationRunMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case billingperiodicrealizationrun.FieldChargesTotal:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChargesTotal(v)
+		return nil
+	case billingperiodicrealizationrun.FieldChargesDone:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChargesDone(v)
+		return nil
+	case billingperiodicrealizationrun.FieldChargesFailed:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChargesFailed(v)
+		return nil
+	case billingperiodicrealizationrun.FieldChargesSkipped:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddChargesSkipped(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRun numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingPeriodicRealizationRunMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(billingperiodicrealizationrun.FieldDeletedAt) {
+		fields = append(fields, billingperiodicrealizationrun.FieldDeletedAt)
+	}
+	if m.FieldCleared(billingperiodicrealizationrun.FieldPreviousRunID) {
+		fields = append(fields, billingperiodicrealizationrun.FieldPreviousRunID)
+	}
+	if m.FieldCleared(billingperiodicrealizationrun.FieldStartedAt) {
+		fields = append(fields, billingperiodicrealizationrun.FieldStartedAt)
+	}
+	if m.FieldCleared(billingperiodicrealizationrun.FieldFinishedAt) {
+		fields = append(fields, billingperiodicrealizationrun.FieldFinishedAt)
+	}
+	if m.FieldCleared(billingperiodicrealizationrun.FieldChargesTotal) {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesTotal)
+	}
+	if m.FieldCleared(billingperiodicrealizationrun.FieldChargesDone) {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesDone)
+	}
+	if m.FieldCleared(billingperiodicrealizationrun.FieldChargesFailed) {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesFailed)
+	}
+	if m.FieldCleared(billingperiodicrealizationrun.FieldChargesSkipped) {
+		fields = append(fields, billingperiodicrealizationrun.FieldChargesSkipped)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingPeriodicRealizationRunMutation) ClearField(name string) error {
+	switch name {
+	case billingperiodicrealizationrun.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldPreviousRunID:
+		m.ClearPreviousRunID()
+		return nil
+	case billingperiodicrealizationrun.FieldStartedAt:
+		m.ClearStartedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldFinishedAt:
+		m.ClearFinishedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesTotal:
+		m.ClearChargesTotal()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesDone:
+		m.ClearChargesDone()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesFailed:
+		m.ClearChargesFailed()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesSkipped:
+		m.ClearChargesSkipped()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRun nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingPeriodicRealizationRunMutation) ResetField(name string) error {
+	switch name {
+	case billingperiodicrealizationrun.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billingperiodicrealizationrun.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldPreviousRunID:
+		m.ResetPreviousRunID()
+		return nil
+	case billingperiodicrealizationrun.FieldPeriodTo:
+		m.ResetPeriodTo()
+		return nil
+	case billingperiodicrealizationrun.FieldRealizeAfter:
+		m.ResetRealizeAfter()
+		return nil
+	case billingperiodicrealizationrun.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case billingperiodicrealizationrun.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldFinishedAt:
+		m.ResetFinishedAt()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesTotal:
+		m.ResetChargesTotal()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesDone:
+		m.ResetChargesDone()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesFailed:
+		m.ResetChargesFailed()
+		return nil
+	case billingperiodicrealizationrun.FieldChargesSkipped:
+		m.ResetChargesSkipped()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRun field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) AddedEdges() []string {
+	edges := make([]string, 0, 5)
+	if m.next_run != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgeNextRun)
+	}
+	if m.previous_run != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgePreviousRun)
+	}
+	if m.errors != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgeErrors)
+	}
+	if m.charge_states != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgeChargeStates)
+	}
+	if m.usage_based_runs != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgeUsageBasedRuns)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case billingperiodicrealizationrun.EdgeNextRun:
+		if id := m.next_run; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingperiodicrealizationrun.EdgePreviousRun:
+		if id := m.previous_run; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingperiodicrealizationrun.EdgeErrors:
+		ids := make([]ent.Value, 0, len(m.errors))
+		for id := range m.errors {
+			ids = append(ids, id)
+		}
+		return ids
+	case billingperiodicrealizationrun.EdgeChargeStates:
+		ids := make([]ent.Value, 0, len(m.charge_states))
+		for id := range m.charge_states {
+			ids = append(ids, id)
+		}
+		return ids
+	case billingperiodicrealizationrun.EdgeUsageBasedRuns:
+		ids := make([]ent.Value, 0, len(m.usage_based_runs))
+		for id := range m.usage_based_runs {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 5)
+	if m.removederrors != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgeErrors)
+	}
+	if m.removedcharge_states != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgeChargeStates)
+	}
+	if m.removedusage_based_runs != nil {
+		edges = append(edges, billingperiodicrealizationrun.EdgeUsageBasedRuns)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case billingperiodicrealizationrun.EdgeErrors:
+		ids := make([]ent.Value, 0, len(m.removederrors))
+		for id := range m.removederrors {
+			ids = append(ids, id)
+		}
+		return ids
+	case billingperiodicrealizationrun.EdgeChargeStates:
+		ids := make([]ent.Value, 0, len(m.removedcharge_states))
+		for id := range m.removedcharge_states {
+			ids = append(ids, id)
+		}
+		return ids
+	case billingperiodicrealizationrun.EdgeUsageBasedRuns:
+		ids := make([]ent.Value, 0, len(m.removedusage_based_runs))
+		for id := range m.removedusage_based_runs {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 5)
+	if m.clearednext_run {
+		edges = append(edges, billingperiodicrealizationrun.EdgeNextRun)
+	}
+	if m.clearedprevious_run {
+		edges = append(edges, billingperiodicrealizationrun.EdgePreviousRun)
+	}
+	if m.clearederrors {
+		edges = append(edges, billingperiodicrealizationrun.EdgeErrors)
+	}
+	if m.clearedcharge_states {
+		edges = append(edges, billingperiodicrealizationrun.EdgeChargeStates)
+	}
+	if m.clearedusage_based_runs {
+		edges = append(edges, billingperiodicrealizationrun.EdgeUsageBasedRuns)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunMutation) EdgeCleared(name string) bool {
+	switch name {
+	case billingperiodicrealizationrun.EdgeNextRun:
+		return m.clearednext_run
+	case billingperiodicrealizationrun.EdgePreviousRun:
+		return m.clearedprevious_run
+	case billingperiodicrealizationrun.EdgeErrors:
+		return m.clearederrors
+	case billingperiodicrealizationrun.EdgeChargeStates:
+		return m.clearedcharge_states
+	case billingperiodicrealizationrun.EdgeUsageBasedRuns:
+		return m.clearedusage_based_runs
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingPeriodicRealizationRunMutation) ClearEdge(name string) error {
+	switch name {
+	case billingperiodicrealizationrun.EdgeNextRun:
+		m.ClearNextRun()
+		return nil
+	case billingperiodicrealizationrun.EdgePreviousRun:
+		m.ClearPreviousRun()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRun unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingPeriodicRealizationRunMutation) ResetEdge(name string) error {
+	switch name {
+	case billingperiodicrealizationrun.EdgeNextRun:
+		m.ResetNextRun()
+		return nil
+	case billingperiodicrealizationrun.EdgePreviousRun:
+		m.ResetPreviousRun()
+		return nil
+	case billingperiodicrealizationrun.EdgeErrors:
+		m.ResetErrors()
+		return nil
+	case billingperiodicrealizationrun.EdgeChargeStates:
+		m.ResetChargeStates()
+		return nil
+	case billingperiodicrealizationrun.EdgeUsageBasedRuns:
+		m.ResetUsageBasedRuns()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRun edge %s", name)
+}
+
+// BillingPeriodicRealizationRunErrorMutation represents an operation that mutates the BillingPeriodicRealizationRunError nodes in the graph.
+type BillingPeriodicRealizationRunErrorMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	namespace                 *string
+	created_at                *time.Time
+	updated_at                *time.Time
+	deleted_at                *time.Time
+	code                      *string
+	reason                    *string
+	clearedFields             map[string]struct{}
+	run                       *string
+	clearedrun                bool
+	usage_based_charge        *string
+	clearedusage_based_charge bool
+	done                      bool
+	oldValue                  func(context.Context) (*BillingPeriodicRealizationRunError, error)
+	predicates                []predicate.BillingPeriodicRealizationRunError
+}
+
+var _ ent.Mutation = (*BillingPeriodicRealizationRunErrorMutation)(nil)
+
+// billingperiodicrealizationrunerrorOption allows management of the mutation configuration using functional options.
+type billingperiodicrealizationrunerrorOption func(*BillingPeriodicRealizationRunErrorMutation)
+
+// newBillingPeriodicRealizationRunErrorMutation creates new mutation for the BillingPeriodicRealizationRunError entity.
+func newBillingPeriodicRealizationRunErrorMutation(c config, op Op, opts ...billingperiodicrealizationrunerrorOption) *BillingPeriodicRealizationRunErrorMutation {
+	m := &BillingPeriodicRealizationRunErrorMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBillingPeriodicRealizationRunError,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBillingPeriodicRealizationRunErrorID sets the ID field of the mutation.
+func withBillingPeriodicRealizationRunErrorID(id string) billingperiodicrealizationrunerrorOption {
+	return func(m *BillingPeriodicRealizationRunErrorMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *BillingPeriodicRealizationRunError
+		)
+		m.oldValue = func(ctx context.Context) (*BillingPeriodicRealizationRunError, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().BillingPeriodicRealizationRunError.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBillingPeriodicRealizationRunError sets the old BillingPeriodicRealizationRunError of the mutation.
+func withBillingPeriodicRealizationRunError(node *BillingPeriodicRealizationRunError) billingperiodicrealizationrunerrorOption {
+	return func(m *BillingPeriodicRealizationRunErrorMutation) {
+		m.oldValue = func(context.Context) (*BillingPeriodicRealizationRunError, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BillingPeriodicRealizationRunErrorMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BillingPeriodicRealizationRunErrorMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("db: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of BillingPeriodicRealizationRunError entities.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BillingPeriodicRealizationRunErrorMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().BillingPeriodicRealizationRunError.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetNamespace sets the "namespace" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetNamespace(s string) {
+	m.namespace = &s
+}
+
+// Namespace returns the value of the "namespace" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) Namespace() (r string, exists bool) {
+	v := m.namespace
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNamespace returns the old "namespace" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldNamespace(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNamespace requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNamespace: %w", err)
+	}
+	return oldValue.Namespace, nil
+}
+
+// ResetNamespace resets all changes to the "namespace" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetNamespace() {
+	m.namespace = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[billingperiodicrealizationrunerror.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrunerror.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, billingperiodicrealizationrunerror.FieldDeletedAt)
+}
+
+// SetRunID sets the "run_id" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetRunID(s string) {
+	m.run = &s
+}
+
+// RunID returns the value of the "run_id" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) RunID() (r string, exists bool) {
+	v := m.run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRunID returns the old "run_id" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldRunID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRunID: %w", err)
+	}
+	return oldValue.RunID, nil
+}
+
+// ResetRunID resets all changes to the "run_id" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetRunID() {
+	m.run = nil
+}
+
+// SetChargeID sets the "charge_id" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetChargeID(s string) {
+	m.usage_based_charge = &s
+}
+
+// ChargeID returns the value of the "charge_id" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) ChargeID() (r string, exists bool) {
+	v := m.usage_based_charge
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChargeID returns the old "charge_id" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldChargeID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChargeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChargeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChargeID: %w", err)
+	}
+	return oldValue.ChargeID, nil
+}
+
+// ClearChargeID clears the value of the "charge_id" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearChargeID() {
+	m.usage_based_charge = nil
+	m.clearedFields[billingperiodicrealizationrunerror.FieldChargeID] = struct{}{}
+}
+
+// ChargeIDCleared returns if the "charge_id" field was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) ChargeIDCleared() bool {
+	_, ok := m.clearedFields[billingperiodicrealizationrunerror.FieldChargeID]
+	return ok
+}
+
+// ResetChargeID resets all changes to the "charge_id" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetChargeID() {
+	m.usage_based_charge = nil
+	delete(m.clearedFields, billingperiodicrealizationrunerror.FieldChargeID)
+}
+
+// SetCode sets the "code" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the BillingPeriodicRealizationRunError entity.
+// If the BillingPeriodicRealizationRunError object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetReason() {
+	m.reason = nil
+}
+
+// ClearRun clears the "run" edge to the BillingPeriodicRealizationRun entity.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearRun() {
+	m.clearedrun = true
+	m.clearedFields[billingperiodicrealizationrunerror.FieldRunID] = struct{}{}
+}
+
+// RunCleared reports if the "run" edge to the BillingPeriodicRealizationRun entity was cleared.
+func (m *BillingPeriodicRealizationRunErrorMutation) RunCleared() bool {
+	return m.clearedrun
+}
+
+// RunIDs returns the "run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RunID instead. It exists only for internal usage by the builders.
+func (m *BillingPeriodicRealizationRunErrorMutation) RunIDs() (ids []string) {
+	if id := m.run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRun resets all changes to the "run" edge.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetRun() {
+	m.run = nil
+	m.clearedrun = false
+}
+
+// SetUsageBasedChargeID sets the "usage_based_charge" edge to the ChargeUsageBased entity by id.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetUsageBasedChargeID(id string) {
+	m.usage_based_charge = &id
+}
+
+// ClearUsageBasedCharge clears the "usage_based_charge" edge to the ChargeUsageBased entity.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearUsageBasedCharge() {
+	m.clearedusage_based_charge = true
+	m.clearedFields[billingperiodicrealizationrunerror.FieldChargeID] = struct{}{}
+}
+
+// UsageBasedChargeCleared reports if the "usage_based_charge" edge to the ChargeUsageBased entity was cleared.
+func (m *BillingPeriodicRealizationRunErrorMutation) UsageBasedChargeCleared() bool {
+	return m.ChargeIDCleared() || m.clearedusage_based_charge
+}
+
+// UsageBasedChargeID returns the "usage_based_charge" edge ID in the mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) UsageBasedChargeID() (id string, exists bool) {
+	if m.usage_based_charge != nil {
+		return *m.usage_based_charge, true
+	}
+	return
+}
+
+// UsageBasedChargeIDs returns the "usage_based_charge" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UsageBasedChargeID instead. It exists only for internal usage by the builders.
+func (m *BillingPeriodicRealizationRunErrorMutation) UsageBasedChargeIDs() (ids []string) {
+	if id := m.usage_based_charge; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUsageBasedCharge resets all changes to the "usage_based_charge" edge.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetUsageBasedCharge() {
+	m.usage_based_charge = nil
+	m.clearedusage_based_charge = false
+}
+
+// Where appends a list predicates to the BillingPeriodicRealizationRunErrorMutation builder.
+func (m *BillingPeriodicRealizationRunErrorMutation) Where(ps ...predicate.BillingPeriodicRealizationRunError) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BillingPeriodicRealizationRunErrorMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BillingPeriodicRealizationRunErrorMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.BillingPeriodicRealizationRunError, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BillingPeriodicRealizationRunErrorMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (BillingPeriodicRealizationRunError).
+func (m *BillingPeriodicRealizationRunErrorMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BillingPeriodicRealizationRunErrorMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.namespace != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldNamespace)
+	}
+	if m.created_at != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldUpdatedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldDeletedAt)
+	}
+	if m.run != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldRunID)
+	}
+	if m.usage_based_charge != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldChargeID)
+	}
+	if m.code != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldCode)
+	}
+	if m.reason != nil {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldReason)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BillingPeriodicRealizationRunErrorMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case billingperiodicrealizationrunerror.FieldNamespace:
+		return m.Namespace()
+	case billingperiodicrealizationrunerror.FieldCreatedAt:
+		return m.CreatedAt()
+	case billingperiodicrealizationrunerror.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case billingperiodicrealizationrunerror.FieldDeletedAt:
+		return m.DeletedAt()
+	case billingperiodicrealizationrunerror.FieldRunID:
+		return m.RunID()
+	case billingperiodicrealizationrunerror.FieldChargeID:
+		return m.ChargeID()
+	case billingperiodicrealizationrunerror.FieldCode:
+		return m.Code()
+	case billingperiodicrealizationrunerror.FieldReason:
+		return m.Reason()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BillingPeriodicRealizationRunErrorMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case billingperiodicrealizationrunerror.FieldNamespace:
+		return m.OldNamespace(ctx)
+	case billingperiodicrealizationrunerror.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case billingperiodicrealizationrunerror.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case billingperiodicrealizationrunerror.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	case billingperiodicrealizationrunerror.FieldRunID:
+		return m.OldRunID(ctx)
+	case billingperiodicrealizationrunerror.FieldChargeID:
+		return m.OldChargeID(ctx)
+	case billingperiodicrealizationrunerror.FieldCode:
+		return m.OldCode(ctx)
+	case billingperiodicrealizationrunerror.FieldReason:
+		return m.OldReason(ctx)
+	}
+	return nil, fmt.Errorf("unknown BillingPeriodicRealizationRunError field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingPeriodicRealizationRunErrorMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case billingperiodicrealizationrunerror.FieldNamespace:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNamespace(v)
+		return nil
+	case billingperiodicrealizationrunerror.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case billingperiodicrealizationrunerror.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case billingperiodicrealizationrunerror.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	case billingperiodicrealizationrunerror.FieldRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRunID(v)
+		return nil
+	case billingperiodicrealizationrunerror.FieldChargeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChargeID(v)
+		return nil
+	case billingperiodicrealizationrunerror.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case billingperiodicrealizationrunerror.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRunError field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BillingPeriodicRealizationRunErrorMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BillingPeriodicRealizationRunErrorMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRunError numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(billingperiodicrealizationrunerror.FieldDeletedAt) {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldDeletedAt)
+	}
+	if m.FieldCleared(billingperiodicrealizationrunerror.FieldChargeID) {
+		fields = append(fields, billingperiodicrealizationrunerror.FieldChargeID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearField(name string) error {
+	switch name {
+	case billingperiodicrealizationrunerror.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	case billingperiodicrealizationrunerror.FieldChargeID:
+		m.ClearChargeID()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRunError nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetField(name string) error {
+	switch name {
+	case billingperiodicrealizationrunerror.FieldNamespace:
+		m.ResetNamespace()
+		return nil
+	case billingperiodicrealizationrunerror.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case billingperiodicrealizationrunerror.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case billingperiodicrealizationrunerror.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	case billingperiodicrealizationrunerror.FieldRunID:
+		m.ResetRunID()
+		return nil
+	case billingperiodicrealizationrunerror.FieldChargeID:
+		m.ResetChargeID()
+		return nil
+	case billingperiodicrealizationrunerror.FieldCode:
+		m.ResetCode()
+		return nil
+	case billingperiodicrealizationrunerror.FieldReason:
+		m.ResetReason()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRunError field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.run != nil {
+		edges = append(edges, billingperiodicrealizationrunerror.EdgeRun)
+	}
+	if m.usage_based_charge != nil {
+		edges = append(edges, billingperiodicrealizationrunerror.EdgeUsageBasedCharge)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case billingperiodicrealizationrunerror.EdgeRun:
+		if id := m.run; id != nil {
+			return []ent.Value{*id}
+		}
+	case billingperiodicrealizationrunerror.EdgeUsageBasedCharge:
+		if id := m.usage_based_charge; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedrun {
+		edges = append(edges, billingperiodicrealizationrunerror.EdgeRun)
+	}
+	if m.clearedusage_based_charge {
+		edges = append(edges, billingperiodicrealizationrunerror.EdgeUsageBasedCharge)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BillingPeriodicRealizationRunErrorMutation) EdgeCleared(name string) bool {
+	switch name {
+	case billingperiodicrealizationrunerror.EdgeRun:
+		return m.clearedrun
+	case billingperiodicrealizationrunerror.EdgeUsageBasedCharge:
+		return m.clearedusage_based_charge
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BillingPeriodicRealizationRunErrorMutation) ClearEdge(name string) error {
+	switch name {
+	case billingperiodicrealizationrunerror.EdgeRun:
+		m.ClearRun()
+		return nil
+	case billingperiodicrealizationrunerror.EdgeUsageBasedCharge:
+		m.ClearUsageBasedCharge()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRunError unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BillingPeriodicRealizationRunErrorMutation) ResetEdge(name string) error {
+	switch name {
+	case billingperiodicrealizationrunerror.EdgeRun:
+		m.ResetRun()
+		return nil
+	case billingperiodicrealizationrunerror.EdgeUsageBasedCharge:
+		m.ResetUsageBasedCharge()
+		return nil
+	}
+	return fmt.Errorf("unknown BillingPeriodicRealizationRunError edge %s", name)
 }
 
 // BillingProfileMutation represents an operation that mutates the BillingProfile nodes in the graph.
@@ -63628,73 +67110,78 @@ func (m *ChargeFlatFeeRunPaymentMutation) ResetEdge(name string) error {
 // ChargeUsageBasedMutation represents an operation that mutates the ChargeUsageBased nodes in the graph.
 type ChargeUsageBasedMutation struct {
 	config
-	op                        Op
-	typ                       string
-	id                        *string
-	service_period_from       *time.Time
-	service_period_to         *time.Time
-	billing_period_from       *time.Time
-	billing_period_to         *time.Time
-	full_service_period_from  *time.Time
-	full_service_period_to    *time.Time
-	status                    *meta.ChargeStatus
-	unique_reference_id       *string
-	fiat_currency_code        *currencyx.Code
-	managed_by                *billing.InvoiceLineManagedBy
-	subscription_plan         **meta.SubscriptionPlan
-	advance_after             *time.Time
-	tax_behavior              *productcatalog.TaxBehavior
-	annotations               *models.Annotations
-	namespace                 *string
-	metadata                  *map[string]string
-	created_at                *time.Time
-	updated_at                *time.Time
-	deleted_at                *time.Time
-	name                      *string
-	description               *string
-	validation_issues         *billing.ValidationIssues
-	appendvalidation_issues   billing.ValidationIssues
-	invoice_at                *time.Time
-	settlement_mode           *productcatalog.SettlementMode
-	intent_deleted_at         *time.Time
-	discounts                 **billing.Discounts
-	feature_key               *string
-	rating_engine             *usagebased.RatingEngine
-	price                     **productcatalog.Price
-	unit_config               **unitconfig.UnitConfig
-	status_detailed           *usagebased.Status
-	clearedFields             map[string]struct{}
-	runs                      map[string]struct{}
-	removedruns               map[string]struct{}
-	clearedruns               bool
-	detailed_lines            map[string]struct{}
-	removeddetailed_lines     map[string]struct{}
-	cleareddetailed_lines     bool
-	current_run               *string
-	clearedcurrent_run        bool
-	cost_basis                *string
-	clearedcost_basis         bool
-	charge                    *string
-	clearedcharge             bool
-	intent_override           *string
-	clearedintent_override    bool
-	subscription              *string
-	clearedsubscription       bool
-	subscription_phase        *string
-	clearedsubscription_phase bool
-	subscription_item         *string
-	clearedsubscription_item  bool
-	customer                  *string
-	clearedcustomer           bool
-	feature                   *string
-	clearedfeature            bool
-	tax_code                  *string
-	clearedtax_code           bool
-	custom_currency           *string
-	clearedcustom_currency    bool
-	done                      bool
-	oldValue                  func(context.Context) (*ChargeUsageBased, error)
-	predicates                []predicate.ChargeUsageBased
+	op                                 Op
+	typ                                string
+	id                                 *string
+	service_period_from                *time.Time
+	service_period_to                  *time.Time
+	billing_period_from                *time.Time
+	billing_period_to                  *time.Time
+	full_service_period_from           *time.Time
+	full_service_period_to             *time.Time
+	status                             *meta.ChargeStatus
+	unique_reference_id                *string
+	fiat_currency_code                 *currencyx.Code
+	managed_by                         *billing.InvoiceLineManagedBy
+	subscription_plan                  **meta.SubscriptionPlan
+	advance_after                      *time.Time
+	tax_behavior                       *productcatalog.TaxBehavior
+	annotations                        *models.Annotations
+	namespace                          *string
+	metadata                           *map[string]string
+	created_at                         *time.Time
+	updated_at                         *time.Time
+	deleted_at                         *time.Time
+	name                               *string
+	description                        *string
+	validation_issues                  *billing.ValidationIssues
+	appendvalidation_issues            billing.ValidationIssues
+	invoice_at                         *time.Time
+	settlement_mode                    *productcatalog.SettlementMode
+	intent_deleted_at                  *time.Time
+	discounts                          **billing.Discounts
+	feature_key                        *string
+	rating_engine                      *usagebased.RatingEngine
+	price                              **productcatalog.Price
+	unit_config                        **unitconfig.UnitConfig
+	status_detailed                    *usagebased.Status
+	clearedFields                      map[string]struct{}
+	runs                               map[string]struct{}
+	removedruns                        map[string]struct{}
+	clearedruns                        bool
+	detailed_lines                     map[string]struct{}
+	removeddetailed_lines              map[string]struct{}
+	cleareddetailed_lines              bool
+	current_run                        *string
+	clearedcurrent_run                 bool
+	cost_basis                         *string
+	clearedcost_basis                  bool
+	charge                             *string
+	clearedcharge                      bool
+	intent_override                    *string
+	clearedintent_override             bool
+	periodic_realization_state         *string
+	clearedperiodic_realization_state  bool
+	periodic_realization_errors        map[string]struct{}
+	removedperiodic_realization_errors map[string]struct{}
+	clearedperiodic_realization_errors bool
+	subscription                       *string
+	clearedsubscription                bool
+	subscription_phase                 *string
+	clearedsubscription_phase          bool
+	subscription_item                  *string
+	clearedsubscription_item           bool
+	customer                           *string
+	clearedcustomer                    bool
+	feature                            *string
+	clearedfeature                     bool
+	tax_code                           *string
+	clearedtax_code                    bool
+	custom_currency                    *string
+	clearedcustom_currency             bool
+	done                               bool
+	oldValue                           func(context.Context) (*ChargeUsageBased, error)
+	predicates                         []predicate.ChargeUsageBased
 }
 
 var _ ent.Mutation = (*ChargeUsageBasedMutation)(nil)
@@ -65770,6 +69257,99 @@ func (m *ChargeUsageBasedMutation) ResetIntentOverride() {
 	m.clearedintent_override = false
 }
 
+// SetPeriodicRealizationStateID sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity by id.
+func (m *ChargeUsageBasedMutation) SetPeriodicRealizationStateID(id string) {
+	m.periodic_realization_state = &id
+}
+
+// ClearPeriodicRealizationState clears the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity.
+func (m *ChargeUsageBasedMutation) ClearPeriodicRealizationState() {
+	m.clearedperiodic_realization_state = true
+}
+
+// PeriodicRealizationStateCleared reports if the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity was cleared.
+func (m *ChargeUsageBasedMutation) PeriodicRealizationStateCleared() bool {
+	return m.clearedperiodic_realization_state
+}
+
+// PeriodicRealizationStateID returns the "periodic_realization_state" edge ID in the mutation.
+func (m *ChargeUsageBasedMutation) PeriodicRealizationStateID() (id string, exists bool) {
+	if m.periodic_realization_state != nil {
+		return *m.periodic_realization_state, true
+	}
+	return
+}
+
+// PeriodicRealizationStateIDs returns the "periodic_realization_state" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PeriodicRealizationStateID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedMutation) PeriodicRealizationStateIDs() (ids []string) {
+	if id := m.periodic_realization_state; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPeriodicRealizationState resets all changes to the "periodic_realization_state" edge.
+func (m *ChargeUsageBasedMutation) ResetPeriodicRealizationState() {
+	m.periodic_realization_state = nil
+	m.clearedperiodic_realization_state = false
+}
+
+// AddPeriodicRealizationErrorIDs adds the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity by ids.
+func (m *ChargeUsageBasedMutation) AddPeriodicRealizationErrorIDs(ids ...string) {
+	if m.periodic_realization_errors == nil {
+		m.periodic_realization_errors = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.periodic_realization_errors[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPeriodicRealizationErrors clears the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity.
+func (m *ChargeUsageBasedMutation) ClearPeriodicRealizationErrors() {
+	m.clearedperiodic_realization_errors = true
+}
+
+// PeriodicRealizationErrorsCleared reports if the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity was cleared.
+func (m *ChargeUsageBasedMutation) PeriodicRealizationErrorsCleared() bool {
+	return m.clearedperiodic_realization_errors
+}
+
+// RemovePeriodicRealizationErrorIDs removes the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity by IDs.
+func (m *ChargeUsageBasedMutation) RemovePeriodicRealizationErrorIDs(ids ...string) {
+	if m.removedperiodic_realization_errors == nil {
+		m.removedperiodic_realization_errors = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.periodic_realization_errors, ids[i])
+		m.removedperiodic_realization_errors[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPeriodicRealizationErrors returns the removed IDs of the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity.
+func (m *ChargeUsageBasedMutation) RemovedPeriodicRealizationErrorsIDs() (ids []string) {
+	for id := range m.removedperiodic_realization_errors {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PeriodicRealizationErrorsIDs returns the "periodic_realization_errors" edge IDs in the mutation.
+func (m *ChargeUsageBasedMutation) PeriodicRealizationErrorsIDs() (ids []string) {
+	for id := range m.periodic_realization_errors {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPeriodicRealizationErrors resets all changes to the "periodic_realization_errors" edge.
+func (m *ChargeUsageBasedMutation) ResetPeriodicRealizationErrors() {
+	m.periodic_realization_errors = nil
+	m.clearedperiodic_realization_errors = false
+	m.removedperiodic_realization_errors = nil
+}
+
 // ClearSubscription clears the "subscription" edge to the Subscription entity.
 func (m *ChargeUsageBasedMutation) ClearSubscription() {
 	m.clearedsubscription = true
@@ -66878,7 +70458,7 @@ func (m *ChargeUsageBasedMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedMutation) AddedEdges() []string {
-	edges := make([]string, 0, 13)
+	edges := make([]string, 0, 15)
 	if m.runs != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
 	}
@@ -66896,6 +70476,12 @@ func (m *ChargeUsageBasedMutation) AddedEdges() []string {
 	}
 	if m.intent_override != nil {
 		edges = append(edges, chargeusagebased.EdgeIntentOverride)
+	}
+	if m.periodic_realization_state != nil {
+		edges = append(edges, chargeusagebased.EdgePeriodicRealizationState)
+	}
+	if m.periodic_realization_errors != nil {
+		edges = append(edges, chargeusagebased.EdgePeriodicRealizationErrors)
 	}
 	if m.subscription != nil {
 		edges = append(edges, chargeusagebased.EdgeSubscription)
@@ -66953,6 +70539,16 @@ func (m *ChargeUsageBasedMutation) AddedIDs(name string) []ent.Value {
 		if id := m.intent_override; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeusagebased.EdgePeriodicRealizationState:
+		if id := m.periodic_realization_state; id != nil {
+			return []ent.Value{*id}
+		}
+	case chargeusagebased.EdgePeriodicRealizationErrors:
+		ids := make([]ent.Value, 0, len(m.periodic_realization_errors))
+		for id := range m.periodic_realization_errors {
+			ids = append(ids, id)
+		}
+		return ids
 	case chargeusagebased.EdgeSubscription:
 		if id := m.subscription; id != nil {
 			return []ent.Value{*id}
@@ -66987,12 +70583,15 @@ func (m *ChargeUsageBasedMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 13)
+	edges := make([]string, 0, 15)
 	if m.removedruns != nil {
 		edges = append(edges, chargeusagebased.EdgeRuns)
 	}
 	if m.removeddetailed_lines != nil {
 		edges = append(edges, chargeusagebased.EdgeDetailedLines)
+	}
+	if m.removedperiodic_realization_errors != nil {
+		edges = append(edges, chargeusagebased.EdgePeriodicRealizationErrors)
 	}
 	return edges
 }
@@ -67013,13 +70612,19 @@ func (m *ChargeUsageBasedMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case chargeusagebased.EdgePeriodicRealizationErrors:
+		ids := make([]ent.Value, 0, len(m.removedperiodic_realization_errors))
+		for id := range m.removedperiodic_realization_errors {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 13)
+	edges := make([]string, 0, 15)
 	if m.clearedruns {
 		edges = append(edges, chargeusagebased.EdgeRuns)
 	}
@@ -67037,6 +70642,12 @@ func (m *ChargeUsageBasedMutation) ClearedEdges() []string {
 	}
 	if m.clearedintent_override {
 		edges = append(edges, chargeusagebased.EdgeIntentOverride)
+	}
+	if m.clearedperiodic_realization_state {
+		edges = append(edges, chargeusagebased.EdgePeriodicRealizationState)
+	}
+	if m.clearedperiodic_realization_errors {
+		edges = append(edges, chargeusagebased.EdgePeriodicRealizationErrors)
 	}
 	if m.clearedsubscription {
 		edges = append(edges, chargeusagebased.EdgeSubscription)
@@ -67078,6 +70689,10 @@ func (m *ChargeUsageBasedMutation) EdgeCleared(name string) bool {
 		return m.clearedcharge
 	case chargeusagebased.EdgeIntentOverride:
 		return m.clearedintent_override
+	case chargeusagebased.EdgePeriodicRealizationState:
+		return m.clearedperiodic_realization_state
+	case chargeusagebased.EdgePeriodicRealizationErrors:
+		return m.clearedperiodic_realization_errors
 	case chargeusagebased.EdgeSubscription:
 		return m.clearedsubscription
 	case chargeusagebased.EdgeSubscriptionPhase:
@@ -67111,6 +70726,9 @@ func (m *ChargeUsageBasedMutation) ClearEdge(name string) error {
 		return nil
 	case chargeusagebased.EdgeIntentOverride:
 		m.ClearIntentOverride()
+		return nil
+	case chargeusagebased.EdgePeriodicRealizationState:
+		m.ClearPeriodicRealizationState()
 		return nil
 	case chargeusagebased.EdgeSubscription:
 		m.ClearSubscription()
@@ -67158,6 +70776,12 @@ func (m *ChargeUsageBasedMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebased.EdgeIntentOverride:
 		m.ResetIntentOverride()
+		return nil
+	case chargeusagebased.EdgePeriodicRealizationState:
+		m.ResetPeriodicRealizationState()
+		return nil
+	case chargeusagebased.EdgePeriodicRealizationErrors:
+		m.ResetPeriodicRealizationErrors()
 		return nil
 	case chargeusagebased.EdgeSubscription:
 		m.ResetSubscription()
@@ -77712,6 +81336,8 @@ type ChargeUsageBasedRunsMutation struct {
 	clearednext_runs                          bool
 	prior_run                                 *string
 	clearedprior_run                          bool
+	periodic_realization_run                  *string
+	clearedperiodic_realization_run           bool
 	credit_allocations                        map[string]struct{}
 	removedcredit_allocations                 map[string]struct{}
 	clearedcredit_allocations                 bool
@@ -78603,6 +82229,55 @@ func (m *ChargeUsageBasedRunsMutation) ResetPriorRunID() {
 	delete(m.clearedFields, chargeusagebasedruns.FieldPriorRunID)
 }
 
+// SetPeriodicRealizationRunID sets the "periodic_realization_run_id" field.
+func (m *ChargeUsageBasedRunsMutation) SetPeriodicRealizationRunID(s string) {
+	m.periodic_realization_run = &s
+}
+
+// PeriodicRealizationRunID returns the value of the "periodic_realization_run_id" field in the mutation.
+func (m *ChargeUsageBasedRunsMutation) PeriodicRealizationRunID() (r string, exists bool) {
+	v := m.periodic_realization_run
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPeriodicRealizationRunID returns the old "periodic_realization_run_id" field's value of the ChargeUsageBasedRuns entity.
+// If the ChargeUsageBasedRuns object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ChargeUsageBasedRunsMutation) OldPeriodicRealizationRunID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPeriodicRealizationRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPeriodicRealizationRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPeriodicRealizationRunID: %w", err)
+	}
+	return oldValue.PeriodicRealizationRunID, nil
+}
+
+// ClearPeriodicRealizationRunID clears the value of the "periodic_realization_run_id" field.
+func (m *ChargeUsageBasedRunsMutation) ClearPeriodicRealizationRunID() {
+	m.periodic_realization_run = nil
+	m.clearedFields[chargeusagebasedruns.FieldPeriodicRealizationRunID] = struct{}{}
+}
+
+// PeriodicRealizationRunIDCleared returns if the "periodic_realization_run_id" field was cleared in this mutation.
+func (m *ChargeUsageBasedRunsMutation) PeriodicRealizationRunIDCleared() bool {
+	_, ok := m.clearedFields[chargeusagebasedruns.FieldPeriodicRealizationRunID]
+	return ok
+}
+
+// ResetPeriodicRealizationRunID resets all changes to the "periodic_realization_run_id" field.
+func (m *ChargeUsageBasedRunsMutation) ResetPeriodicRealizationRunID() {
+	m.periodic_realization_run = nil
+	delete(m.clearedFields, chargeusagebasedruns.FieldPeriodicRealizationRunID)
+}
+
 // SetDetailedLinesPresent sets the "detailed_lines_present" field.
 func (m *ChargeUsageBasedRunsMutation) SetDetailedLinesPresent(b bool) {
 	m.detailed_lines_present = &b
@@ -79145,6 +82820,33 @@ func (m *ChargeUsageBasedRunsMutation) ResetPriorRun() {
 	m.clearedprior_run = false
 }
 
+// ClearPeriodicRealizationRun clears the "periodic_realization_run" edge to the BillingPeriodicRealizationRun entity.
+func (m *ChargeUsageBasedRunsMutation) ClearPeriodicRealizationRun() {
+	m.clearedperiodic_realization_run = true
+	m.clearedFields[chargeusagebasedruns.FieldPeriodicRealizationRunID] = struct{}{}
+}
+
+// PeriodicRealizationRunCleared reports if the "periodic_realization_run" edge to the BillingPeriodicRealizationRun entity was cleared.
+func (m *ChargeUsageBasedRunsMutation) PeriodicRealizationRunCleared() bool {
+	return m.PeriodicRealizationRunIDCleared() || m.clearedperiodic_realization_run
+}
+
+// PeriodicRealizationRunIDs returns the "periodic_realization_run" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PeriodicRealizationRunID instead. It exists only for internal usage by the builders.
+func (m *ChargeUsageBasedRunsMutation) PeriodicRealizationRunIDs() (ids []string) {
+	if id := m.periodic_realization_run; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPeriodicRealizationRun resets all changes to the "periodic_realization_run" edge.
+func (m *ChargeUsageBasedRunsMutation) ResetPeriodicRealizationRun() {
+	m.periodic_realization_run = nil
+	m.clearedperiodic_realization_run = false
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by ids.
 func (m *ChargeUsageBasedRunsMutation) AddCreditAllocationIDs(ids ...string) {
 	if m.credit_allocations == nil {
@@ -79473,7 +83175,7 @@ func (m *ChargeUsageBasedRunsMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ChargeUsageBasedRunsMutation) Fields() []string {
-	fields := make([]string, 0, 28)
+	fields := make([]string, 0, 29)
 	if m.namespace != nil {
 		fields = append(fields, chargeusagebasedruns.FieldNamespace)
 	}
@@ -79533,6 +83235,9 @@ func (m *ChargeUsageBasedRunsMutation) Fields() []string {
 	}
 	if m.prior_run != nil {
 		fields = append(fields, chargeusagebasedruns.FieldPriorRunID)
+	}
+	if m.periodic_realization_run != nil {
+		fields = append(fields, chargeusagebasedruns.FieldPeriodicRealizationRunID)
 	}
 	if m.detailed_lines_present != nil {
 		fields = append(fields, chargeusagebasedruns.FieldDetailedLinesPresent)
@@ -79606,6 +83311,8 @@ func (m *ChargeUsageBasedRunsMutation) Field(name string) (ent.Value, bool) {
 		return m.SchemaLevel()
 	case chargeusagebasedruns.FieldPriorRunID:
 		return m.PriorRunID()
+	case chargeusagebasedruns.FieldPeriodicRealizationRunID:
+		return m.PeriodicRealizationRunID()
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		return m.DetailedLinesPresent()
 	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
@@ -79671,6 +83378,8 @@ func (m *ChargeUsageBasedRunsMutation) OldField(ctx context.Context, name string
 		return m.OldSchemaLevel(ctx)
 	case chargeusagebasedruns.FieldPriorRunID:
 		return m.OldPriorRunID(ctx)
+	case chargeusagebasedruns.FieldPeriodicRealizationRunID:
+		return m.OldPeriodicRealizationRunID(ctx)
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		return m.OldDetailedLinesPresent(ctx)
 	case chargeusagebasedruns.FieldDetailedLinesIncludeCreditAllocations:
@@ -79836,6 +83545,13 @@ func (m *ChargeUsageBasedRunsMutation) SetField(name string, value ent.Value) er
 		}
 		m.SetPriorRunID(v)
 		return nil
+	case chargeusagebasedruns.FieldPeriodicRealizationRunID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPeriodicRealizationRunID(v)
+		return nil
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		v, ok := value.(bool)
 		if !ok {
@@ -79943,6 +83659,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearedFields() []string {
 	if m.FieldCleared(chargeusagebasedruns.FieldPriorRunID) {
 		fields = append(fields, chargeusagebasedruns.FieldPriorRunID)
 	}
+	if m.FieldCleared(chargeusagebasedruns.FieldPeriodicRealizationRunID) {
+		fields = append(fields, chargeusagebasedruns.FieldPeriodicRealizationRunID)
+	}
 	if m.FieldCleared(chargeusagebasedruns.FieldLineID) {
 		fields = append(fields, chargeusagebasedruns.FieldLineID)
 	}
@@ -79968,6 +83687,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearField(name string) error {
 		return nil
 	case chargeusagebasedruns.FieldPriorRunID:
 		m.ClearPriorRunID()
+		return nil
+	case chargeusagebasedruns.FieldPeriodicRealizationRunID:
+		m.ClearPeriodicRealizationRunID()
 		return nil
 	case chargeusagebasedruns.FieldLineID:
 		m.ClearLineID()
@@ -80043,6 +83765,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 	case chargeusagebasedruns.FieldPriorRunID:
 		m.ResetPriorRunID()
 		return nil
+	case chargeusagebasedruns.FieldPeriodicRealizationRunID:
+		m.ResetPeriodicRealizationRunID()
+		return nil
 	case chargeusagebasedruns.FieldDetailedLinesPresent:
 		m.ResetDetailedLinesPresent()
 		return nil
@@ -80073,7 +83798,7 @@ func (m *ChargeUsageBasedRunsMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 13)
 	if m.usage_based != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -80091,6 +83816,9 @@ func (m *ChargeUsageBasedRunsMutation) AddedEdges() []string {
 	}
 	if m.prior_run != nil {
 		edges = append(edges, chargeusagebasedruns.EdgePriorRun)
+	}
+	if m.periodic_realization_run != nil {
+		edges = append(edges, chargeusagebasedruns.EdgePeriodicRealizationRun)
 	}
 	if m.credit_allocations != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -80143,6 +83871,10 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 		if id := m.prior_run; id != nil {
 			return []ent.Value{*id}
 		}
+	case chargeusagebasedruns.EdgePeriodicRealizationRun:
+		if id := m.periodic_realization_run; id != nil {
+			return []ent.Value{*id}
+		}
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		ids := make([]ent.Value, 0, len(m.credit_allocations))
 		for id := range m.credit_allocations {
@@ -80181,7 +83913,7 @@ func (m *ChargeUsageBasedRunsMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ChargeUsageBasedRunsMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 13)
 	if m.removednext_runs != nil {
 		edges = append(edges, chargeusagebasedruns.EdgeNextRuns)
 	}
@@ -80240,7 +83972,7 @@ func (m *ChargeUsageBasedRunsMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 12)
+	edges := make([]string, 0, 13)
 	if m.clearedusage_based {
 		edges = append(edges, chargeusagebasedruns.EdgeUsageBased)
 	}
@@ -80258,6 +83990,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearedEdges() []string {
 	}
 	if m.clearedprior_run {
 		edges = append(edges, chargeusagebasedruns.EdgePriorRun)
+	}
+	if m.clearedperiodic_realization_run {
+		edges = append(edges, chargeusagebasedruns.EdgePeriodicRealizationRun)
 	}
 	if m.clearedcredit_allocations {
 		edges = append(edges, chargeusagebasedruns.EdgeCreditAllocations)
@@ -80296,6 +84031,8 @@ func (m *ChargeUsageBasedRunsMutation) EdgeCleared(name string) bool {
 		return m.clearednext_runs
 	case chargeusagebasedruns.EdgePriorRun:
 		return m.clearedprior_run
+	case chargeusagebasedruns.EdgePeriodicRealizationRun:
+		return m.clearedperiodic_realization_run
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		return m.clearedcredit_allocations
 	case chargeusagebasedruns.EdgeFiatOverageCreditAllocations:
@@ -80331,6 +84068,9 @@ func (m *ChargeUsageBasedRunsMutation) ClearEdge(name string) error {
 	case chargeusagebasedruns.EdgePriorRun:
 		m.ClearPriorRun()
 		return nil
+	case chargeusagebasedruns.EdgePeriodicRealizationRun:
+		m.ClearPeriodicRealizationRun()
+		return nil
 	case chargeusagebasedruns.EdgeInvoicedUsage:
 		m.ClearInvoicedUsage()
 		return nil
@@ -80362,6 +84102,9 @@ func (m *ChargeUsageBasedRunsMutation) ResetEdge(name string) error {
 		return nil
 	case chargeusagebasedruns.EdgePriorRun:
 		m.ResetPriorRun()
+		return nil
+	case chargeusagebasedruns.EdgePeriodicRealizationRun:
+		m.ResetPeriodicRealizationRun()
 		return nil
 	case chargeusagebasedruns.EdgeCreditAllocations:
 		m.ResetCreditAllocations()

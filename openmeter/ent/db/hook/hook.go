@@ -249,6 +249,42 @@ func (f BillingInvoiceWriteSchemaLevelFunc) Mutate(ctx context.Context, m db.Mut
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceWriteSchemaLevelMutation", m)
 }
 
+// The BillingPeriodicRealizationChargeStateFunc type is an adapter to allow the use of ordinary
+// function as BillingPeriodicRealizationChargeState mutator.
+type BillingPeriodicRealizationChargeStateFunc func(context.Context, *db.BillingPeriodicRealizationChargeStateMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingPeriodicRealizationChargeStateFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingPeriodicRealizationChargeStateMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingPeriodicRealizationChargeStateMutation", m)
+}
+
+// The BillingPeriodicRealizationRunFunc type is an adapter to allow the use of ordinary
+// function as BillingPeriodicRealizationRun mutator.
+type BillingPeriodicRealizationRunFunc func(context.Context, *db.BillingPeriodicRealizationRunMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingPeriodicRealizationRunFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingPeriodicRealizationRunMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingPeriodicRealizationRunMutation", m)
+}
+
+// The BillingPeriodicRealizationRunErrorFunc type is an adapter to allow the use of ordinary
+// function as BillingPeriodicRealizationRunError mutator.
+type BillingPeriodicRealizationRunErrorFunc func(context.Context, *db.BillingPeriodicRealizationRunErrorMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingPeriodicRealizationRunErrorFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingPeriodicRealizationRunErrorMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingPeriodicRealizationRunErrorMutation", m)
+}
+
 // The BillingProfileFunc type is an adapter to allow the use of ordinary
 // function as BillingProfile mutator.
 type BillingProfileFunc func(context.Context, *db.BillingProfileMutation) (db.Value, error)

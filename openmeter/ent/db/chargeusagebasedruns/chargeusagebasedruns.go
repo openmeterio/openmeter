@@ -56,6 +56,8 @@ const (
 	FieldSchemaLevel = "schema_level"
 	// FieldPriorRunID holds the string denoting the prior_run_id field in the database.
 	FieldPriorRunID = "prior_run_id"
+	// FieldPeriodicRealizationRunID holds the string denoting the periodic_realization_run_id field in the database.
+	FieldPeriodicRealizationRunID = "periodic_realization_run_id"
 	// FieldDetailedLinesPresent holds the string denoting the detailed_lines_present field in the database.
 	FieldDetailedLinesPresent = "detailed_lines_present"
 	// FieldDetailedLinesIncludeCreditAllocations holds the string denoting the detailed_lines_include_credit_allocations field in the database.
@@ -84,6 +86,8 @@ const (
 	EdgeNextRuns = "next_runs"
 	// EdgePriorRun holds the string denoting the prior_run edge name in mutations.
 	EdgePriorRun = "prior_run"
+	// EdgePeriodicRealizationRun holds the string denoting the periodic_realization_run edge name in mutations.
+	EdgePeriodicRealizationRun = "periodic_realization_run"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeFiatOverageCreditAllocations holds the string denoting the fiat_overage_credit_allocations edge name in mutations.
@@ -134,6 +138,13 @@ const (
 	PriorRunTable = "charge_usage_based_runs"
 	// PriorRunColumn is the table column denoting the prior_run relation/edge.
 	PriorRunColumn = "prior_run_id"
+	// PeriodicRealizationRunTable is the table that holds the periodic_realization_run relation/edge.
+	PeriodicRealizationRunTable = "charge_usage_based_runs"
+	// PeriodicRealizationRunInverseTable is the table name for the BillingPeriodicRealizationRun entity.
+	// It exists in this package in order to avoid circular dependency with the "billingperiodicrealizationrun" package.
+	PeriodicRealizationRunInverseTable = "billing_periodic_realization_runs"
+	// PeriodicRealizationRunColumn is the table column denoting the periodic_realization_run relation/edge.
+	PeriodicRealizationRunColumn = "periodic_realization_run_id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_usage_based_run_credit_allocations"
 	// CreditAllocationsInverseTable is the table name for the ChargeUsageBasedRunCreditAllocations entity.
@@ -201,6 +212,7 @@ var Columns = []string{
 	FieldServicePeriodTo,
 	FieldSchemaLevel,
 	FieldPriorRunID,
+	FieldPeriodicRealizationRunID,
 	FieldDetailedLinesPresent,
 	FieldDetailedLinesIncludeCreditAllocations,
 	FieldLineID,
@@ -376,6 +388,11 @@ func ByPriorRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPriorRunID, opts...).ToFunc()
 }
 
+// ByPeriodicRealizationRunID orders the results by the periodic_realization_run_id field.
+func ByPeriodicRealizationRunID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriodicRealizationRunID, opts...).ToFunc()
+}
+
 // ByDetailedLinesPresent orders the results by the detailed_lines_present field.
 func ByDetailedLinesPresent(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDetailedLinesPresent, opts...).ToFunc()
@@ -462,6 +479,13 @@ func ByNextRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 func ByPriorRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newPriorRunStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByPeriodicRealizationRunField orders the results by periodic_realization_run field.
+func ByPeriodicRealizationRunField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPeriodicRealizationRunStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -574,6 +598,13 @@ func newPriorRunStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, PriorRunTable, PriorRunColumn),
+	)
+}
+func newPeriodicRealizationRunStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PeriodicRealizationRunInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PeriodicRealizationRunTable, PeriodicRealizationRunColumn),
 	)
 }
 func newCreditAllocationsStep() *sqlgraph.Step {

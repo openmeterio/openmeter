@@ -704,6 +704,66 @@ func (e *BillingInvoiceValidationIssue) GetDeletedAt() *time.Time {
 	return e.DeletedAt
 }
 
+func (e *BillingPeriodicRealizationChargeState) GetID() string {
+	return e.ID
+}
+
+func (e *BillingPeriodicRealizationChargeState) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *BillingPeriodicRealizationChargeState) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *BillingPeriodicRealizationChargeState) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *BillingPeriodicRealizationChargeState) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *BillingPeriodicRealizationRun) GetID() string {
+	return e.ID
+}
+
+func (e *BillingPeriodicRealizationRun) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *BillingPeriodicRealizationRun) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *BillingPeriodicRealizationRun) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *BillingPeriodicRealizationRun) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *BillingPeriodicRealizationRunError) GetID() string {
+	return e.ID
+}
+
+func (e *BillingPeriodicRealizationRunError) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *BillingPeriodicRealizationRunError) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *BillingPeriodicRealizationRunError) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *BillingPeriodicRealizationRunError) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
 func (e *BillingProfile) GetID() string {
 	return e.ID
 }

@@ -35,6 +35,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicewriteschemalevel"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrunerror"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -157,6 +160,12 @@ type Client struct {
 	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
 	// BillingInvoiceWriteSchemaLevel is the client for interacting with the BillingInvoiceWriteSchemaLevel builders.
 	BillingInvoiceWriteSchemaLevel *BillingInvoiceWriteSchemaLevelClient
+	// BillingPeriodicRealizationChargeState is the client for interacting with the BillingPeriodicRealizationChargeState builders.
+	BillingPeriodicRealizationChargeState *BillingPeriodicRealizationChargeStateClient
+	// BillingPeriodicRealizationRun is the client for interacting with the BillingPeriodicRealizationRun builders.
+	BillingPeriodicRealizationRun *BillingPeriodicRealizationRunClient
+	// BillingPeriodicRealizationRunError is the client for interacting with the BillingPeriodicRealizationRunError builders.
+	BillingPeriodicRealizationRunError *BillingPeriodicRealizationRunErrorClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
 	// BillingSequenceNumbers is the client for interacting with the BillingSequenceNumbers builders.
@@ -336,6 +345,9 @@ func (c *Client) init() {
 	c.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(c.config)
 	c.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(c.config)
 	c.BillingInvoiceWriteSchemaLevel = NewBillingInvoiceWriteSchemaLevelClient(c.config)
+	c.BillingPeriodicRealizationChargeState = NewBillingPeriodicRealizationChargeStateClient(c.config)
+	c.BillingPeriodicRealizationRun = NewBillingPeriodicRealizationRunClient(c.config)
+	c.BillingPeriodicRealizationRunError = NewBillingPeriodicRealizationRunErrorClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
 	c.BillingSequenceNumbers = NewBillingSequenceNumbersClient(c.config)
 	c.BillingStandardInvoiceDetailedLine = NewBillingStandardInvoiceDetailedLineClient(c.config)
@@ -500,31 +512,34 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                                ctx,
-		config:                             cfg,
-		Addon:                              NewAddonClient(cfg),
-		AddonRateCard:                      NewAddonRateCardClient(cfg),
-		App:                                NewAppClient(cfg),
-		AppCustomInvoicing:                 NewAppCustomInvoicingClient(cfg),
-		AppCustomInvoicingCustomer:         NewAppCustomInvoicingCustomerClient(cfg),
-		AppCustomer:                        NewAppCustomerClient(cfg),
-		AppStripe:                          NewAppStripeClient(cfg),
-		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
-		AppStripeInvoiceGeneration:         NewAppStripeInvoiceGenerationClient(cfg),
-		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
-		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
-		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
-		BillingGatheringInvoiceLine:        NewBillingGatheringInvoiceLineClient(cfg),
-		BillingInvoice:                     NewBillingInvoiceClient(cfg),
-		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
-		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
-		BillingInvoiceSplitLineGroup:       NewBillingInvoiceSplitLineGroupClient(cfg),
-		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
-		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
-		BillingInvoiceWriteSchemaLevel:     NewBillingInvoiceWriteSchemaLevelClient(cfg),
-		BillingProfile:                     NewBillingProfileClient(cfg),
-		BillingSequenceNumbers:             NewBillingSequenceNumbersClient(cfg),
-		BillingStandardInvoiceDetailedLine: NewBillingStandardInvoiceDetailedLineClient(cfg),
+		ctx:                                   ctx,
+		config:                                cfg,
+		Addon:                                 NewAddonClient(cfg),
+		AddonRateCard:                         NewAddonRateCardClient(cfg),
+		App:                                   NewAppClient(cfg),
+		AppCustomInvoicing:                    NewAppCustomInvoicingClient(cfg),
+		AppCustomInvoicingCustomer:            NewAppCustomInvoicingCustomerClient(cfg),
+		AppCustomer:                           NewAppCustomerClient(cfg),
+		AppStripe:                             NewAppStripeClient(cfg),
+		AppStripeCustomer:                     NewAppStripeCustomerClient(cfg),
+		AppStripeInvoiceGeneration:            NewAppStripeInvoiceGenerationClient(cfg),
+		BalanceSnapshot:                       NewBalanceSnapshotClient(cfg),
+		BillingCustomerLock:                   NewBillingCustomerLockClient(cfg),
+		BillingCustomerOverride:               NewBillingCustomerOverrideClient(cfg),
+		BillingGatheringInvoiceLine:           NewBillingGatheringInvoiceLineClient(cfg),
+		BillingInvoice:                        NewBillingInvoiceClient(cfg),
+		BillingInvoiceLine:                    NewBillingInvoiceLineClient(cfg),
+		BillingInvoiceLineUsageDiscount:       NewBillingInvoiceLineUsageDiscountClient(cfg),
+		BillingInvoiceSplitLineGroup:          NewBillingInvoiceSplitLineGroupClient(cfg),
+		BillingInvoiceUsageBasedLineConfig:    NewBillingInvoiceUsageBasedLineConfigClient(cfg),
+		BillingInvoiceValidationIssue:         NewBillingInvoiceValidationIssueClient(cfg),
+		BillingInvoiceWriteSchemaLevel:        NewBillingInvoiceWriteSchemaLevelClient(cfg),
+		BillingPeriodicRealizationChargeState: NewBillingPeriodicRealizationChargeStateClient(cfg),
+		BillingPeriodicRealizationRun:         NewBillingPeriodicRealizationRunClient(cfg),
+		BillingPeriodicRealizationRunError:    NewBillingPeriodicRealizationRunErrorClient(cfg),
+		BillingProfile:                        NewBillingProfileClient(cfg),
+		BillingSequenceNumbers:                NewBillingSequenceNumbersClient(cfg),
+		BillingStandardInvoiceDetailedLine:    NewBillingStandardInvoiceDetailedLineClient(cfg),
 		BillingStandardInvoiceDetailedLineAmountDiscount: NewBillingStandardInvoiceDetailedLineAmountDiscountClient(cfg),
 		BillingWorkflowConfig:                            NewBillingWorkflowConfigClient(cfg),
 		Charge:                                           NewChargeClient(cfg),
@@ -613,31 +628,34 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                                ctx,
-		config:                             cfg,
-		Addon:                              NewAddonClient(cfg),
-		AddonRateCard:                      NewAddonRateCardClient(cfg),
-		App:                                NewAppClient(cfg),
-		AppCustomInvoicing:                 NewAppCustomInvoicingClient(cfg),
-		AppCustomInvoicingCustomer:         NewAppCustomInvoicingCustomerClient(cfg),
-		AppCustomer:                        NewAppCustomerClient(cfg),
-		AppStripe:                          NewAppStripeClient(cfg),
-		AppStripeCustomer:                  NewAppStripeCustomerClient(cfg),
-		AppStripeInvoiceGeneration:         NewAppStripeInvoiceGenerationClient(cfg),
-		BalanceSnapshot:                    NewBalanceSnapshotClient(cfg),
-		BillingCustomerLock:                NewBillingCustomerLockClient(cfg),
-		BillingCustomerOverride:            NewBillingCustomerOverrideClient(cfg),
-		BillingGatheringInvoiceLine:        NewBillingGatheringInvoiceLineClient(cfg),
-		BillingInvoice:                     NewBillingInvoiceClient(cfg),
-		BillingInvoiceLine:                 NewBillingInvoiceLineClient(cfg),
-		BillingInvoiceLineUsageDiscount:    NewBillingInvoiceLineUsageDiscountClient(cfg),
-		BillingInvoiceSplitLineGroup:       NewBillingInvoiceSplitLineGroupClient(cfg),
-		BillingInvoiceUsageBasedLineConfig: NewBillingInvoiceUsageBasedLineConfigClient(cfg),
-		BillingInvoiceValidationIssue:      NewBillingInvoiceValidationIssueClient(cfg),
-		BillingInvoiceWriteSchemaLevel:     NewBillingInvoiceWriteSchemaLevelClient(cfg),
-		BillingProfile:                     NewBillingProfileClient(cfg),
-		BillingSequenceNumbers:             NewBillingSequenceNumbersClient(cfg),
-		BillingStandardInvoiceDetailedLine: NewBillingStandardInvoiceDetailedLineClient(cfg),
+		ctx:                                   ctx,
+		config:                                cfg,
+		Addon:                                 NewAddonClient(cfg),
+		AddonRateCard:                         NewAddonRateCardClient(cfg),
+		App:                                   NewAppClient(cfg),
+		AppCustomInvoicing:                    NewAppCustomInvoicingClient(cfg),
+		AppCustomInvoicingCustomer:            NewAppCustomInvoicingCustomerClient(cfg),
+		AppCustomer:                           NewAppCustomerClient(cfg),
+		AppStripe:                             NewAppStripeClient(cfg),
+		AppStripeCustomer:                     NewAppStripeCustomerClient(cfg),
+		AppStripeInvoiceGeneration:            NewAppStripeInvoiceGenerationClient(cfg),
+		BalanceSnapshot:                       NewBalanceSnapshotClient(cfg),
+		BillingCustomerLock:                   NewBillingCustomerLockClient(cfg),
+		BillingCustomerOverride:               NewBillingCustomerOverrideClient(cfg),
+		BillingGatheringInvoiceLine:           NewBillingGatheringInvoiceLineClient(cfg),
+		BillingInvoice:                        NewBillingInvoiceClient(cfg),
+		BillingInvoiceLine:                    NewBillingInvoiceLineClient(cfg),
+		BillingInvoiceLineUsageDiscount:       NewBillingInvoiceLineUsageDiscountClient(cfg),
+		BillingInvoiceSplitLineGroup:          NewBillingInvoiceSplitLineGroupClient(cfg),
+		BillingInvoiceUsageBasedLineConfig:    NewBillingInvoiceUsageBasedLineConfigClient(cfg),
+		BillingInvoiceValidationIssue:         NewBillingInvoiceValidationIssueClient(cfg),
+		BillingInvoiceWriteSchemaLevel:        NewBillingInvoiceWriteSchemaLevelClient(cfg),
+		BillingPeriodicRealizationChargeState: NewBillingPeriodicRealizationChargeStateClient(cfg),
+		BillingPeriodicRealizationRun:         NewBillingPeriodicRealizationRunClient(cfg),
+		BillingPeriodicRealizationRunError:    NewBillingPeriodicRealizationRunErrorClient(cfg),
+		BillingProfile:                        NewBillingProfileClient(cfg),
+		BillingSequenceNumbers:                NewBillingSequenceNumbersClient(cfg),
+		BillingStandardInvoiceDetailedLine:    NewBillingStandardInvoiceDetailedLineClient(cfg),
 		BillingStandardInvoiceDetailedLineAmountDiscount: NewBillingStandardInvoiceDetailedLineAmountDiscountClient(cfg),
 		BillingWorkflowConfig:                            NewBillingWorkflowConfigClient(cfg),
 		Charge:                                           NewChargeClient(cfg),
@@ -745,8 +763,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BillingInvoiceLine, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
 		c.BillingInvoiceValidationIssue, c.BillingInvoiceWriteSchemaLevel,
-		c.BillingProfile, c.BillingSequenceNumbers,
-		c.BillingStandardInvoiceDetailedLine,
+		c.BillingPeriodicRealizationChargeState, c.BillingPeriodicRealizationRun,
+		c.BillingPeriodicRealizationRunError, c.BillingProfile,
+		c.BillingSequenceNumbers, c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCostBasis,
 		c.ChargeCreditPurchaseCreditGrant, c.ChargeCreditPurchaseExternalPayment,
@@ -787,8 +806,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BillingInvoiceLine, c.BillingInvoiceLineUsageDiscount,
 		c.BillingInvoiceSplitLineGroup, c.BillingInvoiceUsageBasedLineConfig,
 		c.BillingInvoiceValidationIssue, c.BillingInvoiceWriteSchemaLevel,
-		c.BillingProfile, c.BillingSequenceNumbers,
-		c.BillingStandardInvoiceDetailedLine,
+		c.BillingPeriodicRealizationChargeState, c.BillingPeriodicRealizationRun,
+		c.BillingPeriodicRealizationRunError, c.BillingProfile,
+		c.BillingSequenceNumbers, c.BillingStandardInvoiceDetailedLine,
 		c.BillingStandardInvoiceDetailedLineAmountDiscount, c.BillingWorkflowConfig,
 		c.Charge, c.ChargeCreditPurchase, c.ChargeCreditPurchaseCostBasis,
 		c.ChargeCreditPurchaseCreditGrant, c.ChargeCreditPurchaseExternalPayment,
@@ -861,6 +881,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingInvoiceValidationIssue.mutate(ctx, m)
 	case *BillingInvoiceWriteSchemaLevelMutation:
 		return c.BillingInvoiceWriteSchemaLevel.mutate(ctx, m)
+	case *BillingPeriodicRealizationChargeStateMutation:
+		return c.BillingPeriodicRealizationChargeState.mutate(ctx, m)
+	case *BillingPeriodicRealizationRunMutation:
+		return c.BillingPeriodicRealizationRun.mutate(ctx, m)
+	case *BillingPeriodicRealizationRunErrorMutation:
+		return c.BillingPeriodicRealizationRunError.mutate(ctx, m)
 	case *BillingProfileMutation:
 		return c.BillingProfile.mutate(ctx, m)
 	case *BillingSequenceNumbersMutation:
@@ -4853,6 +4879,549 @@ func (c *BillingInvoiceWriteSchemaLevelClient) mutate(ctx context.Context, m *Bi
 		return (&BillingInvoiceWriteSchemaLevelDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingInvoiceWriteSchemaLevel mutation op: %q", m.Op())
+	}
+}
+
+// BillingPeriodicRealizationChargeStateClient is a client for the BillingPeriodicRealizationChargeState schema.
+type BillingPeriodicRealizationChargeStateClient struct {
+	config
+}
+
+// NewBillingPeriodicRealizationChargeStateClient returns a client for the BillingPeriodicRealizationChargeState from the given config.
+func NewBillingPeriodicRealizationChargeStateClient(c config) *BillingPeriodicRealizationChargeStateClient {
+	return &BillingPeriodicRealizationChargeStateClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingperiodicrealizationchargestate.Hooks(f(g(h())))`.
+func (c *BillingPeriodicRealizationChargeStateClient) Use(hooks ...Hook) {
+	c.hooks.BillingPeriodicRealizationChargeState = append(c.hooks.BillingPeriodicRealizationChargeState, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingperiodicrealizationchargestate.Intercept(f(g(h())))`.
+func (c *BillingPeriodicRealizationChargeStateClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingPeriodicRealizationChargeState = append(c.inters.BillingPeriodicRealizationChargeState, interceptors...)
+}
+
+// Create returns a builder for creating a BillingPeriodicRealizationChargeState entity.
+func (c *BillingPeriodicRealizationChargeStateClient) Create() *BillingPeriodicRealizationChargeStateCreate {
+	mutation := newBillingPeriodicRealizationChargeStateMutation(c.config, OpCreate)
+	return &BillingPeriodicRealizationChargeStateCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingPeriodicRealizationChargeState entities.
+func (c *BillingPeriodicRealizationChargeStateClient) CreateBulk(builders ...*BillingPeriodicRealizationChargeStateCreate) *BillingPeriodicRealizationChargeStateCreateBulk {
+	return &BillingPeriodicRealizationChargeStateCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingPeriodicRealizationChargeStateClient) MapCreateBulk(slice any, setFunc func(*BillingPeriodicRealizationChargeStateCreate, int)) *BillingPeriodicRealizationChargeStateCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingPeriodicRealizationChargeStateCreateBulk{err: fmt.Errorf("calling to BillingPeriodicRealizationChargeStateClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingPeriodicRealizationChargeStateCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingPeriodicRealizationChargeStateCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingPeriodicRealizationChargeState.
+func (c *BillingPeriodicRealizationChargeStateClient) Update() *BillingPeriodicRealizationChargeStateUpdate {
+	mutation := newBillingPeriodicRealizationChargeStateMutation(c.config, OpUpdate)
+	return &BillingPeriodicRealizationChargeStateUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingPeriodicRealizationChargeStateClient) UpdateOne(_m *BillingPeriodicRealizationChargeState) *BillingPeriodicRealizationChargeStateUpdateOne {
+	mutation := newBillingPeriodicRealizationChargeStateMutation(c.config, OpUpdateOne, withBillingPeriodicRealizationChargeState(_m))
+	return &BillingPeriodicRealizationChargeStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingPeriodicRealizationChargeStateClient) UpdateOneID(id string) *BillingPeriodicRealizationChargeStateUpdateOne {
+	mutation := newBillingPeriodicRealizationChargeStateMutation(c.config, OpUpdateOne, withBillingPeriodicRealizationChargeStateID(id))
+	return &BillingPeriodicRealizationChargeStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingPeriodicRealizationChargeState.
+func (c *BillingPeriodicRealizationChargeStateClient) Delete() *BillingPeriodicRealizationChargeStateDelete {
+	mutation := newBillingPeriodicRealizationChargeStateMutation(c.config, OpDelete)
+	return &BillingPeriodicRealizationChargeStateDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingPeriodicRealizationChargeStateClient) DeleteOne(_m *BillingPeriodicRealizationChargeState) *BillingPeriodicRealizationChargeStateDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingPeriodicRealizationChargeStateClient) DeleteOneID(id string) *BillingPeriodicRealizationChargeStateDeleteOne {
+	builder := c.Delete().Where(billingperiodicrealizationchargestate.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingPeriodicRealizationChargeStateDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingPeriodicRealizationChargeState.
+func (c *BillingPeriodicRealizationChargeStateClient) Query() *BillingPeriodicRealizationChargeStateQuery {
+	return &BillingPeriodicRealizationChargeStateQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingPeriodicRealizationChargeState},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingPeriodicRealizationChargeState entity by its id.
+func (c *BillingPeriodicRealizationChargeStateClient) Get(ctx context.Context, id string) (*BillingPeriodicRealizationChargeState, error) {
+	return c.Query().Where(billingperiodicrealizationchargestate.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingPeriodicRealizationChargeStateClient) GetX(ctx context.Context, id string) *BillingPeriodicRealizationChargeState {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUsageBasedCharge queries the usage_based_charge edge of a BillingPeriodicRealizationChargeState.
+func (c *BillingPeriodicRealizationChargeStateClient) QueryUsageBasedCharge(_m *BillingPeriodicRealizationChargeState) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationchargestate.Table, billingperiodicrealizationchargestate.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, billingperiodicrealizationchargestate.UsageBasedChargeTable, billingperiodicrealizationchargestate.UsageBasedChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTargetRun queries the target_run edge of a BillingPeriodicRealizationChargeState.
+func (c *BillingPeriodicRealizationChargeStateClient) QueryTargetRun(_m *BillingPeriodicRealizationChargeState) *BillingPeriodicRealizationRunQuery {
+	query := (&BillingPeriodicRealizationRunClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationchargestate.Table, billingperiodicrealizationchargestate.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingperiodicrealizationchargestate.TargetRunTable, billingperiodicrealizationchargestate.TargetRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingPeriodicRealizationChargeStateClient) Hooks() []Hook {
+	return c.hooks.BillingPeriodicRealizationChargeState
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingPeriodicRealizationChargeStateClient) Interceptors() []Interceptor {
+	return c.inters.BillingPeriodicRealizationChargeState
+}
+
+func (c *BillingPeriodicRealizationChargeStateClient) mutate(ctx context.Context, m *BillingPeriodicRealizationChargeStateMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingPeriodicRealizationChargeStateCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingPeriodicRealizationChargeStateUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingPeriodicRealizationChargeStateUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingPeriodicRealizationChargeStateDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingPeriodicRealizationChargeState mutation op: %q", m.Op())
+	}
+}
+
+// BillingPeriodicRealizationRunClient is a client for the BillingPeriodicRealizationRun schema.
+type BillingPeriodicRealizationRunClient struct {
+	config
+}
+
+// NewBillingPeriodicRealizationRunClient returns a client for the BillingPeriodicRealizationRun from the given config.
+func NewBillingPeriodicRealizationRunClient(c config) *BillingPeriodicRealizationRunClient {
+	return &BillingPeriodicRealizationRunClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingperiodicrealizationrun.Hooks(f(g(h())))`.
+func (c *BillingPeriodicRealizationRunClient) Use(hooks ...Hook) {
+	c.hooks.BillingPeriodicRealizationRun = append(c.hooks.BillingPeriodicRealizationRun, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingperiodicrealizationrun.Intercept(f(g(h())))`.
+func (c *BillingPeriodicRealizationRunClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingPeriodicRealizationRun = append(c.inters.BillingPeriodicRealizationRun, interceptors...)
+}
+
+// Create returns a builder for creating a BillingPeriodicRealizationRun entity.
+func (c *BillingPeriodicRealizationRunClient) Create() *BillingPeriodicRealizationRunCreate {
+	mutation := newBillingPeriodicRealizationRunMutation(c.config, OpCreate)
+	return &BillingPeriodicRealizationRunCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingPeriodicRealizationRun entities.
+func (c *BillingPeriodicRealizationRunClient) CreateBulk(builders ...*BillingPeriodicRealizationRunCreate) *BillingPeriodicRealizationRunCreateBulk {
+	return &BillingPeriodicRealizationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingPeriodicRealizationRunClient) MapCreateBulk(slice any, setFunc func(*BillingPeriodicRealizationRunCreate, int)) *BillingPeriodicRealizationRunCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingPeriodicRealizationRunCreateBulk{err: fmt.Errorf("calling to BillingPeriodicRealizationRunClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingPeriodicRealizationRunCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingPeriodicRealizationRunCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) Update() *BillingPeriodicRealizationRunUpdate {
+	mutation := newBillingPeriodicRealizationRunMutation(c.config, OpUpdate)
+	return &BillingPeriodicRealizationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingPeriodicRealizationRunClient) UpdateOne(_m *BillingPeriodicRealizationRun) *BillingPeriodicRealizationRunUpdateOne {
+	mutation := newBillingPeriodicRealizationRunMutation(c.config, OpUpdateOne, withBillingPeriodicRealizationRun(_m))
+	return &BillingPeriodicRealizationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingPeriodicRealizationRunClient) UpdateOneID(id string) *BillingPeriodicRealizationRunUpdateOne {
+	mutation := newBillingPeriodicRealizationRunMutation(c.config, OpUpdateOne, withBillingPeriodicRealizationRunID(id))
+	return &BillingPeriodicRealizationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) Delete() *BillingPeriodicRealizationRunDelete {
+	mutation := newBillingPeriodicRealizationRunMutation(c.config, OpDelete)
+	return &BillingPeriodicRealizationRunDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingPeriodicRealizationRunClient) DeleteOne(_m *BillingPeriodicRealizationRun) *BillingPeriodicRealizationRunDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingPeriodicRealizationRunClient) DeleteOneID(id string) *BillingPeriodicRealizationRunDeleteOne {
+	builder := c.Delete().Where(billingperiodicrealizationrun.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingPeriodicRealizationRunDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) Query() *BillingPeriodicRealizationRunQuery {
+	return &BillingPeriodicRealizationRunQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingPeriodicRealizationRun},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingPeriodicRealizationRun entity by its id.
+func (c *BillingPeriodicRealizationRunClient) Get(ctx context.Context, id string) (*BillingPeriodicRealizationRun, error) {
+	return c.Query().Where(billingperiodicrealizationrun.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingPeriodicRealizationRunClient) GetX(ctx context.Context, id string) *BillingPeriodicRealizationRun {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryNextRun queries the next_run edge of a BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) QueryNextRun(_m *BillingPeriodicRealizationRun) *BillingPeriodicRealizationRunQuery {
+	query := (&BillingPeriodicRealizationRunClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, billingperiodicrealizationrun.NextRunTable, billingperiodicrealizationrun.NextRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPreviousRun queries the previous_run edge of a BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) QueryPreviousRun(_m *BillingPeriodicRealizationRun) *BillingPeriodicRealizationRunQuery {
+	query := (&BillingPeriodicRealizationRunClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, billingperiodicrealizationrun.PreviousRunTable, billingperiodicrealizationrun.PreviousRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryErrors queries the errors edge of a BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) QueryErrors(_m *BillingPeriodicRealizationRun) *BillingPeriodicRealizationRunErrorQuery {
+	query := (&BillingPeriodicRealizationRunErrorClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationrunerror.Table, billingperiodicrealizationrunerror.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingperiodicrealizationrun.ErrorsTable, billingperiodicrealizationrun.ErrorsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChargeStates queries the charge_states edge of a BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) QueryChargeStates(_m *BillingPeriodicRealizationRun) *BillingPeriodicRealizationChargeStateQuery {
+	query := (&BillingPeriodicRealizationChargeStateClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationchargestate.Table, billingperiodicrealizationchargestate.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingperiodicrealizationrun.ChargeStatesTable, billingperiodicrealizationrun.ChargeStatesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUsageBasedRuns queries the usage_based_runs edge of a BillingPeriodicRealizationRun.
+func (c *BillingPeriodicRealizationRunClient) QueryUsageBasedRuns(_m *BillingPeriodicRealizationRun) *ChargeUsageBasedRunsQuery {
+	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID, id),
+			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, billingperiodicrealizationrun.UsageBasedRunsTable, billingperiodicrealizationrun.UsageBasedRunsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingPeriodicRealizationRunClient) Hooks() []Hook {
+	return c.hooks.BillingPeriodicRealizationRun
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingPeriodicRealizationRunClient) Interceptors() []Interceptor {
+	return c.inters.BillingPeriodicRealizationRun
+}
+
+func (c *BillingPeriodicRealizationRunClient) mutate(ctx context.Context, m *BillingPeriodicRealizationRunMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingPeriodicRealizationRunCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingPeriodicRealizationRunUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingPeriodicRealizationRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingPeriodicRealizationRunDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingPeriodicRealizationRun mutation op: %q", m.Op())
+	}
+}
+
+// BillingPeriodicRealizationRunErrorClient is a client for the BillingPeriodicRealizationRunError schema.
+type BillingPeriodicRealizationRunErrorClient struct {
+	config
+}
+
+// NewBillingPeriodicRealizationRunErrorClient returns a client for the BillingPeriodicRealizationRunError from the given config.
+func NewBillingPeriodicRealizationRunErrorClient(c config) *BillingPeriodicRealizationRunErrorClient {
+	return &BillingPeriodicRealizationRunErrorClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `billingperiodicrealizationrunerror.Hooks(f(g(h())))`.
+func (c *BillingPeriodicRealizationRunErrorClient) Use(hooks ...Hook) {
+	c.hooks.BillingPeriodicRealizationRunError = append(c.hooks.BillingPeriodicRealizationRunError, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `billingperiodicrealizationrunerror.Intercept(f(g(h())))`.
+func (c *BillingPeriodicRealizationRunErrorClient) Intercept(interceptors ...Interceptor) {
+	c.inters.BillingPeriodicRealizationRunError = append(c.inters.BillingPeriodicRealizationRunError, interceptors...)
+}
+
+// Create returns a builder for creating a BillingPeriodicRealizationRunError entity.
+func (c *BillingPeriodicRealizationRunErrorClient) Create() *BillingPeriodicRealizationRunErrorCreate {
+	mutation := newBillingPeriodicRealizationRunErrorMutation(c.config, OpCreate)
+	return &BillingPeriodicRealizationRunErrorCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of BillingPeriodicRealizationRunError entities.
+func (c *BillingPeriodicRealizationRunErrorClient) CreateBulk(builders ...*BillingPeriodicRealizationRunErrorCreate) *BillingPeriodicRealizationRunErrorCreateBulk {
+	return &BillingPeriodicRealizationRunErrorCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BillingPeriodicRealizationRunErrorClient) MapCreateBulk(slice any, setFunc func(*BillingPeriodicRealizationRunErrorCreate, int)) *BillingPeriodicRealizationRunErrorCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BillingPeriodicRealizationRunErrorCreateBulk{err: fmt.Errorf("calling to BillingPeriodicRealizationRunErrorClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BillingPeriodicRealizationRunErrorCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BillingPeriodicRealizationRunErrorCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for BillingPeriodicRealizationRunError.
+func (c *BillingPeriodicRealizationRunErrorClient) Update() *BillingPeriodicRealizationRunErrorUpdate {
+	mutation := newBillingPeriodicRealizationRunErrorMutation(c.config, OpUpdate)
+	return &BillingPeriodicRealizationRunErrorUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BillingPeriodicRealizationRunErrorClient) UpdateOne(_m *BillingPeriodicRealizationRunError) *BillingPeriodicRealizationRunErrorUpdateOne {
+	mutation := newBillingPeriodicRealizationRunErrorMutation(c.config, OpUpdateOne, withBillingPeriodicRealizationRunError(_m))
+	return &BillingPeriodicRealizationRunErrorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BillingPeriodicRealizationRunErrorClient) UpdateOneID(id string) *BillingPeriodicRealizationRunErrorUpdateOne {
+	mutation := newBillingPeriodicRealizationRunErrorMutation(c.config, OpUpdateOne, withBillingPeriodicRealizationRunErrorID(id))
+	return &BillingPeriodicRealizationRunErrorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for BillingPeriodicRealizationRunError.
+func (c *BillingPeriodicRealizationRunErrorClient) Delete() *BillingPeriodicRealizationRunErrorDelete {
+	mutation := newBillingPeriodicRealizationRunErrorMutation(c.config, OpDelete)
+	return &BillingPeriodicRealizationRunErrorDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BillingPeriodicRealizationRunErrorClient) DeleteOne(_m *BillingPeriodicRealizationRunError) *BillingPeriodicRealizationRunErrorDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BillingPeriodicRealizationRunErrorClient) DeleteOneID(id string) *BillingPeriodicRealizationRunErrorDeleteOne {
+	builder := c.Delete().Where(billingperiodicrealizationrunerror.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BillingPeriodicRealizationRunErrorDeleteOne{builder}
+}
+
+// Query returns a query builder for BillingPeriodicRealizationRunError.
+func (c *BillingPeriodicRealizationRunErrorClient) Query() *BillingPeriodicRealizationRunErrorQuery {
+	return &BillingPeriodicRealizationRunErrorQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBillingPeriodicRealizationRunError},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a BillingPeriodicRealizationRunError entity by its id.
+func (c *BillingPeriodicRealizationRunErrorClient) Get(ctx context.Context, id string) (*BillingPeriodicRealizationRunError, error) {
+	return c.Query().Where(billingperiodicrealizationrunerror.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BillingPeriodicRealizationRunErrorClient) GetX(ctx context.Context, id string) *BillingPeriodicRealizationRunError {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRun queries the run edge of a BillingPeriodicRealizationRunError.
+func (c *BillingPeriodicRealizationRunErrorClient) QueryRun(_m *BillingPeriodicRealizationRunError) *BillingPeriodicRealizationRunQuery {
+	query := (&BillingPeriodicRealizationRunClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationrunerror.Table, billingperiodicrealizationrunerror.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingperiodicrealizationrunerror.RunTable, billingperiodicrealizationrunerror.RunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUsageBasedCharge queries the usage_based_charge edge of a BillingPeriodicRealizationRunError.
+func (c *BillingPeriodicRealizationRunErrorClient) QueryUsageBasedCharge(_m *BillingPeriodicRealizationRunError) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billingperiodicrealizationrunerror.Table, billingperiodicrealizationrunerror.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billingperiodicrealizationrunerror.UsageBasedChargeTable, billingperiodicrealizationrunerror.UsageBasedChargeColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BillingPeriodicRealizationRunErrorClient) Hooks() []Hook {
+	return c.hooks.BillingPeriodicRealizationRunError
+}
+
+// Interceptors returns the client interceptors.
+func (c *BillingPeriodicRealizationRunErrorClient) Interceptors() []Interceptor {
+	return c.inters.BillingPeriodicRealizationRunError
+}
+
+func (c *BillingPeriodicRealizationRunErrorClient) mutate(ctx context.Context, m *BillingPeriodicRealizationRunErrorMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BillingPeriodicRealizationRunErrorCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BillingPeriodicRealizationRunErrorUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BillingPeriodicRealizationRunErrorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BillingPeriodicRealizationRunErrorDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown BillingPeriodicRealizationRunError mutation op: %q", m.Op())
 	}
 }
 
@@ -8920,6 +9489,38 @@ func (c *ChargeUsageBasedClient) QueryIntentOverride(_m *ChargeUsageBased) *Char
 	return query
 }
 
+// QueryPeriodicRealizationState queries the periodic_realization_state edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryPeriodicRealizationState(_m *ChargeUsageBased) *BillingPeriodicRealizationChargeStateQuery {
+	query := (&BillingPeriodicRealizationChargeStateClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationchargestate.Table, billingperiodicrealizationchargestate.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeusagebased.PeriodicRealizationStateTable, chargeusagebased.PeriodicRealizationStateColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPeriodicRealizationErrors queries the periodic_realization_errors edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryPeriodicRealizationErrors(_m *ChargeUsageBased) *BillingPeriodicRealizationRunErrorQuery {
+	query := (&BillingPeriodicRealizationRunErrorClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationrunerror.Table, billingperiodicrealizationrunerror.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebased.PeriodicRealizationErrorsTable, chargeusagebased.PeriodicRealizationErrorsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QuerySubscription queries the subscription edge of a ChargeUsageBased.
 func (c *ChargeUsageBasedClient) QuerySubscription(_m *ChargeUsageBased) *SubscriptionQuery {
 	query := (&SubscriptionClient{config: c.config}).Query()
@@ -10441,6 +11042,22 @@ func (c *ChargeUsageBasedRunsClient) QueryPriorRun(_m *ChargeUsageBasedRuns) *Ch
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.PriorRunTable, chargeusagebasedruns.PriorRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPeriodicRealizationRun queries the periodic_realization_run edge of a ChargeUsageBasedRuns.
+func (c *ChargeUsageBasedRunsClient) QueryPeriodicRealizationRun(_m *ChargeUsageBasedRuns) *BillingPeriodicRealizationRunQuery {
+	query := (&BillingPeriodicRealizationRunClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, id),
+			sqlgraph.To(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.PeriodicRealizationRunTable, chargeusagebasedruns.PeriodicRealizationRunColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -18796,8 +19413,9 @@ type (
 		BillingGatheringInvoiceLine, BillingInvoice, BillingInvoiceLine,
 		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
 		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
-		BillingInvoiceWriteSchemaLevel, BillingProfile, BillingSequenceNumbers,
-		BillingStandardInvoiceDetailedLine,
+		BillingInvoiceWriteSchemaLevel, BillingPeriodicRealizationChargeState,
+		BillingPeriodicRealizationRun, BillingPeriodicRealizationRunError,
+		BillingProfile, BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCostBasis,
 		ChargeCreditPurchaseCreditGrant, ChargeCreditPurchaseExternalPayment,
@@ -18828,8 +19446,9 @@ type (
 		BillingGatheringInvoiceLine, BillingInvoice, BillingInvoiceLine,
 		BillingInvoiceLineUsageDiscount, BillingInvoiceSplitLineGroup,
 		BillingInvoiceUsageBasedLineConfig, BillingInvoiceValidationIssue,
-		BillingInvoiceWriteSchemaLevel, BillingProfile, BillingSequenceNumbers,
-		BillingStandardInvoiceDetailedLine,
+		BillingInvoiceWriteSchemaLevel, BillingPeriodicRealizationChargeState,
+		BillingPeriodicRealizationRun, BillingPeriodicRealizationRunError,
+		BillingProfile, BillingSequenceNumbers, BillingStandardInvoiceDetailedLine,
 		BillingStandardInvoiceDetailedLineAmountDiscount, BillingWorkflowConfig,
 		Charge, ChargeCreditPurchase, ChargeCreditPurchaseCostBasis,
 		ChargeCreditPurchaseCreditGrant, ChargeCreditPurchaseExternalPayment,

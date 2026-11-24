@@ -157,6 +157,11 @@ func PriorRunID(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldPriorRunID, v))
 }
 
+// PeriodicRealizationRunID applies equality check predicate on the "periodic_realization_run_id" field. It's identical to PeriodicRealizationRunIDEQ.
+func PeriodicRealizationRunID(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldPeriodicRealizationRunID, v))
+}
+
 // DetailedLinesPresent applies equality check predicate on the "detailed_lines_present" field. It's identical to DetailedLinesPresentEQ.
 func DetailedLinesPresent(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
@@ -1097,6 +1102,81 @@ func PriorRunIDContainsFold(v string) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldContainsFold(FieldPriorRunID, v))
 }
 
+// PeriodicRealizationRunIDEQ applies the EQ predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDNEQ applies the NEQ predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDNEQ(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNEQ(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDIn applies the In predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIn(FieldPeriodicRealizationRunID, vs...))
+}
+
+// PeriodicRealizationRunIDNotIn applies the NotIn predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDNotIn(vs ...string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotIn(FieldPeriodicRealizationRunID, vs...))
+}
+
+// PeriodicRealizationRunIDGT applies the GT predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDGT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGT(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDGTE applies the GTE predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDGTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldGTE(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDLT applies the LT predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDLT(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLT(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDLTE applies the LTE predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDLTE(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldLTE(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDContains applies the Contains predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDContains(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContains(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDHasPrefix applies the HasPrefix predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDHasPrefix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasPrefix(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDHasSuffix applies the HasSuffix predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDHasSuffix(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldHasSuffix(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDIsNil applies the IsNil predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDIsNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldIsNull(FieldPeriodicRealizationRunID))
+}
+
+// PeriodicRealizationRunIDNotNil applies the NotNil predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDNotNil() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldNotNull(FieldPeriodicRealizationRunID))
+}
+
+// PeriodicRealizationRunIDEqualFold applies the EqualFold predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDEqualFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldEqualFold(FieldPeriodicRealizationRunID, v))
+}
+
+// PeriodicRealizationRunIDContainsFold applies the ContainsFold predicate on the "periodic_realization_run_id" field.
+func PeriodicRealizationRunIDContainsFold(v string) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(sql.FieldContainsFold(FieldPeriodicRealizationRunID, v))
+}
+
 // DetailedLinesPresentEQ applies the EQ predicate on the "detailed_lines_present" field.
 func DetailedLinesPresentEQ(v bool) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(sql.FieldEQ(FieldDetailedLinesPresent, v))
@@ -1467,6 +1547,29 @@ func HasPriorRun() predicate.ChargeUsageBasedRuns {
 func HasPriorRunWith(preds ...predicate.ChargeUsageBasedRuns) predicate.ChargeUsageBasedRuns {
 	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
 		step := newPriorRunStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPeriodicRealizationRun applies the HasEdge predicate on the "periodic_realization_run" edge.
+func HasPeriodicRealizationRun() predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PeriodicRealizationRunTable, PeriodicRealizationRunColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPeriodicRealizationRunWith applies the HasEdge predicate on the "periodic_realization_run" edge with a given conditions (other predicates).
+func HasPeriodicRealizationRunWith(preds ...predicate.BillingPeriodicRealizationRun) predicate.ChargeUsageBasedRuns {
+	return predicate.ChargeUsageBasedRuns(func(s *sql.Selector) {
+		step := newPeriodicRealizationRunStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

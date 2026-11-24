@@ -2198,6 +2198,52 @@ func HasIntentOverrideWith(preds ...predicate.ChargeUsageBasedOverride) predicat
 	})
 }
 
+// HasPeriodicRealizationState applies the HasEdge predicate on the "periodic_realization_state" edge.
+func HasPeriodicRealizationState() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, PeriodicRealizationStateTable, PeriodicRealizationStateColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPeriodicRealizationStateWith applies the HasEdge predicate on the "periodic_realization_state" edge with a given conditions (other predicates).
+func HasPeriodicRealizationStateWith(preds ...predicate.BillingPeriodicRealizationChargeState) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := newPeriodicRealizationStateStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPeriodicRealizationErrors applies the HasEdge predicate on the "periodic_realization_errors" edge.
+func HasPeriodicRealizationErrors() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PeriodicRealizationErrorsTable, PeriodicRealizationErrorsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPeriodicRealizationErrorsWith applies the HasEdge predicate on the "periodic_realization_errors" edge with a given conditions (other predicates).
+func HasPeriodicRealizationErrorsWith(preds ...predicate.BillingPeriodicRealizationRunError) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := newPeriodicRealizationErrorsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasSubscription applies the HasEdge predicate on the "subscription" edge.
 func HasSubscription() predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(func(s *sql.Selector) {

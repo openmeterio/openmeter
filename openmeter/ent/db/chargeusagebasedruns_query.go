@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
@@ -39,6 +40,7 @@ type ChargeUsageBasedRunsQuery struct {
 	withBillingInvoice               *BillingInvoiceQuery
 	withNextRuns                     *ChargeUsageBasedRunsQuery
 	withPriorRun                     *ChargeUsageBasedRunsQuery
+	withPeriodicRealizationRun       *BillingPeriodicRealizationRunQuery
 	withCreditAllocations            *ChargeUsageBasedRunCreditAllocationsQuery
 	withFiatOverageCreditAllocations *ChargeUsageBasedRunOverageCreditAllocationsQuery
 	withDetailedLines                *ChargeUsageBasedRunDetailedLineQuery
@@ -207,6 +209,28 @@ func (_q *ChargeUsageBasedRunsQuery) QueryPriorRun() *ChargeUsageBasedRunsQuery 
 			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.PriorRunTable, chargeusagebasedruns.PriorRunColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPeriodicRealizationRun chains the current query on the "periodic_realization_run" edge.
+func (_q *ChargeUsageBasedRunsQuery) QueryPeriodicRealizationRun() *BillingPeriodicRealizationRunQuery {
+	query := (&BillingPeriodicRealizationRunClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID, selector),
+			sqlgraph.To(billingperiodicrealizationrun.Table, billingperiodicrealizationrun.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedruns.PeriodicRealizationRunTable, chargeusagebasedruns.PeriodicRealizationRunColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -544,6 +568,7 @@ func (_q *ChargeUsageBasedRunsQuery) Clone() *ChargeUsageBasedRunsQuery {
 		withBillingInvoice:               _q.withBillingInvoice.Clone(),
 		withNextRuns:                     _q.withNextRuns.Clone(),
 		withPriorRun:                     _q.withPriorRun.Clone(),
+		withPeriodicRealizationRun:       _q.withPeriodicRealizationRun.Clone(),
 		withCreditAllocations:            _q.withCreditAllocations.Clone(),
 		withFiatOverageCreditAllocations: _q.withFiatOverageCreditAllocations.Clone(),
 		withDetailedLines:                _q.withDetailedLines.Clone(),
@@ -619,6 +644,17 @@ func (_q *ChargeUsageBasedRunsQuery) WithPriorRun(opts ...func(*ChargeUsageBased
 		opt(query)
 	}
 	_q.withPriorRun = query
+	return _q
+}
+
+// WithPeriodicRealizationRun tells the query-builder to eager-load the nodes that are connected to
+// the "periodic_realization_run" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRunsQuery) WithPeriodicRealizationRun(opts ...func(*BillingPeriodicRealizationRunQuery)) *ChargeUsageBasedRunsQuery {
+	query := (&BillingPeriodicRealizationRunClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPeriodicRealizationRun = query
 	return _q
 }
 
@@ -766,13 +802,14 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	var (
 		nodes       = []*ChargeUsageBasedRuns{}
 		_spec       = _q.querySpec()
-		loadedTypes = [12]bool{
+		loadedTypes = [13]bool{
 			_q.withUsageBased != nil,
 			_q.withFeature != nil,
 			_q.withBillingInvoiceLine != nil,
 			_q.withBillingInvoice != nil,
 			_q.withNextRuns != nil,
 			_q.withPriorRun != nil,
+			_q.withPeriodicRealizationRun != nil,
 			_q.withCreditAllocations != nil,
 			_q.withFiatOverageCreditAllocations != nil,
 			_q.withDetailedLines != nil,
@@ -836,6 +873,12 @@ func (_q *ChargeUsageBasedRunsQuery) sqlAll(ctx context.Context, hooks ...queryH
 	if query := _q.withPriorRun; query != nil {
 		if err := _q.loadPriorRun(ctx, query, nodes, nil,
 			func(n *ChargeUsageBasedRuns, e *ChargeUsageBasedRuns) { n.Edges.PriorRun = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPeriodicRealizationRun; query != nil {
+		if err := _q.loadPeriodicRealizationRun(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedRuns, e *BillingPeriodicRealizationRun) { n.Edges.PeriodicRealizationRun = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -1079,6 +1122,38 @@ func (_q *ChargeUsageBasedRunsQuery) loadPriorRun(ctx context.Context, query *Ch
 	}
 	return nil
 }
+func (_q *ChargeUsageBasedRunsQuery) loadPeriodicRealizationRun(ctx context.Context, query *BillingPeriodicRealizationRunQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *BillingPeriodicRealizationRun)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedRuns)
+	for i := range nodes {
+		if nodes[i].PeriodicRealizationRunID == nil {
+			continue
+		}
+		fk := *nodes[i].PeriodicRealizationRunID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billingperiodicrealizationrun.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "periodic_realization_run_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 func (_q *ChargeUsageBasedRunsQuery) loadCreditAllocations(ctx context.Context, query *ChargeUsageBasedRunCreditAllocationsQuery, nodes []*ChargeUsageBasedRuns, init func(*ChargeUsageBasedRuns), assign func(*ChargeUsageBasedRuns, *ChargeUsageBasedRunCreditAllocations)) error {
 	fks := make([]driver.Value, 0, len(nodes))
 	nodeids := make(map[string]*ChargeUsageBasedRuns)
@@ -1299,6 +1374,9 @@ func (_q *ChargeUsageBasedRunsQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if _q.withPriorRun != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldPriorRunID)
+		}
+		if _q.withPeriodicRealizationRun != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedruns.FieldPeriodicRealizationRunID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
