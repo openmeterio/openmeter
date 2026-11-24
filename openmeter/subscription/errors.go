@@ -119,15 +119,6 @@ var ErrSubscriptionBillingStartsAtBeforeSubscriptionStart = models.NewValidation
 	commonhttp.WithHTTPStatusCodeAttribute(http.StatusBadRequest),
 )
 
-const ErrCodeSubscriptionBillingStartsAtNotEnabled models.ErrorCode = "subscription_billing_starts_at_not_enabled"
-
-var ErrSubscriptionBillingStartsAtNotEnabled = models.NewValidationIssue(
-	ErrCodeSubscriptionBillingStartsAtNotEnabled,
-	"setting the billing start is not enabled for this organization",
-	models.WithFieldString("billingStartsAt"),
-	commonhttp.WithHTTPStatusCodeAttribute(http.StatusForbidden),
-)
-
 const ErrCodeSubscriptionBillingStartsAtNotAligned models.ErrorCode = "subscription_billing_starts_at_not_aligned"
 
 var ErrSubscriptionBillingStartsAtNotAligned = models.NewValidationIssue(

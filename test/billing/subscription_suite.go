@@ -161,7 +161,6 @@ func (s *SubscriptionMixin) SetupSuite(t *testing.T, deps SubscriptionMixInDepen
 
 	ffService := ffx.NewStaticService(ffx.AccessConfig{
 		subscription.MultiSubscriptionEnabledFF: true,
-		subscription.BillingStartsAtEnabledFF:   true,
 	})
 	s.SubscriptionService, err = subscriptionservice.New(subscriptionservice.ServiceConfig{
 		SubscriptionRepo:      subsRepo,

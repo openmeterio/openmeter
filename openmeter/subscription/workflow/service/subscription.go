@@ -30,23 +30,6 @@ import (
 )
 
 func (s *service) CreateFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
-	if inp.BillingStartsAt != nil {
-		enabled, err := s.FeatureFlags.IsFeatureEnabled(ctx, subscription.BillingStartsAtEnabledFF)
-		if err != nil {
-			return subscription.SubscriptionView{}, fmt.Errorf("failed to check if billing starts at is enabled: %w", err)
-		}
-
-		if !enabled {
-			return subscription.SubscriptionView{}, subscription.ErrSubscriptionBillingStartsAtNotEnabled
-		}
-	}
-
-	return s.createFromPlan(ctx, inp, plan)
-}
-
-// createFromPlan skips the check that the namespace may set BillingStartsAt: a plan change has to keep
-// the value of the subscription it replaces even if the namespace can no longer set new ones.
-func (s *service) createFromPlan(ctx context.Context, inp subscriptionworkflow.CreateSubscriptionWorkflowInput, plan subscription.Plan) (subscription.SubscriptionView, error) {
 	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionView, error) {
 		var def subscription.SubscriptionView
 
@@ -431,7 +414,7 @@ func (s *service) ChangeToPlan(ctx context.Context, subscriptionID models.Namesp
 		}
 
 		// Third, let's create a new subscription with the new plan
-		new, err := s.createFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		new, err := s.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: inp,
 			Namespace:                       curr.Namespace,
 			CustomerID:                      curr.CustomerId,

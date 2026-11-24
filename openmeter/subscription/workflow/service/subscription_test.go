@@ -2633,13 +2633,6 @@ func TestBillingStartsAt(t *testing.T) {
 	billingAnchor := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	nextPeriodStart := time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)
 
-	allowed := func(ctx context.Context) context.Context {
-		return ffx.SetAccessOnContext(ctx, ffx.AccessConfig{
-			subscription.MultiSubscriptionEnabledFF: false,
-			subscription.BillingStartsAtEnabledFF:   true,
-		})
-	}
-
 	type testDeps struct {
 		subscriptiontestutils.SubscriptionDependencies
 		Plan subscription.Plan
@@ -2665,12 +2658,12 @@ func TestBillingStartsAt(t *testing.T) {
 		}
 	}
 
-	create := func(t *testing.T, ctx context.Context, deps testDeps, billingStartsAt time.Time) (subscription.SubscriptionView, error) {
+	create := func(t *testing.T, deps testDeps, billingStartsAt time.Time) (subscription.SubscriptionView, error) {
 		t.Helper()
 
 		cust := deps.CustomerAdapter.CreateExampleCustomer(t)
 
-		return deps.WorkflowService.CreateFromPlan(ctx, subscriptionworkflow.CreateSubscriptionWorkflowInput{
+		return deps.WorkflowService.CreateFromPlan(t.Context(), subscriptionworkflow.CreateSubscriptionWorkflowInput{
 			ChangeSubscriptionWorkflowInput: subscriptionworkflow.ChangeSubscriptionWorkflowInput{
 				Timing: subscription.Timing{Custom: &subscriptionStart},
 				Name:   "Imported subscription",
@@ -2682,29 +2675,15 @@ func TestBillingStartsAt(t *testing.T) {
 		}, deps.Plan)
 	}
 
-	t.Run("is rejected for a namespace that is not on the allowlist", func(t *testing.T) {
-		// given a namespace that is not on the billing start allowlist
-		clock.FreezeTime(subscriptionStart)
-		defer clock.UnFreeze()
-
-		deps := setup(t)
-
-		// when a subscription is created with a billing start
-		_, err := create(t, t.Context(), deps, nextPeriodStart)
-
-		// then the create is rejected
-		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotEnabled)
-	})
-
 	t.Run("is stored when it is the start of a billing period", func(t *testing.T) {
-		// given a namespace on the allowlist
+		// given a monthly plan billed on the first of the month
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t)
 
 		// when a subscription is created with a billing start on a billing period boundary
-		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
+		created, err := create(t, deps, nextPeriodStart)
 		require.NoError(t, err)
 
 		// then the billing start is returned and persisted
@@ -2717,28 +2696,28 @@ func TestBillingStartsAt(t *testing.T) {
 	})
 
 	t.Run("is rejected inside a billing period on invoice lines", func(t *testing.T) {
-		// given a namespace on the allowlist whose subscriptions are billed through invoice lines
+		// given a namespace whose subscriptions are billed through invoice lines
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t)
 
 		// when the billing start is inside a billing period
-		_, err := create(t, allowed(t.Context()), deps, time.Date(2026, 12, 17, 0, 0, 0, 0, time.UTC))
+		_, err := create(t, deps, time.Date(2026, 12, 17, 0, 0, 0, 0, time.UTC))
 
 		// then the create is rejected
 		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtNotAligned)
 	})
 
 	t.Run("is rejected before the subscription start", func(t *testing.T) {
-		// given a namespace on the allowlist
+		// given a monthly plan billed on the first of the month
 		clock.FreezeTime(subscriptionStart)
 		defer clock.UnFreeze()
 
 		deps := setup(t)
 
 		// when the billing start is before the subscription start
-		_, err := create(t, allowed(t.Context()), deps, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
+		_, err := create(t, deps, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC))
 
 		// then the create is rejected
 		require.ErrorIs(t, err, subscription.ErrSubscriptionBillingStartsAtBeforeSubscriptionStart)
@@ -2751,10 +2730,10 @@ func TestBillingStartsAt(t *testing.T) {
 
 		deps := setup(t)
 
-		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
+		created, err := create(t, deps, nextPeriodStart)
 		require.NoError(t, err)
 
-		// when the plan is changed on 2026-11-10 by a caller that could not set a billing start itself
+		// when the plan is changed on 2026-11-10
 		clock.FreezeTime(time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC))
 		defer clock.UnFreeze()
 
@@ -2775,7 +2754,7 @@ func TestBillingStartsAt(t *testing.T) {
 
 		deps := setup(t)
 
-		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
+		created, err := create(t, deps, nextPeriodStart)
 		require.NoError(t, err)
 
 		// when the plan is changed on 2026-12-10
@@ -2799,7 +2778,7 @@ func TestBillingStartsAt(t *testing.T) {
 
 		deps := setup(t)
 
-		created, err := create(t, allowed(t.Context()), deps, nextPeriodStart)
+		created, err := create(t, deps, nextPeriodStart)
 		require.NoError(t, err)
 
 		// when it is migrated to the next version of its plan on 2026-11-10
