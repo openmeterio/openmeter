@@ -15,13 +15,16 @@ CREATE TABLE "charge_usage_based_revenue_recognitions" (
   "total" numeric NOT NULL,
   "stored_at_lt" timestamptz NOT NULL,
   "service_period_to" timestamptz NOT NULL,
+  "period" character varying NOT NULL DEFAULT 'P1D',
   "metered_quantity" numeric NOT NULL,
   "delta_metered_quantity" numeric NOT NULL,
   "detailed_lines_include_credit_allocations" boolean NOT NULL DEFAULT false,
   "invoice_usage_total" numeric NULL,
   "charge_id" character(26) NOT NULL,
+  "prior_run_id" character(26) NULL,
   "feature_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
+  CONSTRAINT "charge_ub_revrec_prior_run" FOREIGN KEY ("prior_run_id") REFERENCES "charge_usage_based_revenue_recognitions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
   CONSTRAINT "charge_usage_based_revenue_recognitions_charge_usage_based_reve" FOREIGN KEY ("charge_id") REFERENCES "charge_usage_based" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT "charge_usage_based_revenue_recognitions_features_usage_based_re" FOREIGN KEY ("feature_id") REFERENCES "features" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );

@@ -114,6 +114,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/unitconfig"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 
 	"entgo.io/ent/schema/field"
@@ -1789,8 +1790,12 @@ func init() {
 	chargeusagebasedrevenuerecognitionsDescFeatureID := chargeusagebasedrevenuerecognitionsFields[1].Descriptor()
 	// chargeusagebasedrevenuerecognitions.FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	chargeusagebasedrevenuerecognitions.FeatureIDValidator = chargeusagebasedrevenuerecognitionsDescFeatureID.Validators[0].(func(string) error)
+	// chargeusagebasedrevenuerecognitionsDescPeriod is the schema descriptor for period field.
+	chargeusagebasedrevenuerecognitionsDescPeriod := chargeusagebasedrevenuerecognitionsFields[4].Descriptor()
+	// chargeusagebasedrevenuerecognitions.DefaultPeriod holds the default value on creation for the period field.
+	chargeusagebasedrevenuerecognitions.DefaultPeriod = datetime.ISODurationString(chargeusagebasedrevenuerecognitionsDescPeriod.Default.(string))
 	// chargeusagebasedrevenuerecognitionsDescDetailedLinesIncludeCreditAllocations is the schema descriptor for detailed_lines_include_credit_allocations field.
-	chargeusagebasedrevenuerecognitionsDescDetailedLinesIncludeCreditAllocations := chargeusagebasedrevenuerecognitionsFields[6].Descriptor()
+	chargeusagebasedrevenuerecognitionsDescDetailedLinesIncludeCreditAllocations := chargeusagebasedrevenuerecognitionsFields[8].Descriptor()
 	// chargeusagebasedrevenuerecognitions.DefaultDetailedLinesIncludeCreditAllocations holds the default value on creation for the detailed_lines_include_credit_allocations field.
 	chargeusagebasedrevenuerecognitions.DefaultDetailedLinesIncludeCreditAllocations = chargeusagebasedrevenuerecognitionsDescDetailedLinesIncludeCreditAllocations.Default.(bool)
 	// chargeusagebasedrevenuerecognitionsDescID is the schema descriptor for id field.

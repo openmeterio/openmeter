@@ -10044,6 +10044,38 @@ func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryFeature(_m *ChargeUsage
 	return query
 }
 
+// QueryNextRuns queries the next_runs edge of a ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryNextRuns(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedrevenuerecognitions.NextRunsTable, chargeusagebasedrevenuerecognitions.NextRunsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPriorRun queries the prior_run edge of a ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryPriorRun(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitions.PriorRunTable, chargeusagebasedrevenuerecognitions.PriorRunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCreditAllocations queries the credit_allocations edge of a ChargeUsageBasedRevenueRecognitions.
 func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryCreditAllocations(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionCreditsQuery {
 	query := (&ChargeUsageBasedRevenueRecognitionCreditsClient{config: c.config}).Query()

@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // ID filters vertices based on their ID field.
@@ -144,6 +145,17 @@ func StoredAtLt(v time.Time) predicate.ChargeUsageBasedRevenueRecognitions {
 // ServicePeriodTo applies equality check predicate on the "service_period_to" field. It's identical to ServicePeriodToEQ.
 func ServicePeriodTo(v time.Time) predicate.ChargeUsageBasedRevenueRecognitions {
 	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEQ(FieldServicePeriodTo, v))
+}
+
+// Period applies equality check predicate on the "period" field. It's identical to PeriodEQ.
+func Period(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEQ(FieldPeriod, vc))
+}
+
+// PriorRunID applies equality check predicate on the "prior_run_id" field. It's identical to PriorRunIDEQ.
+func PriorRunID(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEQ(FieldPriorRunID, v))
 }
 
 // MeteredQuantity applies equality check predicate on the "metered_quantity" field. It's identical to MeteredQuantityEQ.
@@ -891,6 +903,165 @@ func ServicePeriodToLTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitio
 	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldLTE(FieldServicePeriodTo, v))
 }
 
+// PeriodEQ applies the EQ predicate on the "period" field.
+func PeriodEQ(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEQ(FieldPeriod, vc))
+}
+
+// PeriodNEQ applies the NEQ predicate on the "period" field.
+func PeriodNEQ(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldNEQ(FieldPeriod, vc))
+}
+
+// PeriodIn applies the In predicate on the "period" field.
+func PeriodIn(vs ...datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldIn(FieldPeriod, v...))
+}
+
+// PeriodNotIn applies the NotIn predicate on the "period" field.
+func PeriodNotIn(vs ...datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldNotIn(FieldPeriod, v...))
+}
+
+// PeriodGT applies the GT predicate on the "period" field.
+func PeriodGT(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldGT(FieldPeriod, vc))
+}
+
+// PeriodGTE applies the GTE predicate on the "period" field.
+func PeriodGTE(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldGTE(FieldPeriod, vc))
+}
+
+// PeriodLT applies the LT predicate on the "period" field.
+func PeriodLT(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldLT(FieldPeriod, vc))
+}
+
+// PeriodLTE applies the LTE predicate on the "period" field.
+func PeriodLTE(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldLTE(FieldPeriod, vc))
+}
+
+// PeriodContains applies the Contains predicate on the "period" field.
+func PeriodContains(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldContains(FieldPeriod, vc))
+}
+
+// PeriodHasPrefix applies the HasPrefix predicate on the "period" field.
+func PeriodHasPrefix(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldHasPrefix(FieldPeriod, vc))
+}
+
+// PeriodHasSuffix applies the HasSuffix predicate on the "period" field.
+func PeriodHasSuffix(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldHasSuffix(FieldPeriod, vc))
+}
+
+// PeriodEqualFold applies the EqualFold predicate on the "period" field.
+func PeriodEqualFold(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEqualFold(FieldPeriod, vc))
+}
+
+// PeriodContainsFold applies the ContainsFold predicate on the "period" field.
+func PeriodContainsFold(v datetime.ISODurationString) predicate.ChargeUsageBasedRevenueRecognitions {
+	vc := string(v)
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldContainsFold(FieldPeriod, vc))
+}
+
+// PriorRunIDEQ applies the EQ predicate on the "prior_run_id" field.
+func PriorRunIDEQ(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEQ(FieldPriorRunID, v))
+}
+
+// PriorRunIDNEQ applies the NEQ predicate on the "prior_run_id" field.
+func PriorRunIDNEQ(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldNEQ(FieldPriorRunID, v))
+}
+
+// PriorRunIDIn applies the In predicate on the "prior_run_id" field.
+func PriorRunIDIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldIn(FieldPriorRunID, vs...))
+}
+
+// PriorRunIDNotIn applies the NotIn predicate on the "prior_run_id" field.
+func PriorRunIDNotIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldNotIn(FieldPriorRunID, vs...))
+}
+
+// PriorRunIDGT applies the GT predicate on the "prior_run_id" field.
+func PriorRunIDGT(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldGT(FieldPriorRunID, v))
+}
+
+// PriorRunIDGTE applies the GTE predicate on the "prior_run_id" field.
+func PriorRunIDGTE(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldGTE(FieldPriorRunID, v))
+}
+
+// PriorRunIDLT applies the LT predicate on the "prior_run_id" field.
+func PriorRunIDLT(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldLT(FieldPriorRunID, v))
+}
+
+// PriorRunIDLTE applies the LTE predicate on the "prior_run_id" field.
+func PriorRunIDLTE(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldLTE(FieldPriorRunID, v))
+}
+
+// PriorRunIDContains applies the Contains predicate on the "prior_run_id" field.
+func PriorRunIDContains(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldContains(FieldPriorRunID, v))
+}
+
+// PriorRunIDHasPrefix applies the HasPrefix predicate on the "prior_run_id" field.
+func PriorRunIDHasPrefix(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldHasPrefix(FieldPriorRunID, v))
+}
+
+// PriorRunIDHasSuffix applies the HasSuffix predicate on the "prior_run_id" field.
+func PriorRunIDHasSuffix(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldHasSuffix(FieldPriorRunID, v))
+}
+
+// PriorRunIDIsNil applies the IsNil predicate on the "prior_run_id" field.
+func PriorRunIDIsNil() predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldIsNull(FieldPriorRunID))
+}
+
+// PriorRunIDNotNil applies the NotNil predicate on the "prior_run_id" field.
+func PriorRunIDNotNil() predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldNotNull(FieldPriorRunID))
+}
+
+// PriorRunIDEqualFold applies the EqualFold predicate on the "prior_run_id" field.
+func PriorRunIDEqualFold(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEqualFold(FieldPriorRunID, v))
+}
+
+// PriorRunIDContainsFold applies the ContainsFold predicate on the "prior_run_id" field.
+func PriorRunIDContainsFold(v string) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldContainsFold(FieldPriorRunID, v))
+}
+
 // MeteredQuantityEQ applies the EQ predicate on the "metered_quantity" field.
 func MeteredQuantityEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitions {
 	return predicate.ChargeUsageBasedRevenueRecognitions(sql.FieldEQ(FieldMeteredQuantity, v))
@@ -1069,6 +1240,52 @@ func HasFeature() predicate.ChargeUsageBasedRevenueRecognitions {
 func HasFeatureWith(preds ...predicate.Feature) predicate.ChargeUsageBasedRevenueRecognitions {
 	return predicate.ChargeUsageBasedRevenueRecognitions(func(s *sql.Selector) {
 		step := newFeatureStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasNextRuns applies the HasEdge predicate on the "next_runs" edge.
+func HasNextRuns() predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, NextRunsTable, NextRunsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasNextRunsWith applies the HasEdge predicate on the "next_runs" edge with a given conditions (other predicates).
+func HasNextRunsWith(preds ...predicate.ChargeUsageBasedRevenueRecognitions) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(func(s *sql.Selector) {
+		step := newNextRunsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPriorRun applies the HasEdge predicate on the "prior_run" edge.
+func HasPriorRun() predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, PriorRunTable, PriorRunColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPriorRunWith applies the HasEdge predicate on the "prior_run" edge with a given conditions (other predicates).
+func HasPriorRunWith(preds ...predicate.ChargeUsageBasedRevenueRecognitions) predicate.ChargeUsageBasedRevenueRecognitions {
+	return predicate.ChargeUsageBasedRevenueRecognitions(func(s *sql.Selector) {
+		step := newPriorRunStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

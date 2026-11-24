@@ -41,6 +41,15 @@ func (a *adapter) CreateRevenueRecognitionRun(ctx context.Context, input usageba
 				SetDetailedLinesIncludeCreditAllocations(input.DetailedLinesIncludeCreditAllocations).
 				SetNillableInvoiceUsageTotal(input.InvoiceUsageTotal)
 
+			// An empty period falls back to the column default, which is daily.
+			if !input.Period.IsZero() {
+				create = create.SetPeriod(input.Period.ISOString())
+			}
+
+			if input.PriorRunID != nil {
+				create = create.SetPriorRunID(input.PriorRunID.ID)
+			}
+
 			create = totals.Set(create, input.Totals.Totals)
 
 			dbRun, err := create.Save(ctx)

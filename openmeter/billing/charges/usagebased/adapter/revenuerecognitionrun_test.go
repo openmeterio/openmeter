@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	dbchargeusagebasedrevenuerecognitions "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -57,6 +58,9 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateAndGetByID() {
 	s.Equal(charge.State.FeatureID, fetched.FeatureID)
 	s.Equal(dayBoundary.Add(time.Minute), fetched.StoredAtLT)
 	s.Equal(dayBoundary, fetched.ServicePeriodTo)
+	// The input set no period, so the run is daily.
+	s.Equal(datetime.ISODurationString("P1D"), fetched.Period.ISOString())
+	s.Nil(fetched.PriorRunID)
 	s.Equal(float64(30), fetched.MeteredQuantity.InexactFloat64())
 	s.Equal(float64(10), fetched.DeltaMeteredQuantity.InexactFloat64())
 	s.Equal(float64(3), fetched.Totals.Amount.InexactFloat64())
@@ -81,6 +85,50 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateAndGetByID() {
 	s.True(models.IsGenericNotFoundError(err))
 }
 
+func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunPointsAtPriorRun() {
+	ctx := s.T().Context()
+	namespace := "usagebased-revenue-recognition-run-prior"
+
+	// Given a usage-based charge with a first revenue recognition run.
+	charge, _, servicePeriod := s.createChargeWithRun(namespace)
+	firstDay := servicePeriod.From.AddDate(0, 0, 1)
+
+	input := usagebased.CreateRevenueRecognitionRunInput{
+		ChargeID:        charge.GetChargeID(),
+		FeatureID:       charge.State.FeatureID,
+		StoredAtLT:      firstDay,
+		ServicePeriodTo: firstDay,
+		Period:          datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0),
+	}
+
+	firstRun, err := s.adapter.CreateRevenueRecognitionRun(ctx, input)
+	s.Require().NoError(err)
+
+	// When the next day's run names the first run as its prior run.
+	secondDay := firstDay.AddDate(0, 0, 1)
+	input.StoredAtLT = secondDay
+	input.ServicePeriodTo = secondDay
+	input.PriorRunID = &firstRun.ID
+
+	secondRun, err := s.adapter.CreateRevenueRecognitionRun(ctx, input)
+	s.Require().NoError(err)
+
+	// Then the pointer is stored and read back.
+	fetched, err := s.adapter.GetRevenueRecognitionRunByID(ctx, secondRun.ID)
+	s.Require().NoError(err)
+	s.Require().NotNil(fetched.PriorRunID)
+	s.Equal(firstRun.ID, *fetched.PriorRunID)
+
+	// And a prior run from another namespace is rejected.
+	input.PriorRunID = &usagebased.RevenueRecognitionRunID{
+		Namespace: namespace + "-other",
+		ID:        firstRun.ID.ID,
+	}
+	_, err = s.adapter.CreateRevenueRecognitionRun(ctx, input)
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err))
+}
+
 func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateRollsBackWhenChildInsertFails() {
 	ctx := s.T().Context()
 	namespace := "usagebased-revenue-recognition-run-rollback"
@@ -100,6 +148,7 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateRollsBackWhenC
 		FeatureID:       charge.State.FeatureID,
 		StoredAtLT:      dayPeriod.To,
 		ServicePeriodTo: dayPeriod.To,
+		Period:          datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0),
 		CreditsAllocated: creditrealization.CreateInputs{
 			{
 				ID:            duplicateID,
@@ -116,6 +165,7 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateRollsBackWhenC
 		},
 	})
 	s.Require().Error(err)
+	s.False(models.IsGenericValidationError(err))
 
 	// Then the run is not stored either.
 	runCount, err := s.dbClient.ChargeUsageBasedRevenueRecognitions.Query().
@@ -142,6 +192,7 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoice
 		FeatureID:            charge.State.FeatureID,
 		StoredAtLT:           dayPeriod.To,
 		ServicePeriodTo:      dayPeriod.To,
+		Period:               datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0),
 		MeteredQuantity:      alpacadecimal.NewFromInt(3),
 		DeltaMeteredQuantity: alpacadecimal.NewFromInt(3),
 		Totals: totals.DeltaTotals{
@@ -227,6 +278,8 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoice
 	fetched, err := s.adapter.GetRevenueRecognitionRunByID(ctx, created.ID)
 	s.Require().NoError(err)
 	s.Equal(created, fetched)
+
+	s.Equal(datetime.ISODurationString("PT1H"), fetched.Period.ISOString())
 
 	s.Require().NotNil(fetched.InvoiceUsageTotal)
 	s.Equal(float64(2), fetched.InvoiceUsageTotal.InexactFloat64())

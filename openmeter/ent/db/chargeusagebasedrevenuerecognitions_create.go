@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitionoveragecredits"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // ChargeUsageBasedRevenueRecognitionsCreate is the builder for creating a ChargeUsageBasedRevenueRecognitions entity.
@@ -149,6 +150,34 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetServicePeriodTo(v time.T
 	return _c
 }
 
+// SetPeriod sets the "period" field.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPeriod(v datetime.ISODurationString) *ChargeUsageBasedRevenueRecognitionsCreate {
+	_c.mutation.SetPeriod(v)
+	return _c
+}
+
+// SetNillablePeriod sets the "period" field if the given value is not nil.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetNillablePeriod(v *datetime.ISODurationString) *ChargeUsageBasedRevenueRecognitionsCreate {
+	if v != nil {
+		_c.SetPeriod(*v)
+	}
+	return _c
+}
+
+// SetPriorRunID sets the "prior_run_id" field.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPriorRunID(v string) *ChargeUsageBasedRevenueRecognitionsCreate {
+	_c.mutation.SetPriorRunID(v)
+	return _c
+}
+
+// SetNillablePriorRunID sets the "prior_run_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetNillablePriorRunID(v *string) *ChargeUsageBasedRevenueRecognitionsCreate {
+	if v != nil {
+		_c.SetPriorRunID(*v)
+	}
+	return _c
+}
+
 // SetMeteredQuantity sets the "metered_quantity" field.
 func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsCreate {
 	_c.mutation.SetMeteredQuantity(v)
@@ -217,6 +246,26 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetUsageBased(v *ChargeUsag
 // SetFeature sets the "feature" edge to the Feature entity.
 func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetFeature(v *Feature) *ChargeUsageBasedRevenueRecognitionsCreate {
 	return _c.SetFeatureID(v.ID)
+}
+
+// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsCreate {
+	_c.mutation.AddNextRunIDs(ids...)
+	return _c
+}
+
+// AddNextRuns adds the "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddNextRunIDs(ids...)
+}
+
+// SetPriorRun sets the "prior_run" edge to the ChargeUsageBasedRevenueRecognitions entity.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPriorRun(v *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsCreate {
+	return _c.SetPriorRunID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionCredits entity by IDs.
@@ -307,6 +356,10 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) defaults() {
 		v := chargeusagebasedrevenuerecognitions.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Period(); !ok {
+		v := chargeusagebasedrevenuerecognitions.DefaultPeriod
+		_c.mutation.SetPeriod(v)
+	}
 	if _, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); !ok {
 		v := chargeusagebasedrevenuerecognitions.DefaultDetailedLinesIncludeCreditAllocations
 		_c.mutation.SetDetailedLinesIncludeCreditAllocations(v)
@@ -373,6 +426,9 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) check() error {
 	}
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.service_period_to"`)}
+	}
+	if _, ok := _c.mutation.Period(); !ok {
+		return &ValidationError{Name: "period", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.period"`)}
 	}
 	if _, ok := _c.mutation.MeteredQuantity(); !ok {
 		return &ValidationError{Name: "metered_quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.metered_quantity"`)}
@@ -481,6 +537,10 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) createSpec() (*ChargeUsageB
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldServicePeriodTo, field.TypeTime, value)
 		_node.ServicePeriodTo = value
 	}
+	if value, ok := _c.mutation.Period(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldPeriod, field.TypeString, value)
+		_node.Period = value
+	}
 	if value, ok := _c.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldMeteredQuantity, field.TypeOther, value)
 		_node.MeteredQuantity = value
@@ -529,6 +589,39 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) createSpec() (*ChargeUsageB
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.FeatureID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.NextRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PriorRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedrevenuerecognitions.PriorRunTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.PriorRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PriorRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
@@ -854,6 +947,12 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) UpdateNewValues() *Charge
 		}
 		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
 			s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldServicePeriodTo)
+		}
+		if _, exists := u.create.mutation.Period(); exists {
+			s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPeriod)
+		}
+		if _, exists := u.create.mutation.PriorRunID(); exists {
+			s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPriorRunID)
 		}
 	}))
 	return u
@@ -1307,6 +1406,12 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) UpdateNewValues() *Charg
 			}
 			if _, exists := b.mutation.ServicePeriodTo(); exists {
 				s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldServicePeriodTo)
+			}
+			if _, exists := b.mutation.Period(); exists {
+				s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPeriod)
+			}
+			if _, exists := b.mutation.PriorRunID(); exists {
+				s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPriorRunID)
 			}
 		}
 	}))

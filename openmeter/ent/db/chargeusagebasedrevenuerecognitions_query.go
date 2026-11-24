@@ -31,6 +31,8 @@ type ChargeUsageBasedRevenueRecognitionsQuery struct {
 	predicates                       []predicate.ChargeUsageBasedRevenueRecognitions
 	withUsageBased                   *ChargeUsageBasedQuery
 	withFeature                      *FeatureQuery
+	withNextRuns                     *ChargeUsageBasedRevenueRecognitionsQuery
+	withPriorRun                     *ChargeUsageBasedRevenueRecognitionsQuery
 	withCreditAllocations            *ChargeUsageBasedRevenueRecognitionCreditsQuery
 	withFiatOverageCreditAllocations *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery
 	withDetailedLines                *ChargeUsageBasedRevenueRecognitionDetailedLineQuery
@@ -108,6 +110,50 @@ func (_q *ChargeUsageBasedRevenueRecognitionsQuery) QueryFeature() *FeatureQuery
 			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, selector),
 			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitions.FeatureTable, chargeusagebasedrevenuerecognitions.FeatureColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryNextRuns chains the current query on the "next_runs" edge.
+func (_q *ChargeUsageBasedRevenueRecognitionsQuery) QueryNextRuns() *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, selector),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedrevenuerecognitions.NextRunsTable, chargeusagebasedrevenuerecognitions.NextRunsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPriorRun chains the current query on the "prior_run" edge.
+func (_q *ChargeUsageBasedRevenueRecognitionsQuery) QueryPriorRun() *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, selector),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitions.PriorRunTable, chargeusagebasedrevenuerecognitions.PriorRunColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -375,6 +421,8 @@ func (_q *ChargeUsageBasedRevenueRecognitionsQuery) Clone() *ChargeUsageBasedRev
 		predicates:                       append([]predicate.ChargeUsageBasedRevenueRecognitions{}, _q.predicates...),
 		withUsageBased:                   _q.withUsageBased.Clone(),
 		withFeature:                      _q.withFeature.Clone(),
+		withNextRuns:                     _q.withNextRuns.Clone(),
+		withPriorRun:                     _q.withPriorRun.Clone(),
 		withCreditAllocations:            _q.withCreditAllocations.Clone(),
 		withFiatOverageCreditAllocations: _q.withFiatOverageCreditAllocations.Clone(),
 		withDetailedLines:                _q.withDetailedLines.Clone(),
@@ -403,6 +451,28 @@ func (_q *ChargeUsageBasedRevenueRecognitionsQuery) WithFeature(opts ...func(*Fe
 		opt(query)
 	}
 	_q.withFeature = query
+	return _q
+}
+
+// WithNextRuns tells the query-builder to eager-load the nodes that are connected to
+// the "next_runs" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRevenueRecognitionsQuery) WithNextRuns(opts ...func(*ChargeUsageBasedRevenueRecognitionsQuery)) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withNextRuns = query
+	return _q
+}
+
+// WithPriorRun tells the query-builder to eager-load the nodes that are connected to
+// the "prior_run" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedRevenueRecognitionsQuery) WithPriorRun(opts ...func(*ChargeUsageBasedRevenueRecognitionsQuery)) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPriorRun = query
 	return _q
 }
 
@@ -517,9 +587,11 @@ func (_q *ChargeUsageBasedRevenueRecognitionsQuery) sqlAll(ctx context.Context, 
 	var (
 		nodes       = []*ChargeUsageBasedRevenueRecognitions{}
 		_spec       = _q.querySpec()
-		loadedTypes = [5]bool{
+		loadedTypes = [7]bool{
 			_q.withUsageBased != nil,
 			_q.withFeature != nil,
+			_q.withNextRuns != nil,
+			_q.withPriorRun != nil,
 			_q.withCreditAllocations != nil,
 			_q.withFiatOverageCreditAllocations != nil,
 			_q.withDetailedLines != nil,
@@ -555,6 +627,25 @@ func (_q *ChargeUsageBasedRevenueRecognitionsQuery) sqlAll(ctx context.Context, 
 	if query := _q.withFeature; query != nil {
 		if err := _q.loadFeature(ctx, query, nodes, nil,
 			func(n *ChargeUsageBasedRevenueRecognitions, e *Feature) { n.Edges.Feature = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withNextRuns; query != nil {
+		if err := _q.loadNextRuns(ctx, query, nodes,
+			func(n *ChargeUsageBasedRevenueRecognitions) {
+				n.Edges.NextRuns = []*ChargeUsageBasedRevenueRecognitions{}
+			},
+			func(n *ChargeUsageBasedRevenueRecognitions, e *ChargeUsageBasedRevenueRecognitions) {
+				n.Edges.NextRuns = append(n.Edges.NextRuns, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPriorRun; query != nil {
+		if err := _q.loadPriorRun(ctx, query, nodes, nil,
+			func(n *ChargeUsageBasedRevenueRecognitions, e *ChargeUsageBasedRevenueRecognitions) {
+				n.Edges.PriorRun = e
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -645,6 +736,71 @@ func (_q *ChargeUsageBasedRevenueRecognitionsQuery) loadFeature(ctx context.Cont
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "feature_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRevenueRecognitionsQuery) loadNextRuns(ctx context.Context, query *ChargeUsageBasedRevenueRecognitionsQuery, nodes []*ChargeUsageBasedRevenueRecognitions, init func(*ChargeUsageBasedRevenueRecognitions), assign func(*ChargeUsageBasedRevenueRecognitions, *ChargeUsageBasedRevenueRecognitions)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeUsageBasedRevenueRecognitions)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(chargeusagebasedrevenuerecognitions.FieldPriorRunID)
+	}
+	query.Where(predicate.ChargeUsageBasedRevenueRecognitions(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeusagebasedrevenuerecognitions.NextRunsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.PriorRunID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "prior_run_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "prior_run_id" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedRevenueRecognitionsQuery) loadPriorRun(ctx context.Context, query *ChargeUsageBasedRevenueRecognitionsQuery, nodes []*ChargeUsageBasedRevenueRecognitions, init func(*ChargeUsageBasedRevenueRecognitions), assign func(*ChargeUsageBasedRevenueRecognitions, *ChargeUsageBasedRevenueRecognitions)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*ChargeUsageBasedRevenueRecognitions)
+	for i := range nodes {
+		if nodes[i].PriorRunID == nil {
+			continue
+		}
+		fk := *nodes[i].PriorRunID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(chargeusagebasedrevenuerecognitions.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "prior_run_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -776,6 +932,9 @@ func (_q *ChargeUsageBasedRevenueRecognitionsQuery) querySpec() *sqlgraph.QueryS
 		}
 		if _q.withFeature != nil {
 			_spec.Node.AddColumnOnce(chargeusagebasedrevenuerecognitions.FieldFeatureID)
+		}
+		if _q.withPriorRun != nil {
+			_spec.Node.AddColumnOnce(chargeusagebasedrevenuerecognitions.FieldPriorRunID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {

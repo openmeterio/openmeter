@@ -246,6 +246,21 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) ClearInvoiceUsageTotal() *C
 	return _u
 }
 
+// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.AddNextRunIDs(ids...)
+	return _u
+}
+
+// AddNextRuns adds the "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNextRunIDs(ids...)
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionCredits entity by IDs.
 func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddCreditAllocationIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
 	_u.mutation.AddCreditAllocationIDs(ids...)
@@ -294,6 +309,27 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddDetailedLines(v ...*Char
 // Mutation returns the ChargeUsageBasedRevenueRecognitionsMutation object of the builder.
 func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) Mutation() *ChargeUsageBasedRevenueRecognitionsMutation {
 	return _u.mutation
+}
+
+// ClearNextRuns clears all "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) ClearNextRuns() *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.ClearNextRuns()
+	return _u
+}
+
+// RemoveNextRunIDs removes the "next_runs" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.RemoveNextRunIDs(ids...)
+	return _u
+}
+
+// RemoveNextRuns removes "next_runs" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNextRunIDs(ids...)
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionCredits entity.
@@ -468,6 +504,51 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) sqlSave(ctx context.Context
 	}
 	if _u.mutation.InvoiceUsageTotalCleared() {
 		_spec.ClearField(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, field.TypeOther)
+	}
+	if _u.mutation.NextRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNextRunsIDs(); len(nodes) > 0 && !_u.mutation.NextRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NextRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -838,6 +919,21 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) ClearInvoiceUsageTotal()
 	return _u
 }
 
+// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.AddNextRunIDs(ids...)
+	return _u
+}
+
+// AddNextRuns adds the "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddNextRunIDs(ids...)
+}
+
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionCredits entity by IDs.
 func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddCreditAllocationIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
 	_u.mutation.AddCreditAllocationIDs(ids...)
@@ -886,6 +982,27 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddDetailedLines(v ...*C
 // Mutation returns the ChargeUsageBasedRevenueRecognitionsMutation object of the builder.
 func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) Mutation() *ChargeUsageBasedRevenueRecognitionsMutation {
 	return _u.mutation
+}
+
+// ClearNextRuns clears all "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) ClearNextRuns() *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.ClearNextRuns()
+	return _u
+}
+
+// RemoveNextRunIDs removes the "next_runs" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.RemoveNextRunIDs(ids...)
+	return _u
+}
+
+// RemoveNextRuns removes "next_runs" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveNextRunIDs(ids...)
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionCredits entity.
@@ -1090,6 +1207,51 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) sqlSave(ctx context.Cont
 	}
 	if _u.mutation.InvoiceUsageTotalCleared() {
 		_spec.ClearField(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, field.TypeOther)
+	}
+	if _u.mutation.NextRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedNextRunsIDs(); len(nodes) > 0 && !_u.mutation.NextRunsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.NextRunsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Bidi:    true,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _u.mutation.CreditAllocationsCleared() {
 		edge := &sqlgraph.EdgeSpec{

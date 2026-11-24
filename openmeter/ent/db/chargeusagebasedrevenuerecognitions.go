@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // ChargeUsageBasedRevenueRecognitions is the model entity for the ChargeUsageBasedRevenueRecognitions schema.
@@ -52,6 +53,10 @@ type ChargeUsageBasedRevenueRecognitions struct {
 	StoredAtLt time.Time `json:"stored_at_lt,omitempty"`
 	// ServicePeriodTo holds the value of the "service_period_to" field.
 	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
+	// Period holds the value of the "period" field.
+	Period datetime.ISODurationString `json:"period,omitempty"`
+	// PriorRunID holds the value of the "prior_run_id" field.
+	PriorRunID *string `json:"prior_run_id,omitempty"`
 	// MeteredQuantity holds the value of the "metered_quantity" field.
 	MeteredQuantity alpacadecimal.Decimal `json:"metered_quantity,omitempty"`
 	// DeltaMeteredQuantity holds the value of the "delta_metered_quantity" field.
@@ -72,6 +77,10 @@ type ChargeUsageBasedRevenueRecognitionsEdges struct {
 	UsageBased *ChargeUsageBased `json:"usage_based,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
+	// NextRuns holds the value of the next_runs edge.
+	NextRuns []*ChargeUsageBasedRevenueRecognitions `json:"next_runs,omitempty"`
+	// PriorRun holds the value of the prior_run edge.
+	PriorRun *ChargeUsageBasedRevenueRecognitions `json:"prior_run,omitempty"`
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeUsageBasedRevenueRecognitionCredits `json:"credit_allocations,omitempty"`
 	// FiatOverageCreditAllocations holds the value of the fiat_overage_credit_allocations edge.
@@ -80,7 +89,7 @@ type ChargeUsageBasedRevenueRecognitionsEdges struct {
 	DetailedLines []*ChargeUsageBasedRevenueRecognitionDetailedLine `json:"detailed_lines,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [5]bool
+	loadedTypes [7]bool
 }
 
 // UsageBasedOrErr returns the UsageBased value or an error if the edge
@@ -105,10 +114,30 @@ func (e ChargeUsageBasedRevenueRecognitionsEdges) FeatureOrErr() (*Feature, erro
 	return nil, &NotLoadedError{edge: "feature"}
 }
 
+// NextRunsOrErr returns the NextRuns value or an error if the edge
+// was not loaded in eager-loading.
+func (e ChargeUsageBasedRevenueRecognitionsEdges) NextRunsOrErr() ([]*ChargeUsageBasedRevenueRecognitions, error) {
+	if e.loadedTypes[2] {
+		return e.NextRuns, nil
+	}
+	return nil, &NotLoadedError{edge: "next_runs"}
+}
+
+// PriorRunOrErr returns the PriorRun value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedRevenueRecognitionsEdges) PriorRunOrErr() (*ChargeUsageBasedRevenueRecognitions, error) {
+	if e.PriorRun != nil {
+		return e.PriorRun, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: chargeusagebasedrevenuerecognitions.Label}
+	}
+	return nil, &NotLoadedError{edge: "prior_run"}
+}
+
 // CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRevenueRecognitionsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBasedRevenueRecognitionCredits, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[4] {
 		return e.CreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "credit_allocations"}
@@ -117,7 +146,7 @@ func (e ChargeUsageBasedRevenueRecognitionsEdges) CreditAllocationsOrErr() ([]*C
 // FiatOverageCreditAllocationsOrErr returns the FiatOverageCreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRevenueRecognitionsEdges) FiatOverageCreditAllocationsOrErr() ([]*ChargeUsageBasedRevenueRecognitionOverageCredits, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[5] {
 		return e.FiatOverageCreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "fiat_overage_credit_allocations"}
@@ -126,7 +155,7 @@ func (e ChargeUsageBasedRevenueRecognitionsEdges) FiatOverageCreditAllocationsOr
 // DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRevenueRecognitionsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRevenueRecognitionDetailedLine, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[6] {
 		return e.DetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "detailed_lines"}
@@ -143,7 +172,7 @@ func (*ChargeUsageBasedRevenueRecognitions) scanValues(columns []string) ([]any,
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeusagebasedrevenuerecognitions.FieldDetailedLinesIncludeCreditAllocations:
 			values[i] = new(sql.NullBool)
-		case chargeusagebasedrevenuerecognitions.FieldID, chargeusagebasedrevenuerecognitions.FieldNamespace, chargeusagebasedrevenuerecognitions.FieldChargeID, chargeusagebasedrevenuerecognitions.FieldFeatureID:
+		case chargeusagebasedrevenuerecognitions.FieldID, chargeusagebasedrevenuerecognitions.FieldNamespace, chargeusagebasedrevenuerecognitions.FieldChargeID, chargeusagebasedrevenuerecognitions.FieldFeatureID, chargeusagebasedrevenuerecognitions.FieldPeriod, chargeusagebasedrevenuerecognitions.FieldPriorRunID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedrevenuerecognitions.FieldCreatedAt, chargeusagebasedrevenuerecognitions.FieldUpdatedAt, chargeusagebasedrevenuerecognitions.FieldDeletedAt, chargeusagebasedrevenuerecognitions.FieldStoredAtLt, chargeusagebasedrevenuerecognitions.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
@@ -265,6 +294,19 @@ func (_m *ChargeUsageBasedRevenueRecognitions) assignValues(columns []string, va
 			} else if value.Valid {
 				_m.ServicePeriodTo = value.Time
 			}
+		case chargeusagebasedrevenuerecognitions.FieldPeriod:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field period", values[i])
+			} else if value.Valid {
+				_m.Period = datetime.ISODurationString(value.String)
+			}
+		case chargeusagebasedrevenuerecognitions.FieldPriorRunID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field prior_run_id", values[i])
+			} else if value.Valid {
+				_m.PriorRunID = new(string)
+				*_m.PriorRunID = value.String
+			}
 		case chargeusagebasedrevenuerecognitions.FieldMeteredQuantity:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
 				return fmt.Errorf("unexpected type %T for field metered_quantity", values[i])
@@ -311,6 +353,16 @@ func (_m *ChargeUsageBasedRevenueRecognitions) QueryUsageBased() *ChargeUsageBas
 // QueryFeature queries the "feature" edge of the ChargeUsageBasedRevenueRecognitions entity.
 func (_m *ChargeUsageBasedRevenueRecognitions) QueryFeature() *FeatureQuery {
 	return NewChargeUsageBasedRevenueRecognitionsClient(_m.config).QueryFeature(_m)
+}
+
+// QueryNextRuns queries the "next_runs" edge of the ChargeUsageBasedRevenueRecognitions entity.
+func (_m *ChargeUsageBasedRevenueRecognitions) QueryNextRuns() *ChargeUsageBasedRevenueRecognitionsQuery {
+	return NewChargeUsageBasedRevenueRecognitionsClient(_m.config).QueryNextRuns(_m)
+}
+
+// QueryPriorRun queries the "prior_run" edge of the ChargeUsageBasedRevenueRecognitions entity.
+func (_m *ChargeUsageBasedRevenueRecognitions) QueryPriorRun() *ChargeUsageBasedRevenueRecognitionsQuery {
+	return NewChargeUsageBasedRevenueRecognitionsClient(_m.config).QueryPriorRun(_m)
 }
 
 // QueryCreditAllocations queries the "credit_allocations" edge of the ChargeUsageBasedRevenueRecognitions entity.
@@ -400,6 +452,14 @@ func (_m *ChargeUsageBasedRevenueRecognitions) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("service_period_to=")
 	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("period=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Period))
+	builder.WriteString(", ")
+	if v := _m.PriorRunID; v != nil {
+		builder.WriteString("prior_run_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("metered_quantity=")
 	builder.WriteString(fmt.Sprintf("%v", _m.MeteredQuantity))

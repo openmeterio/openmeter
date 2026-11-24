@@ -37,6 +37,23 @@ func fromDBChargeUsageBasedRevenueRecognitions(dbRun *entdb.ChargeUsageBasedReve
 		return usagebased.RevenueRecognitionRun{}, fmt.Errorf("mapping detailed lines for revenue recognition run [id=%s]: %w", dbRun.ID, err)
 	}
 
+	period, err := dbRun.Period.Parse()
+	if err != nil {
+		return usagebased.RevenueRecognitionRun{}, fmt.Errorf("parsing period of revenue recognition run [id=%s]: %w", dbRun.ID, err)
+	}
+
+	var priorRunID *usagebased.RevenueRecognitionRunID
+	if dbRun.PriorRunID != nil {
+		if *dbRun.PriorRunID == dbRun.ID {
+			return usagebased.RevenueRecognitionRun{}, fmt.Errorf("revenue recognition run cannot reference itself as prior run [id=%s]", dbRun.ID)
+		}
+
+		priorRunID = &usagebased.RevenueRecognitionRunID{
+			Namespace: dbRun.Namespace,
+			ID:        *dbRun.PriorRunID,
+		}
+	}
+
 	return usagebased.RevenueRecognitionRun{
 		ID: usagebased.RevenueRecognitionRunID{
 			Namespace: dbRun.Namespace,
@@ -48,6 +65,8 @@ func fromDBChargeUsageBasedRevenueRecognitions(dbRun *entdb.ChargeUsageBasedReve
 		FeatureID:                             dbRun.FeatureID,
 		StoredAtLT:                            dbRun.StoredAtLt.UTC(),
 		ServicePeriodTo:                       dbRun.ServicePeriodTo.UTC(),
+		Period:                                period,
+		PriorRunID:                            priorRunID,
 		MeteredQuantity:                       dbRun.MeteredQuantity,
 		DeltaMeteredQuantity:                  dbRun.DeltaMeteredQuantity,
 		Totals:                                totals.DeltaTotals{Totals: totals.FromDB(dbRun)},

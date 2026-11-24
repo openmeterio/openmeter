@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -37,6 +38,11 @@ type RevenueRecognitionRun struct {
 	StoredAtLT time.Time `json:"storedAtLT"`
 	// ServicePeriodTo is the end of the period the run covers.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
+	// Period is the cadence the run belongs to, for example P1D for a daily run.
+	Period datetime.ISODuration `json:"period"`
+	// PriorRunID identifies the preceding revenue recognition run. It is nil for
+	// the first run.
+	PriorRunID *RevenueRecognitionRunID `json:"priorRunId,omitempty"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
 	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
 	// DeltaMeteredQuantity is the change in MeteredQuantity since the previous
@@ -117,10 +123,13 @@ func (l RevenueRecognitionDetailedLine) Validate() error {
 }
 
 type CreateRevenueRecognitionRunInput struct {
-	ChargeID                              meta.ChargeID                  `json:"chargeId"`
-	FeatureID                             string                         `json:"featureId"`
-	StoredAtLT                            time.Time                      `json:"storedAtLT"`
-	ServicePeriodTo                       time.Time                      `json:"servicePeriodTo"`
+	ChargeID        meta.ChargeID `json:"chargeId"`
+	FeatureID       string        `json:"featureId"`
+	StoredAtLT      time.Time     `json:"storedAtLT"`
+	ServicePeriodTo time.Time     `json:"servicePeriodTo"`
+	// Period is stored as daily (P1D) when left empty.
+	Period                                datetime.ISODuration           `json:"period"`
+	PriorRunID                            *RevenueRecognitionRunID       `json:"priorRunId,omitempty"`
 	MeteredQuantity                       alpacadecimal.Decimal          `json:"meteredQuantity"`
 	DeltaMeteredQuantity                  alpacadecimal.Decimal          `json:"deltaMeteredQuantity"`
 	Totals                                totals.DeltaTotals             `json:"totals"`
@@ -151,6 +160,20 @@ func (i CreateRevenueRecognitionRunInput) Validate() error {
 
 	if i.ServicePeriodTo.IsZero() {
 		errs = append(errs, errors.New("service period to must be set"))
+	}
+
+	if !i.Period.IsZero() && !i.Period.IsPositive() {
+		errs = append(errs, errors.New("period must be positive"))
+	}
+
+	if i.PriorRunID != nil {
+		if err := i.PriorRunID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prior run id: %w", err))
+		}
+
+		if i.PriorRunID.Namespace != i.ChargeID.Namespace {
+			errs = append(errs, errors.New("prior run namespace must match charge namespace"))
+		}
 	}
 
 	if err := i.Totals.Validate(); err != nil {

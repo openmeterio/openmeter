@@ -21,6 +21,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -508,6 +509,19 @@ func (ChargeUsageBasedRevenueRecognitions) Fields() []ent.Field {
 		field.Time("service_period_to").
 			Immutable(),
 
+		field.String("period").
+			GoType(datetime.ISODurationString("")).
+			Default("P1D").
+			Immutable(),
+
+		field.String("prior_run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
+
 		field.Other("metered_quantity", alpacadecimal.Decimal{}).
 			SchemaType(map[string]string{
 				dialect.Postgres: "numeric",
@@ -543,6 +557,13 @@ func (ChargeUsageBasedRevenueRecognitions) Edges() []ent.Edge {
 			Ref("usage_based_revenue_recognitions").
 			Unique().
 			Required().
+			Immutable(),
+		edge.To("next_runs", ChargeUsageBasedRevenueRecognitions.Type).
+			StorageKey(edge.Symbol("charge_ub_revrec_prior_run")),
+		edge.From("prior_run", ChargeUsageBasedRevenueRecognitions.Type).
+			Ref("next_runs").
+			Field("prior_run_id").
+			Unique().
 			Immutable(),
 		edge.To("credit_allocations", ChargeUsageBasedRevenueRecognitionCredits.Type).
 			StorageKey(edge.Symbol("charge_ub_revrec_credits_run")).

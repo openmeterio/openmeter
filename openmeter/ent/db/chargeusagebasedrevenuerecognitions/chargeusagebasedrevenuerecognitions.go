@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 const (
@@ -46,6 +47,10 @@ const (
 	FieldStoredAtLt = "stored_at_lt"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
 	FieldServicePeriodTo = "service_period_to"
+	// FieldPeriod holds the string denoting the period field in the database.
+	FieldPeriod = "period"
+	// FieldPriorRunID holds the string denoting the prior_run_id field in the database.
+	FieldPriorRunID = "prior_run_id"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
 	FieldMeteredQuantity = "metered_quantity"
 	// FieldDeltaMeteredQuantity holds the string denoting the delta_metered_quantity field in the database.
@@ -58,6 +63,10 @@ const (
 	EdgeUsageBased = "usage_based"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
+	// EdgeNextRuns holds the string denoting the next_runs edge name in mutations.
+	EdgeNextRuns = "next_runs"
+	// EdgePriorRun holds the string denoting the prior_run edge name in mutations.
+	EdgePriorRun = "prior_run"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
 	// EdgeFiatOverageCreditAllocations holds the string denoting the fiat_overage_credit_allocations edge name in mutations.
@@ -80,6 +89,14 @@ const (
 	FeatureInverseTable = "features"
 	// FeatureColumn is the table column denoting the feature relation/edge.
 	FeatureColumn = "feature_id"
+	// NextRunsTable is the table that holds the next_runs relation/edge.
+	NextRunsTable = "charge_usage_based_revenue_recognitions"
+	// NextRunsColumn is the table column denoting the next_runs relation/edge.
+	NextRunsColumn = "prior_run_id"
+	// PriorRunTable is the table that holds the prior_run relation/edge.
+	PriorRunTable = "charge_usage_based_revenue_recognitions"
+	// PriorRunColumn is the table column denoting the prior_run relation/edge.
+	PriorRunColumn = "prior_run_id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_usage_based_revenue_recognition_credits"
 	// CreditAllocationsInverseTable is the table name for the ChargeUsageBasedRevenueRecognitionCredits entity.
@@ -122,6 +139,8 @@ var Columns = []string{
 	FieldFeatureID,
 	FieldStoredAtLt,
 	FieldServicePeriodTo,
+	FieldPeriod,
+	FieldPriorRunID,
 	FieldMeteredQuantity,
 	FieldDeltaMeteredQuantity,
 	FieldDetailedLinesIncludeCreditAllocations,
@@ -149,6 +168,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	FeatureIDValidator func(string) error
+	// DefaultPeriod holds the default value on creation for the "period" field.
+	DefaultPeriod datetime.ISODurationString
 	// DefaultDetailedLinesIncludeCreditAllocations holds the default value on creation for the "detailed_lines_include_credit_allocations" field.
 	DefaultDetailedLinesIncludeCreditAllocations bool
 	// DefaultID holds the default value on creation for the "id" field.
@@ -243,6 +264,16 @@ func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
 }
 
+// ByPeriod orders the results by the period field.
+func ByPeriod(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPeriod, opts...).ToFunc()
+}
+
+// ByPriorRunID orders the results by the prior_run_id field.
+func ByPriorRunID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPriorRunID, opts...).ToFunc()
+}
+
 // ByMeteredQuantity orders the results by the metered_quantity field.
 func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeteredQuantity, opts...).ToFunc()
@@ -274,6 +305,27 @@ func ByUsageBasedField(field string, opts ...sql.OrderTermOption) OrderOption {
 func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByNextRunsCount orders the results by next_runs count.
+func ByNextRunsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newNextRunsStep(), opts...)
+	}
+}
+
+// ByNextRuns orders the results by next_runs terms.
+func ByNextRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newNextRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPriorRunField orders the results by prior_run field.
+func ByPriorRunField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPriorRunStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -330,6 +382,20 @@ func newFeatureStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeatureInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+	)
+}
+func newNextRunsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, NextRunsTable, NextRunsColumn),
+	)
+}
+func newPriorRunStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(Table, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, PriorRunTable, PriorRunColumn),
 	)
 }
 func newCreditAllocationsStep() *sqlgraph.Step {

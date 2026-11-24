@@ -3379,11 +3379,13 @@ var (
 		{Name: "total", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "stored_at_lt", Type: field.TypeTime},
 		{Name: "service_period_to", Type: field.TypeTime},
+		{Name: "period", Type: field.TypeString, Default: "P1D"},
 		{Name: "metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "delta_metered_quantity", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "detailed_lines_include_credit_allocations", Type: field.TypeBool, Default: false},
 		{Name: "invoice_usage_total", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "prior_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// ChargeUsageBasedRevenueRecognitionsTable holds the schema information for the "charge_usage_based_revenue_recognitions" table.
@@ -3394,13 +3396,19 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "charge_usage_based_revenue_recognitions_charge_usage_based_revenue_recognitions",
-				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[19]},
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[20]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
+				Symbol:     "charge_ub_revrec_prior_run",
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[21]},
+				RefColumns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
 				Symbol:     "charge_usage_based_revenue_recognitions_features_usage_based_revenue_recognitions",
-				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[20]},
+				Columns:    []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[22]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -3419,7 +3427,7 @@ var (
 			{
 				Name:    "chargeusagebasedrevenuerecognitions_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[1], ChargeUsageBasedRevenueRecognitionsColumns[19]},
+				Columns: []*schema.Column{ChargeUsageBasedRevenueRecognitionsColumns[1], ChargeUsageBasedRevenueRecognitionsColumns[20]},
 			},
 		},
 	}
@@ -6920,7 +6928,8 @@ func init() {
 	}
 	ChargeUsageBasedRevenueRecognitionOverageCreditsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRevenueRecognitionsTable
 	ChargeUsageBasedRevenueRecognitionsTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
-	ChargeUsageBasedRevenueRecognitionsTable.ForeignKeys[1].RefTable = FeaturesTable
+	ChargeUsageBasedRevenueRecognitionsTable.ForeignKeys[1].RefTable = ChargeUsageBasedRevenueRecognitionsTable
+	ChargeUsageBasedRevenueRecognitionsTable.ForeignKeys[2].RefTable = FeaturesTable
 	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunCreditAllocationsTable
 	ChargeUsageBasedRunCreditAllocationsTable.ForeignKeys[1].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunDetailedLineTable.ForeignKeys[0].RefTable = ChargeUsageBasedTable
