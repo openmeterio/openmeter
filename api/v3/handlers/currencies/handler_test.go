@@ -23,6 +23,15 @@ func TestCustomCurrencyMutationsRequireCredits(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, response.Code)
 	})
 
+	t.Run("update currency", func(t *testing.T) {
+		request := httptest.NewRequest(http.MethodPatch, "/api/v3/openmeter/currencies/custom/currency-id", nil)
+		response := httptest.NewRecorder()
+
+		handler.UpdateCurrency().With("currency-id").ServeHTTP(response, request)
+
+		require.Equal(t, http.StatusBadRequest, response.Code)
+	})
+
 	t.Run("create cost basis", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodPost, "/api/v3/openmeter/currencies/custom/currency-id/cost-bases", nil)
 		response := httptest.NewRecorder()

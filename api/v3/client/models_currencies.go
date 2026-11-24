@@ -246,3 +246,20 @@ func (value CurrencyType) Valid() bool {
 		return false
 	}
 }
+
+// CurrencyCustom upsert request.
+type UpsertCurrencyCustomRequest struct {
+	// The name of the currency. It should be a human-readable string that represents
+	// the name of the currency, such as "US Dollar" or "Euro".
+	Name string `json:"name"`
+	// The symbol of the currency. It should be a string that represents the symbol of
+	// the currency, such as "$" for US Dollar or "€" for Euro.
+	Symbol *string `json:"symbol,omitempty"`
+	// The decimal mark for the currency. It should be a string that represents the
+	// decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+	DecimalMark string `json:"decimal_mark"`
+	// The thousand separator for the currency. It should be a string that represents
+	// the thousand separator of the currency, such as "," for US Dollar or "." for
+	// Euro.
+	ThousandSeparator string `json:"thousand_separator"`
+}

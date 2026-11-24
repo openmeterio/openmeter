@@ -444,6 +444,10 @@ func (s *Server) GetCustomCurrency(w http.ResponseWriter, r *http.Request, curre
 	s.currenciesHandler.GetCurrency().With(currencyId).ServeHTTP(w, r)
 }
 
+func (s *Server) UpdateCustomCurrency(w http.ResponseWriter, r *http.Request, currencyId apiv3models.ULID) {
+	s.currenciesHandler.UpdateCurrency().With(currencyId).ServeHTTP(w, r)
+}
+
 // Features
 
 func (s *Server) ListFeatures(w http.ResponseWriter, r *http.Request, params apiv3models.ListFeaturesParams) {

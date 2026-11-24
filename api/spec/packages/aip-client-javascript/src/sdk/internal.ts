@@ -9,6 +9,7 @@ import {
   updateSubscriptionAddon,
 } from '../funcs/subscriptions.js'
 import { executeAppAction } from '../funcs/apps.js'
+import { updateCustomCurrency } from '../funcs/currencies.js'
 import {
   listBillingNotificationRules,
   createBillingNotificationRule,
@@ -34,6 +35,10 @@ import type {
   ExecuteAppActionRequest,
   ExecuteAppActionResponse,
 } from '../models/operations/apps.js'
+import type {
+  UpdateCustomCurrencyRequest,
+  UpdateCustomCurrencyResponse,
+} from '../models/operations/currencies.js'
 import type {
   ListBillingNotificationRulesRequest,
   ListBillingNotificationRulesResponse,
@@ -77,6 +82,11 @@ export class Internal {
   private _apps?: InternalApps
   get apps(): InternalApps {
     return (this._apps ??= new InternalApps(this._client))
+  }
+
+  private _currencies?: InternalCurrencies
+  get currencies(): InternalCurrencies {
+    return (this._currencies ??= new InternalCurrencies(this._client))
   }
 
   private _notifications?: InternalNotifications
@@ -168,6 +178,25 @@ export class InternalApps {
     options?: RequestOptions,
   ): Promise<ExecuteAppActionResponse> {
     return unwrap(await executeAppAction(this._client, request, options))
+  }
+}
+
+export class InternalCurrencies {
+  constructor(private readonly _client: Client) {}
+
+  /**
+   * Update custom currency
+   *
+   * Replace the presentational attributes of a custom currency. The currency's code
+   * and precision are immutable and cannot be updated.
+   *
+   * PUT /openmeter/currencies/custom/{currencyId}
+   */
+  async updateCustomCurrency(
+    request: UpdateCustomCurrencyRequest,
+    options?: RequestOptions,
+  ): Promise<UpdateCustomCurrencyResponse> {
+    return unwrap(await updateCustomCurrency(this._client, request, options))
   }
 }
 

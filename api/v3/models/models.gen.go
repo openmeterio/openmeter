@@ -14622,6 +14622,26 @@ type UpsertBillingProfileRequest struct {
 	Workflow BillingWorkflow `json:"workflow"`
 }
 
+// UpsertCurrencyCustomRequest CurrencyCustom upsert request.
+type UpsertCurrencyCustomRequest struct {
+	// DecimalMark The decimal mark for the currency. It should be a string that represents the
+	// decimal mark of the currency, such as "." for US Dollar or "," for Euro.
+	DecimalMark string `json:"decimal_mark"`
+
+	// Name The name of the currency. It should be a human-readable string that represents
+	// the name of the currency, such as "US Dollar" or "Euro".
+	Name string `json:"name"`
+
+	// Symbol The symbol of the currency. It should be a string that represents the symbol of
+	// the currency, such as "$" for US Dollar or "€" for Euro.
+	Symbol *string `json:"symbol,omitempty"`
+
+	// ThousandSeparator The thousand separator for the currency. It should be a string that represents
+	// the thousand separator of the currency, such as "," for US Dollar or "." for
+	// Euro.
+	ThousandSeparator string `json:"thousand_separator"`
+}
+
 // UpsertCustomerBillingDataRequest CustomerBillingData upsert request.
 type UpsertCustomerBillingDataRequest struct {
 	// AppData App customer data.
@@ -15539,6 +15559,9 @@ type UpdateInvoiceJSONRequestBody = UpdateInvoiceRequest
 
 // CreateCustomCurrencyJSONRequestBody defines body for CreateCustomCurrency for application/json ContentType.
 type CreateCustomCurrencyJSONRequestBody = CreateCurrencyCustomRequest
+
+// UpdateCustomCurrencyJSONRequestBody defines body for UpdateCustomCurrency for application/json ContentType.
+type UpdateCustomCurrencyJSONRequestBody = UpsertCurrencyCustomRequest
 
 // CreateCostBasisJSONRequestBody defines body for CreateCostBasis for application/json ContentType.
 type CreateCostBasisJSONRequestBody = CreateCostBasisRequest

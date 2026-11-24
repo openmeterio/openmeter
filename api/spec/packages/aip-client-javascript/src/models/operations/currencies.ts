@@ -13,6 +13,7 @@ import type {
   ListCostBasesParamsFilter,
   ListCurrenciesParamsFilter,
   SortQueryInput,
+  UpsertCurrencyCustomRequest,
 } from '../types.js'
 
 export interface ListCurrenciesQuery {
@@ -53,6 +54,12 @@ export type GetCustomCurrencyRequest = {
   currencyId: string
 }
 export type GetCustomCurrencyResponse = CurrencyCustom
+
+export type UpdateCustomCurrencyRequest = AcceptDateStrings<{
+  currencyId: string
+  body: UpsertCurrencyCustomRequest
+}>
+export type UpdateCustomCurrencyResponse = CurrencyCustom
 
 export interface ListCostBasesQuery {
   /**
