@@ -27,6 +27,10 @@ Rules and channels are namespaced and soft-deleted. A channel cannot be deleted
 while a rule still references it. Events have no update or delete lifecycle;
 payload compatibility and retention therefore matter for historical data.
 
+Rule get and list responses include all assigned channels that have not been
+deleted, including disabled channels. Disabling a channel stops delivery but
+does not remove its rule assignment.
+
 ## Channel type storage compatibility
 
 The service uses `webhook`; V1 HTTP uses `WEBHOOK`, while V3 uses `webhook`.

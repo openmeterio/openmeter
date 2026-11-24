@@ -23,8 +23,16 @@ import (
 
 func EagerLoadActiveChannels(at time.Time) func(query *entdb.NotificationChannelQuery) {
 	return func(query *entdb.NotificationChannelQuery) {
+		EagerLoadNonDeletedChannels(at)(query)
+		query.Where(channeldb.Disabled(false))
+	}
+}
+
+// EagerLoadNonDeletedChannels preserves disabled assignments when reading rules.
+// Disabling a channel stops delivery, but does not detach it from its rules.
+func EagerLoadNonDeletedChannels(at time.Time) func(query *entdb.NotificationChannelQuery) {
+	return func(query *entdb.NotificationChannelQuery) {
 		query.Where(
-			channeldb.Disabled(false),
 			channeldb.Or(
 				channeldb.DeletedAtIsNil(),
 				channeldb.DeletedAtGT(at),
@@ -41,8 +49,8 @@ func (a *adapter) ListRules(ctx context.Context, params notification.ListRulesIn
 			Where(ruledb.Or(
 				ruledb.DeletedAtIsNil(),
 				ruledb.DeletedAtGT(now),
-			)).                                        // Do not return deleted Rules
-			WithChannels(EagerLoadActiveChannels(now)) // Eager load active Channels
+			)). // Do not return deleted Rules
+			WithChannels(EagerLoadNonDeletedChannels(now))
 
 		query = query.Where(ruledb.Namespace(params.Namespace))
 
@@ -198,7 +206,7 @@ func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput)
 		query := a.db.NotificationRule.Query().
 			Where(ruledb.ID(params.ID)).
 			Where(ruledb.Namespace(params.Namespace)).
-			WithChannels(EagerLoadActiveChannels(clock.Now()))
+			WithChannels(EagerLoadNonDeletedChannels(clock.Now()))
 
 		ruleRow, err := query.First(ctx)
 		if err != nil {

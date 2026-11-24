@@ -197,6 +197,87 @@ func TestListRules_Filters(t *testing.T) {
 	}
 }
 
+func TestRuleReads_ChannelVisibility(t *testing.T) {
+	env := newChannelTestEnv(t)
+	at := clock.Now().UTC().Truncate(time.Second)
+
+	for _, tt := range []struct {
+		name      string
+		disabled  bool
+		deletedAt *time.Time
+		visible   bool
+	}{
+		{
+			name:    "enabled",
+			visible: true,
+		},
+		{
+			name:     "disabled",
+			disabled: true,
+			visible:  true,
+		},
+		{
+			name:      "deleted enabled",
+			deletedAt: lo.ToPtr(at.Add(-time.Hour)),
+		},
+		{
+			name:      "deleted disabled",
+			disabled:  true,
+			deletedAt: lo.ToPtr(at.Add(-time.Hour)),
+		},
+		{
+			name:      "deleted now",
+			deletedAt: lo.ToPtr(at),
+		},
+		{
+			name:      "future deletion",
+			disabled:  true,
+			deletedAt: lo.ToPtr(at.Add(time.Hour)),
+			visible:   true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a rule keeps its channel assignment across disablement and soft deletion
+			channel := createChannel(t, env, ulid.Make().String(), at, func(input *notification.CreateChannelInput) {
+				input.Disabled = tt.disabled
+			})
+			rule := createRule(t, env, channel.Namespace, at, func(input *notification.CreateRuleInput) {
+				input.Channels = []string{channel.ID}
+			})
+			if tt.deletedAt != nil {
+				// The service prevents deleting assigned channels; seed the stored state directly.
+				_, err := env.db.NotificationChannel.UpdateOneID(channel.ID).SetDeletedAt(*tt.deletedAt).Save(t.Context())
+				require.NoError(t, err)
+			}
+
+			clock.FreezeTime(at)
+			defer clock.UnFreeze()
+
+			// when: fetching and listing rules with the default disabled-rule filter
+			got, err := env.adapter.GetRule(t.Context(), notification.GetRuleInput(rule.NamespacedID))
+			require.NoError(t, err)
+			listed, err := env.adapter.ListRules(t.Context(), notification.ListRulesInput{
+				Namespace: rule.Namespace,
+				Page:      pagination.NewPage(1, 20),
+			})
+			require.NoError(t, err)
+			require.Len(t, listed.Items, 1)
+
+			// then: only deletion hides the assigned channel; disabled state remains visible
+			for _, item := range []notification.Rule{*got, listed.Items[0]} {
+				if !tt.visible {
+					assert.Empty(t, item.Channels)
+					continue
+				}
+
+				require.Len(t, item.Channels, 1)
+				assert.Equal(t, channel.ID, item.Channels[0].ID)
+				assert.Equal(t, tt.disabled, item.Channels[0].Disabled)
+			}
+		})
+	}
+}
+
 func TestRuleChannelConfigCompatibility(t *testing.T) {
 	tests := []struct {
 		name    string
