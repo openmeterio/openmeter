@@ -525,6 +525,54 @@ func (f ChargeUsageBasedOverrideFunc) Mutate(ctx context.Context, m db.Mutation)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedOverrideMutation", m)
 }
 
+// The ChargeUsageBasedRevenueRecognitionCreditsFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRevenueRecognitionCredits mutator.
+type ChargeUsageBasedRevenueRecognitionCreditsFunc func(context.Context, *db.ChargeUsageBasedRevenueRecognitionCreditsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRevenueRecognitionCreditsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRevenueRecognitionCreditsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRevenueRecognitionCreditsMutation", m)
+}
+
+// The ChargeUsageBasedRevenueRecognitionDetailedLineFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRevenueRecognitionDetailedLine mutator.
+type ChargeUsageBasedRevenueRecognitionDetailedLineFunc func(context.Context, *db.ChargeUsageBasedRevenueRecognitionDetailedLineMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRevenueRecognitionDetailedLineFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRevenueRecognitionDetailedLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRevenueRecognitionDetailedLineMutation", m)
+}
+
+// The ChargeUsageBasedRevenueRecognitionOverageCreditsFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRevenueRecognitionOverageCredits mutator.
+type ChargeUsageBasedRevenueRecognitionOverageCreditsFunc func(context.Context, *db.ChargeUsageBasedRevenueRecognitionOverageCreditsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRevenueRecognitionOverageCreditsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRevenueRecognitionOverageCreditsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRevenueRecognitionOverageCreditsMutation", m)
+}
+
+// The ChargeUsageBasedRevenueRecognitionsFunc type is an adapter to allow the use of ordinary
+// function as ChargeUsageBasedRevenueRecognitions mutator.
+type ChargeUsageBasedRevenueRecognitionsFunc func(context.Context, *db.ChargeUsageBasedRevenueRecognitionsMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ChargeUsageBasedRevenueRecognitionsFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.ChargeUsageBasedRevenueRecognitionsMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ChargeUsageBasedRevenueRecognitionsMutation", m)
+}
+
 // The ChargeUsageBasedRunCreditAllocationsFunc type is an adapter to allow the use of ordinary
 // function as ChargeUsageBasedRunCreditAllocations mutator.
 type ChargeUsageBasedRunCreditAllocationsFunc func(context.Context, *db.ChargeUsageBasedRunCreditAllocationsMutation) (db.Value, error)

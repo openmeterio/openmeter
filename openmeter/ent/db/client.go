@@ -58,6 +58,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioncredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitiondetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitionoveragecredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
@@ -203,6 +207,14 @@ type Client struct {
 	ChargeUsageBasedCostBasis *ChargeUsageBasedCostBasisClient
 	// ChargeUsageBasedOverride is the client for interacting with the ChargeUsageBasedOverride builders.
 	ChargeUsageBasedOverride *ChargeUsageBasedOverrideClient
+	// ChargeUsageBasedRevenueRecognitionCredits is the client for interacting with the ChargeUsageBasedRevenueRecognitionCredits builders.
+	ChargeUsageBasedRevenueRecognitionCredits *ChargeUsageBasedRevenueRecognitionCreditsClient
+	// ChargeUsageBasedRevenueRecognitionDetailedLine is the client for interacting with the ChargeUsageBasedRevenueRecognitionDetailedLine builders.
+	ChargeUsageBasedRevenueRecognitionDetailedLine *ChargeUsageBasedRevenueRecognitionDetailedLineClient
+	// ChargeUsageBasedRevenueRecognitionOverageCredits is the client for interacting with the ChargeUsageBasedRevenueRecognitionOverageCredits builders.
+	ChargeUsageBasedRevenueRecognitionOverageCredits *ChargeUsageBasedRevenueRecognitionOverageCreditsClient
+	// ChargeUsageBasedRevenueRecognitions is the client for interacting with the ChargeUsageBasedRevenueRecognitions builders.
+	ChargeUsageBasedRevenueRecognitions *ChargeUsageBasedRevenueRecognitionsClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
 	ChargeUsageBasedRunCreditAllocations *ChargeUsageBasedRunCreditAllocationsClient
 	// ChargeUsageBasedRunDetailedLine is the client for interacting with the ChargeUsageBasedRunDetailedLine builders.
@@ -359,6 +371,10 @@ func (c *Client) init() {
 	c.ChargeUsageBased = NewChargeUsageBasedClient(c.config)
 	c.ChargeUsageBasedCostBasis = NewChargeUsageBasedCostBasisClient(c.config)
 	c.ChargeUsageBasedOverride = NewChargeUsageBasedOverrideClient(c.config)
+	c.ChargeUsageBasedRevenueRecognitionCredits = NewChargeUsageBasedRevenueRecognitionCreditsClient(c.config)
+	c.ChargeUsageBasedRevenueRecognitionDetailedLine = NewChargeUsageBasedRevenueRecognitionDetailedLineClient(c.config)
+	c.ChargeUsageBasedRevenueRecognitionOverageCredits = NewChargeUsageBasedRevenueRecognitionOverageCreditsClient(c.config)
+	c.ChargeUsageBasedRevenueRecognitions = NewChargeUsageBasedRevenueRecognitionsClient(c.config)
 	c.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(c.config)
 	c.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(c.config)
 	c.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(c.config)
@@ -545,6 +561,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
 		ChargeUsageBasedCostBasis:                        NewChargeUsageBasedCostBasisClient(cfg),
 		ChargeUsageBasedOverride:                         NewChargeUsageBasedOverrideClient(cfg),
+		ChargeUsageBasedRevenueRecognitionCredits:        NewChargeUsageBasedRevenueRecognitionCreditsClient(cfg),
+		ChargeUsageBasedRevenueRecognitionDetailedLine:   NewChargeUsageBasedRevenueRecognitionDetailedLineClient(cfg),
+		ChargeUsageBasedRevenueRecognitionOverageCredits: NewChargeUsageBasedRevenueRecognitionOverageCreditsClient(cfg),
+		ChargeUsageBasedRevenueRecognitions:              NewChargeUsageBasedRevenueRecognitionsClient(cfg),
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
@@ -658,6 +678,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ChargeUsageBased:                                 NewChargeUsageBasedClient(cfg),
 		ChargeUsageBasedCostBasis:                        NewChargeUsageBasedCostBasisClient(cfg),
 		ChargeUsageBasedOverride:                         NewChargeUsageBasedOverrideClient(cfg),
+		ChargeUsageBasedRevenueRecognitionCredits:        NewChargeUsageBasedRevenueRecognitionCreditsClient(cfg),
+		ChargeUsageBasedRevenueRecognitionDetailedLine:   NewChargeUsageBasedRevenueRecognitionDetailedLineClient(cfg),
+		ChargeUsageBasedRevenueRecognitionOverageCredits: NewChargeUsageBasedRevenueRecognitionOverageCreditsClient(cfg),
+		ChargeUsageBasedRevenueRecognitions:              NewChargeUsageBasedRevenueRecognitionsClient(cfg),
 		ChargeUsageBasedRunCreditAllocations:             NewChargeUsageBasedRunCreditAllocationsClient(cfg),
 		ChargeUsageBasedRunDetailedLine:                  NewChargeUsageBasedRunDetailedLineClient(cfg),
 		ChargeUsageBasedRunInvoicedUsage:                 NewChargeUsageBasedRunInvoicedUsageClient(cfg),
@@ -755,7 +779,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChargeFlatFeeRunCreditAllocations, c.ChargeFlatFeeRunDetailedLine,
 		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunOverageCreditAllocations,
 		c.ChargeFlatFeeRunPayment, c.ChargeUsageBased, c.ChargeUsageBasedCostBasis,
-		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRunCreditAllocations,
+		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRevenueRecognitionCredits,
+		c.ChargeUsageBasedRevenueRecognitionDetailedLine,
+		c.ChargeUsageBasedRevenueRecognitionOverageCredits,
+		c.ChargeUsageBasedRevenueRecognitions, c.ChargeUsageBasedRunCreditAllocations,
 		c.ChargeUsageBasedRunDetailedLine, c.ChargeUsageBasedRunInvoicedUsage,
 		c.ChargeUsageBasedRunOverageCreditAllocations, c.ChargeUsageBasedRunPayment,
 		c.ChargeUsageBasedRuns, c.CreditRealizationLineage,
@@ -797,7 +824,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChargeFlatFeeRunCreditAllocations, c.ChargeFlatFeeRunDetailedLine,
 		c.ChargeFlatFeeRunInvoicedUsage, c.ChargeFlatFeeRunOverageCreditAllocations,
 		c.ChargeFlatFeeRunPayment, c.ChargeUsageBased, c.ChargeUsageBasedCostBasis,
-		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRunCreditAllocations,
+		c.ChargeUsageBasedOverride, c.ChargeUsageBasedRevenueRecognitionCredits,
+		c.ChargeUsageBasedRevenueRecognitionDetailedLine,
+		c.ChargeUsageBasedRevenueRecognitionOverageCredits,
+		c.ChargeUsageBasedRevenueRecognitions, c.ChargeUsageBasedRunCreditAllocations,
 		c.ChargeUsageBasedRunDetailedLine, c.ChargeUsageBasedRunInvoicedUsage,
 		c.ChargeUsageBasedRunOverageCreditAllocations, c.ChargeUsageBasedRunPayment,
 		c.ChargeUsageBasedRuns, c.ChargesSearchV1, c.CreditRealizationLineage,
@@ -907,6 +937,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ChargeUsageBasedCostBasis.mutate(ctx, m)
 	case *ChargeUsageBasedOverrideMutation:
 		return c.ChargeUsageBasedOverride.mutate(ctx, m)
+	case *ChargeUsageBasedRevenueRecognitionCreditsMutation:
+		return c.ChargeUsageBasedRevenueRecognitionCredits.mutate(ctx, m)
+	case *ChargeUsageBasedRevenueRecognitionDetailedLineMutation:
+		return c.ChargeUsageBasedRevenueRecognitionDetailedLine.mutate(ctx, m)
+	case *ChargeUsageBasedRevenueRecognitionOverageCreditsMutation:
+		return c.ChargeUsageBasedRevenueRecognitionOverageCredits.mutate(ctx, m)
+	case *ChargeUsageBasedRevenueRecognitionsMutation:
+		return c.ChargeUsageBasedRevenueRecognitions.mutate(ctx, m)
 	case *ChargeUsageBasedRunCreditAllocationsMutation:
 		return c.ChargeUsageBasedRunCreditAllocations.mutate(ctx, m)
 	case *ChargeUsageBasedRunDetailedLineMutation:
@@ -8856,6 +8894,22 @@ func (c *ChargeUsageBasedClient) QueryDetailedLines(_m *ChargeUsageBased) *Charg
 	return query
 }
 
+// QueryRevenueRecognitions queries the revenue_recognitions edge of a ChargeUsageBased.
+func (c *ChargeUsageBasedClient) QueryRevenueRecognitions(_m *ChargeUsageBased) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebased.RevenueRecognitionsTable, chargeusagebased.RevenueRecognitionsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCurrentRun queries the current_run edge of a ChargeUsageBased.
 func (c *ChargeUsageBasedClient) QueryCurrentRun(_m *ChargeUsageBased) *ChargeUsageBasedRunsQuery {
 	query := (&ChargeUsageBasedRunsClient{config: c.config}).Query()
@@ -9400,6 +9454,666 @@ func (c *ChargeUsageBasedOverrideClient) mutate(ctx context.Context, m *ChargeUs
 		return (&ChargeUsageBasedOverrideDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown ChargeUsageBasedOverride mutation op: %q", m.Op())
+	}
+}
+
+// ChargeUsageBasedRevenueRecognitionCreditsClient is a client for the ChargeUsageBasedRevenueRecognitionCredits schema.
+type ChargeUsageBasedRevenueRecognitionCreditsClient struct {
+	config
+}
+
+// NewChargeUsageBasedRevenueRecognitionCreditsClient returns a client for the ChargeUsageBasedRevenueRecognitionCredits from the given config.
+func NewChargeUsageBasedRevenueRecognitionCreditsClient(c config) *ChargeUsageBasedRevenueRecognitionCreditsClient {
+	return &ChargeUsageBasedRevenueRecognitionCreditsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeusagebasedrevenuerecognitioncredits.Hooks(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Use(hooks ...Hook) {
+	c.hooks.ChargeUsageBasedRevenueRecognitionCredits = append(c.hooks.ChargeUsageBasedRevenueRecognitionCredits, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeusagebasedrevenuerecognitioncredits.Intercept(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeUsageBasedRevenueRecognitionCredits = append(c.inters.ChargeUsageBasedRevenueRecognitionCredits, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeUsageBasedRevenueRecognitionCredits entity.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Create() *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	mutation := newChargeUsageBasedRevenueRecognitionCreditsMutation(c.config, OpCreate)
+	return &ChargeUsageBasedRevenueRecognitionCreditsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeUsageBasedRevenueRecognitionCredits entities.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) CreateBulk(builders ...*ChargeUsageBasedRevenueRecognitionCreditsCreate) *ChargeUsageBasedRevenueRecognitionCreditsCreateBulk {
+	return &ChargeUsageBasedRevenueRecognitionCreditsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) MapCreateBulk(slice any, setFunc func(*ChargeUsageBasedRevenueRecognitionCreditsCreate, int)) *ChargeUsageBasedRevenueRecognitionCreditsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeUsageBasedRevenueRecognitionCreditsCreateBulk{err: fmt.Errorf("calling to ChargeUsageBasedRevenueRecognitionCreditsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeUsageBasedRevenueRecognitionCreditsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeUsageBasedRevenueRecognitionCreditsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeUsageBasedRevenueRecognitionCredits.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Update() *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	mutation := newChargeUsageBasedRevenueRecognitionCreditsMutation(c.config, OpUpdate)
+	return &ChargeUsageBasedRevenueRecognitionCreditsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) UpdateOne(_m *ChargeUsageBasedRevenueRecognitionCredits) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionCreditsMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitionCredits(_m))
+	return &ChargeUsageBasedRevenueRecognitionCreditsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) UpdateOneID(id string) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionCreditsMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitionCreditsID(id))
+	return &ChargeUsageBasedRevenueRecognitionCreditsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeUsageBasedRevenueRecognitionCredits.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Delete() *ChargeUsageBasedRevenueRecognitionCreditsDelete {
+	mutation := newChargeUsageBasedRevenueRecognitionCreditsMutation(c.config, OpDelete)
+	return &ChargeUsageBasedRevenueRecognitionCreditsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) DeleteOne(_m *ChargeUsageBasedRevenueRecognitionCredits) *ChargeUsageBasedRevenueRecognitionCreditsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) DeleteOneID(id string) *ChargeUsageBasedRevenueRecognitionCreditsDeleteOne {
+	builder := c.Delete().Where(chargeusagebasedrevenuerecognitioncredits.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeUsageBasedRevenueRecognitionCreditsDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeUsageBasedRevenueRecognitionCredits.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Query() *ChargeUsageBasedRevenueRecognitionCreditsQuery {
+	return &ChargeUsageBasedRevenueRecognitionCreditsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeUsageBasedRevenueRecognitionCredits},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeUsageBasedRevenueRecognitionCredits entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Get(ctx context.Context, id string) (*ChargeUsageBasedRevenueRecognitionCredits, error) {
+	return c.Query().Where(chargeusagebasedrevenuerecognitioncredits.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) GetX(ctx context.Context, id string) *ChargeUsageBasedRevenueRecognitionCredits {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRun queries the run edge of a ChargeUsageBasedRevenueRecognitionCredits.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) QueryRun(_m *ChargeUsageBasedRevenueRecognitionCredits) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitioncredits.Table, chargeusagebasedrevenuerecognitioncredits.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitioncredits.RunTable, chargeusagebasedrevenuerecognitioncredits.RunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Hooks() []Hook {
+	return c.hooks.ChargeUsageBasedRevenueRecognitionCredits
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) Interceptors() []Interceptor {
+	return c.inters.ChargeUsageBasedRevenueRecognitionCredits
+}
+
+func (c *ChargeUsageBasedRevenueRecognitionCreditsClient) mutate(ctx context.Context, m *ChargeUsageBasedRevenueRecognitionCreditsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeUsageBasedRevenueRecognitionCreditsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeUsageBasedRevenueRecognitionCreditsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeUsageBasedRevenueRecognitionCreditsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeUsageBasedRevenueRecognitionCreditsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeUsageBasedRevenueRecognitionCredits mutation op: %q", m.Op())
+	}
+}
+
+// ChargeUsageBasedRevenueRecognitionDetailedLineClient is a client for the ChargeUsageBasedRevenueRecognitionDetailedLine schema.
+type ChargeUsageBasedRevenueRecognitionDetailedLineClient struct {
+	config
+}
+
+// NewChargeUsageBasedRevenueRecognitionDetailedLineClient returns a client for the ChargeUsageBasedRevenueRecognitionDetailedLine from the given config.
+func NewChargeUsageBasedRevenueRecognitionDetailedLineClient(c config) *ChargeUsageBasedRevenueRecognitionDetailedLineClient {
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeusagebasedrevenuerecognitiondetailedline.Hooks(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Use(hooks ...Hook) {
+	c.hooks.ChargeUsageBasedRevenueRecognitionDetailedLine = append(c.hooks.ChargeUsageBasedRevenueRecognitionDetailedLine, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeusagebasedrevenuerecognitiondetailedline.Intercept(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeUsageBasedRevenueRecognitionDetailedLine = append(c.inters.ChargeUsageBasedRevenueRecognitionDetailedLine, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeUsageBasedRevenueRecognitionDetailedLine entity.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Create() *ChargeUsageBasedRevenueRecognitionDetailedLineCreate {
+	mutation := newChargeUsageBasedRevenueRecognitionDetailedLineMutation(c.config, OpCreate)
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeUsageBasedRevenueRecognitionDetailedLine entities.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) CreateBulk(builders ...*ChargeUsageBasedRevenueRecognitionDetailedLineCreate) *ChargeUsageBasedRevenueRecognitionDetailedLineCreateBulk {
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) MapCreateBulk(slice any, setFunc func(*ChargeUsageBasedRevenueRecognitionDetailedLineCreate, int)) *ChargeUsageBasedRevenueRecognitionDetailedLineCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeUsageBasedRevenueRecognitionDetailedLineCreateBulk{err: fmt.Errorf("calling to ChargeUsageBasedRevenueRecognitionDetailedLineClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeUsageBasedRevenueRecognitionDetailedLineCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeUsageBasedRevenueRecognitionDetailedLine.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Update() *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	mutation := newChargeUsageBasedRevenueRecognitionDetailedLineMutation(c.config, OpUpdate)
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) UpdateOne(_m *ChargeUsageBasedRevenueRecognitionDetailedLine) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionDetailedLineMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitionDetailedLine(_m))
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) UpdateOneID(id string) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionDetailedLineMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitionDetailedLineID(id))
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeUsageBasedRevenueRecognitionDetailedLine.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Delete() *ChargeUsageBasedRevenueRecognitionDetailedLineDelete {
+	mutation := newChargeUsageBasedRevenueRecognitionDetailedLineMutation(c.config, OpDelete)
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) DeleteOne(_m *ChargeUsageBasedRevenueRecognitionDetailedLine) *ChargeUsageBasedRevenueRecognitionDetailedLineDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) DeleteOneID(id string) *ChargeUsageBasedRevenueRecognitionDetailedLineDeleteOne {
+	builder := c.Delete().Where(chargeusagebasedrevenuerecognitiondetailedline.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeUsageBasedRevenueRecognitionDetailedLine.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Query() *ChargeUsageBasedRevenueRecognitionDetailedLineQuery {
+	return &ChargeUsageBasedRevenueRecognitionDetailedLineQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeUsageBasedRevenueRecognitionDetailedLine},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeUsageBasedRevenueRecognitionDetailedLine entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Get(ctx context.Context, id string) (*ChargeUsageBasedRevenueRecognitionDetailedLine, error) {
+	return c.Query().Where(chargeusagebasedrevenuerecognitiondetailedline.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) GetX(ctx context.Context, id string) *ChargeUsageBasedRevenueRecognitionDetailedLine {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRun queries the run edge of a ChargeUsageBasedRevenueRecognitionDetailedLine.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) QueryRun(_m *ChargeUsageBasedRevenueRecognitionDetailedLine) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitiondetailedline.Table, chargeusagebasedrevenuerecognitiondetailedline.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitiondetailedline.RunTable, chargeusagebasedrevenuerecognitiondetailedline.RunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Hooks() []Hook {
+	return c.hooks.ChargeUsageBasedRevenueRecognitionDetailedLine
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) Interceptors() []Interceptor {
+	return c.inters.ChargeUsageBasedRevenueRecognitionDetailedLine
+}
+
+func (c *ChargeUsageBasedRevenueRecognitionDetailedLineClient) mutate(ctx context.Context, m *ChargeUsageBasedRevenueRecognitionDetailedLineMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeUsageBasedRevenueRecognitionDetailedLineCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeUsageBasedRevenueRecognitionDetailedLineUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeUsageBasedRevenueRecognitionDetailedLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeUsageBasedRevenueRecognitionDetailedLine mutation op: %q", m.Op())
+	}
+}
+
+// ChargeUsageBasedRevenueRecognitionOverageCreditsClient is a client for the ChargeUsageBasedRevenueRecognitionOverageCredits schema.
+type ChargeUsageBasedRevenueRecognitionOverageCreditsClient struct {
+	config
+}
+
+// NewChargeUsageBasedRevenueRecognitionOverageCreditsClient returns a client for the ChargeUsageBasedRevenueRecognitionOverageCredits from the given config.
+func NewChargeUsageBasedRevenueRecognitionOverageCreditsClient(c config) *ChargeUsageBasedRevenueRecognitionOverageCreditsClient {
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeusagebasedrevenuerecognitionoveragecredits.Hooks(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Use(hooks ...Hook) {
+	c.hooks.ChargeUsageBasedRevenueRecognitionOverageCredits = append(c.hooks.ChargeUsageBasedRevenueRecognitionOverageCredits, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeusagebasedrevenuerecognitionoveragecredits.Intercept(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeUsageBasedRevenueRecognitionOverageCredits = append(c.inters.ChargeUsageBasedRevenueRecognitionOverageCredits, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeUsageBasedRevenueRecognitionOverageCredits entity.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Create() *ChargeUsageBasedRevenueRecognitionOverageCreditsCreate {
+	mutation := newChargeUsageBasedRevenueRecognitionOverageCreditsMutation(c.config, OpCreate)
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeUsageBasedRevenueRecognitionOverageCredits entities.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) CreateBulk(builders ...*ChargeUsageBasedRevenueRecognitionOverageCreditsCreate) *ChargeUsageBasedRevenueRecognitionOverageCreditsCreateBulk {
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) MapCreateBulk(slice any, setFunc func(*ChargeUsageBasedRevenueRecognitionOverageCreditsCreate, int)) *ChargeUsageBasedRevenueRecognitionOverageCreditsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeUsageBasedRevenueRecognitionOverageCreditsCreateBulk{err: fmt.Errorf("calling to ChargeUsageBasedRevenueRecognitionOverageCreditsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeUsageBasedRevenueRecognitionOverageCreditsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeUsageBasedRevenueRecognitionOverageCredits.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Update() *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdate {
+	mutation := newChargeUsageBasedRevenueRecognitionOverageCreditsMutation(c.config, OpUpdate)
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) UpdateOne(_m *ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionOverageCreditsMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitionOverageCredits(_m))
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) UpdateOneID(id string) *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionOverageCreditsMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitionOverageCreditsID(id))
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeUsageBasedRevenueRecognitionOverageCredits.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Delete() *ChargeUsageBasedRevenueRecognitionOverageCreditsDelete {
+	mutation := newChargeUsageBasedRevenueRecognitionOverageCreditsMutation(c.config, OpDelete)
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) DeleteOne(_m *ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionOverageCreditsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) DeleteOneID(id string) *ChargeUsageBasedRevenueRecognitionOverageCreditsDeleteOne {
+	builder := c.Delete().Where(chargeusagebasedrevenuerecognitionoveragecredits.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeUsageBasedRevenueRecognitionOverageCredits.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Query() *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+	return &ChargeUsageBasedRevenueRecognitionOverageCreditsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeUsageBasedRevenueRecognitionOverageCredits},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeUsageBasedRevenueRecognitionOverageCredits entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Get(ctx context.Context, id string) (*ChargeUsageBasedRevenueRecognitionOverageCredits, error) {
+	return c.Query().Where(chargeusagebasedrevenuerecognitionoveragecredits.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) GetX(ctx context.Context, id string) *ChargeUsageBasedRevenueRecognitionOverageCredits {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryRun queries the run edge of a ChargeUsageBasedRevenueRecognitionOverageCredits.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) QueryRun(_m *ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitionoveragecredits.Table, chargeusagebasedrevenuerecognitionoveragecredits.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitionoveragecredits.RunTable, chargeusagebasedrevenuerecognitionoveragecredits.RunColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Hooks() []Hook {
+	return c.hooks.ChargeUsageBasedRevenueRecognitionOverageCredits
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) Interceptors() []Interceptor {
+	return c.inters.ChargeUsageBasedRevenueRecognitionOverageCredits
+}
+
+func (c *ChargeUsageBasedRevenueRecognitionOverageCreditsClient) mutate(ctx context.Context, m *ChargeUsageBasedRevenueRecognitionOverageCreditsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeUsageBasedRevenueRecognitionOverageCreditsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeUsageBasedRevenueRecognitionOverageCreditsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeUsageBasedRevenueRecognitionOverageCreditsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeUsageBasedRevenueRecognitionOverageCredits mutation op: %q", m.Op())
+	}
+}
+
+// ChargeUsageBasedRevenueRecognitionsClient is a client for the ChargeUsageBasedRevenueRecognitions schema.
+type ChargeUsageBasedRevenueRecognitionsClient struct {
+	config
+}
+
+// NewChargeUsageBasedRevenueRecognitionsClient returns a client for the ChargeUsageBasedRevenueRecognitions from the given config.
+func NewChargeUsageBasedRevenueRecognitionsClient(c config) *ChargeUsageBasedRevenueRecognitionsClient {
+	return &ChargeUsageBasedRevenueRecognitionsClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `chargeusagebasedrevenuerecognitions.Hooks(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Use(hooks ...Hook) {
+	c.hooks.ChargeUsageBasedRevenueRecognitions = append(c.hooks.ChargeUsageBasedRevenueRecognitions, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `chargeusagebasedrevenuerecognitions.Intercept(f(g(h())))`.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ChargeUsageBasedRevenueRecognitions = append(c.inters.ChargeUsageBasedRevenueRecognitions, interceptors...)
+}
+
+// Create returns a builder for creating a ChargeUsageBasedRevenueRecognitions entity.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Create() *ChargeUsageBasedRevenueRecognitionsCreate {
+	mutation := newChargeUsageBasedRevenueRecognitionsMutation(c.config, OpCreate)
+	return &ChargeUsageBasedRevenueRecognitionsCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ChargeUsageBasedRevenueRecognitions entities.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) CreateBulk(builders ...*ChargeUsageBasedRevenueRecognitionsCreate) *ChargeUsageBasedRevenueRecognitionsCreateBulk {
+	return &ChargeUsageBasedRevenueRecognitionsCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) MapCreateBulk(slice any, setFunc func(*ChargeUsageBasedRevenueRecognitionsCreate, int)) *ChargeUsageBasedRevenueRecognitionsCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ChargeUsageBasedRevenueRecognitionsCreateBulk{err: fmt.Errorf("calling to ChargeUsageBasedRevenueRecognitionsClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ChargeUsageBasedRevenueRecognitionsCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ChargeUsageBasedRevenueRecognitionsCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Update() *ChargeUsageBasedRevenueRecognitionsUpdate {
+	mutation := newChargeUsageBasedRevenueRecognitionsMutation(c.config, OpUpdate)
+	return &ChargeUsageBasedRevenueRecognitionsUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) UpdateOne(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionsMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitions(_m))
+	return &ChargeUsageBasedRevenueRecognitionsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) UpdateOneID(id string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	mutation := newChargeUsageBasedRevenueRecognitionsMutation(c.config, OpUpdateOne, withChargeUsageBasedRevenueRecognitionsID(id))
+	return &ChargeUsageBasedRevenueRecognitionsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Delete() *ChargeUsageBasedRevenueRecognitionsDelete {
+	mutation := newChargeUsageBasedRevenueRecognitionsMutation(c.config, OpDelete)
+	return &ChargeUsageBasedRevenueRecognitionsDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) DeleteOne(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) DeleteOneID(id string) *ChargeUsageBasedRevenueRecognitionsDeleteOne {
+	builder := c.Delete().Where(chargeusagebasedrevenuerecognitions.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ChargeUsageBasedRevenueRecognitionsDeleteOne{builder}
+}
+
+// Query returns a query builder for ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Query() *ChargeUsageBasedRevenueRecognitionsQuery {
+	return &ChargeUsageBasedRevenueRecognitionsQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeChargeUsageBasedRevenueRecognitions},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ChargeUsageBasedRevenueRecognitions entity by its id.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Get(ctx context.Context, id string) (*ChargeUsageBasedRevenueRecognitions, error) {
+	return c.Query().Where(chargeusagebasedrevenuerecognitions.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) GetX(ctx context.Context, id string) *ChargeUsageBasedRevenueRecognitions {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUsageBased queries the usage_based edge of a ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryUsageBased(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedQuery {
+	query := (&ChargeUsageBasedClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, id),
+			sqlgraph.To(chargeusagebased.Table, chargeusagebased.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitions.UsageBasedTable, chargeusagebasedrevenuerecognitions.UsageBasedColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeature queries the feature edge of a ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryFeature(_m *ChargeUsageBasedRevenueRecognitions) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, id),
+			sqlgraph.To(dbfeature.Table, dbfeature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitions.FeatureTable, chargeusagebasedrevenuerecognitions.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCreditAllocations queries the credit_allocations edge of a ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryCreditAllocations(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionCreditsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionCreditsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitioncredits.Table, chargeusagebasedrevenuerecognitioncredits.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedrevenuerecognitions.CreditAllocationsTable, chargeusagebasedrevenuerecognitions.CreditAllocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFiatOverageCreditAllocations queries the fiat_overage_credit_allocations edge of a ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryFiatOverageCreditAllocations(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionOverageCreditsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitionoveragecredits.Table, chargeusagebasedrevenuerecognitionoveragecredits.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable, chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryDetailedLines queries the detailed_lines edge of a ChargeUsageBasedRevenueRecognitions.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) QueryDetailedLines(_m *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionDetailedLineQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionDetailedLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitiondetailedline.Table, chargeusagebasedrevenuerecognitiondetailedline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebasedrevenuerecognitions.DetailedLinesTable, chargeusagebasedrevenuerecognitions.DetailedLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Hooks() []Hook {
+	return c.hooks.ChargeUsageBasedRevenueRecognitions
+}
+
+// Interceptors returns the client interceptors.
+func (c *ChargeUsageBasedRevenueRecognitionsClient) Interceptors() []Interceptor {
+	return c.inters.ChargeUsageBasedRevenueRecognitions
+}
+
+func (c *ChargeUsageBasedRevenueRecognitionsClient) mutate(ctx context.Context, m *ChargeUsageBasedRevenueRecognitionsMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ChargeUsageBasedRevenueRecognitionsCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ChargeUsageBasedRevenueRecognitionsUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ChargeUsageBasedRevenueRecognitionsUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ChargeUsageBasedRevenueRecognitionsDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown ChargeUsageBasedRevenueRecognitions mutation op: %q", m.Op())
 	}
 }
 
@@ -12340,6 +13054,22 @@ func (c *FeatureClient) QueryUsageBasedRuns(_m *Feature) *ChargeUsageBasedRunsQu
 			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
 			sqlgraph.To(chargeusagebasedruns.Table, chargeusagebasedruns.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedRunsTable, dbfeature.UsageBasedRunsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUsageBasedRevenueRecognitions queries the usage_based_revenue_recognitions edge of a Feature.
+func (c *FeatureClient) QueryUsageBasedRevenueRecognitions(_m *Feature) *ChargeUsageBasedRevenueRecognitionsQuery {
+	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(dbfeature.Table, dbfeature.FieldID, id),
+			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, dbfeature.UsageBasedRevenueRecognitionsTable, dbfeature.UsageBasedRevenueRecognitionsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -18806,9 +19536,13 @@ type (
 		ChargeFlatFeeRunDetailedLine, ChargeFlatFeeRunInvoicedUsage,
 		ChargeFlatFeeRunOverageCreditAllocations, ChargeFlatFeeRunPayment,
 		ChargeUsageBased, ChargeUsageBasedCostBasis, ChargeUsageBasedOverride,
-		ChargeUsageBasedRunCreditAllocations, ChargeUsageBasedRunDetailedLine,
-		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunOverageCreditAllocations,
-		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, CreditRealizationLineage,
+		ChargeUsageBasedRevenueRecognitionCredits,
+		ChargeUsageBasedRevenueRecognitionDetailedLine,
+		ChargeUsageBasedRevenueRecognitionOverageCredits,
+		ChargeUsageBasedRevenueRecognitions, ChargeUsageBasedRunCreditAllocations,
+		ChargeUsageBasedRunDetailedLine, ChargeUsageBasedRunInvoicedUsage,
+		ChargeUsageBasedRunOverageCreditAllocations, ChargeUsageBasedRunPayment,
+		ChargeUsageBasedRuns, CreditRealizationLineage,
 		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,
 		CustomerSubjects, Entitlement, EventOutbox, Feature, Grant, LLMCostPrice,
 		LedgerAccount, LedgerBreakageRecord, LedgerCreditVoidRecord,
@@ -18838,20 +19572,24 @@ type (
 		ChargeFlatFeeRunDetailedLine, ChargeFlatFeeRunInvoicedUsage,
 		ChargeFlatFeeRunOverageCreditAllocations, ChargeFlatFeeRunPayment,
 		ChargeUsageBased, ChargeUsageBasedCostBasis, ChargeUsageBasedOverride,
-		ChargeUsageBasedRunCreditAllocations, ChargeUsageBasedRunDetailedLine,
-		ChargeUsageBasedRunInvoicedUsage, ChargeUsageBasedRunOverageCreditAllocations,
-		ChargeUsageBasedRunPayment, ChargeUsageBasedRuns, ChargesSearchV1,
-		CreditRealizationLineage, CreditRealizationLineageSegment, CurrencyCostBasis,
-		CustomCurrency, Customer, CustomerSubjects, Entitlement, EventOutbox, Feature,
-		Grant, LLMCostPrice, LedgerAccount, LedgerBreakageRecord,
-		LedgerCreditVoidRecord, LedgerCustomerAccount, LedgerEntry, LedgerSubAccount,
-		LedgerSubAccountRoute, LedgerTransaction, LedgerTransactionGroup, Meter,
-		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
-		NotificationRule, OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase,
-		PlanRateCard, RTECreditBalance, RTEDemand, RTEDemandLock,
-		RTEMeteredEntitlementBalance, Subject, Subscription, SubscriptionAddon,
-		SubscriptionAddonQuantity, SubscriptionCostBasisPin, SubscriptionItem,
-		SubscriptionPhase, SubscriptionSyncState, TaxCode, UsageReset []ent.Interceptor
+		ChargeUsageBasedRevenueRecognitionCredits,
+		ChargeUsageBasedRevenueRecognitionDetailedLine,
+		ChargeUsageBasedRevenueRecognitionOverageCredits,
+		ChargeUsageBasedRevenueRecognitions, ChargeUsageBasedRunCreditAllocations,
+		ChargeUsageBasedRunDetailedLine, ChargeUsageBasedRunInvoicedUsage,
+		ChargeUsageBasedRunOverageCreditAllocations, ChargeUsageBasedRunPayment,
+		ChargeUsageBasedRuns, ChargesSearchV1, CreditRealizationLineage,
+		CreditRealizationLineageSegment, CurrencyCostBasis, CustomCurrency, Customer,
+		CustomerSubjects, Entitlement, EventOutbox, Feature, Grant, LLMCostPrice,
+		LedgerAccount, LedgerBreakageRecord, LedgerCreditVoidRecord,
+		LedgerCustomerAccount, LedgerEntry, LedgerSubAccount, LedgerSubAccountRoute,
+		LedgerTransaction, LedgerTransactionGroup, Meter, NotificationChannel,
+		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
+		OrganizationDefaultTaxCodes, Plan, PlanAddon, PlanPhase, PlanRateCard,
+		RTECreditBalance, RTEDemand, RTEDemandLock, RTEMeteredEntitlementBalance,
+		Subject, Subscription, SubscriptionAddon, SubscriptionAddonQuantity,
+		SubscriptionCostBasisPin, SubscriptionItem, SubscriptionPhase,
+		SubscriptionSyncState, TaxCode, UsageReset []ent.Interceptor
 	}
 )
 

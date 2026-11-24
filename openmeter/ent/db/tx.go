@@ -100,6 +100,14 @@ type Tx struct {
 	ChargeUsageBasedCostBasis *ChargeUsageBasedCostBasisClient
 	// ChargeUsageBasedOverride is the client for interacting with the ChargeUsageBasedOverride builders.
 	ChargeUsageBasedOverride *ChargeUsageBasedOverrideClient
+	// ChargeUsageBasedRevenueRecognitionCredits is the client for interacting with the ChargeUsageBasedRevenueRecognitionCredits builders.
+	ChargeUsageBasedRevenueRecognitionCredits *ChargeUsageBasedRevenueRecognitionCreditsClient
+	// ChargeUsageBasedRevenueRecognitionDetailedLine is the client for interacting with the ChargeUsageBasedRevenueRecognitionDetailedLine builders.
+	ChargeUsageBasedRevenueRecognitionDetailedLine *ChargeUsageBasedRevenueRecognitionDetailedLineClient
+	// ChargeUsageBasedRevenueRecognitionOverageCredits is the client for interacting with the ChargeUsageBasedRevenueRecognitionOverageCredits builders.
+	ChargeUsageBasedRevenueRecognitionOverageCredits *ChargeUsageBasedRevenueRecognitionOverageCreditsClient
+	// ChargeUsageBasedRevenueRecognitions is the client for interacting with the ChargeUsageBasedRevenueRecognitions builders.
+	ChargeUsageBasedRevenueRecognitions *ChargeUsageBasedRevenueRecognitionsClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
 	ChargeUsageBasedRunCreditAllocations *ChargeUsageBasedRunCreditAllocationsClient
 	// ChargeUsageBasedRunDetailedLine is the client for interacting with the ChargeUsageBasedRunDetailedLine builders.
@@ -376,6 +384,10 @@ func (tx *Tx) init() {
 	tx.ChargeUsageBased = NewChargeUsageBasedClient(tx.config)
 	tx.ChargeUsageBasedCostBasis = NewChargeUsageBasedCostBasisClient(tx.config)
 	tx.ChargeUsageBasedOverride = NewChargeUsageBasedOverrideClient(tx.config)
+	tx.ChargeUsageBasedRevenueRecognitionCredits = NewChargeUsageBasedRevenueRecognitionCreditsClient(tx.config)
+	tx.ChargeUsageBasedRevenueRecognitionDetailedLine = NewChargeUsageBasedRevenueRecognitionDetailedLineClient(tx.config)
+	tx.ChargeUsageBasedRevenueRecognitionOverageCredits = NewChargeUsageBasedRevenueRecognitionOverageCreditsClient(tx.config)
+	tx.ChargeUsageBasedRevenueRecognitions = NewChargeUsageBasedRevenueRecognitionsClient(tx.config)
 	tx.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(tx.config)
 	tx.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(tx.config)
 	tx.ChargeUsageBasedRunInvoicedUsage = NewChargeUsageBasedRunInvoicedUsageClient(tx.config)

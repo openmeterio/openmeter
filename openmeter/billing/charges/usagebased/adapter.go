@@ -21,6 +21,7 @@ type Adapter interface {
 	RealizationRunCreditAllocationAdapter
 	RealizationRunInvoiceUsageAdapter
 	RealizationRunPaymentAdapter
+	RevenueRecognitionRunAdapter
 	ChargeAdapter
 	SubscriptionReferenceAdapter
 	ChargeCostBasisAdapter
@@ -137,6 +138,11 @@ func (i CreateRealizationRunAdapterInput) Validate() error {
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+type RevenueRecognitionRunAdapter interface {
+	CreateRevenueRecognitionRun(ctx context.Context, input CreateRevenueRecognitionRunInput) (RevenueRecognitionRun, error)
+	GetRevenueRecognitionRunByID(ctx context.Context, id RevenueRecognitionRunID) (RevenueRecognitionRun, error)
 }
 
 type RealizationRunCreditAllocationAdapter interface {

@@ -4012,6 +4012,188 @@ func (u *ChargeUsageBasedOverrideUpdateOne) SetOrClearUnitConfig(value **unitcon
 	return u.SetUnitConfig(*value)
 }
 
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne) SetOrClearMetadata(value *map[string]string) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearMetadata()
+	}
+	return u.SetMetadata(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate) SetOrClearDescription(value *string) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne) SetOrClearDescription(value *string) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearDescription()
+	}
+	return u.SetDescription(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate) SetOrClearIndex(value *int) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne) SetOrClearIndex(value *int) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearIndex()
+	}
+	return u.SetIndex(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate) SetOrClearAmountDiscounts(value *detailedline.AmountDiscounts) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	if value == nil {
+		return u.ClearAmountDiscounts()
+	}
+	return u.SetAmountDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne) SetOrClearAmountDiscounts(value *detailedline.AmountDiscounts) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearAmountDiscounts()
+	}
+	return u.SetAmountDiscounts(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdate {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne) SetOrClearCreditsApplied(value **creditsapplied.CreditsApplied) *ChargeUsageBasedRevenueRecognitionDetailedLineUpdateOne {
+	if value == nil {
+		return u.ClearCreditsApplied()
+	}
+	return u.SetCreditsApplied(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdate) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdate {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne) SetOrClearAnnotations(value *models.Annotations) *ChargeUsageBasedRevenueRecognitionOverageCreditsUpdateOne {
+	if value == nil {
+		return u.ClearAnnotations()
+	}
+	return u.SetAnnotations(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionsUpdate) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetOrClearDeletedAt(value *time.Time) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionsUpdate) SetOrClearInvoiceUsageTotal(value *alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	if value == nil {
+		return u.ClearInvoiceUsageTotal()
+	}
+	return u.SetInvoiceUsageTotal(*value)
+}
+
+func (u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetOrClearInvoiceUsageTotal(value *alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	if value == nil {
+		return u.ClearInvoiceUsageTotal()
+	}
+	return u.SetInvoiceUsageTotal(*value)
+}
+
 func (u *ChargeUsageBasedRunCreditAllocationsUpdate) SetOrClearLineID(value *string) *ChargeUsageBasedRunCreditAllocationsUpdate {
 	if value == nil {
 		return u.ClearLineID()

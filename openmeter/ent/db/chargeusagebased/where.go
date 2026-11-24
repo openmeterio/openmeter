@@ -2106,6 +2106,29 @@ func HasDetailedLinesWith(preds ...predicate.ChargeUsageBasedRunDetailedLine) pr
 	})
 }
 
+// HasRevenueRecognitions applies the HasEdge predicate on the "revenue_recognitions" edge.
+func HasRevenueRecognitions() predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RevenueRecognitionsTable, RevenueRecognitionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRevenueRecognitionsWith applies the HasEdge predicate on the "revenue_recognitions" edge with a given conditions (other predicates).
+func HasRevenueRecognitionsWith(preds ...predicate.ChargeUsageBasedRevenueRecognitions) predicate.ChargeUsageBased {
+	return predicate.ChargeUsageBased(func(s *sql.Selector) {
+		step := newRevenueRecognitionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasCurrentRun applies the HasEdge predicate on the "current_run" edge.
 func HasCurrentRun() predicate.ChargeUsageBased {
 	return predicate.ChargeUsageBased(func(s *sql.Selector) {

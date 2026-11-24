@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/addonratecard"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeflatfee"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -367,6 +368,21 @@ func (_c *FeatureCreate) AddUsageBasedRuns(v ...*ChargeUsageBasedRuns) *FeatureC
 	return _c.AddUsageBasedRunIDs(ids...)
 }
 
+// AddUsageBasedRevenueRecognitionIDs adds the "usage_based_revenue_recognitions" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_c *FeatureCreate) AddUsageBasedRevenueRecognitionIDs(ids ...string) *FeatureCreate {
+	_c.mutation.AddUsageBasedRevenueRecognitionIDs(ids...)
+	return _c
+}
+
+// AddUsageBasedRevenueRecognitions adds the "usage_based_revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_c *FeatureCreate) AddUsageBasedRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *FeatureCreate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddUsageBasedRevenueRecognitionIDs(ids...)
+}
+
 // AddFlatFeeChargeIDs adds the "flat_fee_charges" edge to the ChargeFlatFee entity by IDs.
 func (_c *FeatureCreate) AddFlatFeeChargeIDs(ids ...string) *FeatureCreate {
 	_c.mutation.AddFlatFeeChargeIDs(ids...)
@@ -662,6 +678,22 @@ func (_c *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedruns.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.UsageBasedRevenueRecognitionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   dbfeature.UsageBasedRevenueRecognitionsTable,
+			Columns: []string{dbfeature.UsageBasedRevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

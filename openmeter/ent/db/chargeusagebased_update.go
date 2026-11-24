@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruns"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
@@ -463,6 +464,21 @@ func (_u *ChargeUsageBasedUpdate) AddDetailedLines(v ...*ChargeUsageBasedRunDeta
 	return _u.AddDetailedLineIDs(ids...)
 }
 
+// AddRevenueRecognitionIDs adds the "revenue_recognitions" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *ChargeUsageBasedUpdate) AddRevenueRecognitionIDs(ids ...string) *ChargeUsageBasedUpdate {
+	_u.mutation.AddRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// AddRevenueRecognitions adds the "revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedUpdate) AddRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRevenueRecognitionIDs(ids...)
+}
+
 // SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID.
 func (_u *ChargeUsageBasedUpdate) SetCurrentRunID(id string) *ChargeUsageBasedUpdate {
 	_u.mutation.SetCurrentRunID(id)
@@ -561,6 +577,27 @@ func (_u *ChargeUsageBasedUpdate) RemoveDetailedLines(v ...*ChargeUsageBasedRunD
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveDetailedLineIDs(ids...)
+}
+
+// ClearRevenueRecognitions clears all "revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedUpdate) ClearRevenueRecognitions() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearRevenueRecognitions()
+	return _u
+}
+
+// RemoveRevenueRecognitionIDs removes the "revenue_recognitions" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *ChargeUsageBasedUpdate) RemoveRevenueRecognitionIDs(ids ...string) *ChargeUsageBasedUpdate {
+	_u.mutation.RemoveRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// RemoveRevenueRecognitions removes "revenue_recognitions" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *ChargeUsageBasedUpdate) RemoveRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRevenueRecognitionIDs(ids...)
 }
 
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
@@ -892,6 +929,51 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.RevenueRecognitionsTable,
+			Columns: []string{chargeusagebased.RevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRevenueRecognitionsIDs(); len(nodes) > 0 && !_u.mutation.RevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.RevenueRecognitionsTable,
+			Columns: []string{chargeusagebased.RevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RevenueRecognitionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.RevenueRecognitionsTable,
+			Columns: []string{chargeusagebased.RevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1486,6 +1568,21 @@ func (_u *ChargeUsageBasedUpdateOne) AddDetailedLines(v ...*ChargeUsageBasedRunD
 	return _u.AddDetailedLineIDs(ids...)
 }
 
+// AddRevenueRecognitionIDs adds the "revenue_recognitions" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *ChargeUsageBasedUpdateOne) AddRevenueRecognitionIDs(ids ...string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.AddRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// AddRevenueRecognitions adds the "revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedUpdateOne) AddRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddRevenueRecognitionIDs(ids...)
+}
+
 // SetCurrentRunID sets the "current_run" edge to the ChargeUsageBasedRuns entity by ID.
 func (_u *ChargeUsageBasedUpdateOne) SetCurrentRunID(id string) *ChargeUsageBasedUpdateOne {
 	_u.mutation.SetCurrentRunID(id)
@@ -1584,6 +1681,27 @@ func (_u *ChargeUsageBasedUpdateOne) RemoveDetailedLines(v ...*ChargeUsageBasedR
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveDetailedLineIDs(ids...)
+}
+
+// ClearRevenueRecognitions clears all "revenue_recognitions" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearRevenueRecognitions() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearRevenueRecognitions()
+	return _u
+}
+
+// RemoveRevenueRecognitionIDs removes the "revenue_recognitions" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *ChargeUsageBasedUpdateOne) RemoveRevenueRecognitionIDs(ids ...string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.RemoveRevenueRecognitionIDs(ids...)
+	return _u
+}
+
+// RemoveRevenueRecognitions removes "revenue_recognitions" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *ChargeUsageBasedUpdateOne) RemoveRevenueRecognitions(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveRevenueRecognitionIDs(ids...)
 }
 
 // ClearCurrentRun clears the "current_run" edge to the ChargeUsageBasedRuns entity.
@@ -1945,6 +2063,51 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrundetailedline.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.RevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.RevenueRecognitionsTable,
+			Columns: []string{chargeusagebased.RevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedRevenueRecognitionsIDs(); len(nodes) > 0 && !_u.mutation.RevenueRecognitionsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.RevenueRecognitionsTable,
+			Columns: []string{chargeusagebased.RevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RevenueRecognitionsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.RevenueRecognitionsTable,
+			Columns: []string{chargeusagebased.RevenueRecognitionsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

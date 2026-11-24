@@ -57,6 +57,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioncredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitiondetailedline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitionoveragecredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
@@ -214,6 +218,10 @@ func checkColumn(t, c string) error {
 			chargeusagebased.Table:                                 chargeusagebased.ValidColumn,
 			chargeusagebasedcostbasis.Table:                        chargeusagebasedcostbasis.ValidColumn,
 			chargeusagebasedoverride.Table:                         chargeusagebasedoverride.ValidColumn,
+			chargeusagebasedrevenuerecognitioncredits.Table:        chargeusagebasedrevenuerecognitioncredits.ValidColumn,
+			chargeusagebasedrevenuerecognitiondetailedline.Table:   chargeusagebasedrevenuerecognitiondetailedline.ValidColumn,
+			chargeusagebasedrevenuerecognitionoveragecredits.Table: chargeusagebasedrevenuerecognitionoveragecredits.ValidColumn,
+			chargeusagebasedrevenuerecognitions.Table:              chargeusagebasedrevenuerecognitions.ValidColumn,
 			chargeusagebasedruncreditallocations.Table:             chargeusagebasedruncreditallocations.ValidColumn,
 			chargeusagebasedrundetailedline.Table:                  chargeusagebasedrundetailedline.ValidColumn,
 			chargeusagebasedruninvoicedusage.Table:                 chargeusagebasedruninvoicedusage.ValidColumn,

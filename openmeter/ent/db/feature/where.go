@@ -1476,6 +1476,29 @@ func HasUsageBasedRunsWith(preds ...predicate.ChargeUsageBasedRuns) predicate.Fe
 	})
 }
 
+// HasUsageBasedRevenueRecognitions applies the HasEdge predicate on the "usage_based_revenue_recognitions" edge.
+func HasUsageBasedRevenueRecognitions() predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, UsageBasedRevenueRecognitionsTable, UsageBasedRevenueRecognitionsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUsageBasedRevenueRecognitionsWith applies the HasEdge predicate on the "usage_based_revenue_recognitions" edge with a given conditions (other predicates).
+func HasUsageBasedRevenueRecognitionsWith(preds ...predicate.ChargeUsageBasedRevenueRecognitions) predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := newUsageBasedRevenueRecognitionsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasFlatFeeCharges applies the HasEdge predicate on the "flat_fee_charges" edge.
 func HasFlatFeeCharges() predicate.Feature {
 	return predicate.Feature(func(s *sql.Selector) {

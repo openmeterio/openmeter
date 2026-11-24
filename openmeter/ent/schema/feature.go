@@ -87,6 +87,7 @@ func (Feature) Edges() []ent.Edge {
 		edge.To("usage_based_charges", ChargeUsageBased.Type).
 			Annotations(entsql.OnDelete(entsql.Restrict)),
 		edge.To("usage_based_runs", ChargeUsageBasedRuns.Type),
+		edge.To("usage_based_revenue_recognitions", ChargeUsageBasedRevenueRecognitions.Type),
 		edge.To("flat_fee_charges", ChargeFlatFee.Type),
 		edge.From("meter", Meter.Type).
 			Ref("feature").

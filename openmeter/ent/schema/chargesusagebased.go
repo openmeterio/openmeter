@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"entgo.io/ent/schema/mixin"
 	"github.com/alpacahq/alpacadecimal"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
@@ -16,8 +17,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/invoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/payment"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -114,6 +117,8 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 		edge.To("runs", ChargeUsageBasedRuns.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("detailed_lines", ChargeUsageBasedRunDetailedLine.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("revenue_recognitions", ChargeUsageBasedRevenueRecognitions.Type).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.To("current_run", ChargeUsageBasedRuns.Type).
 			Field("current_realization_run_id").
@@ -467,6 +472,286 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 func (ChargeUsageBasedRuns) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id"),
+	}
+}
+
+type ChargeUsageBasedRevenueRecognitions struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedRevenueRecognitions) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		totals.Mixin{},
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitions) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("charge_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.String("feature_id").
+			NotEmpty().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.Time("stored_at_lt"),
+
+		field.Time("service_period_to").
+			Immutable(),
+
+		field.Other("metered_quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Other("delta_metered_quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Bool("detailed_lines_include_credit_allocations").
+			Default(false),
+
+		field.Other("invoice_usage_total", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}).
+			Optional().
+			Nillable(),
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitions) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("usage_based", ChargeUsageBased.Type).
+			Ref("revenue_recognitions").
+			Field("charge_id").
+			Unique().
+			Required().
+			Immutable(),
+		edge.From("feature", Feature.Type).
+			Field("feature_id").
+			Ref("usage_based_revenue_recognitions").
+			Unique().
+			Required().
+			Immutable(),
+		edge.To("credit_allocations", ChargeUsageBasedRevenueRecognitionCredits.Type).
+			StorageKey(edge.Symbol("charge_ub_revrec_credits_run")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("fiat_overage_credit_allocations", ChargeUsageBasedRevenueRecognitionOverageCredits.Type).
+			StorageKey(edge.Symbol("charge_ub_revrec_overage_credits_run")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("detailed_lines", ChargeUsageBasedRevenueRecognitionDetailedLine.Type).
+			StorageKey(edge.Symbol("charge_ub_revrec_detailed_line_run")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitions) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "charge_id"),
+	}
+}
+
+// revenueRecognitionCreditMixin holds the credit realization columns a revenue
+// recognition run needs. It is deliberately narrower than
+// creditrealization.Mixin: no invoice line, sort hint, or corrected-realization
+// reference.
+type revenueRecognitionCreditMixin struct {
+	mixin.Schema
+}
+
+func (revenueRecognitionCreditMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Time("service_period_from"),
+		field.Time("service_period_to"),
+
+		field.Enum("type").
+			GoType(creditrealization.Type("")).
+			Immutable(),
+
+		field.String("ledger_transaction_group_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			NotEmpty().
+			Nillable().
+			Immutable(),
+	}
+}
+
+type ChargeUsageBasedRevenueRecognitionCredits struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedRevenueRecognitionCredits) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+		revenueRecognitionCreditMixin{},
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionCredits) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("run", ChargeUsageBasedRevenueRecognitions.Type).
+			Ref("credit_allocations").
+			Field("run_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionCredits) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "run_id").
+			StorageKey("chargeubrevreccredits_ns_run"),
+	}
+}
+
+type ChargeUsageBasedRevenueRecognitionOverageCredits struct {
+	ent.Schema
+}
+
+func (ChargeUsageBasedRevenueRecognitionOverageCredits) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.NamespaceMixin{},
+		entutils.IDMixin{},
+		entutils.TimeMixin{},
+		entutils.AnnotationsMixin{},
+		revenueRecognitionCreditMixin{},
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionOverageCredits) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("run", ChargeUsageBasedRevenueRecognitions.Type).
+			Ref("fiat_overage_credit_allocations").
+			Field("run_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionOverageCredits) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "run_id").
+			StorageKey("chargeubrevrecoveragecredits_ns_run"),
+	}
+}
+
+type ChargeUsageBasedRevenueRecognitionDetailedLine struct {
+	ent.Schema
+}
+
+// The columns are deliberately narrower than chargedetailedline.Mixin: one
+// amount instead of totals, and no category, payment term, or invoicing app
+// reference.
+func (ChargeUsageBasedRevenueRecognitionDetailedLine) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.ResourceMixin{},
+		entutils.AnnotationsMixin{},
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionDetailedLine) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Immutable(),
+
+		field.String("currency").
+			GoType(currencyx.Code("")).
+			NotEmpty().
+			Immutable(),
+
+		field.Time("service_period_start"),
+		field.Time("service_period_end"),
+
+		field.String("child_unique_reference_id").
+			NotEmpty(),
+
+		field.Int("index").
+			Optional().
+			Nillable(),
+
+		field.Other("quantity", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Other("per_unit_amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.Other("amount", alpacadecimal.Decimal{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "numeric",
+			}),
+
+		field.JSON("amount_discounts", chargedetailedline.AmountDiscounts{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
+
+		field.JSON("credits_applied", &creditsapplied.CreditsApplied{}).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionDetailedLine) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.From("run", ChargeUsageBasedRevenueRecognitions.Type).
+			Ref("detailed_lines").
+			Field("run_id").
+			Unique().
+			Required().
+			Immutable(),
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionDetailedLine) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "run_id").
+			StorageKey("chargeubrevrecdetailedline_ns_run"),
+	}
+}
+
+func (ChargeUsageBasedRevenueRecognitionDetailedLine) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Annotation{Table: "charge_usage_based_revenue_recognition_detailed_line"},
 	}
 }
 
