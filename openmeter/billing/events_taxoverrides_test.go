@@ -264,6 +264,145 @@ func TestEventGatheringInvoiceLegacyTaxOverrides(t *testing.T) {
 	})
 }
 
+func TestEventStandardInvoiceReencode(t *testing.T) {
+	taxCodes := map[string]*taxcode.TaxCode{eventTestTaxCodeID: eventTestTaxCode(true)}
+
+	t.Run("a decoded created event encodes to the same JSON and keeps the stamp", func(t *testing.T) {
+		// given: a created event with a stamped line referencing a Tax Code
+		invoice := eventTestStandardInvoice(eventTestTaxConfig())
+		invoice.Lines.OrEmpty()[0].InvoicingAppTaxCode = lo.ToPtr("txcd_stamped")
+
+		event, err := NewStandardInvoiceCreatedEvent(invoice, taxCodes)
+		require.NoError(t, err)
+
+		raw, err := json.Marshal(event)
+		require.NoError(t, err)
+
+		// when: it is decoded and encoded again
+		var decoded StandardInvoiceCreatedEvent
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+
+		again, err := json.Marshal(decoded)
+		require.NoError(t, err)
+
+		// then: the JSON is identical and the stamp and the legacy stripe code survive
+		require.Equal(t, string(raw), string(again))
+
+		line := decoded.Invoice.Lines.OrEmpty()[0]
+		require.Equal(t, lo.ToPtr("txcd_stamped"), line.InvoicingAppTaxCode)
+		require.Equal(t, "txcd_10000000", line.LegacyStripeTaxCode)
+		require.Contains(t, string(raw), `"invoicingAppTaxCode":"txcd_stamped"`)
+		require.NotContains(t, string(raw), "legacyStripeTaxCode")
+	})
+
+	t.Run("a decoded updated event encodes to the same JSON on both sides", func(t *testing.T) {
+		// given: an updated event whose old and new sides reference the Tax Code
+		invoice := eventTestStandardInvoice(eventTestTaxConfig())
+		invoice.Lines.OrEmpty()[0].InvoicingAppTaxCode = lo.ToPtr("")
+
+		old, err := NewEventStandardInvoice(invoice, taxCodes)
+		require.NoError(t, err)
+
+		event, err := NewStandardInvoiceUpdatedEvent(StandardInvoiceUpdatedEventInput{New: invoice, Old: old, TaxCodes: taxCodes})
+		require.NoError(t, err)
+
+		raw, err := json.Marshal(event)
+		require.NoError(t, err)
+
+		// when
+		var decoded StandardInvoiceUpdatedEvent
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+
+		again, err := json.Marshal(decoded)
+		require.NoError(t, err)
+
+		// then: both sides round-trip and the empty stamp stays an empty stamp
+		require.Equal(t, string(raw), string(again))
+		require.Equal(t, lo.ToPtr(""), decoded.Old.Invoice.Lines.OrEmpty()[0].InvoicingAppTaxCode)
+		require.Equal(t, lo.ToPtr(""), decoded.New.Invoice.Lines.OrEmpty()[0].InvoicingAppTaxCode)
+	})
+
+	t.Run("a decoded gathering event encodes to the same JSON", func(t *testing.T) {
+		// given
+		event, err := NewGatheringInvoiceCreatedEvent(eventTestGatheringInvoice(eventTestTaxConfig()), taxCodes)
+		require.NoError(t, err)
+
+		raw, err := json.Marshal(event)
+		require.NoError(t, err)
+
+		// when
+		var decoded GatheringInvoiceCreatedEvent
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+
+		again, err := json.Marshal(decoded)
+		require.NoError(t, err)
+
+		// then
+		require.Equal(t, string(raw), string(again))
+	})
+
+	t.Run("an event built without a constructor encodes the Tax Code ID and behavior only", func(t *testing.T) {
+		// given: struct-literal events whose lines reference a Tax Code nobody loaded
+		invoice := eventTestStandardInvoice(eventTestTaxConfig())
+
+		standard, err := json.Marshal(EventStandardInvoice{Invoice: invoice})
+		require.NoError(t, err)
+
+		updated, err := json.Marshal(StandardInvoiceUpdatedEvent{
+			Old: EventStandardInvoice{Invoice: invoice},
+			New: EventStandardInvoice{Invoice: invoice},
+		})
+		require.NoError(t, err)
+
+		gathering, err := json.Marshal(GatheringInvoiceCreatedEvent{Invoice: eventTestGatheringInvoice(eventTestTaxConfig())})
+		require.NoError(t, err)
+
+		// when/then: encoding does not fail and the legacy payload has no looked-up parts
+		wantOverrides := map[string]any{"behavior": "inclusive", "tax_code_id": eventTestTaxCodeID}
+
+		for name, payload := range map[string][]byte{"standard": standard, "gathering": gathering} {
+			var out map[string]any
+			require.NoError(t, json.Unmarshal(payload, &out), name)
+
+			key := "invoice"
+			if name == "gathering" {
+				key = "gatheringInvoice"
+			}
+
+			require.Equal(t, wantOverrides, eventTestFirstLine(t, out[key])["taxOverrides"], name)
+		}
+
+		var out map[string]any
+		require.NoError(t, json.Unmarshal(updated, &out))
+
+		for _, side := range []string{"old", "new"} {
+			sideMap, ok := out[side].(map[string]any)
+			require.True(t, ok)
+			require.Equal(t, wantOverrides, eventTestFirstLine(t, sideMap["invoice"])["taxOverrides"], side)
+		}
+	})
+
+	t.Run("a decoded event without a legacy stripe code leaves it empty", func(t *testing.T) {
+		// given: a Tax Code without a Stripe mapping
+		noStripe := map[string]*taxcode.TaxCode{eventTestTaxCodeID: eventTestTaxCode(false)}
+
+		event, err := NewStandardInvoiceCreatedEvent(eventTestStandardInvoice(eventTestTaxConfig()), noStripe)
+		require.NoError(t, err)
+
+		raw, err := json.Marshal(event)
+		require.NoError(t, err)
+
+		// when
+		var decoded StandardInvoiceCreatedEvent
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+
+		// then
+		line := decoded.Invoice.Lines.OrEmpty()[0]
+		require.Empty(t, line.LegacyStripeTaxCode)
+		require.Nil(t, line.InvoicingAppTaxCode)
+	})
+}
+
 func keysOf(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {

@@ -58,14 +58,11 @@ func newStoredLineTaxConfig(in newStoredLineTaxConfigInput) (*StoredLineTaxConfi
 		return nil, nil
 	}
 
-	// Clone the behavior so the stored copy doesn't share its pointer with the line.
-	out := &StoredLineTaxConfig{Behavior: clone.CloneEnumPtr(in.Config.Behavior)}
+	out := newStoredLineTaxConfigWithoutTaxCode(in.Config)
 
 	if in.Config.TaxCodeID == "" {
 		return out, nil
 	}
-
-	out.TaxCodeID = lo.ToPtr(in.Config.TaxCodeID)
 
 	tc, ok := in.TaxCodes.Get(in.Config.TaxCodeID)
 	if !ok {
@@ -81,4 +78,21 @@ func newStoredLineTaxConfig(in newStoredLineTaxConfigInput) (*StoredLineTaxConfi
 	}
 
 	return out, nil
+}
+
+// newStoredLineTaxConfigWithoutTaxCode copies only the behavior and the Tax Code ID, so it needs
+// no Tax Code lookup.
+func newStoredLineTaxConfigWithoutTaxCode(cfg *productcatalog.TaxCodeConfig) *StoredLineTaxConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	// Clone the behavior so the stored copy doesn't share its pointer with the line.
+	out := &StoredLineTaxConfig{Behavior: clone.CloneEnumPtr(cfg.Behavior)}
+
+	if cfg.TaxCodeID != "" {
+		out.TaxCodeID = lo.ToPtr(cfg.TaxCodeID)
+	}
+
+	return out
 }

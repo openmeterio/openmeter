@@ -69,9 +69,10 @@ type StandardLineBase struct {
 
 	// LegacyStripeTaxCode is the stripe.code of the stored legacy tax_config JSON. It is
 	// read-only: BilledTaxCode falls back to it for unstamped Stripe lines, and the
-	// adapter never writes it back. The cleanup release removes it together with the
-	// legacy JSON.
-	LegacyStripeTaxCode string `json:"legacyStripeTaxCode,omitempty"`
+	// adapter never writes it back. It is not serialized: events carry the legacy code in
+	// their line taxOverrides and decoding fills it from there. The cleanup release removes
+	// it together with the legacy JSON.
+	LegacyStripeTaxCode string `json:"-"`
 
 	RateCardDiscounts Discounts      `json:"rateCardDiscounts,omitempty"`
 	CreditsApplied    CreditsApplied `json:"creditsApplied,omitempty"`

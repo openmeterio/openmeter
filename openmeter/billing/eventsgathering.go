@@ -5,14 +5,15 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-// GatheringInvoiceCreatedEvent must be built with its constructor, which loads the lines' Tax
-// Codes. A payload decoded from JSON cannot be marshaled again, because the Tax Codes are not
-// part of it.
+// GatheringInvoiceCreatedEvent carries the legacy per-line taxOverrides payload the constructor
+// built from the lines' Tax Codes, so encoding never needs a lookup and a decoded event encodes
+// back to the same JSON.
 type GatheringInvoiceCreatedEvent struct {
 	Invoice GatheringInvoice `json:"gatheringInvoice"`
 
-	// taxCodes are used only to render the legacy taxOverrides payload.
-	taxCodes productcatalog.TaxCodesByID
+	// taxOverrides is the legacy taxOverrides payload of each line, by line ID. Lines missing
+	// from it encode only their Tax Code ID and behavior.
+	taxOverrides lineTaxOverrides
 }
 
 func (e GatheringInvoiceCreatedEvent) Validate() error {
@@ -20,16 +21,12 @@ func (e GatheringInvoiceCreatedEvent) Validate() error {
 }
 
 func NewGatheringInvoiceCreatedEvent(invoice GatheringInvoice, taxCodes productcatalog.TaxCodesByID) (GatheringInvoiceCreatedEvent, error) {
-	configs := make([]*productcatalog.TaxCodeConfig, 0, len(invoice.Lines.OrEmpty()))
-	for _, line := range invoice.Lines.OrEmpty() {
-		configs = append(configs, line.TaxConfig)
-	}
-
-	if err := validateTaxCodesPresent(configs, taxCodes); err != nil {
+	taxOverrides, err := newGatheringLineTaxOverrides(invoice.Lines.OrEmpty(), taxCodes)
+	if err != nil {
 		return GatheringInvoiceCreatedEvent{}, err
 	}
 
-	return GatheringInvoiceCreatedEvent{Invoice: invoice, taxCodes: taxCodes}, nil
+	return GatheringInvoiceCreatedEvent{Invoice: invoice, taxOverrides: taxOverrides}, nil
 }
 
 func (e GatheringInvoiceCreatedEvent) EventName() string {
