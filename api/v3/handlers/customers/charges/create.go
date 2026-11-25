@@ -132,7 +132,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
-			taxConfig, err := fromAPIChargeTaxConfig(apiTaxConfig)
+			taxConfig, err := fromAPIBillingTaxConfig(apiTaxConfig)
 			if err != nil {
 				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{

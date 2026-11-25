@@ -229,7 +229,7 @@ func TestConvertTaxCodeConfigToAPI(t *testing.T) {
 	}
 }
 
-func TestFromAPIChargeTaxConfig(t *testing.T) {
+func TestFromAPIBillingTaxConfig(t *testing.T) {
 	tests := []struct {
 		name           string
 		input          *apiv3models.BillingTaxConfig
@@ -310,7 +310,7 @@ func TestFromAPIChargeTaxConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := fromAPIChargeTaxConfig(tt.input)
+			got, err := fromAPIBillingTaxConfig(tt.input)
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 				return

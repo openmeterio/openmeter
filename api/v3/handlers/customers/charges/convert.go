@@ -931,8 +931,8 @@ func fromAPIChargesExpands(ctx context.Context, expand *[]apiv3models.BillingCha
 	return meta.ExpandNone.With(expands...), nil
 }
 
-// chargeTaxConfigFromAPIResult is a v3 charge tax config read without lookups.
-type chargeTaxConfigFromAPIResult struct {
+// billingTaxConfigFromAPIResult is a v3 charge tax config read without lookups.
+type billingTaxConfigFromAPIResult struct {
 	// TaxConfig holds the Tax Code reference the charge stores and the tax behavior.
 	TaxConfig productcatalog.TaxCodeConfig
 	// StripeCode is the deprecated stripe.code that still has to be resolved to a Tax Code. It is
@@ -941,17 +941,17 @@ type chargeTaxConfigFromAPIResult struct {
 	StripeCode string
 }
 
-// fromAPIChargeTaxConfig reads a v3 charge tax config without lookups.
+// fromAPIBillingTaxConfig reads a v3 charge tax config without lookups.
 //
 // stripe.code is format-checked even when the ID wins: the API always rejected malformed codes.
-func fromAPIChargeTaxConfig(in *apiv3models.BillingTaxConfig) (chargeTaxConfigFromAPIResult, error) {
+func fromAPIBillingTaxConfig(in *apiv3models.BillingTaxConfig) (billingTaxConfigFromAPIResult, error) {
 	if in == nil {
-		return chargeTaxConfigFromAPIResult{}, nil
+		return billingTaxConfigFromAPIResult{}, nil
 	}
 
 	stripeCode := lo.FromPtr(in.Stripe).Code
 	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {
-		return chargeTaxConfigFromAPIResult{}, models.ErrorWithFieldPrefix(
+		return billingTaxConfigFromAPIResult{}, models.ErrorWithFieldPrefix(
 			models.NewFieldSelectorGroup(models.NewFieldSelector("stripe"), models.NewFieldSelector("code")),
 			err,
 		)
@@ -970,14 +970,14 @@ func fromAPIChargeTaxConfig(in *apiv3models.BillingTaxConfig) (chargeTaxConfigFr
 
 	// An explicit empty ID was always rejected; don't let it fall through to the Stripe code.
 	if (in.TaxCode != nil || in.TaxCodeId != nil) && out.TaxCodeID == "" {
-		return chargeTaxConfigFromAPIResult{}, models.NewGenericValidationError(errors.New("tax code id must not be empty"))
+		return billingTaxConfigFromAPIResult{}, models.NewGenericValidationError(errors.New("tax code id must not be empty"))
 	}
 
 	if out.TaxCodeID != "" {
 		stripeCode = ""
 	}
 
-	return chargeTaxConfigFromAPIResult{TaxConfig: out, StripeCode: stripeCode}, nil
+	return billingTaxConfigFromAPIResult{TaxConfig: out, StripeCode: stripeCode}, nil
 }
 
 func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
