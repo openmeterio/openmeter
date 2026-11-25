@@ -105,6 +105,27 @@ types share the same config contract. Invoice configs are `{}`. The beta.237 rea
 representations during rollout and rollback. Decode errors propagate through
 Rule reads and nested Event reads.
 
+Rule create/update uses the product-catalog `FeatureResolver` to resolve feature
+IDs or keys to active, same-namespace feature IDs before persistence. ID/key
+aliases for the same feature collapse to one ID, keeping first-occurrence order. Missing references fail the write.
+Caller-owned configuration is not modified. V1 responses keep their existing
+`FeatureMeta` shape and populate `id` with the stored ID. Existing rows still
+require the backfill below; reads do not resolve or rewrite their configs.
+
+Deploy this writer on every replica and drain older writers before applying
+`20261125160000_notification_rule_feature_ids`. After Rule config normalization (`20261124090400`), run
+[the read-only preflight](../../tools/migrate/notification_rule_feature_ids_preflight.sql).
+Review the reported drops before upgrading and resolve any blocking findings.
+The migration reads flat configs, including those of disabled and deleted Rules. Historical
+key resolution uses the feature active at the Rule's `updated_at`: created by
+then and not yet archived or deleted. Explicit IDs remain pinned regardless of
+that timestamp. The backfill drops references with no match. If every reference is
+missing, the resulting empty filter matches every feature and the Rule retains
+its enabled or disabled state. The preflight flags these Rules separately.
+Malformed configs and overlapping matches still block the migration.
+Rollback keeps the resolved list, including drops.
+After conversion, a reused key cannot retarget an existing Rule.
+
 ## Event storage compatibility
 
 Ent exposes Event payloads as `json.RawMessage`; the adapter continues writing

@@ -1,6 +1,8 @@
 package service_test
 
 import (
+	"encoding/json"
+	"slices"
 	"testing"
 
 	"github.com/oklog/ulid/v2"
@@ -10,6 +12,8 @@ import (
 
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -345,6 +349,156 @@ func TestRuleSharedInvoiceConfig(t *testing.T) {
 			assert.Equal(t, tt.ruleType, stored.Type)
 			assert.Equal(t, tt.ruleType, stored.Config.Type)
 			assert.Equal(t, &notification.InvoiceRuleConfig{}, stored.Config.Invoice)
+		})
+	}
+}
+
+func TestRuleFeatureIDResolution(t *testing.T) {
+	env := newServiceTestEnv(t)
+
+	for _, eventType := range []notification.EventType{notification.EventTypeBalanceThreshold, notification.EventTypeEntitlementReset} {
+		t.Run(string(eventType), func(t *testing.T) {
+			configWithFeatures := func(features []string) notification.RuleConfig {
+				config := notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: eventType}}
+				switch eventType {
+				case notification.EventTypeBalanceThreshold:
+					config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{
+						Features: features, Thresholds: []notification.BalanceThreshold{{Type: notification.BalanceThresholdTypeUsageValue, Value: 10}},
+					}
+				case notification.EventTypeEntitlementReset:
+					config.EntitlementReset = &notification.EntitlementResetRuleConfig{Features: features}
+				}
+
+				return config
+			}
+
+			tests := []struct {
+				name                    string
+				references              func(feature.Feature) []string
+				wantError               string
+				archive, foreign, reuse bool
+			}{
+				{name: "key", references: func(f feature.Feature) []string { return []string{f.Key} }},
+				{name: "id", references: func(f feature.Feature) []string { return []string{f.ID} }},
+				{name: "id and key deduplicate", references: func(f feature.Feature) []string { return []string{f.Key, f.ID} }},
+				{name: "all features omitted", references: func(feature.Feature) []string { return nil }},
+				{name: "all features empty", references: func(feature.Feature) []string { return []string{} }},
+				{name: "missing", references: func(feature.Feature) []string { return []string{"missing"} }, wantError: "non-existing features"},
+				{name: "other namespace", references: func(f feature.Feature) []string { return []string{f.ID} }, foreign: true, wantError: "non-existing features"},
+				{name: "archived", references: func(f feature.Feature) []string { return []string{f.Key} }, archive: true, wantError: "non-existing features"},
+				{name: "reused key selects active feature", references: func(f feature.Feature) []string { return []string{f.Key} }, reuse: true},
+			}
+
+			for _, tt := range tests {
+				for _, operation := range []string{"create", "update"} {
+					t.Run(tt.name+"/"+operation, func(t *testing.T) {
+						// Given a namespaced feature and a caller-owned config using its ID or key.
+						namespace := ulid.Make().String()
+						featureNamespace := namespace
+						if tt.foreign {
+							featureNamespace = ulid.Make().String()
+						}
+
+						f, err := env.features.CreateFeature(t.Context(), feature.CreateFeatureInputs{Namespace: featureNamespace, Key: "api_calls", Name: "API calls"})
+						require.NoError(t, err)
+
+						if tt.archive || tt.reuse {
+							require.NoError(t, env.features.ArchiveFeature(t.Context(), models.NamespacedID{Namespace: featureNamespace, ID: f.ID}))
+						}
+
+						if tt.reuse {
+							f, err = env.features.CreateFeature(t.Context(), feature.CreateFeatureInputs{Namespace: namespace, Key: f.Key, Name: "Replacement"})
+							require.NoError(t, err)
+						}
+
+						channel := seedChannel(t, env, namespace, clock.Now(), "feature resolution")
+						config := configWithFeatures(tt.references(f))
+						original := slices.Clone(config.Features())
+						var existing *notification.Rule
+						if operation == "update" {
+							existing, err = env.adapter.CreateRule(t.Context(), notification.CreateRuleInput{
+								NamespacedModel: models.NamespacedModel{Namespace: namespace}, Type: eventType,
+								Name: "original", Channels: []string{channel.ID}, Config: configWithFeatures(nil),
+							})
+							require.NoError(t, err)
+						}
+
+						// When writing through the service, resolution must happen before persistence.
+						var result *notification.Rule
+						switch operation {
+						case "create":
+							result, err = env.service.CreateRule(t.Context(), notification.CreateRuleInput{
+								NamespacedModel: models.NamespacedModel{Namespace: namespace}, Type: eventType,
+								Name: "resolved", Channels: []string{channel.ID}, Config: config,
+							})
+						case "update":
+							result, err = env.service.UpdateRule(t.Context(), notification.UpdateRuleInput{
+								NamespacedID: models.NamespacedID{Namespace: namespace, ID: existing.ID}, Type: eventType,
+								Name: "resolved", Channels: []string{channel.ID}, Config: config,
+							})
+						}
+
+						// Then failed writes leave storage untouched and all paths preserve the caller's config.
+						require.Equal(t, original, config.Features())
+
+						if tt.wantError != "" {
+							require.ErrorContains(t, err, tt.wantError)
+							require.True(t, models.IsGenericValidationError(err))
+							require.Nil(t, result)
+
+							if existing != nil {
+								stored, err := env.service.GetRule(t.Context(), notification.GetRuleInput{Namespace: namespace, ID: existing.ID})
+								require.NoError(t, err)
+
+								require.Equal(t, existing, stored)
+							} else {
+								count, err := env.db.NotificationRule.Query().Where(ruledb.Namespace(namespace)).Count(t.Context())
+								require.NoError(t, err)
+
+								require.Zero(t, count)
+							}
+
+							return
+						}
+
+						require.NoError(t, err)
+
+						expected := original
+						if len(original) > 0 {
+							expected = []string{f.ID}
+						}
+
+						require.Equal(t, expected, result.Config.Features())
+
+						stored, err := env.db.NotificationRule.Get(t.Context(), result.ID)
+						require.NoError(t, err)
+
+						var persisted struct {
+							Features []string `json:"features"`
+						}
+						require.NoError(t, json.Unmarshal(stored.Config, &persisted))
+
+						require.Equal(t, expected, persisted.Features)
+
+						// V1 retains FeatureMeta response objects, now containing actual IDs.
+						var responseFeatures *[]notification.FeatureMeta
+						switch eventType {
+						case notification.EventTypeBalanceThreshold:
+							responseFeatures = httpdriver.FromRuleBalanceThreshold(*result).Features
+						case notification.EventTypeEntitlementReset:
+							responseFeatures = httpdriver.FromRuleEntitlementReset(*result).Features
+						}
+
+						if len(expected) == 0 {
+							require.Nil(t, responseFeatures)
+						} else {
+							require.NotNil(t, responseFeatures)
+							require.Len(t, *responseFeatures, 1)
+							require.Equal(t, f.ID, (*responseFeatures)[0].Id)
+						}
+					})
+				}
+			}
 		})
 	}
 }

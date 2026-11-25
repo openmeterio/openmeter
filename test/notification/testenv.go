@@ -25,6 +25,7 @@ import (
 	webhooksvix "github.com/openmeterio/openmeter/openmeter/notification/webhook/svix"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -216,9 +217,15 @@ func NewTestEnv(t *testing.T, namespace string) (TestEnv, error) {
 		_ = eventHandler.Start()
 	}()
 
+	featureResolver, err := featureresolver.New(featureConnector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification feature resolver: %w", err)
+	}
+
 	service, err := notificationservice.New(notificationservice.Config{
 		Adapter:          adapter,
 		FeatureConnector: featureConnector,
+		FeatureResolver:  featureResolver,
 		Webhook:          webhook,
 		Logger:           logger.With(slog.String("subsystem", "notification")),
 	})

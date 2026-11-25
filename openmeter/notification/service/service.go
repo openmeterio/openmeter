@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 )
 
@@ -18,7 +19,8 @@ const (
 var _ notification.Service = (*Service)(nil)
 
 type Service struct {
-	feature feature.FeatureConnector
+	feature         feature.FeatureConnector
+	featureResolver productcatalog.FeatureResolver
 
 	adapter notification.Repository
 	webhook webhook.Handler
@@ -28,6 +30,7 @@ type Service struct {
 
 type Config struct {
 	FeatureConnector feature.FeatureConnector
+	FeatureResolver  productcatalog.FeatureResolver
 
 	Adapter notification.Repository
 	Webhook webhook.Handler
@@ -44,6 +47,10 @@ func New(config Config) (*Service, error) {
 		return nil, errors.New("missing feature connector")
 	}
 
+	if config.FeatureResolver == nil {
+		return nil, errors.New("missing feature resolver")
+	}
+
 	if config.Webhook == nil {
 		return nil, errors.New("missing webhook handler")
 	}
@@ -53,10 +60,11 @@ func New(config Config) (*Service, error) {
 	}
 
 	return &Service{
-		adapter: config.Adapter,
-		feature: config.FeatureConnector,
-		webhook: config.Webhook,
-		logger:  config.Logger,
+		adapter:         config.Adapter,
+		feature:         config.FeatureConnector,
+		featureResolver: config.FeatureResolver,
+		webhook:         config.Webhook,
+		logger:          config.Logger,
 	}, nil
 }
 

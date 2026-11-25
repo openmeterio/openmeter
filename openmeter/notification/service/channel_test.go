@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -15,9 +16,11 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
+	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	webhooknoop "github.com/openmeterio/openmeter/openmeter/notification/webhook/noop"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/featureresolver"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -35,9 +38,10 @@ import (
 // handler) and then listed through the real Service, matching the pattern documented
 // on channelTestEnv in openmeter/notification/adapter/channel_test.go.
 type serviceTestEnv struct {
-	db      *entdb.Client
-	adapter notification.Repository
-	service notification.Service
+	db       *entdb.Client
+	adapter  notification.Repository
+	service  notification.Service
+	features feature.FeatureConnector
 }
 
 func newServiceTestEnv(t *testing.T) *serviceTestEnv {
@@ -70,15 +74,28 @@ func newServiceTestEnv(t *testing.T) *serviceTestEnv {
 	featureRepo := productcatalogadapter.NewPostgresFeatureRepo(dbClient, logger)
 	featureConnector := feature.NewFeatureConnector(featureRepo, meterService, eventbus.NewMock(t))
 
+	featureResolver, err := featureresolver.New(featureConnector)
+	require.NoError(t, err)
+
 	svc, err := notificationservice.New(notificationservice.Config{
 		Adapter:          adapter,
 		FeatureConnector: featureConnector,
-		Webhook:          webhooknoop.New(logger),
+		FeatureResolver:  featureResolver,
+		Webhook:          ruleTestWebhookHandler{Handler: webhooknoop.New(logger)},
 		Logger:           logger,
 	})
 	require.NoError(t, err, "constructing notification service must not fail")
 
-	return &serviceTestEnv{db: dbClient, adapter: adapter, service: svc}
+	return &serviceTestEnv{db: dbClient, adapter: adapter, service: svc, features: featureConnector}
+}
+
+// Rule assignment is synchronous but external delivery is irrelevant to these DB tests.
+type ruleTestWebhookHandler struct {
+	webhook.Handler
+}
+
+func (ruleTestWebhookHandler) UpdateWebhookChannels(context.Context, webhook.UpdateWebhookChannelsInput) (*webhook.Webhook, error) {
+	return &webhook.Webhook{}, nil
 }
 
 // seedChannel creates a webhook channel via the adapter directly (see serviceTestEnv

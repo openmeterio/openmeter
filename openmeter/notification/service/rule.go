@@ -89,10 +89,15 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 			"namespace", params.Namespace,
 		)
 
-		err := params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, params.Namespace))
+		config, err := s.resolveRuleConfigFeatures(ctx, resolveRuleConfigFeaturesInput{
+			Namespace: params.Namespace,
+			Config:    params.Config,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("invalid config: %w", err)
 		}
+
+		params.Config = config
 
 		err = params.ValidateWith(ValidateRuleChannels[notification.CreateRuleInput](ctx, s))
 		if err != nil {
@@ -206,10 +211,15 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			}
 		}
 
-		err = params.Config.ValidateWith(notification.ValidateRuleConfigWithFeatures(ctx, s, params.Namespace))
+		config, err := s.resolveRuleConfigFeatures(ctx, resolveRuleConfigFeaturesInput{
+			Namespace: params.Namespace,
+			Config:    params.Config,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("invalid config: %w", err)
 		}
+
+		params.Config = config
 
 		err = params.ValidateWith(func(i notification.UpdateRuleInput) error {
 			if i.Type != rule.Type {
@@ -305,4 +315,82 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
+}
+
+type resolveRuleConfigFeaturesInput struct {
+	Namespace string
+	Config    notification.RuleConfig
+}
+
+func (i resolveRuleConfigFeaturesInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if err := i.Config.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("invalid config: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
+// Resolve before persistence so a later reuse of a feature key cannot retarget a
+// Rule. Copy the config before replacing features: the caller owns its pointers.
+func (s Service) resolveRuleConfigFeatures(ctx context.Context, input resolveRuleConfigFeaturesInput) (notification.RuleConfig, error) {
+	if err := input.Validate(); err != nil {
+		return notification.RuleConfig{}, err
+	}
+
+	var references []string
+
+	switch input.Config.Type {
+	case notification.EventTypeBalanceThreshold:
+		references = input.Config.BalanceThreshold.Features
+	case notification.EventTypeEntitlementReset:
+		references = input.Config.EntitlementReset.Features
+	}
+
+	if len(references) == 0 {
+		return input.Config, nil
+	}
+
+	features, err := s.featureResolver.BatchResolve(ctx, input.Namespace, references...)
+	if err != nil {
+		return notification.RuleConfig{}, fmt.Errorf("failed to resolve rule features: %w", err)
+	}
+
+	ids := make([]string, 0, len(references))
+	var missingFeatures []string
+
+	for _, reference := range references {
+		feature := features[reference]
+		if feature == nil {
+			missingFeatures = append(missingFeatures, reference)
+			continue
+		}
+
+		ids = append(ids, feature.ID)
+	}
+
+	if len(missingFeatures) > 0 {
+		return notification.RuleConfig{}, models.NewGenericValidationError(fmt.Errorf("non-existing features: %v", missingFeatures))
+	}
+
+	ids = lo.Uniq(ids)
+
+	config := input.Config
+	switch config.Type {
+	case notification.EventTypeBalanceThreshold:
+		balance := *config.BalanceThreshold
+		balance.Features = ids
+		config.BalanceThreshold = &balance
+	case notification.EventTypeEntitlementReset:
+		reset := *config.EntitlementReset
+		reset.Features = ids
+		config.EntitlementReset = &reset
+	}
+
+	return config, nil
 }
