@@ -72,6 +72,9 @@ type StripeInvoiceTestSuite struct {
 	// lastAddedInvoiceLines holds the line params of the most recent AddInvoiceLines call,
 	// captured by the echo stub so tests can assert the tax settings sent to Stripe.
 	lastAddedInvoiceLines []*stripe.InvoiceItemParams
+
+	// lastUpdatedInvoiceLines holds the line params of the most recent UpdateInvoiceLines call.
+	lastUpdatedInvoiceLines []*stripeclient.StripeInvoiceItemWithID
 }
 
 func TestStripeInvoicing(t *testing.T) {
@@ -124,7 +127,6 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 		AppService:          s.AppService,
 		SecretService:       secretService,
 		BillingService:      s.BillingService,
-		TaxCodeResolver:     s.TaxCodeResolver,
 		Logger:              slog.Default(),
 		Publisher:           eventbus.NewMock(s.T()),
 		WebhookURLGenerator: webhookURLGenerator,
@@ -203,6 +205,7 @@ func (s *StripeInvoiceTestSuite) SetupSuite() {
 func (s *StripeInvoiceTestSuite) TearDownTest() {
 	s.StripeAppClient.Restore()
 	s.lastAddedInvoiceLines = nil
+	s.lastUpdatedInvoiceLines = nil
 }
 
 type ubpFeatures struct {
@@ -578,6 +581,21 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 
 		invoice = lo.Must(invoices[0].RemoveCircularReferences())
 
+		// The billing profile uses the sandbox app, so the draft calculation stamped no Stripe
+		// codes. Stamp them as a calculation for the Stripe app would.
+		stripeCodesByTaxCodeID := map[string]string{
+			defaultTaxCodes.InvoicingTaxCodeID: defaultStripeTaxCode,
+			overrideTaxCode.ID:                 overrideStripeTaxCode,
+		}
+
+		for _, line := range invoice.Lines.OrEmpty() {
+			if line.TaxConfig != nil {
+				if code, ok := stripeCodesByTaxCodeID[line.TaxConfig.TaxCodeID]; ok {
+					line.InvoicingAppTaxCode = lo.ToPtr(code)
+				}
+			}
+		}
+
 		// Create a new invoice for the customer.
 		invoicingApp, err = billing.GetApp(app)
 		s.NoError(err)
@@ -628,7 +646,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		}
 
 		getLine := func(description string) *billing.DetailedLine {
-			for _, lineWithTax := range invoice.GetLeafLinesWithResolvedTaxConfig() {
+			for _, lineWithTax := range invoice.GetLeafLinesWithResolvedTaxConfig(app.GetType()) {
 				line := lineWithTax.DetailedLine
 				name := line.Name
 				if line.Description != nil {
@@ -1795,9 +1813,55 @@ func (s *StripeInvoiceTestSuite) assertSentTaxBehavior(behavior string) {
 	s.Equal(behavior, lo.FromPtr(s.lastAddedInvoiceLines[0].TaxBehavior))
 }
 
-// A draft re-sync sends the Tax Code's current Stripe mapping: the app looks the code up by
-// the line's TaxCodeID at sync time, so a mapping changed after line creation reaches Stripe
-// on the next upsert.
+// stubLineResync stubs the Stripe calls an update of an already synced invoice makes and
+// captures the updated line params, so tests can assert the tax code sent to Stripe. The
+// stubbed Stripe invoice has a single line, il_1, the one stubDraftSyncUpsert hands out.
+func (s *StripeInvoiceTestSuite) stubLineResync(stripeInvoiceID string) {
+	s.T().Helper()
+
+	// Drop the first sync's stubs, whose create-only calls were never made, and forget its
+	// calls so assertions only see the re-sync.
+	s.StripeAppClient.Restore()
+	s.StripeAppClient.Calls = nil
+	s.lastUpdatedInvoiceLines = nil
+
+	s.StripeAppClient.
+		On("GetCustomer", defaultStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: defaultStripeCustomerID,
+			DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
+				ID: "pm_taxcode_test",
+				BillingAddress: &models.Address{
+					Country: lo.ToPtr(models.CountryCode("US")),
+				},
+			},
+		}, nil)
+
+	s.StripeAppClient.
+		On("UpdateInvoice", mock.Anything).
+		Once().
+		Return(&stripe.Invoice{
+			ID:       stripeInvoiceID,
+			Customer: &stripe.Customer{ID: defaultStripeCustomerID},
+			Currency: "USD",
+			Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
+		}, nil)
+	s.StripeAppClient.
+		On("ListInvoiceLineItems", stripeInvoiceID).
+		Once().
+		Return([]*stripe.InvoiceLineItem{{ID: "il_1", InvoiceItem: &stripe.InvoiceItem{ID: "ii_1"}}}, nil)
+	s.StripeAppClient.
+		On("UpdateInvoiceLines", mock.Anything).
+		Once().
+		Run(func(args mock.Arguments) {
+			s.lastUpdatedInvoiceLines = args.Get(0).(stripeclient.UpdateInvoiceLinesInput).Lines
+		}).
+		Return([]*stripe.InvoiceItem{}, nil)
+}
+
+// A draft re-sync sends the Tax Code's current Stripe mapping: every draft calculation stamps
+// the line with the mapping, so a mapping changed while the invoice is in draft reaches Stripe
+// on the next edit of the draft.
 func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("stripe-taxcode-remap")
@@ -1849,7 +1913,7 @@ func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
 	s.assertSentTaxCode("txcd_10000000")
 	s.assertSentTaxBehavior(string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive))
 
-	// when: the tax code is remapped to another Stripe code
+	// when: the tax code is remapped to another Stripe code and the draft is edited
 	_, err = s.TaxCodeEnv.Service.UpdateTaxCode(ctx, taxcode.UpdateTaxCodeInput{
 		NamespacedID: invoicingTaxCode.NamespacedID,
 		Name:         invoicingTaxCode.Name,
@@ -1862,56 +1926,31 @@ func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
 	})
 	s.Require().NoError(err)
 
-	// then: a re-sync of the draft updates the existing Stripe line with the tax code's new mapping
-	updatedStripeLineID := "il_1"
+	s.stubLineResync("in_taxcode_remap")
 
-	var updatedLines []*stripeclient.StripeInvoiceItemWithID
-
-	s.StripeAppClient.Restore()
-	// Forget the first sync's calls so the assertions below only see the re-sync.
-	s.StripeAppClient.Calls = nil
-
-	s.StripeAppClient.
-		On("UpdateInvoice", mock.Anything).
-		Once().
-		Return(&stripe.Invoice{
-			ID:       "in_taxcode_remap",
-			Customer: &stripe.Customer{ID: defaultStripeCustomerID},
-			Currency: "USD",
-			Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
-		}, nil)
-	s.StripeAppClient.
-		On("ListInvoiceLineItems", "in_taxcode_remap").
-		Once().
-		Return([]*stripe.InvoiceLineItem{{ID: updatedStripeLineID, InvoiceItem: &stripe.InvoiceItem{ID: "ii_1"}}}, nil)
-	s.StripeAppClient.
-		On("UpdateInvoiceLines", mock.Anything).
-		Once().
-		Run(func(args mock.Arguments) {
-			updatedLines = args.Get(0).(stripeclient.UpdateInvoiceLinesInput).Lines
-		}).
-		Return([]*stripe.InvoiceItem{}, nil)
-
-	invoicingApp, err := billing.GetApp(stripeApp)
+	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(i *billing.StandardInvoice) error {
+			i.Supplier.Name = "ACME Inc. (updated)"
+			return nil
+		},
+	})
 	s.Require().NoError(err)
 
-	resync := lo.Must(invoice.RemoveCircularReferences())
-	resync.ExternalIDs.Invoicing = "in_taxcode_remap"
-
-	_, err = invoicingApp.UpsertStandardInvoice(ctx, resync)
-	s.Require().NoError(err)
-
+	// then: the re-sync updates the existing Stripe line with the tax code's new mapping
 	s.StripeAppClient.AssertNotCalled(s.T(), "AddInvoiceLines", mock.Anything)
-	s.Require().Len(updatedLines, 1)
-	s.Equal(updatedStripeLineID, updatedLines[0].ID)
-	s.Equal("txcd_20000000", lo.FromPtr(updatedLines[0].TaxCode))
+	s.Require().Len(s.lastUpdatedInvoiceLines, 1)
+	s.Equal("il_1", s.lastUpdatedInvoiceLines[0].ID)
+	s.Equal("txcd_20000000", lo.FromPtr(s.lastUpdatedInvoiceLines[0].TaxCode))
 }
 
-// A draft sync resolves the lines' Tax Codes before it writes to Stripe: a line whose Tax Code
-// can't be resolved fails the sync without leaving a Stripe invoice behind.
-func (s *StripeInvoiceTestSuite) TestDraftSyncWithUnresolvableTaxCodeCreatesNoStripeInvoice() {
+// An issued invoice keeps the tax code it was billed with: the line was stamped when the draft
+// was last calculated, and nothing recalculates it after the invoice leaves draft, so a
+// mapping changed afterwards neither reaches Stripe nor changes what the line reads.
+func (s *StripeInvoiceTestSuite) TestIssuedInvoiceKeepsBilledTaxCode() {
 	ctx := s.T().Context()
-	namespace := s.GetUniqueNamespace("stripe-taxcode-unresolvable")
+	namespace := s.GetUniqueNamespace("stripe-taxcode-issued")
 	period := timeutil.ClosedPeriod{
 		From: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z")),
 		To:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z")),
@@ -1920,9 +1959,12 @@ func (s *StripeInvoiceTestSuite) TestDraftSyncWithUnresolvableTaxCodeCreatesNoSt
 	clock.FreezeTime(period.To.Add(time.Minute))
 	defer clock.UnFreeze()
 
-	// given: a draft invoice synced to Stripe, whose line references a Stripe-mapped Tax Code
-	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
-	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace, taxcodetestutils.ProvisionDefaultTaxCodesInput{
+		InvoicingAppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+		},
+	})
+	invoicingTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 
 	cust := s.CreateTestCustomer(namespace, "test")
 	stripeApp, err := s.Fixture.setupApp(ctx, namespace)
@@ -1944,44 +1986,59 @@ func (s *StripeInvoiceTestSuite) TestDraftSyncWithUnresolvableTaxCodeCreatesNoSt
 			},
 		}, nil)
 
-	s.stubDraftSyncUpsert("in_taxcode_unresolvable")
+	// given: a draft synced to Stripe with the tax code's mapping
+	s.stubDraftSyncUpsert("in_taxcode_issued")
 	defer s.StripeAppClient.Restore()
 
 	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		TaxCodeID: taxCode.ID,
-	}, "Unresolvable fee")
+		TaxCodeID: invoicingTaxCode.ID,
+	}, "Issued fee")
 
-	// and: the same draft, not yet in Stripe, now points its line at a Tax Code of another
-	// namespace, which the namespace-scoped resolver can't return
-	otherNamespace := s.GetUniqueNamespace("stripe-taxcode-unresolvable-other")
-	foreignTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), otherNamespace, app.AppTypeStripe, "txcd_10000000")
+	s.assertSentTaxCode("txcd_10000000")
 
-	unsynced := lo.Must(invoice.RemoveCircularReferences())
-	unsynced.ExternalIDs.Invoicing = ""
-	s.Require().Len(unsynced.Lines.OrEmpty(), 1)
-	unsynced.Lines.OrEmpty()[0].TaxConfig.TaxCodeID = foreignTaxCode.ID
-
-	s.StripeAppClient.Restore()
-	// Forget the first sync's calls so the assertion below only sees this sync.
-	s.StripeAppClient.Calls = nil
-
-	// Stubbed only so a regression shows up as the failed assertion below, not a mock panic.
-	s.StripeAppClient.
-		On("CreateInvoice", mock.Anything).
-		Maybe().
-		Return(&stripe.Invoice{ID: "in_taxcode_unresolvable", Customer: &stripe.Customer{ID: defaultStripeCustomerID}, Currency: "USD"}, nil)
-
-	// when: the draft is synced to Stripe
-	invoicingApp, err := billing.GetApp(stripeApp)
+	// when: the tax code is remapped and the invoice is approved
+	_, err = s.TaxCodeEnv.Service.UpdateTaxCode(ctx, taxcode.UpdateTaxCodeInput{
+		NamespacedID: invoicingTaxCode.NamespacedID,
+		Name:         invoicingTaxCode.Name,
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"},
+		},
+		// The test drives the update directly, not through the API, so the immutability
+		// guard doesn't apply.
+		AllowAppMappingOverride: true,
+	})
 	s.Require().NoError(err)
 
-	_, err = invoicingApp.UpsertStandardInvoice(ctx, unsynced)
+	s.stubLineResync("in_taxcode_issued")
+	s.StripeAppClient.
+		On("FinalizeInvoice", mock.Anything).
+		Once().
+		Return(&stripe.Invoice{
+			ID:       "in_taxcode_issued",
+			Customer: &stripe.Customer{ID: defaultStripeCustomerID},
+			Number:   "INV-ISSUED",
+			Currency: "USD",
+			Lines:    &stripe.InvoiceLineItemList{Data: []*stripe.InvoiceLineItem{}},
+		}, nil)
 
-	// then: the sync fails on the missing Tax Code before any Stripe invoice gets created
-	s.Require().Error(err)
-	s.True(taxcode.IsTaxCodeNotFoundError(err), "expected a tax code not found error, got: %v", err)
-	s.StripeAppClient.AssertNotCalled(s.T(), "CreateInvoice", mock.Anything)
+	issued, err := s.BillingService.ApproveInvoice(ctx, invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, issued.Status)
+
+	// then: the issuing sync still sends the code the draft was billed with
+	s.Require().Len(s.lastUpdatedInvoiceLines, 1)
+	s.Equal("txcd_10000000", lo.FromPtr(s.lastUpdatedInvoiceLines[0].TaxCode))
+
+	// and: the stored line still carries the billed code, not the new mapping
+	refetched, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(refetched.Lines.OrEmpty(), 1)
+	s.Equal("txcd_10000000", lo.FromPtr(refetched.Lines.OrEmpty()[0].InvoicingAppTaxCode))
+	s.Equal("txcd_10000000", refetched.Lines.OrEmpty()[0].BilledTaxCode(app.AppTypeStripe))
 }
 
 // A line referencing a soft-deleted Tax Code still sends the deleted code's Stripe mapping:

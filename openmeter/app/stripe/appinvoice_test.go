@@ -1,18 +1,17 @@
 package appstripe
 
 import (
-	"context"
 	"testing"
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
+	"github.com/stripe/stripe-go/v80"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestWouldStandardInvoiceBeEmpty(t *testing.T) {
@@ -62,72 +61,66 @@ func TestWouldStandardInvoiceBeEmpty(t *testing.T) {
 	}
 }
 
-// fakeTaxCodeResolver serves BatchResolve from taxCodes and records whether it was called.
-type fakeTaxCodeResolver struct {
-	productcatalog.TaxCodeResolver
+// The Stripe tax code is the parent line's billed code: the stamp, else the legacy stored
+// code. An empty code leaves it unset so Stripe applies its default.
+func TestLeafLinesCarryTheParentBilledTaxCode(t *testing.T) {
+	stamped := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
+			InvoicingAppTaxCode: lo.ToPtr("txcd_stamped"),
+			LegacyStripeTaxCode: "txcd_legacy",
+		},
+		DetailedLines: billing.DetailedLines{{}},
+	}
+	stampedDefault := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
+			InvoicingAppTaxCode: lo.ToPtr(""),
+			LegacyStripeTaxCode: "txcd_legacy",
+		},
+		DetailedLines: billing.DetailedLines{{}},
+	}
+	legacy := &billing.StandardLine{
+		StandardLineBase: billing.StandardLineBase{
+			LegacyStripeTaxCode: "txcd_legacy",
+		},
+		DetailedLines: billing.DetailedLines{{}},
+	}
+	unstamped := &billing.StandardLine{
+		DetailedLines: billing.DetailedLines{{}},
+	}
 
-	taxCodes map[string]*taxcode.TaxCode
-	calls    int
+	// given: lines in every stamp state
+	invoice := billing.StandardInvoice{
+		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{stamped, stampedDefault, legacy, unstamped}),
+	}
+
+	// when: the leaf lines are collected for Stripe
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)
+
+	// then: each carries its parent's billed code
+	require.Len(t, leafLines, 4)
+	require.Equal(t, "txcd_stamped", leafLines[0].BilledTaxCode)
+	require.Equal(t, "", leafLines[1].BilledTaxCode)
+	require.Equal(t, "txcd_legacy", leafLines[2].BilledTaxCode)
+	require.Equal(t, "", leafLines[3].BilledTaxCode)
 }
 
-func (r *fakeTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (productcatalog.TaxCodesByID, error) {
-	r.calls++
-
-	return lo.PickByKeys(r.taxCodes, ids), nil
-}
-
-// A leaf line's TaxCodeID must resolve; a miss means corrupt data and fails the sync instead
-// of sending an invoice item without a tax code.
-func TestResolveLinesTaxCodes(t *testing.T) {
-	const namespace = "ns"
-	existingID := "01JTAXCODE00000000000000000"
-
-	t.Run("missing tax code fails with not found", func(t *testing.T) {
-		resolver := &fakeTaxCodeResolver{taxCodes: map[string]*taxcode.TaxCode{}}
-
-		_, err := appOperations{TaxCodeResolver: resolver}.resolveLinesTaxCodes(t.Context(), namespace, []billing.DetailedLineWithResolvedTaxConfig{
-			{
-				DetailedLine: billing.DetailedLine{},
-				TaxConfig:    &productcatalog.TaxCodeConfig{TaxCodeID: existingID},
-			},
+func TestApplyTaxSettingsToInvoiceItem(t *testing.T) {
+	t.Run("sends the billed code and the behavior", func(t *testing.T) {
+		params := applyTaxSettingsToInvoiceItem(&stripe.InvoiceItemParams{}, billing.DetailedLineWithResolvedTaxConfig{
+			TaxConfig:     &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
+			BilledTaxCode: "txcd_billed",
 		})
 
-		require.Error(t, err)
-		require.ErrorIs(t, err, taxcode.ErrTaxCodeNotFound)
-		require.ErrorContains(t, err, existingID)
+		require.Equal(t, "txcd_billed", lo.FromPtr(params.TaxCode))
+		require.Equal(t, string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive), lo.FromPtr(params.TaxBehavior))
 	})
 
-	t.Run("resolves every referenced id in one batch", func(t *testing.T) {
-		resolver := &fakeTaxCodeResolver{taxCodes: map[string]*taxcode.TaxCode{
-			existingID: {NamespacedID: models.NamespacedID{Namespace: namespace, ID: existingID}},
-		}}
-
-		taxCodes, err := appOperations{TaxCodeResolver: resolver}.resolveLinesTaxCodes(t.Context(), namespace, []billing.DetailedLineWithResolvedTaxConfig{
-			{
-				DetailedLine: billing.DetailedLine{},
-				TaxConfig:    &productcatalog.TaxCodeConfig{TaxCodeID: existingID},
-			},
+	t.Run("an empty billed code leaves the stripe tax code unset", func(t *testing.T) {
+		params := applyTaxSettingsToInvoiceItem(&stripe.InvoiceItemParams{}, billing.DetailedLineWithResolvedTaxConfig{
+			TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000000"},
 		})
 
-		require.NoError(t, err)
-		require.Len(t, taxCodes, 1)
-		require.Equal(t, existingID, taxCodes[existingID].ID)
-		require.Equal(t, 1, resolver.calls)
-	})
-
-	t.Run("lines without a tax code id skip the lookup", func(t *testing.T) {
-		resolver := &fakeTaxCodeResolver{}
-
-		taxCodes, err := appOperations{TaxCodeResolver: resolver}.resolveLinesTaxCodes(t.Context(), namespace, []billing.DetailedLineWithResolvedTaxConfig{
-			{DetailedLine: billing.DetailedLine{}},
-			{
-				DetailedLine: billing.DetailedLine{},
-				TaxConfig:    &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
-			},
-		})
-
-		require.NoError(t, err)
-		require.Empty(t, taxCodes)
-		require.Zero(t, resolver.calls)
+		require.Nil(t, params.TaxCode)
+		require.Nil(t, params.TaxBehavior)
 	})
 }

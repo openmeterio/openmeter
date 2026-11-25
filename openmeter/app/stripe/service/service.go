@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	appstripe "github.com/openmeterio/openmeter/openmeter/app/stripe"
 	"github.com/openmeterio/openmeter/openmeter/billing"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -20,7 +19,6 @@ type Service struct {
 	appService                 app.Service
 	secretService              secret.Service
 	billingService             billing.Service
-	taxCodeResolver            productcatalog.TaxCodeResolver
 	logger                     *slog.Logger
 	publisher                  eventbus.Publisher
 	disableWebhookRegistration bool
@@ -32,7 +30,6 @@ type Config struct {
 	AppService                 app.Service
 	SecretService              secret.Service
 	BillingService             billing.Service
-	TaxCodeResolver            productcatalog.TaxCodeResolver
 	Logger                     *slog.Logger
 	DisableWebhookRegistration bool
 	Publisher                  eventbus.Publisher
@@ -54,10 +51,6 @@ func (c Config) Validate() error {
 
 	if c.BillingService == nil {
 		return errors.New("billing service cannot be null")
-	}
-
-	if c.TaxCodeResolver == nil {
-		return errors.New("tax code resolver cannot be null")
 	}
 
 	if c.Logger == nil {
@@ -85,7 +78,6 @@ func New(config Config) (*Service, error) {
 		appService:                 config.AppService,
 		secretService:              config.SecretService,
 		billingService:             config.BillingService,
-		taxCodeResolver:            config.TaxCodeResolver,
 		logger:                     config.Logger,
 		disableWebhookRegistration: config.DisableWebhookRegistration,
 		publisher:                  config.Publisher,

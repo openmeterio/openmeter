@@ -616,7 +616,7 @@ func Initialize(ctx context.Context, conf config.Configuration, metadata common.
 		cleanup()
 		return Application{}, nil, err
 	}
-	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, secretserviceService, billingRegistry, taxCodeResolver, eventbusPublisher)
+	appstripeService, err := common.NewAppStripeService(logger, client, appsConfiguration, appService, customerService, secretserviceService, secretserviceService, billingRegistry, eventbusPublisher)
 	if err != nil {
 		cleanup10()
 		cleanup9()

@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"math"
-	"slices"
 	"sort"
 	"time"
 
@@ -19,7 +17,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	"github.com/openmeterio/openmeter/openmeter/taxcode"
 )
 
 const (
@@ -78,7 +75,7 @@ func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billin
 // WouldStandardInvoiceBeEmpty reports invoices that would reach Stripe without line items or with
 // nothing to pay.
 func (a appOperations) WouldStandardInvoiceBeEmpty(invoice billing.StandardInvoice) (bool, error) {
-	return len(invoice.GetLeafLinesWithResolvedTaxConfig()) == 0 || invoice.Totals.Total.IsZero(), nil
+	return len(invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)) == 0 || invoice.Totals.Total.IsZero(), nil
 }
 
 // DeleteStandardInvoice deletes the invoice for the app
@@ -165,38 +162,6 @@ func (a appOperations) FinalizeStandardInvoice(ctx context.Context, invoice bill
 	return result, nil
 }
 
-// resolveLinesTaxCodes looks up the Tax Codes the leaf lines reference by ID, soft-deleted
-// ones included. Every stored ID must resolve: lines with an ID got it through validated
-// writes and FKs keep stored references pointing at existing rows, so a miss means corrupt
-// data, not something invoicing can skip.
-func (a appOperations) resolveLinesTaxCodes(ctx context.Context, namespace string, lines []billing.DetailedLineWithResolvedTaxConfig) (productcatalog.TaxCodesByID, error) {
-	ids := make(map[string]struct{}, len(lines))
-	for _, line := range lines {
-		if line.TaxConfig == nil || line.TaxConfig.TaxCodeID == "" {
-			continue
-		}
-
-		ids[line.TaxConfig.TaxCodeID] = struct{}{}
-	}
-
-	if len(ids) == 0 {
-		return nil, nil
-	}
-
-	taxCodes, err := a.TaxCodeResolver.BatchResolve(ctx, namespace, slices.Collect(maps.Keys(ids))...)
-	if err != nil {
-		return nil, err
-	}
-
-	for id := range ids {
-		if _, ok := taxCodes.Get(id); !ok {
-			return nil, fmt.Errorf("tax code %s: %w", id, taxcode.NewTaxCodeNotFoundError(id))
-		}
-	}
-
-	return taxCodes, nil
-}
-
 // createInvoice creates the invoice for the app
 func (a appOperations) createInvoice(ctx context.Context, invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
 	// Get the currency calculator
@@ -255,14 +220,7 @@ func (a appOperations) createInvoice(ctx context.Context, invoice billing.Standa
 		createInvoiceParams.DaysUntilDue = lo.ToPtr(daysUntilDue)
 	}
 
-	// Resolve before creating the Stripe invoice, so an unresolvable Tax Code fails the sync
-	// without leaving a draft whose ID would never be saved.
-	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
-
-	taxCodes, err := a.resolveLinesTaxCodes(ctx, invoice.Namespace, leafLines)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
-	}
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)
 
 	stripeInvoice, err := a.createStripeInvoice(ctx, stripeClient, invoice.GetInvoiceID(), createInvoiceParams)
 	if err != nil {
@@ -284,7 +242,7 @@ func (a appOperations) createInvoice(ctx context.Context, invoice billing.Standa
 	for _, line := range leafLines {
 		// Add discounts for line if any
 		for _, discount := range line.AmountDiscounts {
-			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID, taxCodes))
+			stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 		}
 
 		// Add applied credits for line if any
@@ -293,11 +251,11 @@ func (a appOperations) createInvoice(ctx context.Context, invoice billing.Standa
 				return nil, fmt.Errorf("credit realization ID is required")
 			}
 
-			stripeLineAdd = append(stripeLineAdd, getCreditStripeAddInvoiceItemParams(calculator, line, credit, stripeCustomerData.StripeCustomerID, taxCodes))
+			stripeLineAdd = append(stripeLineAdd, getCreditStripeAddInvoiceItemParams(calculator, line, credit, stripeCustomerData.StripeCustomerID))
 		}
 
 		// Add line
-		stripeLineAdd = append(stripeLineAdd, getStripeAddInvoiceItemParams(line, calculator, stripeCustomerData.StripeCustomerID, taxCodes))
+		stripeLineAdd = append(stripeLineAdd, getStripeAddInvoiceItemParams(line, calculator, stripeCustomerData.StripeCustomerID))
 	}
 
 	// Sort the Stripe line items for deterministic order
@@ -417,13 +375,7 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 		return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
 	}
 
-	// Resolve before the first Stripe write, mirroring createInvoice.
-	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
-
-	taxCodes, err := a.resolveLinesTaxCodes(ctx, invoice.Namespace, leafLines)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve tax codes: %w", err)
-	}
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)
 
 	// Update the invoice in Stripe
 	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{
@@ -501,10 +453,10 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 
 				result.AddLineDiscountExternalID(discount.ID, line.ExternalIDs.Invoicing)
 
-				stripeLinesUpdate = append(stripeLinesUpdate, getDiscountStripeUpdateInvoiceItemParams(calculator, line, discount, stripeLine, taxCodes))
+				stripeLinesUpdate = append(stripeLinesUpdate, getDiscountStripeUpdateInvoiceItemParams(calculator, line, discount, stripeLine))
 			} else {
 				// Add the discount line item if it doesn't have an external ID yet
-				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID, taxCodes))
+				stripeLineAdd = append(stripeLineAdd, getDiscountStripeAddInvoiceItemParams(calculator, line, discount, stripeCustomerData.StripeCustomerID))
 			}
 		}
 
@@ -517,9 +469,9 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 			if stripeLine, ok := stripeCreditLinesByCreditRealizationID[credit.CreditRealizationID]; ok {
 				delete(stripeLinesToRemove, stripeLine.ID)
 
-				stripeLinesUpdate = append(stripeLinesUpdate, getCreditStripeUpdateInvoiceItemParams(calculator, line, credit, stripeLine, taxCodes))
+				stripeLinesUpdate = append(stripeLinesUpdate, getCreditStripeUpdateInvoiceItemParams(calculator, line, credit, stripeLine))
 			} else {
-				stripeLineAdd = append(stripeLineAdd, getCreditStripeAddInvoiceItemParams(calculator, line, credit, stripeCustomerData.StripeCustomerID, taxCodes))
+				stripeLineAdd = append(stripeLineAdd, getCreditStripeAddInvoiceItemParams(calculator, line, credit, stripeCustomerData.StripeCustomerID))
 			}
 		}
 
@@ -538,10 +490,10 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 			result.AddLineExternalID(line.ID, stripeLine.ID)
 
 			// Get stripe update line params
-			stripeLinesUpdate = append(stripeLinesUpdate, getStripeUpdateInvoiceItemParams(calculator, line, stripeLine, taxCodes))
+			stripeLinesUpdate = append(stripeLinesUpdate, getStripeUpdateInvoiceItemParams(calculator, line, stripeLine))
 		} else {
 			// Add the line item if it doesn't have an external ID yet
-			stripeLineAdd = append(stripeLineAdd, getStripeAddInvoiceItemParams(line, calculator, stripeCustomerData.StripeCustomerID, taxCodes))
+			stripeLineAdd = append(stripeLineAdd, getStripeAddInvoiceItemParams(line, calculator, stripeCustomerData.StripeCustomerID))
 		}
 	}
 
@@ -632,16 +584,15 @@ func getDiscountStripeUpdateInvoiceItemParams(
 	line billing.DetailedLineWithResolvedTaxConfig,
 	discount billing.AmountLineDiscountManaged,
 	stripeLine *stripe.InvoiceLineItem,
-	taxCodes productcatalog.TaxCodesByID,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: getDiscountStripeInvoiceItemParams(calculator, line, discount, taxCodes),
+		InvoiceItemParams: getDiscountStripeInvoiceItemParams(calculator, line, discount),
 	}
 }
 
 // getDiscountStripeInvoiceItemParams returns the Stripe line item for a discount
-func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, discount billing.AmountLineDiscountManaged, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
+func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, discount billing.AmountLineDiscountManaged) *stripe.InvoiceItemParams {
 	name := getDiscountLineName(line.DetailedLine, discount)
 	period := getPeriod(line.DetailedLine)
 
@@ -655,11 +606,11 @@ func getDiscountStripeInvoiceItemParams(calculator StripeCalculator, line billin
 		},
 	}
 
-	return applyTaxSettingsToInvoiceItem(addParams, line.TaxConfig, taxCodes)
+	return applyTaxSettingsToInvoiceItem(addParams, line)
 }
 
-func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, discount billing.AmountLineDiscountManaged, stripeCustomerID string, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
-	params := getDiscountStripeInvoiceItemParams(calculator, line, discount, taxCodes)
+func getDiscountStripeAddInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, discount billing.AmountLineDiscountManaged, stripeCustomerID string) *stripe.InvoiceItemParams {
+	params := getDiscountStripeInvoiceItemParams(calculator, line, discount)
 	// Customer is required for adds
 	params.Customer = stripe.String(stripeCustomerID)
 
@@ -672,16 +623,15 @@ func getCreditStripeUpdateInvoiceItemParams(
 	line billing.DetailedLineWithResolvedTaxConfig,
 	credit billing.CreditApplied,
 	stripeLine *stripe.InvoiceLineItem,
-	taxCodes productcatalog.TaxCodesByID,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: getCreditStripeInvoiceItemParams(calculator, line, credit, taxCodes),
+		InvoiceItemParams: getCreditStripeInvoiceItemParams(calculator, line, credit),
 	}
 }
 
 // getCreditStripeInvoiceItemParams returns the Stripe line item for an applied credit.
-func getCreditStripeInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, credit billing.CreditApplied, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
+func getCreditStripeInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, credit billing.CreditApplied) *stripe.InvoiceItemParams {
 	name := getCreditLineName(line.DetailedLine, credit)
 	period := getPeriod(line.DetailedLine)
 
@@ -695,33 +645,28 @@ func getCreditStripeInvoiceItemParams(calculator StripeCalculator, line billing.
 		},
 	}
 
-	return applyTaxSettingsToInvoiceItem(addParams, line.TaxConfig, taxCodes)
+	return applyTaxSettingsToInvoiceItem(addParams, line)
 }
 
-func getCreditStripeAddInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, credit billing.CreditApplied, stripeCustomerID string, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
-	params := getCreditStripeInvoiceItemParams(calculator, line, credit, taxCodes)
+func getCreditStripeAddInvoiceItemParams(calculator StripeCalculator, line billing.DetailedLineWithResolvedTaxConfig, credit billing.CreditApplied, stripeCustomerID string) *stripe.InvoiceItemParams {
+	params := getCreditStripeInvoiceItemParams(calculator, line, credit)
 	// Customer is required for adds
 	params.Customer = stripe.String(stripeCustomerID)
 
 	return params
 }
 
-// applyTaxSettingsToInvoiceItem sets the tax settings on the Stripe line item from the line's
-// resolved tax config. The Stripe tax code comes from the Tax Code the line references by ID,
-// not from the stored Stripe config: the mapping lives on the Tax Code and a re-sync must send
-// its current value. Tax Codes without a Stripe mapping (e.g. the provider default) leave the
-// code unset, so Stripe applies its own default.
-func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, taxConfig *productcatalog.TaxCodeConfig, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
-	if taxConfig != nil && !lo.IsEmpty(taxConfig) {
-		if taxConfig.Behavior != nil {
-			add.TaxBehavior = getStripeTaxBehavior(taxConfig.Behavior)
-		}
+// applyTaxSettingsToInvoiceItem sets the tax settings on the Stripe line item. The tax behavior
+// comes from the line's resolved tax config. The Stripe tax code is the one the parent line was
+// stamped with, so a re-sync sends what the last draft calculation froze, never a live lookup.
+// An empty code leaves it unset, so Stripe applies its own default.
+func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line billing.DetailedLineWithResolvedTaxConfig) *stripe.InvoiceItemParams {
+	if line.TaxConfig != nil && line.TaxConfig.Behavior != nil {
+		add.TaxBehavior = getStripeTaxBehavior(line.TaxConfig.Behavior)
+	}
 
-		if tc, ok := taxCodes.Get(taxConfig.TaxCodeID); ok {
-			if mapping, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
-				add.TaxCode = stripe.String(mapping.TaxCode)
-			}
-		}
+	if line.BilledTaxCode != "" {
+		add.TaxCode = stripe.String(line.BilledTaxCode)
 	}
 
 	return add
@@ -732,16 +677,15 @@ func getStripeUpdateInvoiceItemParams(
 	calculator StripeCalculator,
 	line billing.DetailedLineWithResolvedTaxConfig,
 	stripeLine *stripe.InvoiceLineItem,
-	taxCodes productcatalog.TaxCodesByID,
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: getStripeInvoiceItemParams(line, calculator, taxCodes),
+		InvoiceItemParams: getStripeInvoiceItemParams(line, calculator),
 	}
 }
 
 // getStripeAddLinesLineParams returns the Stripe line item
-func getStripeInvoiceItemParams(line billing.DetailedLineWithResolvedTaxConfig, calculator StripeCalculator, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
+func getStripeInvoiceItemParams(line billing.DetailedLineWithResolvedTaxConfig, calculator StripeCalculator) *stripe.InvoiceItemParams {
 	description := getLineName(line.DetailedLine)
 	period := getPeriod(line.DetailedLine)
 	amount := line.Totals.Amount
@@ -774,12 +718,12 @@ func getStripeInvoiceItemParams(line billing.DetailedLineWithResolvedTaxConfig, 
 		},
 	}
 
-	return applyTaxSettingsToInvoiceItem(addParams, line.TaxConfig, taxCodes)
+	return applyTaxSettingsToInvoiceItem(addParams, line)
 }
 
 // getStripeAddInvoiceItemParams returns the Stripe line item
-func getStripeAddInvoiceItemParams(line billing.DetailedLineWithResolvedTaxConfig, calculator StripeCalculator, stripeCustomerID string, taxCodes productcatalog.TaxCodesByID) *stripe.InvoiceItemParams {
-	params := getStripeInvoiceItemParams(line, calculator, taxCodes)
+func getStripeAddInvoiceItemParams(line billing.DetailedLineWithResolvedTaxConfig, calculator StripeCalculator, stripeCustomerID string) *stripe.InvoiceItemParams {
+	params := getStripeInvoiceItemParams(line, calculator)
 	params.Customer = stripe.String(stripeCustomerID)
 
 	return params

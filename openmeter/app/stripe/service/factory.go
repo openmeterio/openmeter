@@ -243,7 +243,6 @@ func (s *Service) newApp(appBase app.AppBase, stripeApp appstripe.AppData) (apps
 			StripeAppService:       s,
 			SecretService:          s.secretService,
 			StripeAppClientFactory: s.adapter.GetStripeAppClientFactory(),
-			TaxCodeResolver:        s.taxCodeResolver,
 			Logger:                 s.logger,
 		},
 	)
