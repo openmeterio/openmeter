@@ -3,6 +3,7 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -67,14 +68,22 @@ func TestCustomerLockSerializesConcurrentTransactions(t *testing.T) {
 		name     string
 		setup    func(*testing.T, *testutils.TestDB, customer.CustomerID)
 		firstErr error
+		// blockedOn is the statement the second transaction waits in. Only a waiter on the
+		// row lock keeps its place in line; a waiter on the insert has to lock afterwards.
+		blockedOn string
 	}{
-		{name: "concurrent first use commits"},
 		{
-			name:     "concurrent first use rolls back",
-			firstErr: operationErr,
+			name:      "concurrent first use commits",
+			blockedOn: "INSERT",
 		},
 		{
-			name: "existing lock row",
+			name:      "concurrent first use rolls back",
+			firstErr:  operationErr,
+			blockedOn: "INSERT",
+		},
+		{
+			name:      "existing lock row",
+			blockedOn: "SELECT",
 			setup: func(t *testing.T, testDB *testutils.TestDB, customerID customer.CustomerID) {
 				err := testDB.EntDriver.Client().BillingCustomerLock.Create().
 					SetNamespace(customerID.Namespace).
@@ -136,15 +145,33 @@ func TestCustomerLockSerializesConcurrentTransactions(t *testing.T) {
 
 			// then: PostgreSQL reports a blocked transaction, not just an unscheduled goroutine.
 			require.EventuallyWithT(t, func(c *assert.CollectT) {
-				var blocked int
-				err := testDB.PGDriver.DB().QueryRowContext(ctx, `
-					SELECT count(*) FROM pg_stat_activity
+				rows, err := testDB.PGDriver.DB().QueryContext(ctx, `
+					SELECT query FROM pg_stat_activity
 					WHERE datname = current_database()
 					  AND wait_event_type = 'Lock'
 					  AND cardinality(pg_blocking_pids(pid)) > 0
-				`).Scan(&blocked)
-				assert.NoError(c, err)
-				assert.Equal(c, 1, blocked)
+				`)
+				if !assert.NoError(c, err) {
+					return
+				}
+
+				defer rows.Close()
+
+				var blocked []string
+				for rows.Next() {
+					var query string
+					if !assert.NoError(c, rows.Scan(&query)) {
+						return
+					}
+
+					blocked = append(blocked, query)
+				}
+
+				assert.NoError(c, rows.Err())
+
+				if assert.Len(c, blocked, 1) {
+					assert.True(c, strings.HasPrefix(blocked[0], tc.blockedOn), "blocked on %q", blocked[0])
+				}
 			}, 5*time.Second, 10*time.Millisecond)
 
 			select {
