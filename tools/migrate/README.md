@@ -16,3 +16,21 @@ make generate-view-sql
 `viewgen.GenerateSQL` returns PostgreSQL `CREATE VIEW` statements from EntSQL
 annotations. The command adds the regeneration header and writes
 `tools/migrate/views.sql`.
+
+## Notification Rule feature ID backfill
+
+Upgrade through the release containing [the V1 Rule writer](https://github.com/openmeterio/openmeter/pull/5638)
+and drain older writers **before deploying the release containing this migration**.
+With automatic migrations enabled, the first new server can run the backfill
+while old replicas are still serving writes.
+
+After Rule config normalization, run the [read-only preflight](notification_rule_feature_ids_preflight.sql).
+For a live Rule, a key must identify the feature active at its last update.
+Soft deletion also advances that timestamp, so for deleted Rules the preflight
+considers every feature with that key active between Rule creation and deletion.
+Multiple candidates block the backfill. Use the candidate IDs and historical
+evidence to repair the reference, then rerun the preflight.
+
+Missing references are dropped. If every reference is missing, an enabled Rule
+stays enabled and matches every feature. The preflight flags that case separately.
+Downgrading keeps the resolved IDs and does not restore dropped references.
