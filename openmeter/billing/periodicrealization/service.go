@@ -9,11 +9,13 @@ import (
 )
 
 type Service interface {
-	// GetOrCreateRunAt schedules the namespace's run for the period that
-	// contains AsOf.
+	// GetOrCreateRunAt returns the namespace's run that covers usage before
+	// AsOf: the earliest run whose period ends at or after it. Its PeriodTo can
+	// be later than the first period end after AsOf, because a period that
+	// never got a run is covered by the next run that exists.
 	//
-	// Only the first run of a namespace can be scheduled so far: a namespace
-	// that already has a run gets a not-implemented error.
+	// When no run covers AsOf, the run for the first period end at or after it
+	// is created and chained to the namespace's latest run.
 	GetOrCreateRunAt(ctx context.Context, input GetOrCreateRunAtInput) (Run, error)
 }
 
@@ -21,7 +23,9 @@ var _ models.Validator = (*GetOrCreateRunAtInput)(nil)
 
 type GetOrCreateRunAtInput struct {
 	Namespace string
-	AsOf      time.Time
+	// AsOf is an exclusive upper bound, like a service period end: the run is
+	// the one that covers usage before this instant.
+	AsOf time.Time
 }
 
 func (i GetOrCreateRunAtInput) Validate() error {

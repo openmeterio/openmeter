@@ -23,8 +23,13 @@ func TestPeriodTo(t *testing.T) {
 			want: time.Date(2026, 11, 25, 0, 0, 0, 0, time.UTC),
 		},
 		{
-			name: "a period end belongs to the following period",
+			name: "a period end is its own period end",
 			asOf: time.Date(2026, 11, 24, 0, 0, 0, 0, time.UTC),
+			want: time.Date(2026, 11, 24, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name: "just after a period end",
+			asOf: time.Date(2026, 11, 24, 0, 0, 0, 1, time.UTC),
 			want: time.Date(2026, 11, 25, 0, 0, 0, 0, time.UTC),
 		},
 		{

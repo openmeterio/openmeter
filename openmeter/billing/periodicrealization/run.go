@@ -56,7 +56,9 @@ type Run struct {
 	models.NamespacedID
 	models.ManagedModel
 
-	// PreviousRunID is nil for the first run of a namespace.
+	// PreviousRunID is the namespace's latest run when this one was scheduled,
+	// or nil for the first run. Periods without a run are skipped, so the
+	// previous run is not always one period back.
 	PreviousRunID *string
 	// PeriodTo is the end of the period the run realizes usage in. The period
 	// excludes it.

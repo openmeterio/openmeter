@@ -10,13 +10,18 @@ import (
 // Everything that needs a period asks these functions, so making the schedule
 // configurable later only changes this file.
 
-// PeriodTo returns the end of the period that contains asOf. A period includes
-// its start and excludes its end, so a time that is itself a period end belongs
-// to the following period.
+// PeriodTo returns the end of the period that usage before asOf falls into: the
+// first period end at or after asOf. Both are exclusive bounds, so an asOf that
+// is itself a period end gets that period, not the following one.
 func PeriodTo(asOf time.Time) time.Time {
 	year, month, day := asOf.UTC().Date()
 
-	return time.Date(year, month, day+1, 0, 0, 0, 0, time.UTC)
+	startOfDay := time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+	if asOf.Equal(startOfDay) {
+		return startOfDay
+	}
+
+	return startOfDay.AddDate(0, 0, 1)
 }
 
 // RealizeAfter returns the earliest time a period ending at periodTo may be
