@@ -118,7 +118,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *tes
 			Behavior:  &taxBehavior,
 			TaxCodeId: &taxCodeID,
 		},
-	}, nil)
+	}, &productcatalog.TaxConfig{Behavior: &productCatalogTaxBehavior, TaxCodeID: &taxCodeID})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Equal(t, taxCodeID, *mergedLine.TaxConfig.TaxCodeID)
@@ -151,7 +151,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateLeavesProviderDefaultOmiss
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}), nil)
+	}), &productcatalog.TaxConfig{Behavior: &productCatalogTaxBehavior})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Nil(t, mergedLine.TaxConfig.TaxCodeID)
@@ -184,7 +184,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDoesNotPreserveExplicitTax
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}), nil)
+	}), &productcatalog.TaxConfig{Behavior: &productCatalogTaxBehavior})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Nil(t, mergedLine.TaxConfig.TaxCodeID)
@@ -219,7 +219,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDropsResolvedTaxCodeWhenTa
 			TaxCodeId: &newTaxCodeID,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}), nil)
+	}), &productcatalog.TaxConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior), TaxCodeID: &newTaxCodeID})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Nil(t, mergedLine.TaxConfig.TaxCode)
@@ -282,9 +282,7 @@ func TestMergeStandardInvoiceLinesFromAPITombstonesOmittedLines(t *testing.T) {
 		invoiceLineReplaceUpdateForMergeTest(t, period, keptLine.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
 			update.Id = lo.ToPtr(keptLine.ID)
 		}),
-	}, []resolvedLineTaxConfig{{Line: invoiceLineReplaceUpdateForMergeTest(t, period, keptLine.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
-		update.Id = lo.ToPtr(keptLine.ID)
-	})}})
+	}, []*productcatalog.TaxConfig{nil})
 	require.NoError(t, err)
 
 	lines := mergedLines.OrEmpty()

@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
@@ -586,6 +587,52 @@ func (s *InvoicingTestSuite) TestSimulateInvoiceResolvesStripeCodeReadOnly() {
 
 		// then: the request fails with a validation error
 		s.Require().Equal(http.StatusBadRequest, w.Code, w.Body.String())
+	})
+
+	s.Run("unknown tax code id is rejected", func() {
+		// given: a second line, the one at index 1, referencing a tax code id that doesn't exist
+		valid := s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{TaxCodeId: lo.ToPtr(taxCode.ID)})
+		unknown := s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{TaxCodeId: lo.ToPtr(ulid.Make().String())})
+
+		// when: the invoice is simulated
+		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+			Currency: apiv1models.CurrencyCode(currency.USD),
+			Lines:    []apiv1models.InvoiceSimulationLine{valid, unknown},
+		})
+		s.Require().NoError(err)
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+		// then: the request is a 400 naming the missing tax code under the offending line
+		s.Require().Equal(http.StatusBadRequest, w.Code, w.Body.String())
+		s.Contains(w.Body.String(), "billing_tax_code_not_found")
+		s.Contains(w.Body.String(), "lines/1/tax_config/tax_code")
+	})
+
+	s.Run("deleted tax code id is rejected", func() {
+		// given: a tax code that was deleted after creation
+		// Deleting a tax code checks it isn't an organization default, so the defaults must exist.
+		s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+		deleted := s.TaxCodeEnv.CreateTaxCode(s.T(), namespace)
+		s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+		// when: a line references it
+		body, err := json.Marshal(apiv1models.InvoiceSimulationInput{
+			Currency: apiv1models.CurrencyCode(currency.USD),
+			Lines:    []apiv1models.InvoiceSimulationLine{s.simulationTaxConfigLine(&price, period, &apiv1models.TaxConfig{TaxCodeId: lo.ToPtr(deleted.ID)})},
+		})
+		s.Require().NoError(err)
+
+		w := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodPost, "/api/v1/billing/customers/"+cust.ID+"/invoices/simulate", bytes.NewReader(body))
+		h.SimulateInvoice().With(SimulateInvoiceParams{CustomerID: cust.ID}).ServeHTTP(w, r)
+
+		// then: the request is a 400 naming the deleted tax code
+		s.Require().Equal(http.StatusBadRequest, w.Code, w.Body.String())
+		s.Contains(w.Body.String(), "billing_tax_code_deleted")
+		s.Contains(w.Body.String(), "lines/0/tax_config/tax_code")
 	})
 }
 

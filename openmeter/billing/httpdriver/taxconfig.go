@@ -64,25 +64,16 @@ func lineTaxConfig(rateCard *apiv1models.InvoiceUsageBasedRateCard, taxConfig *a
 	return rateCard.TaxConfig
 }
 
-// resolvedLineTaxConfig pairs one request line with the tax config resolved for it.
-type resolvedLineTaxConfig struct {
-	// Line is the request line as the update received it.
-	Line apiv1models.InvoiceLineReplaceUpdate
-	// TaxConfig is the line's resolved tax config, nil when the line sent no tax config.
-	TaxConfig *productcatalog.TaxConfig
-}
-
 // resolveUpdateLineTaxConfigs resolves every edited line's tax config up front, so the update's
-// EditFn (which has no context) can apply the already-resolved IDs. Each result keeps the
-// request line it belongs to, so the merge step fails loudly on an order mismatch instead of
-// silently applying another line's config.
-func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, lines []apiv1models.InvoiceLineReplaceUpdate) ([]resolvedLineTaxConfig, error) {
-	resolved := make([]resolvedLineTaxConfig, 0, len(lines))
+// EditFn (which has no context) can apply the already-resolved IDs. The result has one entry per
+// request line, in the same order; an entry is nil when the line sent no tax config.
+func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxConfig, error) {
+	resolved := make([]*productcatalog.TaxConfig, 0, len(lines))
 
 	for _, line := range lines {
 		raw := lineTaxConfig(line.RateCard, line.TaxConfig)
 		if raw == nil {
-			resolved = append(resolved, resolvedLineTaxConfig{Line: line})
+			resolved = append(resolved, nil)
 
 			continue
 		}
@@ -93,39 +84,20 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 			return nil, err
 		}
 
-		resolved = append(resolved, resolvedLineTaxConfig{Line: line, TaxConfig: cfg})
+		resolved = append(resolved, cfg)
 	}
 
 	return resolved, nil
 }
 
-// taxConfigsForRequestLines returns the resolved configs for the given request lines. The
-// update's EditFn has no context, so the handler resolves up front and pairs each config with
-// its line; the merge must see the same lines in the same order, and any mismatch is a caller
-// bug that fails the request instead of silently applying another line's config.
-func taxConfigsForRequestLines(resolved []resolvedLineTaxConfig, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxConfig, error) {
-	if len(resolved) != len(lines) {
-		return nil, fmt.Errorf("resolved tax configs (%d) do not match request lines (%d)", len(resolved), len(lines))
-	}
-
-	for i, entry := range resolved {
-		if entry.Line.Id != nil && lines[i].Id != nil && *entry.Line.Id != *lines[i].Id {
-			return nil, fmt.Errorf("resolved tax config at position %d belongs to line %q, not %q", i, lo.FromPtr(entry.Line.Id), lo.FromPtr(lines[i].Id))
-		}
-	}
-
-	out := make([]*productcatalog.TaxConfig, len(resolved))
-	for i, entry := range resolved {
-		out[i] = entry.TaxConfig
-	}
-
-	return out, nil
-}
-
 // resolveSimulationLineTaxConfigs replaces each simulation line's stripe.code with the ID of the
 // Tax Code it maps to. Simulation must not write, so the lookup is read-only: an unknown code
-// leaves the line as sent, and the response shows it without stripe.code.
+// leaves the line as sent, and the response shows it without stripe.code. A taxCodeId the
+// request sent must name a live Tax Code, like on create and update; otherwise rendering the
+// response would fail on it.
 func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalog.TransactionalTaxCodeResolver, namespace string, lines []apiv1models.InvoiceSimulationLine) error {
+	var requestRefs []billing.RequestTaxCodeRef
+
 	for i := range lines {
 		// Compare before resolving: resolution writes the same config to both fields, which
 		// would hide a mismatch from the mapper's own check.
@@ -142,6 +114,15 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 		cfg, stripeCode, err := productcataloghttp.ParseAPITaxConfig(*raw)
 		if err != nil {
 			return billing.ValidationError{Err: err}
+		}
+
+		// ParseAPITaxConfig leaves the stripe code empty when the request sent a taxCodeId, so
+		// an ID here came from the request and not from the stripe lookup below.
+		if cfg.TaxCodeID != "" {
+			requestRefs = append(requestRefs, billing.RequestTaxCodeRef{
+				TaxCodeID: cfg.TaxCodeID,
+				FieldPath: fmt.Sprintf("lines/%d/tax_config/tax_code", i),
+			})
 		}
 
 		if stripeCode != "" {
@@ -170,5 +151,9 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 		}
 	}
 
-	return nil
+	return billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
+		Namespace:  namespace,
+		Resolver:   resolver,
+		References: requestRefs,
+	})
 }

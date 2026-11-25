@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/samber/lo"
 
@@ -228,24 +229,22 @@ func ResolveInvoiceTaxCodes(ctx context.Context, resolver productcatalog.TaxCode
 		return nil, err
 	}
 
-	ids := lo.FilterMap(input.Workflows, func(wf billing.WorkflowConfig, _ int) (string, bool) {
-		id := wf.Invoicing.DefaultTaxCodeID()
-		return id, id != ""
-	})
+	ids := lo.Uniq(slices.Concat(
+		lo.FilterMap(input.Workflows, func(wf billing.WorkflowConfig, _ int) (string, bool) {
+			id := wf.Invoicing.DefaultTaxCodeID()
+			return id, id != ""
+		}),
+		lo.FilterMap(input.StandardLines, func(line *billing.StandardLine, _ int) (string, bool) {
+			id := taxCodeIDFromConfig(line.TaxConfig.ToProductCatalog())
+			return id, id != ""
+		}),
+		lo.FilterMap(input.GatheringLines, func(line billing.GatheringLine, _ int) (string, bool) {
+			id := taxCodeIDFromConfig(line.TaxConfig)
+			return id, id != ""
+		}),
+	))
 
-	for _, line := range input.StandardLines {
-		if id := taxCodeIDFromConfig(line.TaxConfig.ToProductCatalog()); id != "" {
-			ids = append(ids, id)
-		}
-	}
-
-	for _, line := range input.GatheringLines {
-		if id := taxCodeIDFromConfig(line.TaxConfig); id != "" {
-			ids = append(ids, id)
-		}
-	}
-
-	return resolveTaxCodesByIDs(ctx, resolver, input.Namespace, lo.Uniq(ids))
+	return resolveTaxCodesByIDs(ctx, resolver, input.Namespace, ids)
 }
 
 // taxCodeIDFromConfig returns the Tax Code reference of the config, or "" when there is none.

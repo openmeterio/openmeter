@@ -332,13 +332,6 @@ func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplac
 		return nil, fmt.Errorf("failed to map usage based line: %w", err)
 	}
 
-	// The handler resolved the request's tax config before the service call; nil keeps the
-	// line without a tax config, which the invoice's default fills in at calculation time.
-	taxConfig := resolvedTaxConfig
-	if taxConfig == nil {
-		taxConfig = rateCardParsed.TaxConfig
-	}
-
 	return &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -358,7 +351,7 @@ func standardLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineReplac
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
-			TaxConfig:         billing.FromProductCatalog(taxConfig),
+			TaxConfig:         billing.FromProductCatalog(resolvedTaxConfig),
 			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 		},
 		UsageBased: &billing.UsageBasedLine{
@@ -387,13 +380,6 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineRepla
 		}
 	}
 
-	// The handler resolved the request's tax config before the service call; nil keeps the
-	// line without a tax config, which the invoice's default fills in at calculation time.
-	taxConfig := resolvedTaxConfig
-	if taxConfig == nil {
-		taxConfig = rateCardParsed.TaxConfig
-	}
-
 	return billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -413,7 +399,7 @@ func gatheringLineFromInvoiceLineReplaceUpdate(line apiv1models.InvoiceLineRepla
 			},
 			InvoiceAt: line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration),
 
-			TaxConfig:         taxConfig,
+			TaxConfig:         resolvedTaxConfig,
 			RateCardDiscounts: billing.DiscountsFromProductCatalog(rateCardParsed.Discounts),
 			Price:             lo.FromPtr(rateCardParsed.Price),
 			FeatureKey:        rateCardParsed.FeatureKey,
@@ -442,14 +428,7 @@ func mergeStandardLineFromInvoiceLineReplaceUpdate(existing *billing.StandardLin
 	existing.Period.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	// The handler resolved the request's tax config before the service call; nil keeps the
-	// line without a tax config, which the invoice's default fills in at calculation time.
-	taxConfig := resolvedTaxConfig
-	if taxConfig == nil {
-		taxConfig = rateCardParsed.TaxConfig
-	}
-
-	existing.TaxConfig = billing.FromProductCatalog(taxConfig)
+	existing.TaxConfig = billing.FromProductCatalog(resolvedTaxConfig)
 	existing.UsageBased.Price = rateCardParsed.Price
 	existing.UsageBased.FeatureKey = rateCardParsed.FeatureKey
 	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(rateCardParsed.Discounts)
@@ -484,14 +463,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	existing.ServicePeriod.To = line.Period.To.Truncate(streaming.MinimumWindowSizeDuration)
 	existing.InvoiceAt = line.InvoiceAt.Truncate(streaming.MinimumWindowSizeDuration)
 
-	// The handler resolved the request's tax config before the service call; nil keeps the
-	// line without a tax config, which the invoice's default fills in at calculation time.
-	taxConfig := resolvedTaxConfig
-	if taxConfig == nil {
-		taxConfig = rateCardParsed.TaxConfig
-	}
-
-	existing.TaxConfig = taxConfig
+	existing.TaxConfig = resolvedTaxConfig
 	existing.Price = lo.FromPtr(rateCardParsed.Price)
 	existing.FeatureKey = rateCardParsed.FeatureKey
 	existing.RateCardDiscounts = existing.RateCardDiscounts.ReplaceFromProductCatalog(rateCardParsed.Discounts)
@@ -499,12 +471,7 @@ func mergeGatheringLineFromInvoiceLineReplaceUpdate(existing billing.GatheringLi
 	return existing, nil
 }
 
-func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *billing.StandardInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate, resolved []resolvedLineTaxConfig) (billing.StandardInvoiceLines, error) {
-	resolvedTaxConfigs, err := taxConfigsForRequestLines(resolved, updatedLines)
-	if err != nil {
-		return billing.StandardInvoiceLines{}, err
-	}
-
+func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *billing.StandardInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate, resolvedTaxConfigs []*productcatalog.TaxConfig) (billing.StandardInvoiceLines, error) {
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) string {
 		return line.ID
 	})
@@ -552,12 +519,7 @@ func (h *handler) mergeStandardInvoiceLinesFromAPI(_ context.Context, invoice *b
 	return billing.NewStandardInvoiceLines(out), nil
 }
 
-func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice *billing.GatheringInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate, resolved []resolvedLineTaxConfig) (billing.GatheringInvoiceLines, error) {
-	resolvedTaxConfigs, err := taxConfigsForRequestLines(resolved, updatedLines)
-	if err != nil {
-		return billing.GatheringInvoiceLines{}, err
-	}
-
+func (h *handler) mergeGatheringInvoiceLinesFromAPI(ctx context.Context, invoice *billing.GatheringInvoice, updatedLines []apiv1models.InvoiceLineReplaceUpdate, resolvedTaxConfigs []*productcatalog.TaxConfig) (billing.GatheringInvoiceLines, error) {
 	linesByID, _ := slicesx.UniqueGroupBy(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) string {
 		return line.ID
 	})
