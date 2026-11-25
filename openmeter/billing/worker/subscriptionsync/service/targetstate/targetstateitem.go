@@ -65,7 +65,6 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 	}
 
 	// Sync never compares tax config on existing lines, so an empty reference doesn't churn them.
-	// Sync never compares tax config on existing lines, so an empty reference doesn't churn them.
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
