@@ -855,6 +855,7 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 	}
 	eventRegistry, err := common.NewNotificationEventRegistry(logger)
 	if err != nil {
+		cleanup10()
 		cleanup9()
 		cleanup8()
 		cleanup7()

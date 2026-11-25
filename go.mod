@@ -10,7 +10,7 @@ require (
 	cirello.io/pglock v1.18.0
 	entgo.io/ent v0.14.6
 	github.com/AppsFlyer/go-sundheit v0.6.0
-	github.com/ClickHouse/ch-go v0.75.0
+	github.com/ClickHouse/ch-go v0.76.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.51.0
 	github.com/IBM/sarama v1.61.1
 	github.com/ThreeDotsLabs/watermill v1.5.3
@@ -161,7 +161,7 @@ require (
 	github.com/jmattheis/goverter v1.9.3 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/kisielk/gotool v1.0.0 // indirect
-	github.com/klauspost/compress v1.20.3 // indirect
+	github.com/klauspost/compress v1.20.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -212,11 +212,11 @@ require (
 	go.uber.org/atomic v1.12.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/term v0.47.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/term v0.48.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
