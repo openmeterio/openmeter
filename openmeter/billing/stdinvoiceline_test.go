@@ -164,6 +164,8 @@ func TestStandardLineWithTargetStateKeepsInvoicingReferences(t *testing.T) {
 	// given: a synced line with a detailed line, and a target state that knows nothing about the invoicing app
 	existing := validStandardLineForValidation()
 	existing.ExternalIDs.Invoicing = "il_line"
+	existing.InvoicingAppTaxCode = lo.ToPtr("txcd_10000000")
+	existing.LegacyStripeTaxCode = "txcd_99999999"
 	existing.DetailedLines = DetailedLines{
 		{
 			DetailedLineBase: DetailedLineBase{Base: stddetailedline.Base{
@@ -189,6 +191,8 @@ func TestStandardLineWithTargetStateKeepsInvoicingReferences(t *testing.T) {
 	mergedLine, err := merged.AsInvoiceLine().AsStandardLine()
 	require.NoError(t, err)
 	require.Equal(t, "il_line", mergedLine.ExternalIDs.Invoicing)
+	require.Equal(t, lo.ToPtr("txcd_10000000"), mergedLine.InvoicingAppTaxCode)
+	require.Equal(t, "txcd_99999999", mergedLine.LegacyStripeTaxCode)
 	require.Len(t, mergedLine.DetailedLines, 1)
 	require.Equal(t, "detailed_123", mergedLine.DetailedLines[0].ID)
 	require.Equal(t, "il_detailed", mergedLine.DetailedLines[0].ExternalIDs.Invoicing)

@@ -337,6 +337,10 @@ func (i standardInvoiceLineGenericWrapper) WithTargetState(target GenericInvoice
 	merged.InvoiceID = i.InvoiceID
 	merged.ExternalIDs = i.ExternalIDs
 	merged.DBState = i.DBState
+	// Targets are rebuilt from charge state and don't know the billed tax code. Keep
+	// the stored one: draft calculation restamps it before the next sync anyway.
+	merged.InvoicingAppTaxCode = i.InvoicingAppTaxCode
+	merged.LegacyStripeTaxCode = i.LegacyStripeTaxCode
 	merged.DetailedLines = i.DetailedLinesWithIDReuse(merged.DetailedLines)
 
 	return merged.AsGenericLine(), nil
