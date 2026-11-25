@@ -121,180 +121,176 @@ func (s *Service) prepareBillableLines(ctx context.Context, input billing.Prepar
 		}
 	}
 
-	return transactionForInvoiceManipulation(
-		ctx,
-		s,
-		input.Customer,
-		func(ctx context.Context) (*billing.PrepareBillableLinesResult, error) {
-			// let's resolve the customer's settings
-			customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
-				Customer: input.Customer,
-				Expand: billing.CustomerBillingProfileExpand{
-					Customer: true,
-					Apps:     true,
-				},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("fetching customer profile: %w", err)
-			}
+	// InvoicePendingLines owns the transaction and customer lock for both
+	// preparing the gathering lines and creating standard invoices.
 
-			asOf := lo.FromPtrOr(input.AsOf, clock.Now())
-
-			progressiveBilling := customerProfile.EffectiveProfile.WorkflowConfig.Invoicing.ProgressiveBilling
-			if options.PartialInvoiceLinesEnabled != nil {
-				progressiveBilling = *options.PartialInvoiceLinesEnabled
-			}
-
-			asOf, err = resolvePendingLineCollectionCutoff(options, customerProfile.EffectiveProfile.WorkflowConfig.Collection, asOf)
-			if err != nil {
-				return nil, fmt.Errorf("resolving collection asOf: %w", err)
-			}
-
-			if options.MaxLinesPerInvoice < 0 {
-				return nil, billing.ValidationError{
-					Err: errors.New("max lines per invoice must not be negative"),
-				}
-			}
-
-			// let's fetch the existing gathering invoices for the customer
-			existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
-				Namespace: input.Customer.Namespace,
-				Customers: []string{input.Customer.ID},
-				Expand: billing.GatheringInvoiceExpands{
-					billing.GatheringInvoiceExpandLines,
-				},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("fetching existing gathering invoices: %w", err)
-			}
-
-			// For consistency, we want to return an error if there are no gathering invoices for the customer. Without this,
-			// the caller would get an empty slice of invoices instead of an error which is inconsistent with the error case when
-			// there are no lines that are billable.
-			if len(existingGatheringInvoices.Items) == 0 {
-				return nil, billing.ValidationError{
-					Err: billing.ErrInvoiceCreateNoLines,
-				}
-			}
-
-			invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(invoice billing.GatheringInvoice) (currencyx.FiatCode, billing.GatheringInvoice) {
-				return invoice.Currency, invoice
-			})
-
-			if len(invoicesByCurrency) != len(existingGatheringInvoices.Items) {
-				return nil, fmt.Errorf("customer has multiple gathering invoices for the same currency: %d", len(invoicesByCurrency))
-			}
-
-			// let's gather the in-scope lines and validate it
-			inScopeLinesResult, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
-				GatheringInvoicesByCurrency: invoicesByCurrency,
-				LinesToInclude:              input.IncludePendingLines,
-				AsOf:                        asOf,
-				ProgressiveBilling:          progressiveBilling,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			linesToBeBilledByCurrency := make(map[currencyx.FiatCode]billing.GatheringLines)
-			validationIssuesByCurrency := make(map[currencyx.FiatCode]billing.ValidationIssues)
-			assignmentCandidateLineCount := 0
-			assignmentExcludedLineCount := 0
-
-			for currency, inScopeLines := range inScopeLinesResult.LinesByCurrency {
-				// Let's first make sure we have properly split the progressively billed
-				// lines into multiple lines on the gathering invoice if needed.
-				gatheringInvoice, ok := invoicesByCurrency[currency]
-				if !ok {
-					return nil, fmt.Errorf("gathering invoice for currency [%s] not found", currency)
-				}
-
-				if len(inScopeLines) == 0 {
-					continue
-				}
-
-				assignmentCandidateLineCount += len(inScopeLines)
-
-				gateResult, err := s.gateInvoiceAssignment(ctx, inScopeLines)
-				if err != nil {
-					return nil, fmt.Errorf("gating invoice assignment for currency [%s]: %w", currency, err)
-				}
-
-				inScopeLines = gateResult.Lines
-				assignmentExcludedLineCount += gateResult.ExcludedLineCount
-				if len(inScopeLines) == 0 {
-					continue
-				}
-
-				if input.IncludePendingLines.IsPresent() && options.MaxLinesPerInvoice > 0 && len(inScopeLines) > options.MaxLinesPerInvoice {
-					return nil, billing.ValidationError{
-						Err: fmt.Errorf("include pending lines exceeds max lines per invoice: requested %d, limit %d", len(inScopeLines), options.MaxLinesPerInvoice),
-					}
-				}
-
-				if !input.IncludePendingLines.IsPresent() {
-					inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
-				}
-
-				billabilityValidationIssues := inScopeLinesResult.ValidationIssuesByCurrency[currency]
-				// Step 1: Let's make sure we have lines properly split on the gathering invoice.
-				// Invariant: the gathering invoice is updated to contain the new lines if any were split.
-				prepareResults, err := s.prepareLinesToBill(ctx, prepareLinesToBillInput{
-					GatheringInvoice: gatheringInvoice,
-					InScopeLines:     inScopeLines,
-				})
-				if err != nil {
-					return nil, fmt.Errorf("gathering lines to bill: %w", err)
-				}
-
-				if prepareResults == nil {
-					continue
-				}
-
-				if len(billabilityValidationIssues) > 0 {
-					_, billabilityErr := s.areGatheringLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
-						Invoice:            prepareResults.GatheringInvoice,
-						AsOf:               asOf,
-						ProgressiveBilling: progressiveBilling,
-						Lines:              prepareResults.LinesToBill,
-					})
-					selectedValidationIssues, systemErr := billing.ToValidationIssues(billabilityErr)
-					if systemErr != nil {
-						return nil, fmt.Errorf("checking selected gathering line billability: %w", systemErr)
-					}
-
-					billabilityValidationIssues = selectedValidationIssues
-				}
-
-				linesToBeBilledByCurrency[currency] = prepareResults.LinesToBill
-				if len(billabilityValidationIssues) > 0 {
-					validationIssuesByCurrency[currency] = billabilityValidationIssues
-				}
-			}
-
-			totalLinesToBeBilled := 0
-			for _, lines := range linesToBeBilledByCurrency {
-				totalLinesToBeBilled += len(lines)
-			}
-
-			if totalLinesToBeBilled == 0 {
-				if assignmentCandidateLineCount > 0 && assignmentCandidateLineCount == assignmentExcludedLineCount {
-					return &billing.PrepareBillableLinesResult{
-						LinesByCurrency: linesToBeBilledByCurrency,
-					}, nil
-				}
-
-				return nil, billing.ValidationError{
-					Err: billing.ErrInvoiceCreateNoLines,
-				}
-			}
-
-			return &billing.PrepareBillableLinesResult{
-				LinesByCurrency:            linesToBeBilledByCurrency,
-				ValidationIssuesByCurrency: validationIssuesByCurrency,
-			}, nil
+	// let's resolve the customer's settings
+	customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
+		Customer: input.Customer,
+		Expand: billing.CustomerBillingProfileExpand{
+			Customer: true,
+			Apps:     true,
 		},
-	)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("fetching customer profile: %w", err)
+	}
+
+	asOf := lo.FromPtrOr(input.AsOf, clock.Now())
+
+	progressiveBilling := customerProfile.EffectiveProfile.WorkflowConfig.Invoicing.ProgressiveBilling
+	if options.PartialInvoiceLinesEnabled != nil {
+		progressiveBilling = *options.PartialInvoiceLinesEnabled
+	}
+
+	asOf, err = resolvePendingLineCollectionCutoff(options, customerProfile.EffectiveProfile.WorkflowConfig.Collection, asOf)
+	if err != nil {
+		return nil, fmt.Errorf("resolving collection asOf: %w", err)
+	}
+
+	if options.MaxLinesPerInvoice < 0 {
+		return nil, billing.ValidationError{
+			Err: errors.New("max lines per invoice must not be negative"),
+		}
+	}
+
+	// let's fetch the existing gathering invoices for the customer
+	existingGatheringInvoices, err := s.adapter.ListGatheringInvoices(ctx, billing.ListGatheringInvoicesInput{
+		Namespace: input.Customer.Namespace,
+		Customers: []string{input.Customer.ID},
+		Expand: billing.GatheringInvoiceExpands{
+			billing.GatheringInvoiceExpandLines,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("fetching existing gathering invoices: %w", err)
+	}
+
+	// For consistency, we want to return an error if there are no gathering invoices for the customer. Without this,
+	// the caller would get an empty slice of invoices instead of an error which is inconsistent with the error case when
+	// there are no lines that are billable.
+	if len(existingGatheringInvoices.Items) == 0 {
+		return nil, billing.ValidationError{
+			Err: billing.ErrInvoiceCreateNoLines,
+		}
+	}
+
+	invoicesByCurrency := lo.SliceToMap(existingGatheringInvoices.Items, func(invoice billing.GatheringInvoice) (currencyx.FiatCode, billing.GatheringInvoice) {
+		return invoice.Currency, invoice
+	})
+
+	if len(invoicesByCurrency) != len(existingGatheringInvoices.Items) {
+		return nil, fmt.Errorf("customer has multiple gathering invoices for the same currency: %d", len(invoicesByCurrency))
+	}
+
+	// let's gather the in-scope lines and validate it
+	inScopeLinesResult, err := s.gatherInScopeLines(ctx, gatherInScopeLineInput{
+		GatheringInvoicesByCurrency: invoicesByCurrency,
+		LinesToInclude:              input.IncludePendingLines,
+		AsOf:                        asOf,
+		ProgressiveBilling:          progressiveBilling,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	linesToBeBilledByCurrency := make(map[currencyx.FiatCode]billing.GatheringLines)
+	validationIssuesByCurrency := make(map[currencyx.FiatCode]billing.ValidationIssues)
+	assignmentCandidateLineCount := 0
+	assignmentExcludedLineCount := 0
+
+	for currency, inScopeLines := range inScopeLinesResult.LinesByCurrency {
+		// Let's first make sure we have properly split the progressively billed
+		// lines into multiple lines on the gathering invoice if needed.
+		gatheringInvoice, ok := invoicesByCurrency[currency]
+		if !ok {
+			return nil, fmt.Errorf("gathering invoice for currency [%s] not found", currency)
+		}
+
+		if len(inScopeLines) == 0 {
+			continue
+		}
+
+		assignmentCandidateLineCount += len(inScopeLines)
+
+		gateResult, err := s.gateInvoiceAssignment(ctx, inScopeLines)
+		if err != nil {
+			return nil, fmt.Errorf("gating invoice assignment for currency [%s]: %w", currency, err)
+		}
+
+		inScopeLines = gateResult.Lines
+		assignmentExcludedLineCount += gateResult.ExcludedLineCount
+		if len(inScopeLines) == 0 {
+			continue
+		}
+
+		if input.IncludePendingLines.IsPresent() && options.MaxLinesPerInvoice > 0 && len(inScopeLines) > options.MaxLinesPerInvoice {
+			return nil, billing.ValidationError{
+				Err: fmt.Errorf("include pending lines exceeds max lines per invoice: requested %d, limit %d", len(inScopeLines), options.MaxLinesPerInvoice),
+			}
+		}
+
+		if !input.IncludePendingLines.IsPresent() {
+			inScopeLines = limitGatheringLinesForInvoice(inScopeLines, options.MaxLinesPerInvoice)
+		}
+
+		billabilityValidationIssues := inScopeLinesResult.ValidationIssuesByCurrency[currency]
+		// Step 1: Let's make sure we have lines properly split on the gathering invoice.
+		// Invariant: the gathering invoice is updated to contain the new lines if any were split.
+		prepareResults, err := s.prepareLinesToBill(ctx, prepareLinesToBillInput{
+			GatheringInvoice: gatheringInvoice,
+			InScopeLines:     inScopeLines,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("gathering lines to bill: %w", err)
+		}
+
+		if prepareResults == nil {
+			continue
+		}
+
+		if len(billabilityValidationIssues) > 0 {
+			_, billabilityErr := s.areGatheringLinesBillableAsOf(ctx, billing.AreLinesBillableAsOfInput{
+				Invoice:            prepareResults.GatheringInvoice,
+				AsOf:               asOf,
+				ProgressiveBilling: progressiveBilling,
+				Lines:              prepareResults.LinesToBill,
+			})
+			selectedValidationIssues, systemErr := billing.ToValidationIssues(billabilityErr)
+			if systemErr != nil {
+				return nil, fmt.Errorf("checking selected gathering line billability: %w", systemErr)
+			}
+
+			billabilityValidationIssues = selectedValidationIssues
+		}
+
+		linesToBeBilledByCurrency[currency] = prepareResults.LinesToBill
+		if len(billabilityValidationIssues) > 0 {
+			validationIssuesByCurrency[currency] = billabilityValidationIssues
+		}
+	}
+
+	totalLinesToBeBilled := 0
+	for _, lines := range linesToBeBilledByCurrency {
+		totalLinesToBeBilled += len(lines)
+	}
+
+	if totalLinesToBeBilled == 0 {
+		if assignmentCandidateLineCount > 0 && assignmentCandidateLineCount == assignmentExcludedLineCount {
+			return &billing.PrepareBillableLinesResult{
+				LinesByCurrency: linesToBeBilledByCurrency,
+			}, nil
+		}
+
+		return nil, billing.ValidationError{
+			Err: billing.ErrInvoiceCreateNoLines,
+		}
+	}
+
+	return &billing.PrepareBillableLinesResult{
+		LinesByCurrency:            linesToBeBilledByCurrency,
+		ValidationIssuesByCurrency: validationIssuesByCurrency,
+	}, nil
 }
 
 // resolvePendingLineCollectionCutoff returns the effective AsOf cutoff used when selecting
