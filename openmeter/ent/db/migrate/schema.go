@@ -5562,6 +5562,7 @@ var (
 		{Name: "currency_key", Type: field.TypeString},
 		{Name: "feature_scope", Type: field.TypeString},
 		{Name: "calculated_at", Type: field.TypeTime},
+		{Name: "checkpoints", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "booked", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "spendable", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "live", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -5669,6 +5670,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "entitlement_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "calculated_at", Type: field.TypeTime},
+		{Name: "checkpoints", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "balance", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 	}
 	// RteMeteredEntitlementBalancesTable holds the schema information for the "rte_metered_entitlement_balances" table.

@@ -118985,6 +118985,7 @@ type RTECreditBalanceMutation struct {
 	currency_key  *string
 	feature_scope *string
 	calculated_at *time.Time
+	checkpoints   *jsontext.Value
 	booked        *alpacadecimal.Decimal
 	spendable     *alpacadecimal.Decimal
 	live          *alpacadecimal.Decimal
@@ -119394,6 +119395,55 @@ func (m *RTECreditBalanceMutation) ResetCalculatedAt() {
 	m.calculated_at = nil
 }
 
+// SetCheckpoints sets the "checkpoints" field.
+func (m *RTECreditBalanceMutation) SetCheckpoints(j jsontext.Value) {
+	m.checkpoints = &j
+}
+
+// Checkpoints returns the value of the "checkpoints" field in the mutation.
+func (m *RTECreditBalanceMutation) Checkpoints() (r jsontext.Value, exists bool) {
+	v := m.checkpoints
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCheckpoints returns the old "checkpoints" field's value of the RTECreditBalance entity.
+// If the RTECreditBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTECreditBalanceMutation) OldCheckpoints(ctx context.Context) (v jsontext.Value, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCheckpoints is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCheckpoints requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCheckpoints: %w", err)
+	}
+	return oldValue.Checkpoints, nil
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (m *RTECreditBalanceMutation) ClearCheckpoints() {
+	m.checkpoints = nil
+	m.clearedFields[rtecreditbalance.FieldCheckpoints] = struct{}{}
+}
+
+// CheckpointsCleared returns if the "checkpoints" field was cleared in this mutation.
+func (m *RTECreditBalanceMutation) CheckpointsCleared() bool {
+	_, ok := m.clearedFields[rtecreditbalance.FieldCheckpoints]
+	return ok
+}
+
+// ResetCheckpoints resets all changes to the "checkpoints" field.
+func (m *RTECreditBalanceMutation) ResetCheckpoints() {
+	m.checkpoints = nil
+	delete(m.clearedFields, rtecreditbalance.FieldCheckpoints)
+}
+
 // SetBooked sets the "booked" field.
 func (m *RTECreditBalanceMutation) SetBooked(a alpacadecimal.Decimal) {
 	m.booked = &a
@@ -119572,7 +119622,7 @@ func (m *RTECreditBalanceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RTECreditBalanceMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, rtecreditbalance.FieldNamespace)
 	}
@@ -119596,6 +119646,9 @@ func (m *RTECreditBalanceMutation) Fields() []string {
 	}
 	if m.calculated_at != nil {
 		fields = append(fields, rtecreditbalance.FieldCalculatedAt)
+	}
+	if m.checkpoints != nil {
+		fields = append(fields, rtecreditbalance.FieldCheckpoints)
 	}
 	if m.booked != nil {
 		fields = append(fields, rtecreditbalance.FieldBooked)
@@ -119633,6 +119686,8 @@ func (m *RTECreditBalanceMutation) Field(name string) (ent.Value, bool) {
 		return m.FeatureScope()
 	case rtecreditbalance.FieldCalculatedAt:
 		return m.CalculatedAt()
+	case rtecreditbalance.FieldCheckpoints:
+		return m.Checkpoints()
 	case rtecreditbalance.FieldBooked:
 		return m.Booked()
 	case rtecreditbalance.FieldSpendable:
@@ -119666,6 +119721,8 @@ func (m *RTECreditBalanceMutation) OldField(ctx context.Context, name string) (e
 		return m.OldFeatureScope(ctx)
 	case rtecreditbalance.FieldCalculatedAt:
 		return m.OldCalculatedAt(ctx)
+	case rtecreditbalance.FieldCheckpoints:
+		return m.OldCheckpoints(ctx)
 	case rtecreditbalance.FieldBooked:
 		return m.OldBooked(ctx)
 	case rtecreditbalance.FieldSpendable:
@@ -119739,6 +119796,13 @@ func (m *RTECreditBalanceMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetCalculatedAt(v)
 		return nil
+	case rtecreditbalance.FieldCheckpoints:
+		v, ok := value.(jsontext.Value)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCheckpoints(v)
+		return nil
 	case rtecreditbalance.FieldBooked:
 		v, ok := value.(alpacadecimal.Decimal)
 		if !ok {
@@ -119800,6 +119864,9 @@ func (m *RTECreditBalanceMutation) ClearedFields() []string {
 	if m.FieldCleared(rtecreditbalance.FieldDeletedAt) {
 		fields = append(fields, rtecreditbalance.FieldDeletedAt)
 	}
+	if m.FieldCleared(rtecreditbalance.FieldCheckpoints) {
+		fields = append(fields, rtecreditbalance.FieldCheckpoints)
+	}
 	return fields
 }
 
@@ -119816,6 +119883,9 @@ func (m *RTECreditBalanceMutation) ClearField(name string) error {
 	switch name {
 	case rtecreditbalance.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case rtecreditbalance.FieldCheckpoints:
+		m.ClearCheckpoints()
 		return nil
 	}
 	return fmt.Errorf("unknown RTECreditBalance nullable field %s", name)
@@ -119848,6 +119918,9 @@ func (m *RTECreditBalanceMutation) ResetField(name string) error {
 		return nil
 	case rtecreditbalance.FieldCalculatedAt:
 		m.ResetCalculatedAt()
+		return nil
+	case rtecreditbalance.FieldCheckpoints:
+		m.ResetCheckpoints()
 		return nil
 	case rtecreditbalance.FieldBooked:
 		m.ResetBooked()
@@ -121595,6 +121668,7 @@ type RTEMeteredEntitlementBalanceMutation struct {
 	deleted_at     *time.Time
 	entitlement_id *string
 	calculated_at  *time.Time
+	checkpoints    *jsontext.Value
 	balance        *jsontext.Value
 	clearedFields  map[string]struct{}
 	done           bool
@@ -121929,6 +122003,55 @@ func (m *RTEMeteredEntitlementBalanceMutation) ResetCalculatedAt() {
 	m.calculated_at = nil
 }
 
+// SetCheckpoints sets the "checkpoints" field.
+func (m *RTEMeteredEntitlementBalanceMutation) SetCheckpoints(j jsontext.Value) {
+	m.checkpoints = &j
+}
+
+// Checkpoints returns the value of the "checkpoints" field in the mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) Checkpoints() (r jsontext.Value, exists bool) {
+	v := m.checkpoints
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCheckpoints returns the old "checkpoints" field's value of the RTEMeteredEntitlementBalance entity.
+// If the RTEMeteredEntitlementBalance object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RTEMeteredEntitlementBalanceMutation) OldCheckpoints(ctx context.Context) (v jsontext.Value, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCheckpoints is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCheckpoints requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCheckpoints: %w", err)
+	}
+	return oldValue.Checkpoints, nil
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ClearCheckpoints() {
+	m.checkpoints = nil
+	m.clearedFields[rtemeteredentitlementbalance.FieldCheckpoints] = struct{}{}
+}
+
+// CheckpointsCleared returns if the "checkpoints" field was cleared in this mutation.
+func (m *RTEMeteredEntitlementBalanceMutation) CheckpointsCleared() bool {
+	_, ok := m.clearedFields[rtemeteredentitlementbalance.FieldCheckpoints]
+	return ok
+}
+
+// ResetCheckpoints resets all changes to the "checkpoints" field.
+func (m *RTEMeteredEntitlementBalanceMutation) ResetCheckpoints() {
+	m.checkpoints = nil
+	delete(m.clearedFields, rtemeteredentitlementbalance.FieldCheckpoints)
+}
+
 // SetBalance sets the "balance" field.
 func (m *RTEMeteredEntitlementBalanceMutation) SetBalance(j jsontext.Value) {
 	m.balance = &j
@@ -121999,7 +122122,7 @@ func (m *RTEMeteredEntitlementBalanceMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RTEMeteredEntitlementBalanceMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, rtemeteredentitlementbalance.FieldNamespace)
 	}
@@ -122017,6 +122140,9 @@ func (m *RTEMeteredEntitlementBalanceMutation) Fields() []string {
 	}
 	if m.calculated_at != nil {
 		fields = append(fields, rtemeteredentitlementbalance.FieldCalculatedAt)
+	}
+	if m.checkpoints != nil {
+		fields = append(fields, rtemeteredentitlementbalance.FieldCheckpoints)
 	}
 	if m.balance != nil {
 		fields = append(fields, rtemeteredentitlementbalance.FieldBalance)
@@ -122041,6 +122167,8 @@ func (m *RTEMeteredEntitlementBalanceMutation) Field(name string) (ent.Value, bo
 		return m.EntitlementID()
 	case rtemeteredentitlementbalance.FieldCalculatedAt:
 		return m.CalculatedAt()
+	case rtemeteredentitlementbalance.FieldCheckpoints:
+		return m.Checkpoints()
 	case rtemeteredentitlementbalance.FieldBalance:
 		return m.Balance()
 	}
@@ -122064,6 +122192,8 @@ func (m *RTEMeteredEntitlementBalanceMutation) OldField(ctx context.Context, nam
 		return m.OldEntitlementID(ctx)
 	case rtemeteredentitlementbalance.FieldCalculatedAt:
 		return m.OldCalculatedAt(ctx)
+	case rtemeteredentitlementbalance.FieldCheckpoints:
+		return m.OldCheckpoints(ctx)
 	case rtemeteredentitlementbalance.FieldBalance:
 		return m.OldBalance(ctx)
 	}
@@ -122117,6 +122247,13 @@ func (m *RTEMeteredEntitlementBalanceMutation) SetField(name string, value ent.V
 		}
 		m.SetCalculatedAt(v)
 		return nil
+	case rtemeteredentitlementbalance.FieldCheckpoints:
+		v, ok := value.(jsontext.Value)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCheckpoints(v)
+		return nil
 	case rtemeteredentitlementbalance.FieldBalance:
 		v, ok := value.(jsontext.Value)
 		if !ok {
@@ -122157,6 +122294,9 @@ func (m *RTEMeteredEntitlementBalanceMutation) ClearedFields() []string {
 	if m.FieldCleared(rtemeteredentitlementbalance.FieldDeletedAt) {
 		fields = append(fields, rtemeteredentitlementbalance.FieldDeletedAt)
 	}
+	if m.FieldCleared(rtemeteredentitlementbalance.FieldCheckpoints) {
+		fields = append(fields, rtemeteredentitlementbalance.FieldCheckpoints)
+	}
 	return fields
 }
 
@@ -122173,6 +122313,9 @@ func (m *RTEMeteredEntitlementBalanceMutation) ClearField(name string) error {
 	switch name {
 	case rtemeteredentitlementbalance.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case rtemeteredentitlementbalance.FieldCheckpoints:
+		m.ClearCheckpoints()
 		return nil
 	}
 	return fmt.Errorf("unknown RTEMeteredEntitlementBalance nullable field %s", name)
@@ -122199,6 +122342,9 @@ func (m *RTEMeteredEntitlementBalanceMutation) ResetField(name string) error {
 		return nil
 	case rtemeteredentitlementbalance.FieldCalculatedAt:
 		m.ResetCalculatedAt()
+		return nil
+	case rtemeteredentitlementbalance.FieldCheckpoints:
+		m.ResetCheckpoints()
 		return nil
 	case rtemeteredentitlementbalance.FieldBalance:
 		m.ResetBalance()

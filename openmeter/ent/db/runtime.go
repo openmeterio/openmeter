@@ -3184,6 +3184,9 @@ func init() {
 	rtecreditbalanceDescFeatureScope := rtecreditbalanceFields[2].Descriptor()
 	// rtecreditbalance.FeatureScopeValidator is a validator for the "feature_scope" field. It is called by the builders before save.
 	rtecreditbalance.FeatureScopeValidator = rtecreditbalanceDescFeatureScope.Validators[0].(func(string) error)
+	// rtecreditbalanceDescCheckpoints is the schema descriptor for checkpoints field.
+	rtecreditbalanceDescCheckpoints := rtecreditbalanceFields[4].Descriptor()
+	rtecreditbalance.ValueScanner.Checkpoints = rtecreditbalanceDescCheckpoints.ValueScanner.(field.TypeValueScanner[jsontext.Value])
 	rtedemandMixin := schema.RTEDemand{}.Mixin()
 	rtedemandMixinFields0 := rtedemandMixin[0].Fields()
 	_ = rtedemandMixinFields0
@@ -3260,8 +3263,11 @@ func init() {
 	rtemeteredentitlementbalanceDescEntitlementID := rtemeteredentitlementbalanceFields[0].Descriptor()
 	// rtemeteredentitlementbalance.EntitlementIDValidator is a validator for the "entitlement_id" field. It is called by the builders before save.
 	rtemeteredentitlementbalance.EntitlementIDValidator = rtemeteredentitlementbalanceDescEntitlementID.Validators[0].(func(string) error)
+	// rtemeteredentitlementbalanceDescCheckpoints is the schema descriptor for checkpoints field.
+	rtemeteredentitlementbalanceDescCheckpoints := rtemeteredentitlementbalanceFields[2].Descriptor()
+	rtemeteredentitlementbalance.ValueScanner.Checkpoints = rtemeteredentitlementbalanceDescCheckpoints.ValueScanner.(field.TypeValueScanner[jsontext.Value])
 	// rtemeteredentitlementbalanceDescBalance is the schema descriptor for balance field.
-	rtemeteredentitlementbalanceDescBalance := rtemeteredentitlementbalanceFields[2].Descriptor()
+	rtemeteredentitlementbalanceDescBalance := rtemeteredentitlementbalanceFields[3].Descriptor()
 	rtemeteredentitlementbalance.ValueScanner.Balance = rtemeteredentitlementbalanceDescBalance.ValueScanner.(field.TypeValueScanner[jsontext.Value])
 	subjectMixin := schema.Subject{}.Mixin()
 	subjectMixinFields0 := subjectMixin[0].Fields()

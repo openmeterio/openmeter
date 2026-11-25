@@ -13,9 +13,14 @@ func TestRTEConfiguration(t *testing.T) {
 	var cfg RTEConfiguration
 	require.NoError(t, v.UnmarshalKey("rte", &cfg))
 	require.False(t, cfg.Enabled)
+	require.False(t, cfg.IncrementalCalculations)
 	require.Equal(t, 10, cfg.ShadowSamplePercent)
 	require.Equal(t, 4, cfg.CalculationConcurrency)
 	require.NoError(t, (RTEConfiguration{}).Validate())
+
+	v.Set("rte.incrementalCalculations", true)
+	require.NoError(t, v.UnmarshalKey("rte", &cfg))
+	require.True(t, cfg.IncrementalCalculations)
 
 	cfg.Enabled = true
 	for _, sample := range []int{1, 10, 100} {

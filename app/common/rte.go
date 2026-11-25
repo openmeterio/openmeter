@@ -90,8 +90,14 @@ func NewRTEDemandService(client *db.Client, engine rte.Service, logger *slog.Log
 	}
 
 	return demand.New(demand.Config{
-		Repository: repo, Service: engine, Logger: logger, MetricMeter: meter,
-		CalculationTimeout: conf.CalculationTimeout, RetryMinDelay: time.Second, RetryMaxDelay: time.Minute,
+		Repository:              repo,
+		Service:                 engine,
+		Logger:                  logger,
+		MetricMeter:             meter,
+		IncrementalCalculations: conf.IncrementalCalculations,
+		CalculationTimeout:      conf.CalculationTimeout,
+		RetryMinDelay:           time.Second,
+		RetryMaxDelay:           time.Minute,
 	})
 }
 

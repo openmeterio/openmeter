@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"encoding/json"
+
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
@@ -25,6 +27,9 @@ func (RTECreditBalance) Fields() []ent.Field {
 		field.String("currency_key").NotEmpty().Immutable(),
 		field.String("feature_scope").NotEmpty().Immutable(),
 		field.Time("calculated_at"),
+		field.String("checkpoints").GoType(json.RawMessage{}).Optional().
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
 		field.Other("booked", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: "numeric"}),
 		field.Other("spendable", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: "numeric"}),
 		field.Other("live", alpacadecimal.Decimal{}).SchemaType(map[string]string{dialect.Postgres: "numeric"}),

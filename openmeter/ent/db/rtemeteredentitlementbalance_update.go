@@ -69,6 +69,18 @@ func (_u *RTEMeteredEntitlementBalanceUpdate) SetNillableCalculatedAt(v *time.Ti
 	return _u
 }
 
+// SetCheckpoints sets the "checkpoints" field.
+func (_u *RTEMeteredEntitlementBalanceUpdate) SetCheckpoints(v jsontext.Value) *RTEMeteredEntitlementBalanceUpdate {
+	_u.mutation.SetCheckpoints(v)
+	return _u
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (_u *RTEMeteredEntitlementBalanceUpdate) ClearCheckpoints() *RTEMeteredEntitlementBalanceUpdate {
+	_u.mutation.ClearCheckpoints()
+	return _u
+}
+
 // SetBalance sets the "balance" field.
 func (_u *RTEMeteredEntitlementBalanceUpdate) SetBalance(v jsontext.Value) *RTEMeteredEntitlementBalanceUpdate {
 	_u.mutation.SetBalance(v)
@@ -137,6 +149,16 @@ func (_u *RTEMeteredEntitlementBalanceUpdate) sqlSave(ctx context.Context) (_nod
 	if value, ok := _u.mutation.CalculatedAt(); ok {
 		_spec.SetField(rtemeteredentitlementbalance.FieldCalculatedAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.Checkpoints(); ok {
+		vv, err := rtemeteredentitlementbalance.ValueScanner.Checkpoints.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(rtemeteredentitlementbalance.FieldCheckpoints, field.TypeString, vv)
+	}
+	if _u.mutation.CheckpointsCleared() {
+		_spec.ClearField(rtemeteredentitlementbalance.FieldCheckpoints, field.TypeString)
+	}
 	if value, ok := _u.mutation.Balance(); ok {
 		vv, err := rtemeteredentitlementbalance.ValueScanner.Balance.Value(value)
 		if err != nil {
@@ -201,6 +223,18 @@ func (_u *RTEMeteredEntitlementBalanceUpdateOne) SetNillableCalculatedAt(v *time
 	if v != nil {
 		_u.SetCalculatedAt(*v)
 	}
+	return _u
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (_u *RTEMeteredEntitlementBalanceUpdateOne) SetCheckpoints(v jsontext.Value) *RTEMeteredEntitlementBalanceUpdateOne {
+	_u.mutation.SetCheckpoints(v)
+	return _u
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (_u *RTEMeteredEntitlementBalanceUpdateOne) ClearCheckpoints() *RTEMeteredEntitlementBalanceUpdateOne {
+	_u.mutation.ClearCheckpoints()
 	return _u
 }
 
@@ -301,6 +335,16 @@ func (_u *RTEMeteredEntitlementBalanceUpdateOne) sqlSave(ctx context.Context) (_
 	}
 	if value, ok := _u.mutation.CalculatedAt(); ok {
 		_spec.SetField(rtemeteredentitlementbalance.FieldCalculatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Checkpoints(); ok {
+		vv, err := rtemeteredentitlementbalance.ValueScanner.Checkpoints.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(rtemeteredentitlementbalance.FieldCheckpoints, field.TypeString, vv)
+	}
+	if _u.mutation.CheckpointsCleared() {
+		_spec.ClearField(rtemeteredentitlementbalance.FieldCheckpoints, field.TypeString)
 	}
 	if value, ok := _u.mutation.Balance(); ok {
 		vv, err := rtemeteredentitlementbalance.ValueScanner.Balance.Value(value)

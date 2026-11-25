@@ -49,16 +49,30 @@ func (a *meteredEntitlementStore) Store(ctx context.Context, input rte.StoreInpu
 	}
 
 	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.StoreResult[meteredentitlement.Balance], error) {
-		err := a.db.RTEMeteredEntitlementBalance.Create().
+		create := a.db.RTEMeteredEntitlementBalance.Create().
 			SetNamespace(input.Key.EntitlementID.Namespace).
 			SetEntitlementID(input.Key.EntitlementID.ID).
 			SetCalculatedAt(input.State.CalculatedAt).
-			SetBalance(encoded).
-			OnConflict(
-				sql.ConflictColumns(balancedb.FieldNamespace, balancedb.FieldEntitlementID),
-				sql.ConflictWhere(sql.IsNull(balancedb.FieldDeletedAt)),
-				sql.UpdateWhere(sql.LT(balancedb.FieldCalculatedAt, input.State.CalculatedAt)),
-			).UpdateNewValues().Exec(ctx)
+			SetBalance(encoded)
+		if input.Checkpoints != nil && len(*input.Checkpoints) > 0 {
+			encodedCheckpoints, err := json.Marshal(input.Checkpoints)
+			if err != nil {
+				return rte.StoreResult[meteredentitlement.Balance]{}, fmt.Errorf("encode metered entitlement checkpoints: %w", err)
+			}
+
+			create.SetCheckpoints(encodedCheckpoints)
+		}
+
+		upsert := create.OnConflict(
+			sql.ConflictColumns(balancedb.FieldNamespace, balancedb.FieldEntitlementID),
+			sql.ConflictWhere(sql.IsNull(balancedb.FieldDeletedAt)),
+			sql.UpdateWhere(sql.LT(balancedb.FieldCalculatedAt, input.State.CalculatedAt)),
+		).UpdateNewValues()
+		if input.Checkpoints != nil {
+			upsert.UpdateCheckpoints()
+		}
+
+		err := upsert.Exec(ctx)
 		// PostgreSQL returns no row when the conflict condition retains the
 		// existing result. Ent's RETURNING reports that as sql.ErrNoRows.
 		if err != nil && !errors.Is(err, stdsql.ErrNoRows) {
@@ -81,7 +95,8 @@ func (a *meteredEntitlementStore) Get(ctx context.Context, key meteredentitlemen
 	}
 
 	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.State[meteredentitlement.Balance], error) {
-		entity, err := a.db.RTEMeteredEntitlementBalance.Query().Where(meteredBalanceScope(key)).Only(ctx)
+		entity, err := a.db.RTEMeteredEntitlementBalance.Query().Where(meteredBalanceScope(key)).
+			Select(balancedb.FieldCalculatedAt, balancedb.FieldBalance).Only(ctx)
 		if db.IsNotFound(err) {
 			return rte.State[meteredentitlement.Balance]{}, rte.NewNotCalculatedError()
 		}
@@ -96,5 +111,25 @@ func (a *meteredEntitlementStore) Get(ctx context.Context, key meteredentitlemen
 		}
 
 		return result, nil
+	})
+}
+
+func (a *meteredEntitlementStore) GetCheckpoints(ctx context.Context, key meteredentitlement.Key) (rte.Checkpoints, error) {
+	if err := key.Validate(); err != nil {
+		return nil, err
+	}
+
+	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.Checkpoints, error) {
+		row, err := a.db.RTEMeteredEntitlementBalance.Query().Where(meteredBalanceScope(key)).
+			Select(balancedb.FieldCheckpoints).Only(ctx)
+		if db.IsNotFound(err) {
+			return nil, nil
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("get metered entitlement checkpoints: %w", err)
+		}
+
+		return decodeCheckpoints(row.Checkpoints), nil
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
@@ -42,7 +43,7 @@ type calculation[K rte.Key, Result any] struct {
 	updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)
 }
 
-func newCalculation[K rte.Key, Result any](r Registration[K, Result], metrics rtemetrics.Calculation, publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) rte.Calculation[K, Result] {
+func newCalculation[K rte.Key, Result any](r Registration[K, Result], metrics rtemetrics.Calculation, publisher eventbus.Publisher, updatedEvent func(rte.StoreInput[K, Result]) (rte.CalculationUpdatedEvent, error)) *calculation[K, Result] {
 	return &calculation[K, Result]{
 		metrics:      metrics,
 		calculator:   r.Calculator,
@@ -53,28 +54,30 @@ func newCalculation[K rte.Key, Result any](r Registration[K, Result], metrics rt
 }
 
 func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.State[Result], error) {
+	return c.calculate(ctx, key, false)
+}
+
+func (c *calculation[K, Result]) calculate(ctx context.Context, key K, useCheckpoints bool) (rte.State[Result], error) {
 	if err := key.Validate(); err != nil {
 		return rte.State[Result]{}, err
 	}
 
 	started := time.Now()
 	outcome := rtemetrics.CalculationOutcomeFailed
+	method := rtemetrics.CalculationMethodFull
 	defer func() {
-		c.metrics.Calculated(ctx, started, outcome)
+		c.metrics.Calculated(ctx, started, outcome, method)
 	}()
 
-	calculatedAt := clock.Now()
-	value, err := c.calculator.Calculate(ctx, rte.CalculateInput[K]{Key: key, At: calculatedAt})
+	input := rte.CalculateInput[K]{Key: key, At: clock.Now()}
+	write, method, err := c.compute(ctx, input, useCheckpoints)
 	if err != nil {
 		return rte.State[Result]{}, fmt.Errorf("calculate: %w", err)
 	}
 
 	updated := false
 	state, err := transaction.Run(ctx, c.store, func(ctx context.Context) (rte.State[Result], error) {
-		result, err := c.store.Store(ctx, rte.StoreInput[K, Result]{
-			Key:   key,
-			State: rte.State[Result]{CalculatedAt: calculatedAt, Value: value},
-		})
+		result, err := c.store.Store(ctx, write)
 		if err != nil {
 			return rte.State[Result]{}, err
 		}
@@ -101,6 +104,49 @@ func (c *calculation[K, Result]) Calculate(ctx context.Context, key K) (rte.Stat
 	}
 
 	return state, err
+}
+
+func (c *calculation[K, Result]) compute(ctx context.Context, input rte.CalculateInput[K], useCheckpoints bool) (rte.StoreInput[K, Result], rtemetrics.CalculationMethod, error) {
+	write := rte.StoreInput[K, Result]{Key: input.Key, State: rte.State[Result]{CalculatedAt: input.At}}
+	calculator, ok := c.calculator.(rte.IncrementalCalculator[K, Result])
+	if !useCheckpoints || !ok {
+		value, err := c.calculator.Calculate(ctx, input)
+		write.State.Value = value
+
+		return write, rtemetrics.CalculationMethodFull, err
+	}
+
+	history, err := c.store.GetCheckpoints(ctx, input.Key)
+	if err != nil {
+		return write, rtemetrics.CalculationMethodMiss, fmt.Errorf("get checkpoints: %w", err)
+	}
+
+	candidates := history.Candidates(input.At)
+	result, err := calculator.CalculateIncremental(ctx, input, candidates)
+	method := rtemetrics.CalculationMethodMiss
+	switch result.Use {
+	case rte.CheckpointReused:
+		method = rtemetrics.CalculationMethodHit
+	case rte.CheckpointAdvanced:
+		method = rtemetrics.CalculationMethodAdvanced
+	}
+
+	write.State.Value = result.Value
+	if err != nil || (result.Checkpoint == nil && len(result.Discarded) == 0) {
+		return write, method, err
+	}
+
+	next := slices.DeleteFunc(candidates, func(cp rte.Checkpoint) bool {
+		return slices.ContainsFunc(result.Discarded, cp.At.Equal)
+	})
+	if result.Checkpoint != nil {
+		// Prefer the fresh payload when the calculator rebuilt an existing boundary.
+		next = append(rte.Checkpoints{*result.Checkpoint}, next...).Candidates(input.At)
+	}
+
+	write.Checkpoints = &next
+
+	return write, method, nil
 }
 
 func (c *calculation[K, Result]) Get(ctx context.Context, key K) (rte.State[Result], error) {

@@ -3,11 +3,13 @@ package adapter
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/rte"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -73,4 +75,15 @@ func (a *adapter) WithTx(ctx context.Context, tx *entutils.TxDriver) *adapter {
 
 func (a *adapter) Self() *adapter {
 	return a
+}
+
+// Older binaries may encounter a checkpoint format they cannot decode. The
+// domain calculator can still rebuild the balance from its sources.
+func decodeCheckpoints(raw json.RawMessage) rte.Checkpoints {
+	var checkpoints rte.Checkpoints
+	if len(raw) == 0 || json.Unmarshal(raw, &checkpoints) != nil {
+		return nil
+	}
+
+	return checkpoints
 }

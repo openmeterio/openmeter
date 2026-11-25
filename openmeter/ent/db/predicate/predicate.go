@@ -524,6 +524,17 @@ func PlanRateCardOrErr(p PlanRateCard, err error) PlanRateCard {
 // RTECreditBalance is the predicate function for rtecreditbalance builders.
 type RTECreditBalance func(*sql.Selector)
 
+// RTECreditBalanceOrErr calls the predicate only if the error is not nit.
+func RTECreditBalanceOrErr(p RTECreditBalance, err error) RTECreditBalance {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // RTEDemand is the predicate function for rtedemand builders.
 type RTEDemand func(*sql.Selector)
 

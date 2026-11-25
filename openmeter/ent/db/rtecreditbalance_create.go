@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -92,6 +93,12 @@ func (_c *RTECreditBalanceCreate) SetFeatureScope(v string) *RTECreditBalanceCre
 // SetCalculatedAt sets the "calculated_at" field.
 func (_c *RTECreditBalanceCreate) SetCalculatedAt(v time.Time) *RTECreditBalanceCreate {
 	_c.mutation.SetCalculatedAt(v)
+	return _c
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (_c *RTECreditBalanceCreate) SetCheckpoints(v jsontext.Value) *RTECreditBalanceCreate {
+	_c.mutation.SetCheckpoints(v)
 	return _c
 }
 
@@ -226,7 +233,10 @@ func (_c *RTECreditBalanceCreate) sqlSave(ctx context.Context) (*RTECreditBalanc
 	if err := _c.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := _c.createSpec()
+	_node, _spec, err := _c.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, _c.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -240,7 +250,7 @@ func (_c *RTECreditBalanceCreate) sqlSave(ctx context.Context) (*RTECreditBalanc
 	return _node, nil
 }
 
-func (_c *RTECreditBalanceCreate) createSpec() (*RTECreditBalance, *sqlgraph.CreateSpec) {
+func (_c *RTECreditBalanceCreate) createSpec() (*RTECreditBalance, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &RTECreditBalance{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(rtecreditbalance.Table, sqlgraph.NewFieldSpec(rtecreditbalance.FieldID, field.TypeInt))
@@ -278,6 +288,14 @@ func (_c *RTECreditBalanceCreate) createSpec() (*RTECreditBalance, *sqlgraph.Cre
 		_spec.SetField(rtecreditbalance.FieldCalculatedAt, field.TypeTime, value)
 		_node.CalculatedAt = value
 	}
+	if value, ok := _c.mutation.Checkpoints(); ok {
+		vv, err := rtecreditbalance.ValueScanner.Checkpoints.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(rtecreditbalance.FieldCheckpoints, field.TypeString, vv)
+		_node.Checkpoints = value
+	}
 	if value, ok := _c.mutation.Booked(); ok {
 		_spec.SetField(rtecreditbalance.FieldBooked, field.TypeOther, value)
 		_node.Booked = value
@@ -294,7 +312,7 @@ func (_c *RTECreditBalanceCreate) createSpec() (*RTECreditBalance, *sqlgraph.Cre
 		_spec.SetField(rtecreditbalance.FieldPending, field.TypeOther, value)
 		_node.Pending = value
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -385,6 +403,24 @@ func (u *RTECreditBalanceUpsert) SetCalculatedAt(v time.Time) *RTECreditBalanceU
 // UpdateCalculatedAt sets the "calculated_at" field to the value that was provided on create.
 func (u *RTECreditBalanceUpsert) UpdateCalculatedAt() *RTECreditBalanceUpsert {
 	u.SetExcluded(rtecreditbalance.FieldCalculatedAt)
+	return u
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (u *RTECreditBalanceUpsert) SetCheckpoints(v jsontext.Value) *RTECreditBalanceUpsert {
+	u.Set(rtecreditbalance.FieldCheckpoints, v)
+	return u
+}
+
+// UpdateCheckpoints sets the "checkpoints" field to the value that was provided on create.
+func (u *RTECreditBalanceUpsert) UpdateCheckpoints() *RTECreditBalanceUpsert {
+	u.SetExcluded(rtecreditbalance.FieldCheckpoints)
+	return u
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (u *RTECreditBalanceUpsert) ClearCheckpoints() *RTECreditBalanceUpsert {
+	u.SetNull(rtecreditbalance.FieldCheckpoints)
 	return u
 }
 
@@ -542,6 +578,27 @@ func (u *RTECreditBalanceUpsertOne) UpdateCalculatedAt() *RTECreditBalanceUpsert
 	})
 }
 
+// SetCheckpoints sets the "checkpoints" field.
+func (u *RTECreditBalanceUpsertOne) SetCheckpoints(v jsontext.Value) *RTECreditBalanceUpsertOne {
+	return u.Update(func(s *RTECreditBalanceUpsert) {
+		s.SetCheckpoints(v)
+	})
+}
+
+// UpdateCheckpoints sets the "checkpoints" field to the value that was provided on create.
+func (u *RTECreditBalanceUpsertOne) UpdateCheckpoints() *RTECreditBalanceUpsertOne {
+	return u.Update(func(s *RTECreditBalanceUpsert) {
+		s.UpdateCheckpoints()
+	})
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (u *RTECreditBalanceUpsertOne) ClearCheckpoints() *RTECreditBalanceUpsertOne {
+	return u.Update(func(s *RTECreditBalanceUpsert) {
+		s.ClearCheckpoints()
+	})
+}
+
 // SetBooked sets the "booked" field.
 func (u *RTECreditBalanceUpsertOne) SetBooked(v alpacadecimal.Decimal) *RTECreditBalanceUpsertOne {
 	return u.Update(func(s *RTECreditBalanceUpsert) {
@@ -661,7 +718,10 @@ func (_c *RTECreditBalanceCreateBulk) Save(ctx context.Context) ([]*RTECreditBal
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, _c.builders[i+1].mutation)
 				} else {
@@ -867,6 +927,27 @@ func (u *RTECreditBalanceUpsertBulk) SetCalculatedAt(v time.Time) *RTECreditBala
 func (u *RTECreditBalanceUpsertBulk) UpdateCalculatedAt() *RTECreditBalanceUpsertBulk {
 	return u.Update(func(s *RTECreditBalanceUpsert) {
 		s.UpdateCalculatedAt()
+	})
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (u *RTECreditBalanceUpsertBulk) SetCheckpoints(v jsontext.Value) *RTECreditBalanceUpsertBulk {
+	return u.Update(func(s *RTECreditBalanceUpsert) {
+		s.SetCheckpoints(v)
+	})
+}
+
+// UpdateCheckpoints sets the "checkpoints" field to the value that was provided on create.
+func (u *RTECreditBalanceUpsertBulk) UpdateCheckpoints() *RTECreditBalanceUpsertBulk {
+	return u.Update(func(s *RTECreditBalanceUpsert) {
+		s.UpdateCheckpoints()
+	})
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (u *RTECreditBalanceUpsertBulk) ClearCheckpoints() *RTECreditBalanceUpsertBulk {
+	return u.Update(func(s *RTECreditBalanceUpsert) {
+		s.ClearCheckpoints()
 	})
 }
 

@@ -24,6 +24,9 @@ func (RTEMeteredEntitlementBalance) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("entitlement_id").NotEmpty().Immutable().SchemaType(map[string]string{dialect.Postgres: "char(26)"}),
 		field.Time("calculated_at"),
+		field.String("checkpoints").GoType(json.RawMessage{}).Optional().
+			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),
 		field.String("balance").GoType(json.RawMessage{}).
 			ValueScanner(entutils.JSONStringValueScanner[json.RawMessage]()).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}),

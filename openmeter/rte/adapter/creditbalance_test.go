@@ -69,6 +69,12 @@ func TestCreditBalanceStore(t *testing.T) {
 	require.True(t, expected.Live.Equal(stored.Value.Live))
 	require.True(t, expected.Pending.Equal(stored.Value.Pending))
 
+	t.Run("checkpoint history follows the accepted calculation", func(t *testing.T) {
+		freshKey := key
+		freshKey.CustomerID.ID = ulid.Make().String()
+		testCheckpointStorage(t, newStore(), newStore(), freshKey, expected)
+	})
+
 	t.Run("older and equal completions retain newer state", func(t *testing.T) {
 		// Given explicit start times from two independent replicas. No clock
 		// mutation is needed while the delayed completion is in flight.

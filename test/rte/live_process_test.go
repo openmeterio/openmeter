@@ -105,6 +105,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 
 		// Then the worker has calculated once and reused the stored balance once.
 		body := live.metrics(t)
+		require.Equal(t, float64(1), metricCount(body, "rte_calculations_total", `kind="credit_balance"`, `method="checkpoint_miss"`))
 		require.Equal(t, float64(1), metricCount(body, "rte_demand_ensure_fresh_duration_seconds_count", `kind="credit_balance"`, `outcome="calculated"`))
 		require.Equal(t, float64(1), metricCount(body, "rte_demand_ensure_fresh_duration_seconds_count", `kind="credit_balance"`, `outcome="cache_hit"`))
 		require.Equal(t, float64(2), metricCount(body, "rte_state_read_duration_seconds_count", `kind="credit_balance"`, `outcome="hit"`))
@@ -216,6 +217,7 @@ func (s *RTELiveProcessSuite) TestDemandAndSourceChangesAcrossProcessBoundary() 
 		}, 20*time.Second, 50*time.Millisecond, "late usage must refresh exact balances; log: %s", live.logPath)
 		require.Equal(t, float64(125), creditState.Value.Booked.InexactFloat64())
 		require.Equal(t, float64(100), meteredState.Value.TotalAvailableGrantAmount)
+		require.Positive(t, metricCount(live.metrics(t), "rte_calculations_total", `kind="credit_balance"`, `method="checkpoint_hit"`))
 
 		// Then redelivering the notification refreshes both keys from the same stored usage.
 		require.NoError(t, live.publisher.Publish(live.conf.Events.IngestEvents.Topic, msg.Copy()))

@@ -19,6 +19,10 @@ type State[Result any] struct {
 type StoreInput[K Key, Result any] struct {
 	Key   K
 	State State[Result]
+
+	// A nil Checkpoints leaves the timeline untouched. An accepted write
+	// replaces it when supplied, including when discarding the last boundary.
+	Checkpoints *Checkpoints
 }
 
 func (i StoreInput[K, Result]) Validate() error {
@@ -44,6 +48,9 @@ type StoreResult[Result any] struct {
 
 type Store[K Key, Result any] interface {
 	transaction.Creator
+
+	// GetCheckpoints returns the saved candidates. A missing balance has no candidates.
+	GetCheckpoints(context.Context, K) (Checkpoints, error)
 
 	// Store atomically compares CalculatedAt across writers and replaces state
 	// only for a strictly later start. Equal or older attempts return the

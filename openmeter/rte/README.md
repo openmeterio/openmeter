@@ -57,6 +57,10 @@ After a worker outage, retained Kafka messages can still invalidate their keys w
 resumes. If a change was never published, replay cannot recover it. A one-time calculation for
 an affected key rebuilds its current value from the domain sources.
 
+With `rte.incrementalCalculations` enabled, a demand refresh can use earlier checkpoints for the
+same key. The domain calculator checks the source before it reuses any intermediate result.
+An explicit `Calculate` always takes the full path. See [incremental calculation](service/checkpoints.md).
+
 ## Calculation events
 
 Both balance kinds use `io.openmeter.rte.v1.calculationRequested` on the system event topic.

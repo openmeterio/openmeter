@@ -11,10 +11,13 @@ to underscores and adds counter/unit/histogram suffixes.
 `read` or `calculate`. Durations are wall-clock elapsed time, including waits
 inside the measured operation.
 
+For calculations, `method` distinguishes a full run, a checkpoint miss, reuse of a
+verified input, and credit advanced through later postings. See [checkpoint measurement](../service/checkpoints.md#how-to-evaluate-it).
+
 | Instrument | Type / unit | Labels | What it measures |
 | --- | --- | --- | --- |
-| `rte.calculations` | Counter | `kind`, `outcome` | Calculation calls: `updated` when the store accepts the result, `superseded` when it retains a newer or equal-start result, `failed` on error. |
-| `rte.calculation.duration` | Histogram / s | `kind`, `outcome` | The same calls, including domain calculation, state storage and update enqueueing. Excludes asynchronous outbox delivery. |
+| `rte.calculations` | Counter | `kind`, `outcome`, `method` | Calculation calls: `updated` when the store accepts the result, `superseded` when it retains a newer or equal-start result, `failed` on error. |
+| `rte.calculation.duration` | Histogram / s | `kind`, `outcome`, `method` | The same calls, including source verification, domain calculation, state storage and update enqueueing. Excludes asynchronous outbox delivery. |
 | `rte.state.reads` | Counter | `kind`, `outcome` | Client and calculation-service `Get` calls: `hit`, `missing` (not calculated), or `failed`. |
 | `rte.state.read.duration` | Histogram / s | `kind`, `outcome` | Time spent reading stored state, without refreshing it. |
 | `rte.demand.operations` | Counter | `operation`, `outcome` | Freshness requests, invalidations and processing attempts. |

@@ -134,9 +134,15 @@ func (p eventPipeline) calculate(t *testing.T, key rte.Key) rte.CalculationUpdat
 	request, err := rte.NewCalculationRequestedEvent(key)
 	require.NoError(t, err)
 
-	identity, err := request.CalculationTarget.Identity()
-	require.NoError(t, err)
 	require.NoError(t, p.publisher.Publish(t.Context(), request))
+
+	return p.awaitUpdate(t, request.CalculationTarget)
+}
+
+func (p eventPipeline) awaitUpdate(t *testing.T, target rte.CalculationTarget) rte.CalculationUpdatedEvent {
+	t.Helper()
+	identity, err := target.Identity()
+	require.NoError(t, err)
 
 	timer := time.NewTimer(10 * time.Second)
 	defer timer.Stop()
@@ -151,7 +157,7 @@ func (p eventPipeline) calculate(t *testing.T, key rte.Key) rte.CalculationUpdat
 			}
 
 			require.NoError(t, p.publisher.Marshaler().Unmarshal(msg, &event))
-			if event.Kind != request.Kind {
+			if event.Kind != target.Kind {
 				continue
 			}
 

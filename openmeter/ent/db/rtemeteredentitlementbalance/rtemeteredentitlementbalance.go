@@ -27,6 +27,8 @@ const (
 	FieldEntitlementID = "entitlement_id"
 	// FieldCalculatedAt holds the string denoting the calculated_at field in the database.
 	FieldCalculatedAt = "calculated_at"
+	// FieldCheckpoints holds the string denoting the checkpoints field in the database.
+	FieldCheckpoints = "checkpoints"
 	// FieldBalance holds the string denoting the balance field in the database.
 	FieldBalance = "balance"
 	// Table holds the table name of the rtemeteredentitlementbalance in the database.
@@ -42,6 +44,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldEntitlementID,
 	FieldCalculatedAt,
+	FieldCheckpoints,
 	FieldBalance,
 }
 
@@ -68,7 +71,8 @@ var (
 	EntitlementIDValidator func(string) error
 	// ValueScanner of all RTEMeteredEntitlementBalance fields.
 	ValueScanner struct {
-		Balance field.TypeValueScanner[jsontext.Value]
+		Checkpoints field.TypeValueScanner[jsontext.Value]
+		Balance     field.TypeValueScanner[jsontext.Value]
 	}
 )
 
@@ -108,6 +112,11 @@ func ByEntitlementID(opts ...sql.OrderTermOption) OrderOption {
 // ByCalculatedAt orders the results by the calculated_at field.
 func ByCalculatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCalculatedAt, opts...).ToFunc()
+}
+
+// ByCheckpoints orders the results by the checkpoints field.
+func ByCheckpoints(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCheckpoints, opts...).ToFunc()
 }
 
 // ByBalance orders the results by the balance field.

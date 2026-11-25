@@ -97,6 +97,12 @@ func TestMeteredEntitlementBalanceStore(t *testing.T) {
 		require.Equal(t, fresh.State, stored)
 	})
 
+	t.Run("checkpoint history follows the accepted calculation", func(t *testing.T) {
+		freshKey := key
+		freshKey.EntitlementID.ID = ulid.Make().String()
+		testCheckpointStorage(t, newStore(), newStore(), freshKey, meteredentitlement.Balance{EntitlementID: freshKey.EntitlementID.ID})
+	})
+
 	t.Run("simultaneous successful calculations", func(t *testing.T) {
 		// Given a previously uncalculated scope and distinct calculation starts.
 		freshKey := key

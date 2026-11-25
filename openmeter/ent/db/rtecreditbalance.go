@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json/jsontext"
 	"fmt"
 	"strings"
 	"time"
@@ -34,6 +35,8 @@ type RTECreditBalance struct {
 	FeatureScope string `json:"feature_scope,omitempty"`
 	// CalculatedAt holds the value of the "calculated_at" field.
 	CalculatedAt time.Time `json:"calculated_at,omitempty"`
+	// Checkpoints holds the value of the "checkpoints" field.
+	Checkpoints jsontext.Value `json:"checkpoints,omitempty"`
 	// Booked holds the value of the "booked" field.
 	Booked alpacadecimal.Decimal `json:"booked,omitempty"`
 	// Spendable holds the value of the "spendable" field.
@@ -58,6 +61,8 @@ func (*RTECreditBalance) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case rtecreditbalance.FieldCreatedAt, rtecreditbalance.FieldUpdatedAt, rtecreditbalance.FieldDeletedAt, rtecreditbalance.FieldCalculatedAt:
 			values[i] = new(sql.NullTime)
+		case rtecreditbalance.FieldCheckpoints:
+			values[i] = rtecreditbalance.ValueScanner.Checkpoints.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -127,6 +132,12 @@ func (_m *RTECreditBalance) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field calculated_at", values[i])
 			} else if value.Valid {
 				_m.CalculatedAt = value.Time
+			}
+		case rtecreditbalance.FieldCheckpoints:
+			if value, err := rtecreditbalance.ValueScanner.Checkpoints.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Checkpoints = value
 			}
 		case rtecreditbalance.FieldBooked:
 			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
@@ -213,6 +224,9 @@ func (_m *RTECreditBalance) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("calculated_at=")
 	builder.WriteString(_m.CalculatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("checkpoints=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Checkpoints))
 	builder.WriteString(", ")
 	builder.WriteString("booked=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Booked))
