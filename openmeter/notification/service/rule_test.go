@@ -378,15 +378,66 @@ func TestRuleFeatureIDResolution(t *testing.T) {
 				wantError               string
 				archive, foreign, reuse bool
 			}{
-				{name: "key", references: func(f feature.Feature) []string { return []string{f.Key} }},
-				{name: "id", references: func(f feature.Feature) []string { return []string{f.ID} }},
-				{name: "id and key deduplicate", references: func(f feature.Feature) []string { return []string{f.Key, f.ID} }},
-				{name: "all features omitted", references: func(feature.Feature) []string { return nil }},
-				{name: "all features empty", references: func(feature.Feature) []string { return []string{} }},
-				{name: "missing", references: func(feature.Feature) []string { return []string{"missing"} }, wantError: "non-existing features"},
-				{name: "other namespace", references: func(f feature.Feature) []string { return []string{f.ID} }, foreign: true, wantError: "non-existing features"},
-				{name: "archived", references: func(f feature.Feature) []string { return []string{f.Key} }, archive: true, wantError: "non-existing features"},
-				{name: "reused key selects active feature", references: func(f feature.Feature) []string { return []string{f.Key} }, reuse: true},
+				{
+					name: "key",
+					references: func(f feature.Feature) []string {
+						return []string{f.Key}
+					},
+				},
+				{
+					name: "id",
+					references: func(f feature.Feature) []string {
+						return []string{f.ID}
+					},
+				},
+				{
+					name: "id and key deduplicate",
+					references: func(f feature.Feature) []string {
+						return []string{f.Key, f.ID}
+					},
+				},
+				{
+					name: "all features omitted",
+					references: func(feature.Feature) []string {
+						return nil
+					},
+				},
+				{
+					name: "all features empty",
+					references: func(feature.Feature) []string {
+						return []string{}
+					},
+				},
+				{
+					name: "missing",
+					references: func(feature.Feature) []string {
+						return []string{"missing"}
+					},
+					wantError: "non-existing features",
+				},
+				{
+					name: "other namespace",
+					references: func(f feature.Feature) []string {
+						return []string{f.ID}
+					},
+					foreign:   true,
+					wantError: "non-existing features",
+				},
+				{
+					name: "archived",
+					references: func(f feature.Feature) []string {
+						return []string{f.Key}
+					},
+					archive:   true,
+					wantError: "non-existing features",
+				},
+				{
+					name: "reused key selects active feature",
+					references: func(f feature.Feature) []string {
+						return []string{f.Key}
+					},
+					reuse: true,
+				},
 			}
 
 			for _, tt := range tests {
