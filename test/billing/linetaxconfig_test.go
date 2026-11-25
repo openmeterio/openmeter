@@ -326,7 +326,7 @@ func (s *LineTaxConfigTestSuite) requireDeletedTaxCodeSnapshot(lineID string, ta
 }
 
 // TestInvoicingAppTaxCodeRoundTrip checks that a standard line reads back the invoicing app tax code
-// stamp as stored (a code, or '' for "stamped, provider default"), that a line that was never
+// stamp as stored (a code, or "" for "stamped, provider default"), that a line that was never
 // stamped reads NULL, and that its legacy stored stripe code is exposed for the unstamped fallback.
 func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 	ctx := s.T().Context()
@@ -490,7 +490,7 @@ func linesByName(invoice billing.StandardInvoice) map[string]*billing.StandardLi
 }
 
 // TestDraftInvoiceStampsInvoicingAppTaxCode checks that a draft created from pending lines stamps
-// each line with the invoicing app's code for its Tax Code, or '' when there is none.
+// each line with the invoicing app's code for its Tax Code, or "" when there is none.
 func (s *LineTaxConfigTestSuite) TestDraftInvoiceStampsInvoicingAppTaxCode() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-stamp")
