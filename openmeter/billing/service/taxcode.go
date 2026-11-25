@@ -6,6 +6,8 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -15,30 +17,55 @@ import (
 type resolveTaxCodesInput struct {
 	Namespace string
 	Invoice   *billing.StandardInvoice
+
+	// WithoutInvoicingApp lets the caller go on without an expanded invoicing app. Only invoice
+	// simulation sets it: its lines are never stamped. For real invoices a missing app is an error.
+	WithoutInvoicingApp bool
 }
 
 // resolveTaxCodes prepares the tax inputs of invoice calculation: the invoice's default tax
-// config, which the calculator merges into every line. Lines already carry their Tax Code ID:
-// authored-reference validation and the FK keep those IDs valid, and the migrations gave every
-// line with a Stripe code an ID, so there is nothing else to look up here.
+// config (which the calculator merges into every line), the Tax Codes of the default and of
+// every line (soft-deleted included) and the type of the invoicing app, whose provider code the
+// calculator stamps on the lines.
 func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.StandardInvoiceCalculatorDependencies, error) {
 	var deps invoicecalc.StandardInvoiceCalculatorDependencies
 
-	cfg := in.Invoice.Workflow.Config.Invoicing.DefaultTaxConfig
-	if cfg == nil {
-		return deps, nil
+	if apps := in.Invoice.Workflow.Apps; apps != nil && apps.Invoicing != nil {
+		deps.InvoicingAppType = apps.Invoicing.GetType()
+	} else if !in.WithoutInvoicingApp {
+		return deps, fmt.Errorf("resolving the invoicing app type of invoice [%s]: apps are not expanded", in.Invoice.ID)
 	}
 
-	if cfg.TaxCodeID != "" {
-		// A default pointing at a Tax Code outside the namespace (or a missing one) is corrupt.
-		taxCodes, err := s.taxCodeResolver.BatchResolve(ctx, in.Namespace, cfg.TaxCodeID)
+	cfg := in.Invoice.Workflow.Config.Invoicing.DefaultTaxConfig
+
+	var ids []string
+
+	if cfg != nil && cfg.TaxCodeID != "" {
+		ids = append(ids, cfg.TaxCodeID)
+	}
+
+	for _, line := range in.Invoice.Lines.OrEmpty() {
+		if line.TaxConfig != nil && line.TaxConfig.TaxCodeID != "" {
+			ids = append(ids, line.TaxConfig.TaxCodeID)
+		}
+	}
+
+	ids = lo.Uniq(ids)
+
+	if len(ids) > 0 {
+		taxCodes, err := s.taxCodeResolver.BatchResolve(ctx, in.Namespace, ids...)
 		if err != nil {
-			return deps, fmt.Errorf("resolving the invoice default tax code: %w", err)
+			return deps, fmt.Errorf("resolving invoice tax codes: %w", err)
 		}
 
-		if _, ok := taxCodes.Get(cfg.TaxCodeID); !ok {
-			return deps, fmt.Errorf("resolving the invoice default tax code: %w", taxcode.NewTaxCodeNotFoundError(cfg.TaxCodeID))
+		// A default pointing at a Tax Code outside the namespace (or a missing one) is corrupt.
+		if cfg != nil && cfg.TaxCodeID != "" {
+			if _, ok := taxCodes.Get(cfg.TaxCodeID); !ok {
+				return deps, fmt.Errorf("resolving the invoice default tax code: %w", taxcode.NewTaxCodeNotFoundError(cfg.TaxCodeID))
+			}
 		}
+
+		deps.TaxCodes = taxCodes
 	}
 
 	deps.DefaultTaxConfig = cfg

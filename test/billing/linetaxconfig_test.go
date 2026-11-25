@@ -2,7 +2,7 @@ package billing
 
 import (
 	"encoding/json"
-	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -325,8 +325,8 @@ func (s *LineTaxConfigTestSuite) requireDeletedTaxCodeSnapshot(lineID string, ta
 	s.NotNil(row.TaxConfig.TaxCode.DeletedAt, "the embedded Tax Code is the deleted one")
 }
 
-// TestInvoicingAppTaxCodeRoundTrip checks that a standard line persists its invoicing app tax code
-// stamp as written (a code, or '' for "stamped, provider default"), that a line that was never
+// TestInvoicingAppTaxCodeRoundTrip checks that a standard line reads back the invoicing app tax code
+// stamp as stored (a code, or ” for "stamped, provider default"), that a line that was never
 // stamped reads NULL, and that its legacy stored stripe code is exposed for the unstamped fallback.
 func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 	ctx := s.T().Context()
@@ -354,6 +354,10 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 	lineID := invoices[0].Lines.OrEmpty()[0].ID
 
+	s.Run("given: a line from before stamping, with a NULL stamp", func() {
+		s.setStoredInvoicingAppTaxCode(lineID, nil)
+	})
+
 	s.Run("then: the unstamped line reads NULL and exposes the legacy stripe code", func() {
 		s.Nil(s.storedLine(lineID).InvoicingAppTaxCode)
 
@@ -365,7 +369,7 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 	})
 
 	s.Run("when: the line is saved with a stamp", func() {
-		s.setInvoicingAppTaxCode(invoiceID, lineID, lo.ToPtr("txcd_20000000"))
+		s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr("txcd_20000000"))
 	})
 
 	s.Run("then: the stamp is persisted and read back, winning over the legacy code", func() {
@@ -378,7 +382,7 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 	})
 
 	s.Run("when: the line is saved with an empty stamp", func() {
-		s.setInvoicingAppTaxCode(invoiceID, lineID, lo.ToPtr(""))
+		s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr(""))
 	})
 
 	s.Run("then: the empty stamp is kept apart from NULL and still wins over the legacy code", func() {
@@ -454,24 +458,249 @@ func (s *LineTaxConfigTestSuite) readStandardLine(invoiceID billing.InvoiceID, l
 	return line
 }
 
-// setInvoicingAppTaxCode saves the invoicing app tax code stamp on a draft invoice line through
-// the regular invoice update path.
-func (s *LineTaxConfigTestSuite) setInvoicingAppTaxCode(invoiceID billing.InvoiceID, lineID string, code *string) {
+// setStoredInvoicingAppTaxCode writes the invoicing app tax code stamp straight into the line row
+// (nil clears it to NULL). Going through the invoice update path would restamp the draft.
+func (s *LineTaxConfigTestSuite) setStoredInvoicingAppTaxCode(lineID string, code *string) {
 	s.T().Helper()
 
-	_, err := s.BillingService.UpdateStandardInvoice(s.T().Context(), billing.UpdateStandardInvoiceInput{
+	update := s.DBClient.BillingInvoiceLine.UpdateOneID(lineID)
+	if code == nil {
+		update = update.ClearInvoicingAppTaxCode()
+	} else {
+		update = update.SetInvoicingAppTaxCode(*code)
+	}
+
+	s.Require().NoError(update.Exec(s.T().Context()))
+}
+
+// requireInvoicingAppTaxCode requires the persisted stamp of a line, and the stamp the billing
+// service reads back, to be want (nil meaning NULL).
+func (s *LineTaxConfigTestSuite) requireInvoicingAppTaxCode(invoiceID billing.InvoiceID, lineID string, want *string) {
+	s.T().Helper()
+
+	s.Equal(want, s.storedLine(lineID).InvoicingAppTaxCode, "stored stamp")
+	s.Equal(want, s.readStandardLine(invoiceID, lineID).InvoicingAppTaxCode, "stamp read through the billing service")
+}
+
+// linesByName indexes an invoice's lines by name.
+func linesByName(invoice billing.StandardInvoice) map[string]*billing.StandardLine {
+	return lo.SliceToMap(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (string, *billing.StandardLine) {
+		return line.Name, line
+	})
+}
+
+// TestDraftInvoiceStampsInvoicingAppTaxCode checks that a draft created from pending lines stamps
+// each line with the invoicing app's code for its Tax Code, or ” when there is none.
+func (s *LineTaxConfigTestSuite) TestDraftInvoiceStampsInvoicingAppTaxCode() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-stamp")
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	// given: a sandbox invoicing app and pending lines with a mapped, an unmapped and no Tax Code
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(namespace, "test")
+	mapped := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeSandbox, "sandbox-code")
+	stripeOnly := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+
+	s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
+		"mapped":     {TaxCodeID: mapped.ID},
+		"stripeOnly": {TaxCodeID: stripeOnly.ID},
+		"none":       nil,
+	})
+
+	var invoice billing.StandardInvoice
+
+	s.Run("when: the pending lines are collected into a draft invoice", func() {
+		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+			Customer: cust.GetID(),
+			AsOf:     &now,
+		})
+		s.Require().NoError(err)
+		s.Require().Len(invoices, 1)
+		invoice = invoices[0]
+	})
+
+	s.Run("then: every line carries the stamp of its Tax Code", func() {
+		lines := linesByName(invoice)
+		s.Require().Len(lines, 3)
+
+		s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["mapped"].ID, lo.ToPtr("sandbox-code"))
+		s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["stripeOnly"].ID, lo.ToPtr(""))
+		s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["none"].ID, lo.ToPtr(""))
+	})
+
+	s.Run("then: the invoice returned by the collection already has the stamps", func() {
+		lines := linesByName(invoice)
+
+		s.Equal("sandbox-code", lo.FromPtr(lines["mapped"].InvoicingAppTaxCode))
+		s.Equal("sandbox-code", lines["mapped"].BilledTaxCode(app.AppTypeSandbox))
+	})
+}
+
+// TestDraftRecalculationStampsUnstampedLine checks that a draft line from before stamping (NULL in
+// the database) is stamped by the next draft calculation.
+func (s *LineTaxConfigTestSuite) TestDraftRecalculationStampsUnstampedLine() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-restamp-null")
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	// given: a draft invoice whose line is mapped for the invoicing app but has a NULL stamp
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(namespace, "test")
+	mapped := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeSandbox, "sandbox-code")
+
+	s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
+		"mapped": {TaxCodeID: mapped.ID},
+	})
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	invoiceID := invoices[0].GetInvoiceID()
+	lineID := linesByName(invoices[0])["mapped"].ID
+
+	s.setStoredInvoicingAppTaxCode(lineID, nil)
+	s.requireInvoicingAppTaxCode(invoiceID, lineID, nil)
+
+	// when: the draft is edited, which recalculates it
+	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
 		Invoice:      invoiceID,
 		ChangeSource: billing.ChangeSourceSystem,
 		EditFn: func(invoice *billing.StandardInvoice) error {
-			line := invoice.Lines.GetByID(lineID)
-			if line == nil {
-				return fmt.Errorf("line[%s] not found", lineID)
-			}
-
-			line.InvoicingAppTaxCode = code
+			invoice.Description = lo.ToPtr("edited")
 
 			return nil
 		},
 	})
 	s.Require().NoError(err)
+
+	// then: the line is stamped
+	s.requireInvoicingAppTaxCode(invoiceID, lineID, lo.ToPtr("sandbox-code"))
+}
+
+// TestInvoicingAppTaxCodeRestampedInDraftAndFrozenAfter checks that a mapping added while the
+// invoice is a draft reaches the line on the next draft calculation, and that a mapping added
+// after the invoice left draft does not.
+func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRestampedInDraftAndFrozenAfter() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-freeze")
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	// given: a draft waiting for manual approval, with two lines whose Tax Codes only map Stripe
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
+		profile.WorkflowConfig.Invoicing.AutoAdvance = false
+		profile.WorkflowConfig.Invoicing.DraftPeriod = lo.Must(datetime.ISODurationString("PT0S").Parse())
+	}))
+	cust := s.CreateTestCustomer(namespace, "test")
+	editedInDraft := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	editedAfterDraft := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_20000000")
+
+	s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
+		"editedInDraft":    {TaxCodeID: editedInDraft.ID},
+		"editedAfterDraft": {TaxCodeID: editedAfterDraft.ID},
+	})
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	s.Require().Equal(billing.StandardInvoiceStatusDraftManualApprovalNeeded, invoices[0].Status)
+
+	invoiceID := invoices[0].GetInvoiceID()
+	lines := linesByName(invoices[0])
+	inDraftLineID := lines["editedInDraft"].ID
+	afterDraftLineID := lines["editedAfterDraft"].ID
+
+	s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr(""))
+	s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
+
+	s.Run("when: a sandbox mapping is added and the draft is recalculated", func() {
+		s.addSandboxMapping(editedInDraft, "sandbox-in-draft")
+
+		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+			Invoice:      invoiceID,
+			ChangeSource: billing.ChangeSourceSystem,
+			EditFn: func(invoice *billing.StandardInvoice) error {
+				invoice.Description = lo.ToPtr("edited")
+
+				return nil
+			},
+		})
+		s.Require().NoError(err)
+	})
+
+	s.Run("then: the line picks the new mapping up, the other stays empty", func() {
+		s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr("sandbox-in-draft"))
+		s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
+	})
+
+	s.Run("when: the invoice leaves draft and a sandbox mapping is added afterwards", func() {
+		approved, err := s.BillingService.ApproveInvoice(ctx, invoiceID)
+		s.Require().NoError(err)
+		s.Require().Equal(billing.StandardInvoiceStatusPaid, approved.Status)
+
+		s.addSandboxMapping(editedAfterDraft, "sandbox-after-draft")
+	})
+
+	s.Run("then: both stamps are frozen, in the database and through the billing service", func() {
+		s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr("sandbox-in-draft"))
+		s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
+
+		s.Equal("", s.readStandardLine(invoiceID, afterDraftLineID).BilledTaxCode(app.AppTypeSandbox))
+	})
+}
+
+// addSandboxMapping adds a sandbox app mapping to a Tax Code; mappings can only be added.
+func (s *LineTaxConfigTestSuite) addSandboxMapping(tc taxcode.TaxCode, code string) {
+	s.T().Helper()
+
+	_, err := s.TaxCodeEnv.Service.UpdateTaxCode(s.T().Context(), taxcode.UpdateTaxCodeInput{
+		NamespacedID: tc.NamespacedID,
+		Name:         tc.Name,
+		Description:  tc.Description,
+		AppMappings:  append(slices.Clone(tc.AppMappings), taxcode.TaxCodeAppMapping{AppType: app.AppTypeSandbox, TaxCode: code}),
+		Metadata:     tc.Metadata,
+		Annotations:  tc.Annotations,
+	})
+	s.Require().NoError(err)
+}
+
+// TestDeletedTaxCodeStillStamped checks that a line whose Tax Code is soft-deleted after the line
+// was created, but before the invoice was calculated, is stamped with that code's mapping.
+func (s *LineTaxConfigTestSuite) TestDeletedTaxCodeStillStamped() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-deleted")
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	// given: a pending line with a mapped Tax Code that is deleted before the line is collected
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(namespace, "test")
+	mapped := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeSandbox, "sandbox-code")
+
+	s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
+		"mapped": {TaxCodeID: mapped.ID},
+	})
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: mapped.NamespacedID}))
+
+	// when: the line is collected into a draft invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	// then: the line carries the deleted Tax Code's mapping
+	s.requireInvoicingAppTaxCode(invoices[0].GetInvoiceID(), linesByName(invoices[0])["mapped"].ID, lo.ToPtr("sandbox-code"))
 }

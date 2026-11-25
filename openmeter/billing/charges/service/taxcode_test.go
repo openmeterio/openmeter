@@ -1003,11 +1003,15 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	)
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
-	const stripeCode = "txcd_20000005"
+	const (
+		stripeCode          = "txcd_20000005"
+		customInvoicingCode = "custom-20000005"
+	)
 	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
 		Key: "txcd-20000005",
 		AppMappings: taxcode.TaxCodeAppMappings{
 			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+			{AppType: app.AppTypeCustomInvoicing, TaxCode: customInvoicingCode},
 		},
 	})
 
@@ -1087,6 +1091,10 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 
 	s.Require().NotNil(line.TaxConfig, "standard invoice line must have TaxConfig")
 	s.Equal(tc.ID, line.TaxConfig.TaxCodeID)
+
+	// The charge-backed line goes through the same draft calculation, so it carries the stamp of
+	// the custom invoicing app's mapping.
+	s.Equal(lo.ToPtr(customInvoicingCode), line.InvoicingAppTaxCode)
 }
 
 // TestTaxConfigInListCharges verifies that ListCharges returns charges with tax_config populated

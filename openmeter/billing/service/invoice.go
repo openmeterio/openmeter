@@ -904,6 +904,8 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 	calculatorDeps, err := s.resolveTaxCodes(ctx, resolveTaxCodesInput{
 		Namespace: input.Namespace,
 		Invoice:   &invoice,
+		// The simulated profile comes without apps, and simulated lines are not stamped.
+		WithoutInvoicingApp: true,
 	})
 	if err != nil {
 		return billing.StandardInvoice{}, fmt.Errorf("resolving tax codes: %w", err)
