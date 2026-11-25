@@ -28,24 +28,7 @@ func NewCreateRuleInput(namespace string, name string, channels ...string) notif
 		Type:     notification.EventTypeBalanceThreshold,
 		Name:     name,
 		Disabled: false,
-		Config: notification.RuleConfig{
-			RuleConfigMeta: notification.RuleConfigMeta{
-				Type: notification.EventTypeBalanceThreshold,
-			},
-			BalanceThreshold: &notification.BalanceThresholdRuleConfig{
-				Features: nil,
-				Thresholds: []notification.BalanceThreshold{
-					{
-						Type:  notification.BalanceThresholdTypeNumber,
-						Value: 1000,
-					},
-					{
-						Type:  notification.BalanceThresholdTypePercent,
-						Value: 95,
-					},
-				},
-			},
-		},
+		Config:   newBalanceThresholdRuleConfig(),
 		Channels: channels,
 		Metadata: models.Metadata{
 			"namespace": namespace,
@@ -54,6 +37,27 @@ func NewCreateRuleInput(namespace string, name string, channels ...string) notif
 		Annotations: models.Annotations{
 			"namespace": namespace,
 			"name":      name,
+		},
+	}
+}
+
+func newBalanceThresholdRuleConfig(features ...string) notification.RuleConfig {
+	return notification.RuleConfig{
+		RuleConfigMeta: notification.RuleConfigMeta{
+			Type: notification.EventTypeBalanceThreshold,
+		},
+		BalanceThreshold: &notification.BalanceThresholdRuleConfig{
+			Features: features,
+			Thresholds: []notification.BalanceThreshold{
+				{
+					Type:  notification.BalanceThresholdTypeNumber,
+					Value: 1000,
+				},
+				{
+					Type:  notification.BalanceThresholdTypePercent,
+					Value: 95,
+				},
+			},
 		},
 	}
 }
@@ -136,8 +140,9 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
 	tests := []struct {
-		Name     string
-		CreateIn notification.CreateRuleInput
+		Name         string
+		CreateIn     notification.CreateRuleInput
+		WantFeatures []string
 	}{
 		{
 			Name:     "WithoutFeature",
@@ -151,6 +156,7 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 
 				return createIn
 			}(),
+			WantFeatures: []string{s.feature.ID},
 		},
 	}
 
@@ -162,7 +168,7 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 			assert.NotEmpty(t, rule.ID, "Rule ID must not be empty")
 			assert.Equal(t, test.CreateIn.Disabled, rule.Disabled, "Rule must not be disabled")
 			assert.Equal(t, test.CreateIn.Type, rule.Type, "Rule type must be the same")
-			assert.EqualValues(t, test.CreateIn.Config, rule.Config, "Rule config must be the same")
+			assert.Equal(t, newBalanceThresholdRuleConfig(test.WantFeatures...), rule.Config)
 			assert.Equalf(t, test.CreateIn.Annotations, rule.Annotations, "Annotations must be the same")
 			assert.Equalf(t, test.CreateIn.Metadata, rule.Metadata, "Metadata must be the same")
 		})
@@ -327,7 +333,7 @@ func (s *RuleTestSuite) TestCreateView(ctx context.Context, t *testing.T) {
 	view, err := service.CreateRuleView(ctx, createIn)
 	require.NoError(t, err, "Creating rule view must not return error")
 	require.NotEmpty(t, view.Rule.ID, "Rule ID must not be empty")
-	assert.EqualValues(t, createIn.Config, view.Rule.Config, "Rule config must be the same")
+	assert.Equal(t, newBalanceThresholdRuleConfig(s.feature.ID), view.Rule.Config)
 
 	require.Len(t, view.Features, 1, "Key and ID references to the same feature must resolve once")
 	assert.Equal(t, s.feature.ID, view.Features[0].ID, "Resolved feature must match the referenced one")
