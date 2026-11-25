@@ -12,6 +12,12 @@ import (
 
 var _ ledger.BalanceQuerier = (*Ledger)(nil)
 
+// BalanceJournal returns the optional reads used to advance a saved balance.
+func (l *Ledger) BalanceJournal() ledger.JournalReader {
+	reader, _ := l.repo.(ledger.JournalReader)
+	return reader
+}
+
 func (l *Ledger) GetAccountBalance(ctx context.Context, account ledger.Account, route ledger.RouteFilter, query ledger.BalanceQuery) (ledger.Balance, error) {
 	if account == nil {
 		return alpacadecimal.Zero, fmt.Errorf("account is required")

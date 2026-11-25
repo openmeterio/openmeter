@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -127,6 +128,18 @@ func (c *Connector) ListEventsV2(ctx context.Context, params streaming.ListEvent
 	}
 
 	return events, nil
+}
+
+func (c *Connector) HasMeterEvents(ctx context.Context, namespace string, m meterpkg.Meter, params streaming.QueryParams) (bool, error) {
+	// QueryMeter compiles COUNT(*) against the raw events table with the original filters.
+	m.Aggregation = meterpkg.MeterAggregationCount
+	m.ValueProperty = nil
+	rows, err := c.QueryMeter(ctx, namespace, m, params)
+	if err != nil {
+		return false, err
+	}
+
+	return slices.ContainsFunc(rows, func(row meterpkg.MeterQueryRow) bool { return row.Value > 0 }), nil
 }
 
 func (c *Connector) QueryMeter(ctx context.Context, namespace string, meter meterpkg.Meter, params streaming.QueryParams) ([]meterpkg.MeterQueryRow, error) {

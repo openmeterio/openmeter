@@ -10,9 +10,11 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	progressmanager "github.com/openmeterio/openmeter/openmeter/progressmanager/adapter"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -378,6 +380,52 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			}, rows)
 		})
 	}
+}
+
+func (s *ConnectorTestSuite) TestHasMeterEventsWithZeroSum() {
+	ctx := s.T().Context()
+	from := time.Now().UTC().Truncate(time.Minute)
+	to := from.Add(time.Minute)
+	definition := meter.Meter{
+		Key: "quantity", EventType: "usage", Aggregation: meter.MeterAggregationSum,
+		ValueProperty: lo.ToPtr("$.value"), GroupBy: map[string]string{"region": "$.region"},
+	}
+
+	// Given opposing usage values matching one subject and region.
+	for _, v := range []int{5, -5} {
+		err := s.Connector.BatchInsert(ctx, []streaming.RawEvent{{
+			Namespace: namespace, ID: ulid.Make().String(), Type: definition.EventType,
+			Source: "test", Subject: "a", Time: from, IngestedAt: from, StoredAt: from,
+			Data: fmt.Sprintf(`{"value":%d,"region":"east"}`, v),
+		}})
+		s.Require().NoError(err)
+	}
+
+	attribution := &customer.Customer{ID: "cust", Key: lo.ToPtr("a")}
+	params := streaming.QueryParams{
+		From: &from, To: &to, FilterCustomer: []streaming.Customer{attribution},
+		FilterGroupBy: map[string]filter.FilterString{"region": {Eq: lo.ToPtr("east")}},
+	}
+	rows, err := s.Connector.QueryMeter(ctx, namespace, definition, params)
+	s.Require().NoError(err)
+	s.Require().Len(rows, 1)
+	s.Require().Zero(rows[0].Value)
+
+	// The raw existence check must distinguish those rows from an empty interval.
+	found, err := s.Connector.HasMeterEvents(ctx, namespace, definition, params)
+	s.Require().NoError(err)
+	s.Require().True(found)
+
+	params.FilterGroupBy["region"] = filter.FilterString{Eq: lo.ToPtr("west")}
+	found, err = s.Connector.HasMeterEvents(ctx, namespace, definition, params)
+	s.Require().NoError(err)
+	s.Require().False(found)
+
+	params.FilterGroupBy = nil
+	attribution.Key = lo.ToPtr("b")
+	found, err = s.Connector.HasMeterEvents(ctx, namespace, definition, params)
+	s.Require().NoError(err)
+	s.Require().False(found)
 }
 
 func TestConnector(t *testing.T) {

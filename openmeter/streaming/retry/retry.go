@@ -109,6 +109,17 @@ func (c *Connector) ListGroupByValues(ctx context.Context, params streaming.List
 	})
 }
 
+func (c *Connector) HasMeterEvents(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) (bool, error) {
+	source, ok := c.downstreamConnector.(streaming.MeterEventChecker)
+	if !ok {
+		return false, errors.ErrUnsupported
+	}
+
+	return withRetry(ctx, c, func() (bool, error) {
+		return source.HasMeterEvents(ctx, namespace, m, params)
+	})
+}
+
 func (c *Connector) QueryMeter(ctx context.Context, namespace string, m meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
 	return withRetry(ctx, c, func() ([]meter.MeterQueryRow, error) {
 		return c.downstreamConnector.QueryMeter(ctx, namespace, m, params)

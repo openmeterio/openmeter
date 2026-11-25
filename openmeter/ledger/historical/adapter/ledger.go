@@ -293,11 +293,24 @@ func (r *repo) GetTransactionGroup(ctx context.Context, id models.NamespacedID) 
 }
 
 func (r *repo) SumEntries(ctx context.Context, query ledger.Query) (alpacadecimal.Decimal, error) {
-	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (alpacadecimal.Decimal, error) {
-		q := sumEntriesQuery{
-			query: query,
-		}
+	return r.sumEntries(ctx, sumEntriesQuery{query: query})
+}
 
+func (r *repo) SumAccountMovement(ctx context.Context, input ledger.AccountMovementInput) (ledger.Balance, error) {
+	if err := input.Validate(); err != nil {
+		return alpacadecimal.Zero, err
+	}
+
+	query := ledger.Query{
+		Namespace: input.AccountID.Namespace,
+		Filters:   ledger.Filters{AccountID: &input.AccountID.ID, Route: input.Route, AsOf: &input.Through},
+	}
+
+	return r.sumEntries(ctx, sumEntriesQuery{query: query, bookedAfter: &input.After})
+}
+
+func (r *repo) sumEntries(ctx context.Context, q sumEntriesQuery) (alpacadecimal.Decimal, error) {
+	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, tx *repo) (alpacadecimal.Decimal, error) {
 		entryQuery, err := q.Build(tx.db)
 		if err != nil {
 			return alpacadecimal.Decimal{}, err

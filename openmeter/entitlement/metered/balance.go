@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/engine"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -56,6 +57,16 @@ type BalanceHistoryParams struct {
 }
 
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
+	return e.GetEntitlementBalanceWithUsageQuery(ctx, entitlementID, at, nil)
+}
+
+type phaseUsageSource interface {
+	GetBalanceAtWithUsageQuery(context.Context, models.NamespacedID, time.Time, balance.PhaseUsageQuery) (engine.RunResult, error)
+}
+
+// GetEntitlementBalanceWithUsageQuery keeps the ordinary grant calculation and
+// lets supported credit connectors combine its raw usage queries.
+func (e *connector) GetEntitlementBalanceWithUsageQuery(ctx context.Context, entitlementID models.NamespacedID, at time.Time, usage balance.PhaseUsageQuery) (*EntitlementBalance, error) {
 	ctx, span := e.tracer.Start(ctx, "meteredentitlement.GetEntitlementBalance", trace.WithAttributes(
 		attribute.String("entitlement_id", entitlementID.ID),
 		attribute.String("at", at.Format(time.RFC3339)),
@@ -81,7 +92,13 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	}
 
 	// Let's calculate balance since the last snapshot
-	res, err := e.balanceConnector.GetBalanceAt(ctx, nsOwner, at)
+	var res engine.RunResult
+	if source, ok := e.balanceConnector.(phaseUsageSource); usage != nil && ok {
+		res, err = source.GetBalanceAtWithUsageQuery(ctx, nsOwner, at, usage)
+	} else {
+		res, err = e.balanceConnector.GetBalanceAt(ctx, nsOwner, at)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to get balance since snapshot: %w", err)
 	}

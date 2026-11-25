@@ -299,11 +299,30 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		return nil, models.NewGenericValidationError(errors.New("transaction cursors are only supported for booked balance queries"))
 	}
 
-	result, sources, err := s.getBalanceSources(ctx, input)
+	query := input.balanceQuery()
+	accounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
+	if err != nil {
+		return nil, fmt.Errorf("get customer accounts: %w", err)
+	}
+
+	projection, err := s.getBalanceSources(ctx, input, accounts, query)
 	if err != nil {
 		return nil, err
 	}
 
+	return s.applyChargeBalances(ctx, input, projection)
+}
+
+type ledgerProjection struct {
+	bookedFBO, spendableFBO, advance alpacadecimal.Decimal
+	sources                          []liveBalanceSource
+}
+
+func (s *service) applyChargeBalances(ctx context.Context, input GetBalanceServiceInput, journal ledgerProjection) (Balance, error) {
+	result := balance{
+		booked:    journal.bookedFBO.Add(journal.advance),
+		spendable: journal.spendableFBO.Add(journal.advance),
+	}
 	live := alpacadecimal.Zero
 	// Open-charge state is only available as a current projection. Historical
 	// queries return zero instead of mixing current impacts with a past ledger
@@ -315,7 +334,7 @@ func (s *service) GetBalance(ctx context.Context, input GetBalanceServiceInput) 
 		}
 
 		// Apply unbooked usage against credit that collection could still consume.
-		live = s.balanceCalculator.CalculateLiveBalanceFromSources(result.spendable, sources, impacts)
+		live = s.balanceCalculator.CalculateLiveBalanceFromSources(result.spendable, journal.sources, impacts)
 	}
 
 	pending, err := s.getPendingGrantAmount(ctx, input.CustomerID, input.Currency, normalizeFeatureFilter(input.FeatureFilter), input.pendingGrantAsOf())
@@ -390,24 +409,18 @@ func (s *service) getBookedBalance(ctx context.Context, input GetBalanceServiceI
 
 // Read spendable credit once, then use the same amounts for the live projection.
 // Advance debt is still a journal balance and can make the total negative.
-func (s *service) getBalanceSources(ctx context.Context, input GetBalanceServiceInput) (balance, []liveBalanceSource, error) {
-	query := input.balanceQuery()
-
-	customerAccounts, err := s.AccountResolver.GetCustomerAccounts(ctx, input.CustomerID)
-	if err != nil {
-		return balance{}, nil, fmt.Errorf("get customer accounts: %w", err)
-	}
-
+func (s *service) getSpendableSources(ctx context.Context, input GetBalanceServiceInput, accountID string, asOf *time.Time, subAccounts []string) (alpacadecimal.Decimal, []liveBalanceSource, error) {
 	buckets, err := s.FBO.GetSpendableBalanceBuckets(ctx, fbo.SpendableBalanceBucketQuery{
-		Namespace: input.CustomerID.Namespace,
+		Namespace:     input.CustomerID.Namespace,
+		SubAccountIDs: subAccounts,
 		Filters: ledger.Filters{
-			AccountID: lo.ToPtr(customerAccounts.FBOAccount.ID().ID),
+			AccountID: &accountID,
 			Route:     input.bookedRoute(),
-			AsOf:      query.AsOf,
+			AsOf:      asOf,
 		},
 	})
 	if err != nil {
-		return balance{}, nil, fmt.Errorf("get spendable balance: %w", err)
+		return alpacadecimal.Zero, nil, fmt.Errorf("get spendable balance: %w", err)
 	}
 
 	credit := alpacadecimal.Zero
@@ -423,20 +436,26 @@ func (s *service) getBalanceSources(ctx context.Context, input GetBalanceService
 
 	slices.SortStableFunc(sources, cmpx.Compare[liveBalanceSource])
 
+	return credit, sources, nil
+}
+
+func (s *service) getBalanceSources(ctx context.Context, input GetBalanceServiceInput, customerAccounts ledger.CustomerAccounts, query ledger.BalanceQuery) (ledgerProjection, error) {
+	credit, sources, err := s.getSpendableSources(ctx, input, customerAccounts.FBOAccount.ID().ID, query.AsOf, nil)
+	if err != nil {
+		return ledgerProjection{}, err
+	}
+
 	advanceBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.ReceivableAccount, input.advanceRoute(), query)
 	if err != nil {
-		return balance{}, nil, fmt.Errorf("get advance balance: %w", err)
+		return ledgerProjection{}, fmt.Errorf("get advance balance: %w", err)
 	}
 
 	bookedBalance, err := s.BalanceQuerier.GetAccountBalance(ctx, customerAccounts.FBOAccount, input.bookedRoute(), query)
 	if err != nil {
-		return balance{}, nil, fmt.Errorf("get booked balance: %w", err)
+		return ledgerProjection{}, fmt.Errorf("get booked balance: %w", err)
 	}
 
-	return balance{
-		booked:    bookedBalance.Add(advanceBalance),
-		spendable: credit.Add(advanceBalance),
-	}, sources, nil
+	return ledgerProjection{bookedFBO: bookedBalance, spendableFBO: credit, advance: advanceBalance, sources: sources}, nil
 }
 
 func (s *service) GetBalanceCurrencies(ctx context.Context, input GetBalanceCurrenciesInput) ([]currencies.CurrencyReference, error) {

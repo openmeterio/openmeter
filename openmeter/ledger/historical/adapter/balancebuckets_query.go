@@ -106,6 +106,10 @@ func (q balanceBucketsQuery) bucketSelector() (*sql.Selector, error) {
 		return nil, err
 	}
 
+	if q.query.SubAccountIDs != nil {
+		entryPredicates = append(entryPredicates, ledgerentrydb.SubAccountIDIn(q.query.SubAccountIDs...))
+	}
+
 	for key, value := range q.query.ExcludeAnnotationFilters {
 		entryPredicates = append(entryPredicates,
 			ledgerentrydb.HasTransactionWith(transactionAnnotationNotEqual(key, value)),
