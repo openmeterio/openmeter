@@ -154,8 +154,6 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 // reference a missing or deleted Tax Code. It runs before applyDefaultTaxCodes so stamped
 // defaults, which may be deleted, are not checked. Each failing intent gets its own issue.
 func (s *service) validateRequestTaxCodes(ctx context.Context, input charges.CreateInput) error {
-	intentsFieldPath := lo.CoalesceOrEmpty(input.IntentsFieldPath, "intents")
-
 	refs := make([]billing.RequestTaxCodeRef, 0, len(input.Intents))
 	for idx, createIntent := range input.Intents {
 		taxCodeID, err := createIntent.TaxCodeID()
@@ -167,9 +165,14 @@ func (s *service) validateRequestTaxCodes(ctx context.Context, input charges.Cre
 			continue
 		}
 
+		fieldPath := "tax_config/tax_code"
+		if input.RequestListFieldPath != "" {
+			fieldPath = fmt.Sprintf("%s/%d/%s", input.RequestListFieldPath, idx, fieldPath)
+		}
+
 		refs = append(refs, billing.RequestTaxCodeRef{
 			TaxCodeID: taxCodeID,
-			FieldPath: fmt.Sprintf("%s/%d/tax_config/tax_code", intentsFieldPath, idx),
+			FieldPath: fieldPath,
 		})
 	}
 

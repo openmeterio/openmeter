@@ -53,11 +53,12 @@ type CreateInput struct {
 	// The zero value is rejected by Validate.
 	ChangeSource billing.ChangeSource
 
-	// IntentsFieldPath is the request field the intents were sent under, used as the field
-	// path prefix when a request Tax Code reference is rejected (<path>/<index>/tax_config/tax_code).
-	// Callers that map their own request items to intents (e.g. pending invoice lines) set it
-	// to their own field so the client sees the path it actually sent. Empty means "intents".
-	IntentsFieldPath string
+	// RequestListFieldPath is the request field the intents were sent under, when the request
+	// carried its items as a list (pending invoice lines set "lines"). A rejected Tax Code is
+	// then reported at <path>/<index>/tax_config/tax_code, so the client sees the path it sent.
+	// Leave it empty for single-item requests (customer charge, credit grant): their rejected
+	// Tax Code is reported at tax_config/tax_code, because the client never sent a list.
+	RequestListFieldPath string
 }
 
 func (i CreateInput) Validate() error {

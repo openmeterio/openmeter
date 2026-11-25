@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -1743,6 +1744,9 @@ func (s *TaxCodePersistenceTestSuite) TestCreateCustomerChargeWithDeletedTaxCode
 		s.Require().Error(err)
 		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
 		s.True(billing.IsValidationIssueOnly(err), "expected a validation error, got: %v", err)
+		// and: the issue is addressed at the single tax_config the client sent, with no list or index
+		s.True(strings.HasPrefix(err.Error(), "tax_config/tax_code:"), "expected the issue at tax_config/tax_code, got: %v", err)
+		s.NotContains(err.Error(), "intents/")
 	})
 
 	s.Run("when the caller references a missing tax code", func() {
