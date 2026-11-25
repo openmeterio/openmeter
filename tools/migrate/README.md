@@ -34,3 +34,12 @@ evidence to repair the reference, then rerun the preflight.
 Missing references are dropped. If every reference is missing, an enabled Rule
 stays enabled and matches every feature. The preflight flags that case separately.
 Downgrading keeps the resolved IDs and does not restore dropped references.
+
+## Notification delivery destination uniqueness
+
+Run the [duplicate preflight](notification_delivery_duplicate_preflight.sql) before
+upgrading. Each result lists the delivery IDs for one namespace, Event, and
+Channel. Inspect their attempts and resolve duplicates before applying the unique
+index. The index build blocks delivery writes while it scans the table, so schedule
+the upgrade accordingly. If duplicates remain, PostgreSQL rejects the index and
+the transaction rolls back, preserving the original index and delivery history.

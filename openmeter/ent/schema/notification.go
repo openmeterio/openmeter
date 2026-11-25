@@ -312,7 +312,7 @@ func (NotificationEventDeliveryStatus) Edges() []ent.Edge {
 func (NotificationEventDeliveryStatus) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
-		index.Fields("namespace", "event_id", "channel_id"),
+		index.Fields("namespace", "event_id", "channel_id").Unique(),
 		index.Fields("namespace", "state"),
 		index.Fields("namespace", "state", "next_attempt_at"),
 	}
