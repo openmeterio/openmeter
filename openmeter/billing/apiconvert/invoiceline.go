@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	apiv1models "github.com/openmeterio/openmeter/api/models"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -18,9 +19,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxCodeConfig, taxCodes productcatalog.TaxCodesByID) (*[]apiv1models.InvoiceDetailedLine, error) {
+// mapDetailedLinesToAPI maps the detailed lines of a standard line. They all render the parent
+// line's tax config, already mapped as lineTaxConfig.
+func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatCode, invoiceAt time.Time, lineTaxConfig *apiv1models.TaxConfig) (*[]apiv1models.InvoiceDetailedLine, error) {
 	mappedLines, err := slicesx.MapWithErr(lines, func(line billing.DetailedLine) (apiv1models.InvoiceDetailedLine, error) {
-		return mapDetailedLineToAPI(line, currency, invoiceAt, taxConfig, taxCodes)
+		return mapDetailedLineToAPI(line, currency, invoiceAt, lineTaxConfig)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to map detailed lines: %w", err)
@@ -29,12 +32,7 @@ func mapDetailedLinesToAPI(lines billing.DetailedLines, currency currencyx.FiatC
 	return lo.ToPtr(mappedLines), nil
 }
 
-func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, taxConfig *productcatalog.TaxCodeConfig, taxCodes productcatalog.TaxCodesByID) (apiv1models.InvoiceDetailedLine, error) {
-	lineTaxConfig, err := ToAPITaxConfig(taxCodes, taxConfig)
-	if err != nil {
-		return apiv1models.InvoiceDetailedLine{}, fmt.Errorf("failed to map tax config: %w", err)
-	}
-
+func mapDetailedLineToAPI(line billing.DetailedLine, currency currencyx.FiatCode, invoiceAt time.Time, lineTaxConfig *apiv1models.TaxConfig) (apiv1models.InvoiceDetailedLine, error) {
 	amountDiscountsAPI, err := mapInvoiceLineAmountDiscountsToAPI(line.AmountDiscounts)
 	if err != nil {
 		return apiv1models.InvoiceDetailedLine{}, fmt.Errorf("failed to map amount discounts: %w", err)
@@ -106,7 +104,7 @@ func mapLineAppExternalIdsToAPI(externalIds externalid.LineExternalIDs) *apiv1mo
 	}
 }
 
-func mapInvoiceLineToAPI(line *billing.StandardLine, taxCodes productcatalog.TaxCodesByID) (apiv1models.InvoiceLine, error) {
+func mapInvoiceLineToAPI(line *billing.StandardLine, taxCodes productcatalog.TaxCodesByID, invoicingAppType app.AppType) (apiv1models.InvoiceLine, error) {
 	if line.UsageBased == nil {
 		return apiv1models.InvoiceLine{}, fmt.Errorf("usage based line details are nil [line=%s]", line.ID)
 	}
@@ -120,7 +118,12 @@ func mapInvoiceLineToAPI(line *billing.StandardLine, taxCodes productcatalog.Tax
 		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
 	}
 
-	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.Currency, line.InvoiceAt, line.TaxConfig, taxCodes)
+	lineTaxConfig, err := toAPIStandardLineTaxConfig(line, taxCodes, invoicingAppType)
+	if err != nil {
+		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map tax config: %w", err)
+	}
+
+	children, err := mapDetailedLinesToAPI(line.DetailedLines, line.Currency, line.InvoiceAt, lineTaxConfig)
 	if err != nil {
 		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map children: %w", err)
 	}
@@ -128,11 +131,6 @@ func mapInvoiceLineToAPI(line *billing.StandardLine, taxCodes productcatalog.Tax
 	discountsAPI, err := mapDiscountsToAPI(line.Discounts)
 	if err != nil {
 		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map discounts: %w", err)
-	}
-
-	lineTaxConfig, err := ToAPITaxConfig(taxCodes, line.TaxConfig)
-	if err != nil {
-		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map tax config: %w", err)
 	}
 
 	invoiceLine := apiv1models.InvoiceLine{
@@ -399,4 +397,24 @@ func ToAPITaxConfig(taxCodes productcatalog.TaxCodesByID, cfg *productcatalog.Ta
 	}
 
 	return &out, nil
+}
+
+// toAPIStandardLineTaxConfig renders the tax config of a standard line and, through it, of its
+// rate card and detailed lines. On Stripe invoices stripe.code is the code the line was billed
+// with (BilledTaxCode), so an issued invoice keeps showing what Stripe received even if the Tax
+// Code's mapping changes later. A line billed without a code shows no stripe object. On other
+// invoices it stays the live mapping.
+func toAPIStandardLineTaxConfig(line *billing.StandardLine, taxCodes productcatalog.TaxCodesByID, invoicingAppType app.AppType) (*apiv1models.TaxConfig, error) {
+	out, err := ToAPITaxConfig(taxCodes, line.TaxConfig)
+	if err != nil || out == nil || invoicingAppType != app.AppTypeStripe {
+		return out, err
+	}
+
+	out.Stripe = nil
+
+	if code := line.BilledTaxCode(invoicingAppType); code != "" {
+		out.Stripe = &apiv1models.StripeTaxConfig{Code: code}
+	}
+
+	return out, nil
 }
