@@ -16,6 +16,20 @@ const (
 	Label = "charge_usage_based_revenue_recognition_credits"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldLineID holds the string denoting the line_id field in the database.
+	FieldLineID = "line_id"
+	// FieldAmount holds the string denoting the amount field in the database.
+	FieldAmount = "amount"
+	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
+	FieldServicePeriodFrom = "service_period_from"
+	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
+	FieldServicePeriodTo = "service_period_to"
+	// FieldLedgerTransactionGroupID holds the string denoting the ledger_transaction_group_id field in the database.
+	FieldLedgerTransactionGroupID = "ledger_transaction_group_id"
+	// FieldSortHint holds the string denoting the sort_hint field in the database.
+	FieldSortHint = "sort_hint"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -28,16 +42,6 @@ const (
 	FieldAnnotations = "annotations"
 	// FieldRunID holds the string denoting the run_id field in the database.
 	FieldRunID = "run_id"
-	// FieldAmount holds the string denoting the amount field in the database.
-	FieldAmount = "amount"
-	// FieldServicePeriodFrom holds the string denoting the service_period_from field in the database.
-	FieldServicePeriodFrom = "service_period_from"
-	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
-	FieldServicePeriodTo = "service_period_to"
-	// FieldType holds the string denoting the type field in the database.
-	FieldType = "type"
-	// FieldLedgerTransactionGroupID holds the string denoting the ledger_transaction_group_id field in the database.
-	FieldLedgerTransactionGroupID = "ledger_transaction_group_id"
 	// EdgeRun holds the string denoting the run edge name in mutations.
 	EdgeRun = "run"
 	// Table holds the table name of the chargeusagebasedrevenuerecognitioncredits in the database.
@@ -54,17 +58,19 @@ const (
 // Columns holds all SQL columns for chargeusagebasedrevenuerecognitioncredits fields.
 var Columns = []string{
 	FieldID,
+	FieldLineID,
+	FieldAmount,
+	FieldServicePeriodFrom,
+	FieldServicePeriodTo,
+	FieldLedgerTransactionGroupID,
+	FieldSortHint,
+	FieldType,
 	FieldNamespace,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldAnnotations,
 	FieldRunID,
-	FieldAmount,
-	FieldServicePeriodFrom,
-	FieldServicePeriodTo,
-	FieldType,
-	FieldLedgerTransactionGroupID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -78,6 +84,10 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
+	LineIDValidator func(string) error
+	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
+	LedgerTransactionGroupIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -86,8 +96,6 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
-	LedgerTransactionGroupIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -108,6 +116,41 @@ type OrderOption func(*sql.Selector)
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByLineID orders the results by the line_id field.
+func ByLineID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLineID, opts...).ToFunc()
+}
+
+// ByAmount orders the results by the amount field.
+func ByAmount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAmount, opts...).ToFunc()
+}
+
+// ByServicePeriodFrom orders the results by the service_period_from field.
+func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodFrom, opts...).ToFunc()
+}
+
+// ByServicePeriodTo orders the results by the service_period_to field.
+func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
+}
+
+// ByLedgerTransactionGroupID orders the results by the ledger_transaction_group_id field.
+func ByLedgerTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLedgerTransactionGroupID, opts...).ToFunc()
+}
+
+// BySortHint orders the results by the sort_hint field.
+func BySortHint(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSortHint, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
 // ByNamespace orders the results by the namespace field.
@@ -133,31 +176,6 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByRunID orders the results by the run_id field.
 func ByRunID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRunID, opts...).ToFunc()
-}
-
-// ByAmount orders the results by the amount field.
-func ByAmount(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldAmount, opts...).ToFunc()
-}
-
-// ByServicePeriodFrom orders the results by the service_period_from field.
-func ByServicePeriodFrom(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldServicePeriodFrom, opts...).ToFunc()
-}
-
-// ByServicePeriodTo orders the results by the service_period_to field.
-func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
-}
-
-// ByType orders the results by the type field.
-func ByType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldType, opts...).ToFunc()
-}
-
-// ByLedgerTransactionGroupID orders the results by the ledger_transaction_group_id field.
-func ByLedgerTransactionGroupID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldLedgerTransactionGroupID, opts...).ToFunc()
 }
 
 // ByRunField orders the results by run field.

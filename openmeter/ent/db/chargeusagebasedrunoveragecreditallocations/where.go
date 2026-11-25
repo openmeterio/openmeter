@@ -97,11 +97,6 @@ func SortHint(v int) predicate.ChargeUsageBasedRunOverageCreditAllocations {
 	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldSortHint, v))
 }
 
-// CorrectsRealizationID applies equality check predicate on the "corrects_realization_id" field. It's identical to CorrectsRealizationIDEQ.
-func CorrectsRealizationID(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
-}
-
 // Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
 func Namespace(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
 	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldNamespace, v))
@@ -120,6 +115,11 @@ func UpdatedAt(v time.Time) predicate.ChargeUsageBasedRunOverageCreditAllocation
 // DeletedAt applies equality check predicate on the "deleted_at" field. It's identical to DeletedAtEQ.
 func DeletedAt(v time.Time) predicate.ChargeUsageBasedRunOverageCreditAllocations {
 	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldDeletedAt, v))
+}
+
+// CorrectsRealizationID applies equality check predicate on the "corrects_realization_id" field. It's identical to CorrectsRealizationIDEQ.
+func CorrectsRealizationID(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
 }
 
 // RunID applies equality check predicate on the "run_id" field. It's identical to RunIDEQ.
@@ -457,81 +457,6 @@ func TypeNotIn(vs ...creditrealization.Type) predicate.ChargeUsageBasedRunOverag
 	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNotIn(FieldType, v...))
 }
 
-// CorrectsRealizationIDEQ applies the EQ predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDEQ(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDNEQ applies the NEQ predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDNEQ(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNEQ(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDIn applies the In predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDIn(vs ...string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldIn(FieldCorrectsRealizationID, vs...))
-}
-
-// CorrectsRealizationIDNotIn applies the NotIn predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDNotIn(vs ...string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNotIn(FieldCorrectsRealizationID, vs...))
-}
-
-// CorrectsRealizationIDGT applies the GT predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDGT(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldGT(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDGTE applies the GTE predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDGTE(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldGTE(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDLT applies the LT predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDLT(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldLT(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDLTE applies the LTE predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDLTE(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldLTE(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDContains applies the Contains predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDContains(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldContains(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDHasPrefix applies the HasPrefix predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDHasPrefix(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldHasPrefix(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDHasSuffix applies the HasSuffix predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDHasSuffix(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldHasSuffix(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDIsNil applies the IsNil predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDIsNil() predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldIsNull(FieldCorrectsRealizationID))
-}
-
-// CorrectsRealizationIDNotNil applies the NotNil predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDNotNil() predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNotNull(FieldCorrectsRealizationID))
-}
-
-// CorrectsRealizationIDEqualFold applies the EqualFold predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDEqualFold(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEqualFold(FieldCorrectsRealizationID, v))
-}
-
-// CorrectsRealizationIDContainsFold applies the ContainsFold predicate on the "corrects_realization_id" field.
-func CorrectsRealizationIDContainsFold(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
-	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldContainsFold(FieldCorrectsRealizationID, v))
-}
-
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
 	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldNamespace, v))
@@ -735,6 +660,81 @@ func AnnotationsIsNil() predicate.ChargeUsageBasedRunOverageCreditAllocations {
 // AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
 func AnnotationsNotNil() predicate.ChargeUsageBasedRunOverageCreditAllocations {
 	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNotNull(FieldAnnotations))
+}
+
+// CorrectsRealizationIDEQ applies the EQ predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDEQ(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEQ(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDNEQ applies the NEQ predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNEQ(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNEQ(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDIn applies the In predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDIn(vs ...string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldIn(FieldCorrectsRealizationID, vs...))
+}
+
+// CorrectsRealizationIDNotIn applies the NotIn predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNotIn(vs ...string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNotIn(FieldCorrectsRealizationID, vs...))
+}
+
+// CorrectsRealizationIDGT applies the GT predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDGT(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldGT(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDGTE applies the GTE predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDGTE(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldGTE(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDLT applies the LT predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDLT(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldLT(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDLTE applies the LTE predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDLTE(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldLTE(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDContains applies the Contains predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDContains(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldContains(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDHasPrefix applies the HasPrefix predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDHasPrefix(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldHasPrefix(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDHasSuffix applies the HasSuffix predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDHasSuffix(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldHasSuffix(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDIsNil applies the IsNil predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDIsNil() predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldIsNull(FieldCorrectsRealizationID))
+}
+
+// CorrectsRealizationIDNotNil applies the NotNil predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDNotNil() predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldNotNull(FieldCorrectsRealizationID))
+}
+
+// CorrectsRealizationIDEqualFold applies the EqualFold predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDEqualFold(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldEqualFold(FieldCorrectsRealizationID, v))
+}
+
+// CorrectsRealizationIDContainsFold applies the ContainsFold predicate on the "corrects_realization_id" field.
+func CorrectsRealizationIDContainsFold(v string) predicate.ChargeUsageBasedRunOverageCreditAllocations {
+	return predicate.ChargeUsageBasedRunOverageCreditAllocations(sql.FieldContainsFold(FieldCorrectsRealizationID, v))
 }
 
 // RunIDEQ applies the EQ predicate on the "run_id" field.

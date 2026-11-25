@@ -67,6 +67,36 @@ func IDContainsFold(id string) predicate.ChargeUsageBasedRevenueRecognitionCredi
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContainsFold(FieldID, id))
 }
 
+// LineID applies equality check predicate on the "line_id" field. It's identical to LineIDEQ.
+func LineID(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldLineID, v))
+}
+
+// Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
+func Amount(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldAmount, v))
+}
+
+// ServicePeriodFrom applies equality check predicate on the "service_period_from" field. It's identical to ServicePeriodFromEQ.
+func ServicePeriodFrom(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodTo applies equality check predicate on the "service_period_to" field. It's identical to ServicePeriodToEQ.
+func ServicePeriodTo(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldServicePeriodTo, v))
+}
+
+// LedgerTransactionGroupID applies equality check predicate on the "ledger_transaction_group_id" field. It's identical to LedgerTransactionGroupIDEQ.
+func LedgerTransactionGroupID(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
+}
+
+// SortHint applies equality check predicate on the "sort_hint" field. It's identical to SortHintEQ.
+func SortHint(v int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldSortHint, v))
+}
+
 // Namespace applies equality check predicate on the "namespace" field. It's identical to NamespaceEQ.
 func Namespace(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldNamespace, v))
@@ -92,24 +122,334 @@ func RunID(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldRunID, v))
 }
 
-// Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
-func Amount(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+// LineIDEQ applies the EQ predicate on the "line_id" field.
+func LineIDEQ(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldLineID, v))
+}
+
+// LineIDNEQ applies the NEQ predicate on the "line_id" field.
+func LineIDNEQ(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldLineID, v))
+}
+
+// LineIDIn applies the In predicate on the "line_id" field.
+func LineIDIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldLineID, vs...))
+}
+
+// LineIDNotIn applies the NotIn predicate on the "line_id" field.
+func LineIDNotIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldLineID, vs...))
+}
+
+// LineIDGT applies the GT predicate on the "line_id" field.
+func LineIDGT(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldLineID, v))
+}
+
+// LineIDGTE applies the GTE predicate on the "line_id" field.
+func LineIDGTE(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldLineID, v))
+}
+
+// LineIDLT applies the LT predicate on the "line_id" field.
+func LineIDLT(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldLineID, v))
+}
+
+// LineIDLTE applies the LTE predicate on the "line_id" field.
+func LineIDLTE(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldLineID, v))
+}
+
+// LineIDContains applies the Contains predicate on the "line_id" field.
+func LineIDContains(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContains(FieldLineID, v))
+}
+
+// LineIDHasPrefix applies the HasPrefix predicate on the "line_id" field.
+func LineIDHasPrefix(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldHasPrefix(FieldLineID, v))
+}
+
+// LineIDHasSuffix applies the HasSuffix predicate on the "line_id" field.
+func LineIDHasSuffix(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldHasSuffix(FieldLineID, v))
+}
+
+// LineIDIsNil applies the IsNil predicate on the "line_id" field.
+func LineIDIsNil() predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIsNull(FieldLineID))
+}
+
+// LineIDNotNil applies the NotNil predicate on the "line_id" field.
+func LineIDNotNil() predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotNull(FieldLineID))
+}
+
+// LineIDEqualFold applies the EqualFold predicate on the "line_id" field.
+func LineIDEqualFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEqualFold(FieldLineID, v))
+}
+
+// LineIDContainsFold applies the ContainsFold predicate on the "line_id" field.
+func LineIDContainsFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContainsFold(FieldLineID, v))
+}
+
+// AmountEQ applies the EQ predicate on the "amount" field.
+func AmountEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldAmount, v))
 }
 
-// ServicePeriodFrom applies equality check predicate on the "service_period_from" field. It's identical to ServicePeriodFromEQ.
-func ServicePeriodFrom(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+// AmountNEQ applies the NEQ predicate on the "amount" field.
+func AmountNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldAmount, v))
+}
+
+// AmountIn applies the In predicate on the "amount" field.
+func AmountIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldAmount, vs...))
+}
+
+// AmountNotIn applies the NotIn predicate on the "amount" field.
+func AmountNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldAmount, vs...))
+}
+
+// AmountGT applies the GT predicate on the "amount" field.
+func AmountGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldAmount, v))
+}
+
+// AmountGTE applies the GTE predicate on the "amount" field.
+func AmountGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldAmount, v))
+}
+
+// AmountLT applies the LT predicate on the "amount" field.
+func AmountLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldAmount, v))
+}
+
+// AmountLTE applies the LTE predicate on the "amount" field.
+func AmountLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldAmount, v))
+}
+
+// ServicePeriodFromEQ applies the EQ predicate on the "service_period_from" field.
+func ServicePeriodFromEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldServicePeriodFrom, v))
 }
 
-// ServicePeriodTo applies equality check predicate on the "service_period_to" field. It's identical to ServicePeriodToEQ.
-func ServicePeriodTo(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+// ServicePeriodFromNEQ applies the NEQ predicate on the "service_period_from" field.
+func ServicePeriodFromNEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromIn applies the In predicate on the "service_period_from" field.
+func ServicePeriodFromIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldServicePeriodFrom, vs...))
+}
+
+// ServicePeriodFromNotIn applies the NotIn predicate on the "service_period_from" field.
+func ServicePeriodFromNotIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldServicePeriodFrom, vs...))
+}
+
+// ServicePeriodFromGT applies the GT predicate on the "service_period_from" field.
+func ServicePeriodFromGT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromGTE applies the GTE predicate on the "service_period_from" field.
+func ServicePeriodFromGTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromLT applies the LT predicate on the "service_period_from" field.
+func ServicePeriodFromLT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodFromLTE applies the LTE predicate on the "service_period_from" field.
+func ServicePeriodFromLTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldServicePeriodFrom, v))
+}
+
+// ServicePeriodToEQ applies the EQ predicate on the "service_period_to" field.
+func ServicePeriodToEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldServicePeriodTo, v))
 }
 
-// LedgerTransactionGroupID applies equality check predicate on the "ledger_transaction_group_id" field. It's identical to LedgerTransactionGroupIDEQ.
-func LedgerTransactionGroupID(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+// ServicePeriodToNEQ applies the NEQ predicate on the "service_period_to" field.
+func ServicePeriodToNEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToIn applies the In predicate on the "service_period_to" field.
+func ServicePeriodToIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldServicePeriodTo, vs...))
+}
+
+// ServicePeriodToNotIn applies the NotIn predicate on the "service_period_to" field.
+func ServicePeriodToNotIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldServicePeriodTo, vs...))
+}
+
+// ServicePeriodToGT applies the GT predicate on the "service_period_to" field.
+func ServicePeriodToGT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToGTE applies the GTE predicate on the "service_period_to" field.
+func ServicePeriodToGTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToLT applies the LT predicate on the "service_period_to" field.
+func ServicePeriodToLT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldServicePeriodTo, v))
+}
+
+// ServicePeriodToLTE applies the LTE predicate on the "service_period_to" field.
+func ServicePeriodToLTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldServicePeriodTo, v))
+}
+
+// LedgerTransactionGroupIDEQ applies the EQ predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDEQ(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDNEQ applies the NEQ predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDNEQ(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDIn applies the In predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldLedgerTransactionGroupID, vs...))
+}
+
+// LedgerTransactionGroupIDNotIn applies the NotIn predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDNotIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldLedgerTransactionGroupID, vs...))
+}
+
+// LedgerTransactionGroupIDGT applies the GT predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDGT(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDGTE applies the GTE predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDGTE(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDLT applies the LT predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDLT(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDLTE applies the LTE predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDLTE(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDContains applies the Contains predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDContains(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContains(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDHasPrefix(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldHasPrefix(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDHasSuffix(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldHasSuffix(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDEqualFold applies the EqualFold predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDEqualFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEqualFold(FieldLedgerTransactionGroupID, v))
+}
+
+// LedgerTransactionGroupIDContainsFold applies the ContainsFold predicate on the "ledger_transaction_group_id" field.
+func LedgerTransactionGroupIDContainsFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContainsFold(FieldLedgerTransactionGroupID, v))
+}
+
+// SortHintEQ applies the EQ predicate on the "sort_hint" field.
+func SortHintEQ(v int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldSortHint, v))
+}
+
+// SortHintNEQ applies the NEQ predicate on the "sort_hint" field.
+func SortHintNEQ(v int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldSortHint, v))
+}
+
+// SortHintIn applies the In predicate on the "sort_hint" field.
+func SortHintIn(vs ...int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldSortHint, vs...))
+}
+
+// SortHintNotIn applies the NotIn predicate on the "sort_hint" field.
+func SortHintNotIn(vs ...int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldSortHint, vs...))
+}
+
+// SortHintGT applies the GT predicate on the "sort_hint" field.
+func SortHintGT(v int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldSortHint, v))
+}
+
+// SortHintGTE applies the GTE predicate on the "sort_hint" field.
+func SortHintGTE(v int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldSortHint, v))
+}
+
+// SortHintLT applies the LT predicate on the "sort_hint" field.
+func SortHintLT(v int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldSortHint, v))
+}
+
+// SortHintLTE applies the LTE predicate on the "sort_hint" field.
+func SortHintLTE(v int) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldSortHint, v))
+}
+
+// TypeEQ applies the EQ predicate on the "type" field.
+func TypeEQ(v creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	vc := v
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldType, vc))
+}
+
+// TypeNEQ applies the NEQ predicate on the "type" field.
+func TypeNEQ(v creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	vc := v
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldType, vc))
+}
+
+// TypeIn applies the In predicate on the "type" field.
+func TypeIn(vs ...creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldType, v...))
+}
+
+// TypeNotIn applies the NotIn predicate on the "type" field.
+func TypeNotIn(vs ...creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldType, v...))
 }
 
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
@@ -380,231 +720,6 @@ func RunIDEqualFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredit
 // RunIDContainsFold applies the ContainsFold predicate on the "run_id" field.
 func RunIDContainsFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
 	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContainsFold(FieldRunID, v))
-}
-
-// AmountEQ applies the EQ predicate on the "amount" field.
-func AmountEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldAmount, v))
-}
-
-// AmountNEQ applies the NEQ predicate on the "amount" field.
-func AmountNEQ(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldAmount, v))
-}
-
-// AmountIn applies the In predicate on the "amount" field.
-func AmountIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldAmount, vs...))
-}
-
-// AmountNotIn applies the NotIn predicate on the "amount" field.
-func AmountNotIn(vs ...alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldAmount, vs...))
-}
-
-// AmountGT applies the GT predicate on the "amount" field.
-func AmountGT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldAmount, v))
-}
-
-// AmountGTE applies the GTE predicate on the "amount" field.
-func AmountGTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldAmount, v))
-}
-
-// AmountLT applies the LT predicate on the "amount" field.
-func AmountLT(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldAmount, v))
-}
-
-// AmountLTE applies the LTE predicate on the "amount" field.
-func AmountLTE(v alpacadecimal.Decimal) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldAmount, v))
-}
-
-// ServicePeriodFromEQ applies the EQ predicate on the "service_period_from" field.
-func ServicePeriodFromEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldServicePeriodFrom, v))
-}
-
-// ServicePeriodFromNEQ applies the NEQ predicate on the "service_period_from" field.
-func ServicePeriodFromNEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldServicePeriodFrom, v))
-}
-
-// ServicePeriodFromIn applies the In predicate on the "service_period_from" field.
-func ServicePeriodFromIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldServicePeriodFrom, vs...))
-}
-
-// ServicePeriodFromNotIn applies the NotIn predicate on the "service_period_from" field.
-func ServicePeriodFromNotIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldServicePeriodFrom, vs...))
-}
-
-// ServicePeriodFromGT applies the GT predicate on the "service_period_from" field.
-func ServicePeriodFromGT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldServicePeriodFrom, v))
-}
-
-// ServicePeriodFromGTE applies the GTE predicate on the "service_period_from" field.
-func ServicePeriodFromGTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldServicePeriodFrom, v))
-}
-
-// ServicePeriodFromLT applies the LT predicate on the "service_period_from" field.
-func ServicePeriodFromLT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldServicePeriodFrom, v))
-}
-
-// ServicePeriodFromLTE applies the LTE predicate on the "service_period_from" field.
-func ServicePeriodFromLTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldServicePeriodFrom, v))
-}
-
-// ServicePeriodToEQ applies the EQ predicate on the "service_period_to" field.
-func ServicePeriodToEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldServicePeriodTo, v))
-}
-
-// ServicePeriodToNEQ applies the NEQ predicate on the "service_period_to" field.
-func ServicePeriodToNEQ(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldServicePeriodTo, v))
-}
-
-// ServicePeriodToIn applies the In predicate on the "service_period_to" field.
-func ServicePeriodToIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldServicePeriodTo, vs...))
-}
-
-// ServicePeriodToNotIn applies the NotIn predicate on the "service_period_to" field.
-func ServicePeriodToNotIn(vs ...time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldServicePeriodTo, vs...))
-}
-
-// ServicePeriodToGT applies the GT predicate on the "service_period_to" field.
-func ServicePeriodToGT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldServicePeriodTo, v))
-}
-
-// ServicePeriodToGTE applies the GTE predicate on the "service_period_to" field.
-func ServicePeriodToGTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldServicePeriodTo, v))
-}
-
-// ServicePeriodToLT applies the LT predicate on the "service_period_to" field.
-func ServicePeriodToLT(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldServicePeriodTo, v))
-}
-
-// ServicePeriodToLTE applies the LTE predicate on the "service_period_to" field.
-func ServicePeriodToLTE(v time.Time) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldServicePeriodTo, v))
-}
-
-// TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	vc := v
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldType, vc))
-}
-
-// TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	vc := v
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldType, vc))
-}
-
-// TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldType, v...))
-}
-
-// TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...creditrealization.Type) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldType, v...))
-}
-
-// LedgerTransactionGroupIDEQ applies the EQ predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDEQ(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEQ(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDNEQ applies the NEQ predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDNEQ(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNEQ(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDIn applies the In predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIn(FieldLedgerTransactionGroupID, vs...))
-}
-
-// LedgerTransactionGroupIDNotIn applies the NotIn predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDNotIn(vs ...string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotIn(FieldLedgerTransactionGroupID, vs...))
-}
-
-// LedgerTransactionGroupIDGT applies the GT predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDGT(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGT(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDGTE applies the GTE predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDGTE(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldGTE(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDLT applies the LT predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDLT(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLT(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDLTE applies the LTE predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDLTE(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldLTE(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDContains applies the Contains predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDContains(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContains(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDHasPrefix applies the HasPrefix predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDHasPrefix(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldHasPrefix(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDHasSuffix applies the HasSuffix predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDHasSuffix(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldHasSuffix(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDIsNil applies the IsNil predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDIsNil() predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldIsNull(FieldLedgerTransactionGroupID))
-}
-
-// LedgerTransactionGroupIDNotNil applies the NotNil predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDNotNil() predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldNotNull(FieldLedgerTransactionGroupID))
-}
-
-// LedgerTransactionGroupIDEqualFold applies the EqualFold predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDEqualFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldEqualFold(FieldLedgerTransactionGroupID, v))
-}
-
-// LedgerTransactionGroupIDContainsFold applies the ContainsFold predicate on the "ledger_transaction_group_id" field.
-func LedgerTransactionGroupIDContainsFold(v string) predicate.ChargeUsageBasedRevenueRecognitionCredits {
-	return predicate.ChargeUsageBasedRevenueRecognitionCredits(sql.FieldContainsFold(FieldLedgerTransactionGroupID, v))
 }
 
 // HasRun applies the HasEdge predicate on the "run" edge.

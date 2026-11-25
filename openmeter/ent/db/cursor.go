@@ -2002,10 +2002,10 @@ func (_m *ChargeUsageBasedRevenueRecognitionDetailedLineQuery) Cursor(ctx contex
 
 // Cursor runs the query and returns a cursor-paginated response.
 // Ordering is always by created_at asc, id asc.
-func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits], error) {
+func (_m *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Cursor(ctx context.Context, cursor *pagination.Cursor) (pagination.Result[*ChargeUsageBasedRevenueRecognitionInvoicedUsage], error) {
 	if cursor != nil {
 		if err := cursor.Validate(); err != nil {
-			return pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{}, fmt.Errorf("invalid cursor: %w", err)
+			return pagination.Result[*ChargeUsageBasedRevenueRecognitionInvoicedUsage]{}, fmt.Errorf("invalid cursor: %w", err)
 		}
 
 		_m.Where(func(s *sql.Selector) {
@@ -2032,14 +2032,14 @@ func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Cursor(ctx cont
 
 	items, err := _m.All(ctx)
 	if err != nil {
-		return pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{}, err
+		return pagination.Result[*ChargeUsageBasedRevenueRecognitionInvoicedUsage]{}, err
 	}
 
 	if items == nil {
-		items = make([]*ChargeUsageBasedRevenueRecognitionOverageCredits, 0)
+		items = make([]*ChargeUsageBasedRevenueRecognitionInvoicedUsage, 0)
 	}
 
-	result := pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{
+	result := pagination.Result[*ChargeUsageBasedRevenueRecognitionInvoicedUsage]{
 		Items: items,
 	}
 

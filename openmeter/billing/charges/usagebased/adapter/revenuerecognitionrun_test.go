@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	dbchargeusagebasedrevenuerecognitions "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -31,12 +30,11 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateAndGetByID() {
 
 	// When a revenue recognition run is created for the first day.
 	created, err := s.adapter.CreateRevenueRecognitionRun(ctx, usagebased.CreateRevenueRecognitionRunInput{
-		ChargeID:             charge.GetChargeID(),
-		FeatureID:            charge.State.FeatureID,
-		StoredAtLT:           dayBoundary.Add(time.Minute),
-		ServicePeriodTo:      dayBoundary,
-		MeteredQuantity:      alpacadecimal.NewFromInt(30),
-		DeltaMeteredQuantity: alpacadecimal.NewFromInt(10),
+		ChargeID:        charge.GetChargeID(),
+		FeatureID:       charge.State.FeatureID,
+		StoredAtLT:      dayBoundary.Add(time.Minute),
+		ServicePeriodTo: dayBoundary,
+		MeteredQuantity: alpacadecimal.NewFromInt(30),
 		Totals: totals.DeltaTotals{
 			Totals: totals.Totals{
 				Amount:       alpacadecimal.NewFromInt(3),
@@ -58,11 +56,8 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateAndGetByID() {
 	s.Equal(charge.State.FeatureID, fetched.FeatureID)
 	s.Equal(dayBoundary.Add(time.Minute), fetched.StoredAtLT)
 	s.Equal(dayBoundary, fetched.ServicePeriodTo)
-	// The input set no period, so the run is daily.
-	s.Equal(datetime.ISODurationString("P1D"), fetched.Period.ISOString())
-	s.Nil(fetched.PriorRunID)
+	s.Nil(fetched.PriorRevRecogRunID)
 	s.Equal(float64(30), fetched.MeteredQuantity.InexactFloat64())
-	s.Equal(float64(10), fetched.DeltaMeteredQuantity.InexactFloat64())
 	s.Equal(float64(3), fetched.Totals.Amount.InexactFloat64())
 	s.Equal(float64(1), fetched.Totals.CreditsTotal.InexactFloat64())
 	s.Equal(float64(2), fetched.Totals.Total.InexactFloat64())
@@ -98,7 +93,6 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunPointsAtPriorRun() {
 		FeatureID:       charge.State.FeatureID,
 		StoredAtLT:      firstDay,
 		ServicePeriodTo: firstDay,
-		Period:          datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0),
 	}
 
 	firstRun, err := s.adapter.CreateRevenueRecognitionRun(ctx, input)
@@ -108,7 +102,7 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunPointsAtPriorRun() {
 	secondDay := firstDay.AddDate(0, 0, 1)
 	input.StoredAtLT = secondDay
 	input.ServicePeriodTo = secondDay
-	input.PriorRunID = &firstRun.ID
+	input.PriorRevRecogRunID = &firstRun.ID
 
 	secondRun, err := s.adapter.CreateRevenueRecognitionRun(ctx, input)
 	s.Require().NoError(err)
@@ -116,11 +110,11 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunPointsAtPriorRun() {
 	// Then the pointer is stored and read back.
 	fetched, err := s.adapter.GetRevenueRecognitionRunByID(ctx, secondRun.ID)
 	s.Require().NoError(err)
-	s.Require().NotNil(fetched.PriorRunID)
-	s.Equal(firstRun.ID, *fetched.PriorRunID)
+	s.Require().NotNil(fetched.PriorRevRecogRunID)
+	s.Equal(firstRun.ID, *fetched.PriorRevRecogRunID)
 
 	// And a prior run from another namespace is rejected.
-	input.PriorRunID = &usagebased.RevenueRecognitionRunID{
+	input.PriorRevRecogRunID = &usagebased.RevenueRecognitionRunID{
 		Namespace: namespace + "-other",
 		ID:        firstRun.ID.ID,
 	}
@@ -140,6 +134,7 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateRollsBackWhenC
 		To:   servicePeriod.From.AddDate(0, 0, 1),
 	}
 	duplicateID := ulid.Make().String()
+	ledgerTransaction := ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}
 
 	// When a run is created with two credits that share an ID, so the credit
 	// insert fails after the run row was written.
@@ -148,19 +143,20 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateRollsBackWhenC
 		FeatureID:       charge.State.FeatureID,
 		StoredAtLT:      dayPeriod.To,
 		ServicePeriodTo: dayPeriod.To,
-		Period:          datetime.NewISODuration(0, 0, 0, 1, 0, 0, 0),
 		CreditsAllocated: creditrealization.CreateInputs{
 			{
-				ID:            duplicateID,
-				ServicePeriod: dayPeriod,
-				Amount:        alpacadecimal.NewFromInt(1),
-				Type:          creditrealization.TypeAllocation,
+				ID:                duplicateID,
+				ServicePeriod:     dayPeriod,
+				LedgerTransaction: ledgerTransaction,
+				Amount:            alpacadecimal.NewFromInt(1),
+				Type:              creditrealization.TypeAllocation,
 			},
 			{
-				ID:            duplicateID,
-				ServicePeriod: dayPeriod,
-				Amount:        alpacadecimal.NewFromInt(2),
-				Type:          creditrealization.TypeAllocation,
+				ID:                duplicateID,
+				ServicePeriod:     dayPeriod,
+				LedgerTransaction: ledgerTransaction,
+				Amount:            alpacadecimal.NewFromInt(2),
+				Type:              creditrealization.TypeAllocation,
 			},
 		},
 	})
@@ -175,7 +171,7 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunCreateRollsBackWhenC
 	s.Equal(0, runCount)
 }
 
-func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoiceUsageAndDetailedLines() {
+func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoicedUsagesAndDetailedLines() {
 	ctx := s.T().Context()
 	namespace := "usagebased-revenue-recognition-run-children"
 
@@ -185,16 +181,22 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoice
 		From: servicePeriod.From,
 		To:   servicePeriod.From.AddDate(0, 0, 1),
 	}
-	ledgerTransactionGroupID := ulid.Make().String()
+	ledgerTransaction := ledgertransaction.GroupReference{TransactionGroupID: ulid.Make().String()}
+	lineID := ulid.Make().String()
+
+	// The first credit gets the larger ID, so reading back in input order shows
+	// that the sort hint decides the order, not the ID.
+	smallerID, largerID := ulid.Make().String(), ulid.Make().String()
+	if smallerID > largerID {
+		smallerID, largerID = largerID, smallerID
+	}
 
 	input := usagebased.CreateRevenueRecognitionRunInput{
-		ChargeID:             charge.GetChargeID(),
-		FeatureID:            charge.State.FeatureID,
-		StoredAtLT:           dayPeriod.To,
-		ServicePeriodTo:      dayPeriod.To,
-		Period:               datetime.NewISODuration(0, 0, 0, 0, 1, 0, 0),
-		MeteredQuantity:      alpacadecimal.NewFromInt(3),
-		DeltaMeteredQuantity: alpacadecimal.NewFromInt(3),
+		ChargeID:        charge.GetChargeID(),
+		FeatureID:       charge.State.FeatureID,
+		StoredAtLT:      dayPeriod.To,
+		ServicePeriodTo: dayPeriod.To,
+		MeteredQuantity: alpacadecimal.NewFromInt(3),
 		Totals: totals.DeltaTotals{
 			Totals: totals.Totals{
 				Amount:       alpacadecimal.NewFromInt(4),
@@ -202,28 +204,36 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoice
 				Total:        alpacadecimal.NewFromInt(2),
 			},
 		},
-		InvoiceUsageTotal: lo.ToPtr(alpacadecimal.NewFromInt(2)),
 		CreditsAllocated: creditrealization.CreateInputs{
 			{
-				Annotations:   models.Annotations{"source": "test"},
-				ServicePeriod: dayPeriod,
-				LedgerTransaction: ledgertransaction.GroupReference{
-					TransactionGroupID: ledgerTransactionGroupID,
-				},
-				Amount: alpacadecimal.NewFromInt(3),
-				Type:   creditrealization.TypeAllocation,
+				ID:                largerID,
+				Annotations:       models.Annotations{"source": "test"},
+				ServicePeriod:     dayPeriod,
+				LedgerTransaction: ledgerTransaction,
+				Amount:            alpacadecimal.NewFromInt(3),
+				LineID:            lo.ToPtr(lineID),
+				Type:              creditrealization.TypeAllocation,
 			},
 			{
-				ServicePeriod: dayPeriod,
-				Amount:        alpacadecimal.NewFromInt(-1),
-				Type:          creditrealization.TypeCorrection,
+				ID:                smallerID,
+				ServicePeriod:     dayPeriod,
+				LedgerTransaction: ledgerTransaction,
+				Amount:            alpacadecimal.NewFromInt(-1),
+				Type:              creditrealization.TypeCorrection,
 			},
 		},
-		FiatOverageCreditRealizations: creditrealization.CreateInputs{
+		InvoicedUsages: creditrealization.CreateInputs{
 			{
-				ServicePeriod: dayPeriod,
-				Amount:        alpacadecimal.NewFromInt(5),
-				Type:          creditrealization.TypeAllocation,
+				ServicePeriod:     dayPeriod,
+				LedgerTransaction: ledgerTransaction,
+				Amount:            alpacadecimal.NewFromInt(5),
+				Type:              creditrealization.TypeAllocation,
+			},
+			{
+				ServicePeriod:     dayPeriod,
+				LedgerTransaction: ledgerTransaction,
+				Amount:            alpacadecimal.NewFromInt(-3),
+				Type:              creditrealization.TypeCorrection,
 			},
 		},
 		DetailedLines: []usagebased.RevenueRecognitionDetailedLine{
@@ -270,7 +280,7 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoice
 		},
 	}
 
-	// When the run is created with credits, invoice usage and detailed lines.
+	// When the run is created with credits, invoiced usages and detailed lines.
 	created, err := s.adapter.CreateRevenueRecognitionRun(ctx, input)
 	s.Require().NoError(err)
 
@@ -279,33 +289,36 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoice
 	s.Require().NoError(err)
 	s.Equal(created, fetched)
 
-	s.Equal(datetime.ISODurationString("PT1H"), fetched.Period.ISOString())
-
-	s.Require().NotNil(fetched.InvoiceUsageTotal)
-	s.Equal(float64(2), fetched.InvoiceUsageTotal.InexactFloat64())
-
+	// Credits come back in input order through the sort hint.
 	s.Require().Len(fetched.CreditsAllocated, 2)
-	allocation, ok := lo.Find(fetched.CreditsAllocated, func(r creditrealization.Realization) bool {
-		return r.Type == creditrealization.TypeAllocation
-	})
-	s.Require().True(ok)
-	s.NotEmpty(allocation.ID)
+	allocation, correction := fetched.CreditsAllocated[0], fetched.CreditsAllocated[1]
+
+	s.Equal(largerID, allocation.ID)
+	s.Equal(0, allocation.SortHint)
+	s.Equal(creditrealization.TypeAllocation, allocation.Type)
 	s.Equal(namespace, allocation.Namespace)
 	s.Equal(models.Annotations{"source": "test"}, allocation.Annotations)
 	s.Equal(dayPeriod, allocation.ServicePeriod)
 	s.Equal(float64(3), allocation.Amount.InexactFloat64())
-	s.Equal(ledgerTransactionGroupID, allocation.LedgerTransaction.TransactionGroupID)
+	s.Equal(ledgerTransaction, allocation.LedgerTransaction)
+	s.Equal(lo.ToPtr(lineID), allocation.LineID)
 
-	correction, ok := lo.Find(fetched.CreditsAllocated, func(r creditrealization.Realization) bool {
-		return r.Type == creditrealization.TypeCorrection
-	})
-	s.Require().True(ok)
+	s.Equal(smallerID, correction.ID)
+	s.Equal(1, correction.SortHint)
+	s.Equal(creditrealization.TypeCorrection, correction.Type)
 	s.Equal(float64(-1), correction.Amount.InexactFloat64())
-	s.Empty(correction.LedgerTransaction.TransactionGroupID)
+	s.Nil(correction.LineID)
+	s.Nil(correction.CorrectsRealizationID)
 
-	s.Require().Len(fetched.FiatOverageCreditRealizations, 1)
-	s.Equal(creditrealization.TypeAllocation, fetched.FiatOverageCreditRealizations[0].Type)
-	s.Equal(float64(5), fetched.FiatOverageCreditRealizations[0].Amount.InexactFloat64())
+	// Invoiced usages are separate rows, and their amounts add up to the run's
+	// invoiced total.
+	s.Require().Len(fetched.InvoicedUsages, 2)
+	s.Equal(creditrealization.TypeAllocation, fetched.InvoicedUsages[0].Type)
+	s.Equal(float64(5), fetched.InvoicedUsages[0].Amount.InexactFloat64())
+	s.Equal(ledgerTransaction, fetched.InvoicedUsages[0].LedgerTransaction)
+	s.Equal(creditrealization.TypeCorrection, fetched.InvoicedUsages[1].Type)
+	s.Equal(float64(-3), fetched.InvoicedUsages[1].Amount.InexactFloat64())
+	s.Equal(1, fetched.InvoicedUsages[1].SortHint)
 
 	// Detailed lines come back in index order, not insertion order.
 	s.Require().Len(fetched.DetailedLines, 2)
@@ -336,8 +349,17 @@ func (s *DetailedLineAdapterSuite) TestRevenueRecognitionRunStoresCreditsInvoice
 	s.Empty(secondLine.AmountDiscounts)
 	s.Empty(secondLine.CreditsApplied)
 
-	// And a credit realization field that has no column is rejected instead of dropped.
+	// And a correction that names the realization it corrects is rejected, because
+	// there is no column to store that in.
+	input.CreditsAllocated[0].ID, input.CreditsAllocated[1].ID = "", ""
 	input.CreditsAllocated[1].CorrectsRealizationID = lo.ToPtr(allocation.ID)
+	_, err = s.adapter.CreateRevenueRecognitionRun(ctx, input)
+	s.Require().Error(err)
+	s.True(models.IsGenericValidationError(err))
+
+	// And so is an invoiced usage without a ledger transaction.
+	input.CreditsAllocated[1].CorrectsRealizationID = nil
+	input.InvoicedUsages[0].LedgerTransaction = ledgertransaction.GroupReference{}
 	_, err = s.adapter.CreateRevenueRecognitionRun(ctx, input)
 	s.Require().Error(err)
 	s.True(models.IsGenericValidationError(err))

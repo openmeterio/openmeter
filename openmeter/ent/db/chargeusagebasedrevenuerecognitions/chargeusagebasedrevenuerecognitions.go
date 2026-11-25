@@ -7,7 +7,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 const (
@@ -47,30 +46,24 @@ const (
 	FieldStoredAtLt = "stored_at_lt"
 	// FieldServicePeriodTo holds the string denoting the service_period_to field in the database.
 	FieldServicePeriodTo = "service_period_to"
-	// FieldPeriod holds the string denoting the period field in the database.
-	FieldPeriod = "period"
-	// FieldPriorRunID holds the string denoting the prior_run_id field in the database.
-	FieldPriorRunID = "prior_run_id"
+	// FieldPriorRevRecogRunID holds the string denoting the prior_rev_recog_run_id field in the database.
+	FieldPriorRevRecogRunID = "prior_rev_recog_run_id"
 	// FieldMeteredQuantity holds the string denoting the metered_quantity field in the database.
 	FieldMeteredQuantity = "metered_quantity"
-	// FieldDeltaMeteredQuantity holds the string denoting the delta_metered_quantity field in the database.
-	FieldDeltaMeteredQuantity = "delta_metered_quantity"
 	// FieldDetailedLinesIncludeCreditAllocations holds the string denoting the detailed_lines_include_credit_allocations field in the database.
 	FieldDetailedLinesIncludeCreditAllocations = "detailed_lines_include_credit_allocations"
-	// FieldInvoiceUsageTotal holds the string denoting the invoice_usage_total field in the database.
-	FieldInvoiceUsageTotal = "invoice_usage_total"
 	// EdgeUsageBased holds the string denoting the usage_based edge name in mutations.
 	EdgeUsageBased = "usage_based"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
-	// EdgeNextRuns holds the string denoting the next_runs edge name in mutations.
-	EdgeNextRuns = "next_runs"
-	// EdgePriorRun holds the string denoting the prior_run edge name in mutations.
-	EdgePriorRun = "prior_run"
+	// EdgeNextRevRecogRuns holds the string denoting the next_rev_recog_runs edge name in mutations.
+	EdgeNextRevRecogRuns = "next_rev_recog_runs"
+	// EdgePriorRevRecogRun holds the string denoting the prior_rev_recog_run edge name in mutations.
+	EdgePriorRevRecogRun = "prior_rev_recog_run"
 	// EdgeCreditAllocations holds the string denoting the credit_allocations edge name in mutations.
 	EdgeCreditAllocations = "credit_allocations"
-	// EdgeFiatOverageCreditAllocations holds the string denoting the fiat_overage_credit_allocations edge name in mutations.
-	EdgeFiatOverageCreditAllocations = "fiat_overage_credit_allocations"
+	// EdgeInvoicedUsages holds the string denoting the invoiced_usages edge name in mutations.
+	EdgeInvoicedUsages = "invoiced_usages"
 	// EdgeDetailedLines holds the string denoting the detailed_lines edge name in mutations.
 	EdgeDetailedLines = "detailed_lines"
 	// Table holds the table name of the chargeusagebasedrevenuerecognitions in the database.
@@ -89,14 +82,14 @@ const (
 	FeatureInverseTable = "features"
 	// FeatureColumn is the table column denoting the feature relation/edge.
 	FeatureColumn = "feature_id"
-	// NextRunsTable is the table that holds the next_runs relation/edge.
-	NextRunsTable = "charge_usage_based_revenue_recognitions"
-	// NextRunsColumn is the table column denoting the next_runs relation/edge.
-	NextRunsColumn = "prior_run_id"
-	// PriorRunTable is the table that holds the prior_run relation/edge.
-	PriorRunTable = "charge_usage_based_revenue_recognitions"
-	// PriorRunColumn is the table column denoting the prior_run relation/edge.
-	PriorRunColumn = "prior_run_id"
+	// NextRevRecogRunsTable is the table that holds the next_rev_recog_runs relation/edge.
+	NextRevRecogRunsTable = "charge_usage_based_revenue_recognitions"
+	// NextRevRecogRunsColumn is the table column denoting the next_rev_recog_runs relation/edge.
+	NextRevRecogRunsColumn = "prior_rev_recog_run_id"
+	// PriorRevRecogRunTable is the table that holds the prior_rev_recog_run relation/edge.
+	PriorRevRecogRunTable = "charge_usage_based_revenue_recognitions"
+	// PriorRevRecogRunColumn is the table column denoting the prior_rev_recog_run relation/edge.
+	PriorRevRecogRunColumn = "prior_rev_recog_run_id"
 	// CreditAllocationsTable is the table that holds the credit_allocations relation/edge.
 	CreditAllocationsTable = "charge_usage_based_revenue_recognition_credits"
 	// CreditAllocationsInverseTable is the table name for the ChargeUsageBasedRevenueRecognitionCredits entity.
@@ -104,13 +97,13 @@ const (
 	CreditAllocationsInverseTable = "charge_usage_based_revenue_recognition_credits"
 	// CreditAllocationsColumn is the table column denoting the credit_allocations relation/edge.
 	CreditAllocationsColumn = "run_id"
-	// FiatOverageCreditAllocationsTable is the table that holds the fiat_overage_credit_allocations relation/edge.
-	FiatOverageCreditAllocationsTable = "charge_usage_based_revenue_recognition_overage_credits"
-	// FiatOverageCreditAllocationsInverseTable is the table name for the ChargeUsageBasedRevenueRecognitionOverageCredits entity.
-	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrevenuerecognitionoveragecredits" package.
-	FiatOverageCreditAllocationsInverseTable = "charge_usage_based_revenue_recognition_overage_credits"
-	// FiatOverageCreditAllocationsColumn is the table column denoting the fiat_overage_credit_allocations relation/edge.
-	FiatOverageCreditAllocationsColumn = "run_id"
+	// InvoicedUsagesTable is the table that holds the invoiced_usages relation/edge.
+	InvoicedUsagesTable = "charge_usage_based_revenue_recognition_invoiced_usages"
+	// InvoicedUsagesInverseTable is the table name for the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity.
+	// It exists in this package in order to avoid circular dependency with the "chargeusagebasedrevenuerecognitioninvoicedusage" package.
+	InvoicedUsagesInverseTable = "charge_usage_based_revenue_recognition_invoiced_usages"
+	// InvoicedUsagesColumn is the table column denoting the invoiced_usages relation/edge.
+	InvoicedUsagesColumn = "run_id"
 	// DetailedLinesTable is the table that holds the detailed_lines relation/edge.
 	DetailedLinesTable = "charge_usage_based_revenue_recognition_detailed_line"
 	// DetailedLinesInverseTable is the table name for the ChargeUsageBasedRevenueRecognitionDetailedLine entity.
@@ -139,12 +132,9 @@ var Columns = []string{
 	FieldFeatureID,
 	FieldStoredAtLt,
 	FieldServicePeriodTo,
-	FieldPeriod,
-	FieldPriorRunID,
+	FieldPriorRevRecogRunID,
 	FieldMeteredQuantity,
-	FieldDeltaMeteredQuantity,
 	FieldDetailedLinesIncludeCreditAllocations,
-	FieldInvoiceUsageTotal,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -168,10 +158,6 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// FeatureIDValidator is a validator for the "feature_id" field. It is called by the builders before save.
 	FeatureIDValidator func(string) error
-	// DefaultPeriod holds the default value on creation for the "period" field.
-	DefaultPeriod datetime.ISODurationString
-	// DefaultDetailedLinesIncludeCreditAllocations holds the default value on creation for the "detailed_lines_include_credit_allocations" field.
-	DefaultDetailedLinesIncludeCreditAllocations bool
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -264,14 +250,9 @@ func ByServicePeriodTo(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldServicePeriodTo, opts...).ToFunc()
 }
 
-// ByPeriod orders the results by the period field.
-func ByPeriod(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPeriod, opts...).ToFunc()
-}
-
-// ByPriorRunID orders the results by the prior_run_id field.
-func ByPriorRunID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPriorRunID, opts...).ToFunc()
+// ByPriorRevRecogRunID orders the results by the prior_rev_recog_run_id field.
+func ByPriorRevRecogRunID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPriorRevRecogRunID, opts...).ToFunc()
 }
 
 // ByMeteredQuantity orders the results by the metered_quantity field.
@@ -279,19 +260,9 @@ func ByMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeteredQuantity, opts...).ToFunc()
 }
 
-// ByDeltaMeteredQuantity orders the results by the delta_metered_quantity field.
-func ByDeltaMeteredQuantity(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldDeltaMeteredQuantity, opts...).ToFunc()
-}
-
 // ByDetailedLinesIncludeCreditAllocations orders the results by the detailed_lines_include_credit_allocations field.
 func ByDetailedLinesIncludeCreditAllocations(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDetailedLinesIncludeCreditAllocations, opts...).ToFunc()
-}
-
-// ByInvoiceUsageTotal orders the results by the invoice_usage_total field.
-func ByInvoiceUsageTotal(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoiceUsageTotal, opts...).ToFunc()
 }
 
 // ByUsageBasedField orders the results by usage_based field.
@@ -308,24 +279,24 @@ func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByNextRunsCount orders the results by next_runs count.
-func ByNextRunsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByNextRevRecogRunsCount orders the results by next_rev_recog_runs count.
+func ByNextRevRecogRunsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newNextRunsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newNextRevRecogRunsStep(), opts...)
 	}
 }
 
-// ByNextRuns orders the results by next_runs terms.
-func ByNextRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByNextRevRecogRuns orders the results by next_rev_recog_runs terms.
+func ByNextRevRecogRuns(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newNextRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newNextRevRecogRunsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
-// ByPriorRunField orders the results by prior_run field.
-func ByPriorRunField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByPriorRevRecogRunField orders the results by prior_rev_recog_run field.
+func ByPriorRevRecogRunField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newPriorRunStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newPriorRevRecogRunStep(), sql.OrderByField(field, opts...))
 	}
 }
 
@@ -343,17 +314,17 @@ func ByCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption
 	}
 }
 
-// ByFiatOverageCreditAllocationsCount orders the results by fiat_overage_credit_allocations count.
-func ByFiatOverageCreditAllocationsCount(opts ...sql.OrderTermOption) OrderOption {
+// ByInvoicedUsagesCount orders the results by invoiced_usages count.
+func ByInvoicedUsagesCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newFiatOverageCreditAllocationsStep(), opts...)
+		sqlgraph.OrderByNeighborsCount(s, newInvoicedUsagesStep(), opts...)
 	}
 }
 
-// ByFiatOverageCreditAllocations orders the results by fiat_overage_credit_allocations terms.
-func ByFiatOverageCreditAllocations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByInvoicedUsages orders the results by invoiced_usages terms.
+func ByInvoicedUsages(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newFiatOverageCreditAllocationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newInvoicedUsagesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -384,18 +355,18 @@ func newFeatureStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
 	)
 }
-func newNextRunsStep() *sqlgraph.Step {
+func newNextRevRecogRunsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, NextRunsTable, NextRunsColumn),
+		sqlgraph.Edge(sqlgraph.O2M, false, NextRevRecogRunsTable, NextRevRecogRunsColumn),
 	)
 }
-func newPriorRunStep() *sqlgraph.Step {
+func newPriorRevRecogRunStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(Table, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, PriorRunTable, PriorRunColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, PriorRevRecogRunTable, PriorRevRecogRunColumn),
 	)
 }
 func newCreditAllocationsStep() *sqlgraph.Step {
@@ -405,11 +376,11 @@ func newCreditAllocationsStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2M, false, CreditAllocationsTable, CreditAllocationsColumn),
 	)
 }
-func newFiatOverageCreditAllocationsStep() *sqlgraph.Step {
+func newInvoicedUsagesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(FiatOverageCreditAllocationsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, FiatOverageCreditAllocationsTable, FiatOverageCreditAllocationsColumn),
+		sqlgraph.To(InvoicedUsagesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, InvoicedUsagesTable, InvoicedUsagesColumn),
 	)
 }
 func newDetailedLinesStep() *sqlgraph.Step {

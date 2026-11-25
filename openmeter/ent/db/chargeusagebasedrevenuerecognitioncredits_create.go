@@ -27,6 +27,56 @@ type ChargeUsageBasedRevenueRecognitionCreditsCreate struct {
 	conflict []sql.ConflictOption
 }
 
+// SetLineID sets the "line_id" field.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetLineID(v string) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	_c.mutation.SetLineID(v)
+	return _c
+}
+
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetNillableLineID(v *string) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	if v != nil {
+		_c.SetLineID(*v)
+	}
+	return _c
+}
+
+// SetAmount sets the "amount" field.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	_c.mutation.SetAmount(v)
+	return _c
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	_c.mutation.SetServicePeriodFrom(v)
+	return _c
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	_c.mutation.SetServicePeriodTo(v)
+	return _c
+}
+
+// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetLedgerTransactionGroupID(v string) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	_c.mutation.SetLedgerTransactionGroupID(v)
+	return _c
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	_c.mutation.SetSortHint(v)
+	return _c
+}
+
+// SetType sets the "type" field.
+func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetType(v creditrealization.Type) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
+	_c.mutation.SetType(v)
+	return _c
+}
+
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetNamespace(v string) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
 	_c.mutation.SetNamespace(v)
@@ -84,44 +134,6 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetAnnotations(v mode
 // SetRunID sets the "run_id" field.
 func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetRunID(v string) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
 	_c.mutation.SetRunID(v)
-	return _c
-}
-
-// SetAmount sets the "amount" field.
-func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
-	_c.mutation.SetAmount(v)
-	return _c
-}
-
-// SetServicePeriodFrom sets the "service_period_from" field.
-func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
-	_c.mutation.SetServicePeriodFrom(v)
-	return _c
-}
-
-// SetServicePeriodTo sets the "service_period_to" field.
-func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
-	_c.mutation.SetServicePeriodTo(v)
-	return _c
-}
-
-// SetType sets the "type" field.
-func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetType(v creditrealization.Type) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
-	_c.mutation.SetType(v)
-	return _c
-}
-
-// SetLedgerTransactionGroupID sets the "ledger_transaction_group_id" field.
-func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetLedgerTransactionGroupID(v string) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
-	_c.mutation.SetLedgerTransactionGroupID(v)
-	return _c
-}
-
-// SetNillableLedgerTransactionGroupID sets the "ledger_transaction_group_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) SetNillableLedgerTransactionGroupID(v *string) *ChargeUsageBasedRevenueRecognitionCreditsCreate {
-	if v != nil {
-		_c.SetLedgerTransactionGroupID(*v)
-	}
 	return _c
 }
 
@@ -195,6 +207,39 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) check() error {
+	if v, ok := _c.mutation.LineID(); ok {
+		if err := chargeusagebasedrevenuerecognitioncredits.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRevenueRecognitionCredits.line_id": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Amount(); !ok {
+		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.amount"`)}
+	}
+	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
+		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.service_period_from"`)}
+	}
+	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
+		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.service_period_to"`)}
+	}
+	if _, ok := _c.mutation.LedgerTransactionGroupID(); !ok {
+		return &ValidationError{Name: "ledger_transaction_group_id", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.ledger_transaction_group_id"`)}
+	}
+	if v, ok := _c.mutation.LedgerTransactionGroupID(); ok {
+		if err := chargeusagebasedrevenuerecognitioncredits.LedgerTransactionGroupIDValidator(v); err != nil {
+			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRevenueRecognitionCredits.ledger_transaction_group_id": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.SortHint(); !ok {
+		return &ValidationError{Name: "sort_hint", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.sort_hint"`)}
+	}
+	if _, ok := _c.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.type"`)}
+	}
+	if v, ok := _c.mutation.GetType(); ok {
+		if err := chargeusagebasedrevenuerecognitioncredits.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRevenueRecognitionCredits.type": %w`, err)}
+		}
+	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.namespace"`)}
 	}
@@ -211,28 +256,6 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) check() error {
 	}
 	if _, ok := _c.mutation.RunID(); !ok {
 		return &ValidationError{Name: "run_id", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.run_id"`)}
-	}
-	if _, ok := _c.mutation.Amount(); !ok {
-		return &ValidationError{Name: "amount", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.amount"`)}
-	}
-	if _, ok := _c.mutation.ServicePeriodFrom(); !ok {
-		return &ValidationError{Name: "service_period_from", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.service_period_from"`)}
-	}
-	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
-		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.service_period_to"`)}
-	}
-	if _, ok := _c.mutation.GetType(); !ok {
-		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitionCredits.type"`)}
-	}
-	if v, ok := _c.mutation.GetType(); ok {
-		if err := chargeusagebasedrevenuerecognitioncredits.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRevenueRecognitionCredits.type": %w`, err)}
-		}
-	}
-	if v, ok := _c.mutation.LedgerTransactionGroupID(); ok {
-		if err := chargeusagebasedrevenuerecognitioncredits.LedgerTransactionGroupIDValidator(v); err != nil {
-			return &ValidationError{Name: "ledger_transaction_group_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRevenueRecognitionCredits.ledger_transaction_group_id": %w`, err)}
-		}
 	}
 	if len(_c.mutation.RunIDs()) == 0 {
 		return &ValidationError{Name: "run", err: errors.New(`db: missing required edge "ChargeUsageBasedRevenueRecognitionCredits.run"`)}
@@ -273,6 +296,34 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) createSpec() (*Charge
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.LineID(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldLineID, field.TypeString, value)
+		_node.LineID = &value
+	}
+	if value, ok := _c.mutation.Amount(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldAmount, field.TypeOther, value)
+		_node.Amount = value
+	}
+	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, field.TypeTime, value)
+		_node.ServicePeriodFrom = value
+	}
+	if value, ok := _c.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, field.TypeTime, value)
+		_node.ServicePeriodTo = value
+	}
+	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID, field.TypeString, value)
+		_node.LedgerTransactionGroupID = value
+	}
+	if value, ok := _c.mutation.SortHint(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldSortHint, field.TypeInt, value)
+		_node.SortHint = value
+	}
+	if value, ok := _c.mutation.GetType(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldType, field.TypeEnum, value)
+		_node.Type = value
+	}
 	if value, ok := _c.mutation.Namespace(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
@@ -292,26 +343,6 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) createSpec() (*Charge
 	if value, ok := _c.mutation.Annotations(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldAnnotations, field.TypeJSON, value)
 		_node.Annotations = value
-	}
-	if value, ok := _c.mutation.Amount(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldAmount, field.TypeOther, value)
-		_node.Amount = value
-	}
-	if value, ok := _c.mutation.ServicePeriodFrom(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, field.TypeTime, value)
-		_node.ServicePeriodFrom = value
-	}
-	if value, ok := _c.mutation.ServicePeriodTo(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, field.TypeTime, value)
-		_node.ServicePeriodTo = value
-	}
-	if value, ok := _c.mutation.GetType(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldType, field.TypeEnum, value)
-		_node.Type = value
-	}
-	if value, ok := _c.mutation.LedgerTransactionGroupID(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID, field.TypeString, value)
-		_node.LedgerTransactionGroupID = &value
 	}
 	if nodes := _c.mutation.RunIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -337,7 +368,7 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) createSpec() (*Charge
 // of the `INSERT` statement. For example:
 //
 //	client.ChargeUsageBasedRevenueRecognitionCredits.Create().
-//		SetNamespace(v).
+//		SetLineID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -346,7 +377,7 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) createSpec() (*Charge
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-//			SetNamespace(v+v).
+//			SetLineID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreate) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
@@ -381,6 +412,78 @@ type (
 		*sql.UpdateSet
 	}
 )
+
+// SetLineID sets the "line_id" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetLineID(v string) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldLineID, v)
+	return u
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldLineID)
+	return u
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) ClearLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.SetNull(chargeusagebasedrevenuerecognitioncredits.FieldLineID)
+	return u
+}
+
+// SetAmount sets the "amount" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldAmount, v)
+	return u
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateAmount() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldAmount)
+	return u
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, v)
+	return u
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateServicePeriodFrom() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom)
+	return u
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, v)
+	return u
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateServicePeriodTo() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo)
+	return u
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldSortHint, v)
+	return u
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateSortHint() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldSortHint)
+	return u
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) AddSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
+	u.Add(chargeusagebasedrevenuerecognitioncredits.FieldSortHint, v)
+	return u
+}
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetUpdatedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
@@ -430,42 +533,6 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) ClearAnnotations() *Ch
 	return u
 }
 
-// SetAmount sets the "amount" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
-	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldAmount, v)
-	return u
-}
-
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateAmount() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
-	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldAmount)
-	return u
-}
-
-// SetServicePeriodFrom sets the "service_period_from" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
-	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, v)
-	return u
-}
-
-// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateServicePeriodFrom() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
-	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom)
-	return u
-}
-
-// SetServicePeriodTo sets the "service_period_to" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
-	u.Set(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, v)
-	return u
-}
-
-// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsert) UpdateServicePeriodTo() *ChargeUsageBasedRevenueRecognitionCreditsUpsert {
-	u.SetExcluded(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -483,6 +550,12 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateNewValues() *
 		if _, exists := u.create.mutation.ID(); exists {
 			s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldID)
 		}
+		if _, exists := u.create.mutation.LedgerTransactionGroupID(); exists {
+			s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID)
+		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldType)
+		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldNamespace)
 		}
@@ -491,12 +564,6 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateNewValues() *
 		}
 		if _, exists := u.create.mutation.RunID(); exists {
 			s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldRunID)
-		}
-		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldType)
-		}
-		if _, exists := u.create.mutation.LedgerTransactionGroupID(); exists {
-			s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID)
 		}
 	}))
 	return u
@@ -527,6 +594,90 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) Update(set func(*Ch
 		set(&ChargeUsageBasedRevenueRecognitionCreditsUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetLineID sets the "line_id" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetLineID(v string) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetLineID(v)
+	})
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateLineID()
+	})
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) ClearLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.ClearLineID()
+	})
+}
+
+// SetAmount sets the "amount" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetAmount(v)
+	})
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateAmount() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateAmount()
+	})
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateServicePeriodFrom() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateServicePeriodTo() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) AddSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateSortHint() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateSortHint()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -582,48 +733,6 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateAnnotations()
 func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) ClearAnnotations() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
 		s.ClearAnnotations()
-	})
-}
-
-// SetAmount sets the "amount" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.SetAmount(v)
-	})
-}
-
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateAmount() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.UpdateAmount()
-	})
-}
-
-// SetServicePeriodFrom sets the "service_period_from" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.SetServicePeriodFrom(v)
-	})
-}
-
-// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateServicePeriodFrom() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.UpdateServicePeriodFrom()
-	})
-}
-
-// SetServicePeriodTo sets the "service_period_to" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.SetServicePeriodTo(v)
-	})
-}
-
-// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne) UpdateServicePeriodTo() *ChargeUsageBasedRevenueRecognitionCreditsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.UpdateServicePeriodTo()
 	})
 }
 
@@ -763,7 +872,7 @@ func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreateBulk) ExecX(ctx context
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-//			SetNamespace(v+v).
+//			SetLineID(v+v).
 //		}).
 //		Exec(ctx)
 func (_c *ChargeUsageBasedRevenueRecognitionCreditsCreateBulk) OnConflict(opts ...sql.ConflictOption) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
@@ -810,6 +919,12 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateNewValues() 
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldID)
 			}
+			if _, exists := b.mutation.LedgerTransactionGroupID(); exists {
+				s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID)
+			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldType)
+			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldNamespace)
 			}
@@ -818,12 +933,6 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateNewValues() 
 			}
 			if _, exists := b.mutation.RunID(); exists {
 				s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldRunID)
-			}
-			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldType)
-			}
-			if _, exists := b.mutation.LedgerTransactionGroupID(); exists {
-				s.SetIgnore(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID)
 			}
 		}
 	}))
@@ -855,6 +964,90 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) Update(set func(*C
 		set(&ChargeUsageBasedRevenueRecognitionCreditsUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetLineID sets the "line_id" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetLineID(v string) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetLineID(v)
+	})
+}
+
+// UpdateLineID sets the "line_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateLineID()
+	})
+}
+
+// ClearLineID clears the value of the "line_id" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) ClearLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.ClearLineID()
+	})
+}
+
+// SetAmount sets the "amount" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetAmount(v)
+	})
+}
+
+// UpdateAmount sets the "amount" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateAmount() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateAmount()
+	})
+}
+
+// SetServicePeriodFrom sets the "service_period_from" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetServicePeriodFrom(v)
+	})
+}
+
+// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateServicePeriodFrom() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateServicePeriodFrom()
+	})
+}
+
+// SetServicePeriodTo sets the "service_period_to" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetServicePeriodTo(v)
+	})
+}
+
+// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateServicePeriodTo() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateServicePeriodTo()
+	})
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.SetSortHint(v)
+	})
+}
+
+// AddSortHint adds v to the "sort_hint" field.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) AddSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.AddSortHint(v)
+	})
+}
+
+// UpdateSortHint sets the "sort_hint" field to the value that was provided on create.
+func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateSortHint() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
+		s.UpdateSortHint()
+	})
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -910,48 +1103,6 @@ func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateAnnotations(
 func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) ClearAnnotations() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
 		s.ClearAnnotations()
-	})
-}
-
-// SetAmount sets the "amount" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetAmount(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.SetAmount(v)
-	})
-}
-
-// UpdateAmount sets the "amount" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateAmount() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.UpdateAmount()
-	})
-}
-
-// SetServicePeriodFrom sets the "service_period_from" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetServicePeriodFrom(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.SetServicePeriodFrom(v)
-	})
-}
-
-// UpdateServicePeriodFrom sets the "service_period_from" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateServicePeriodFrom() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.UpdateServicePeriodFrom()
-	})
-}
-
-// SetServicePeriodTo sets the "service_period_to" field.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) SetServicePeriodTo(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.SetServicePeriodTo(v)
-	})
-}
-
-// UpdateServicePeriodTo sets the "service_period_to" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk) UpdateServicePeriodTo() *ChargeUsageBasedRevenueRecognitionCreditsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionCreditsUpsert) {
-		s.UpdateServicePeriodTo()
 	})
 }
 

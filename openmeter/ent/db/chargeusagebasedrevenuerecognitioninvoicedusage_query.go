@@ -12,18 +12,18 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitionoveragecredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
-// ChargeUsageBasedRevenueRecognitionOverageCreditsQuery is the builder for querying ChargeUsageBasedRevenueRecognitionOverageCredits entities.
-type ChargeUsageBasedRevenueRecognitionOverageCreditsQuery struct {
+// ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery is the builder for querying ChargeUsageBasedRevenueRecognitionInvoicedUsage entities.
+type ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery struct {
 	config
 	ctx        *QueryContext
-	order      []chargeusagebasedrevenuerecognitionoveragecredits.OrderOption
+	order      []chargeusagebasedrevenuerecognitioninvoicedusage.OrderOption
 	inters     []Interceptor
-	predicates []predicate.ChargeUsageBasedRevenueRecognitionOverageCredits
+	predicates []predicate.ChargeUsageBasedRevenueRecognitionInvoicedUsage
 	withRun    *ChargeUsageBasedRevenueRecognitionsQuery
 	modifiers  []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
@@ -31,39 +31,39 @@ type ChargeUsageBasedRevenueRecognitionOverageCreditsQuery struct {
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the ChargeUsageBasedRevenueRecognitionOverageCreditsQuery builder.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Where(ps ...predicate.ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+// Where adds a new predicate for the ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery builder.
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Where(ps ...predicate.ChargeUsageBasedRevenueRecognitionInvoicedUsage) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Limit(limit int) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Limit(limit int) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Offset(offset int) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Offset(offset int) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Unique(unique bool) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Unique(unique bool) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Order(o ...chargeusagebasedrevenuerecognitionoveragecredits.OrderOption) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Order(o ...chargeusagebasedrevenuerecognitioninvoicedusage.OrderOption) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
 // QueryRun chains the current query on the "run" edge.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) QueryRun() *ChargeUsageBasedRevenueRecognitionsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) QueryRun() *ChargeUsageBasedRevenueRecognitionsQuery {
 	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -74,9 +74,9 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) QueryRun() *Cha
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(chargeusagebasedrevenuerecognitionoveragecredits.Table, chargeusagebasedrevenuerecognitionoveragecredits.FieldID, selector),
+			sqlgraph.From(chargeusagebasedrevenuerecognitioninvoicedusage.Table, chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, selector),
 			sqlgraph.To(chargeusagebasedrevenuerecognitions.Table, chargeusagebasedrevenuerecognitions.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitionoveragecredits.RunTable, chargeusagebasedrevenuerecognitionoveragecredits.RunColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, chargeusagebasedrevenuerecognitioninvoicedusage.RunTable, chargeusagebasedrevenuerecognitioninvoicedusage.RunColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -84,21 +84,21 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) QueryRun() *Cha
 	return query
 }
 
-// First returns the first ChargeUsageBasedRevenueRecognitionOverageCredits entity from the query.
-// Returns a *NotFoundError when no ChargeUsageBasedRevenueRecognitionOverageCredits was found.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) First(ctx context.Context) (*ChargeUsageBasedRevenueRecognitionOverageCredits, error) {
+// First returns the first ChargeUsageBasedRevenueRecognitionInvoicedUsage entity from the query.
+// Returns a *NotFoundError when no ChargeUsageBasedRevenueRecognitionInvoicedUsage was found.
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) First(ctx context.Context) (*ChargeUsageBasedRevenueRecognitionInvoicedUsage, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{chargeusagebasedrevenuerecognitionoveragecredits.Label}
+		return nil, &NotFoundError{chargeusagebasedrevenuerecognitioninvoicedusage.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) FirstX(ctx context.Context) *ChargeUsageBasedRevenueRecognitionOverageCredits {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) FirstX(ctx context.Context) *ChargeUsageBasedRevenueRecognitionInvoicedUsage {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -106,22 +106,22 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) FirstX(ctx cont
 	return node
 }
 
-// FirstID returns the first ChargeUsageBasedRevenueRecognitionOverageCredits ID from the query.
-// Returns a *NotFoundError when no ChargeUsageBasedRevenueRecognitionOverageCredits ID was found.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) FirstID(ctx context.Context) (id string, err error) {
+// FirstID returns the first ChargeUsageBasedRevenueRecognitionInvoicedUsage ID from the query.
+// Returns a *NotFoundError when no ChargeUsageBasedRevenueRecognitionInvoicedUsage ID was found.
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{chargeusagebasedrevenuerecognitionoveragecredits.Label}
+		err = &NotFoundError{chargeusagebasedrevenuerecognitioninvoicedusage.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) FirstIDX(ctx context.Context) string {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) FirstIDX(ctx context.Context) string {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -129,10 +129,10 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) FirstIDX(ctx co
 	return id
 }
 
-// Only returns a single ChargeUsageBasedRevenueRecognitionOverageCredits entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one ChargeUsageBasedRevenueRecognitionOverageCredits entity is found.
-// Returns a *NotFoundError when no ChargeUsageBasedRevenueRecognitionOverageCredits entities are found.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Only(ctx context.Context) (*ChargeUsageBasedRevenueRecognitionOverageCredits, error) {
+// Only returns a single ChargeUsageBasedRevenueRecognitionInvoicedUsage entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one ChargeUsageBasedRevenueRecognitionInvoicedUsage entity is found.
+// Returns a *NotFoundError when no ChargeUsageBasedRevenueRecognitionInvoicedUsage entities are found.
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Only(ctx context.Context) (*ChargeUsageBasedRevenueRecognitionInvoicedUsage, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -141,14 +141,14 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Only(ctx contex
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{chargeusagebasedrevenuerecognitionoveragecredits.Label}
+		return nil, &NotFoundError{chargeusagebasedrevenuerecognitioninvoicedusage.Label}
 	default:
-		return nil, &NotSingularError{chargeusagebasedrevenuerecognitionoveragecredits.Label}
+		return nil, &NotSingularError{chargeusagebasedrevenuerecognitioninvoicedusage.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) OnlyX(ctx context.Context) *ChargeUsageBasedRevenueRecognitionOverageCredits {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) OnlyX(ctx context.Context) *ChargeUsageBasedRevenueRecognitionInvoicedUsage {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -156,10 +156,10 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) OnlyX(ctx conte
 	return node
 }
 
-// OnlyID is like Only, but returns the only ChargeUsageBasedRevenueRecognitionOverageCredits ID in the query.
-// Returns a *NotSingularError when more than one ChargeUsageBasedRevenueRecognitionOverageCredits ID is found.
+// OnlyID is like Only, but returns the only ChargeUsageBasedRevenueRecognitionInvoicedUsage ID in the query.
+// Returns a *NotSingularError when more than one ChargeUsageBasedRevenueRecognitionInvoicedUsage ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) OnlyID(ctx context.Context) (id string, err error) {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -168,15 +168,15 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) OnlyID(ctx cont
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{chargeusagebasedrevenuerecognitionoveragecredits.Label}
+		err = &NotFoundError{chargeusagebasedrevenuerecognitioninvoicedusage.Label}
 	default:
-		err = &NotSingularError{chargeusagebasedrevenuerecognitionoveragecredits.Label}
+		err = &NotSingularError{chargeusagebasedrevenuerecognitioninvoicedusage.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) OnlyIDX(ctx context.Context) string {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) OnlyIDX(ctx context.Context) string {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -184,18 +184,18 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) OnlyIDX(ctx con
 	return id
 }
 
-// All executes the query and returns a list of ChargeUsageBasedRevenueRecognitionOverageCreditsSlice.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) All(ctx context.Context) ([]*ChargeUsageBasedRevenueRecognitionOverageCredits, error) {
+// All executes the query and returns a list of ChargeUsageBasedRevenueRecognitionInvoicedUsages.
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) All(ctx context.Context) ([]*ChargeUsageBasedRevenueRecognitionInvoicedUsage, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*ChargeUsageBasedRevenueRecognitionOverageCredits, *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery]()
-	return withInterceptors[[]*ChargeUsageBasedRevenueRecognitionOverageCredits](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*ChargeUsageBasedRevenueRecognitionInvoicedUsage, *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery]()
+	return withInterceptors[[]*ChargeUsageBasedRevenueRecognitionInvoicedUsage](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) AllX(ctx context.Context) []*ChargeUsageBasedRevenueRecognitionOverageCredits {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) AllX(ctx context.Context) []*ChargeUsageBasedRevenueRecognitionInvoicedUsage {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -203,20 +203,20 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) AllX(ctx contex
 	return nodes
 }
 
-// IDs executes the query and returns a list of ChargeUsageBasedRevenueRecognitionOverageCredits IDs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) IDs(ctx context.Context) (ids []string, err error) {
+// IDs executes the query and returns a list of ChargeUsageBasedRevenueRecognitionInvoicedUsage IDs.
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(chargeusagebasedrevenuerecognitionoveragecredits.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) IDsX(ctx context.Context) []string {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) IDsX(ctx context.Context) []string {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -225,16 +225,16 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) IDsX(ctx contex
 }
 
 // Count returns the count of the given query.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Count(ctx context.Context) (int, error) {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*ChargeUsageBasedRevenueRecognitionOverageCreditsQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) CountX(ctx context.Context) int {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -243,7 +243,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) CountX(ctx cont
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -256,7 +256,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Exist(ctx conte
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) ExistX(ctx context.Context) bool {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -264,18 +264,18 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) ExistX(ctx cont
 	return exist
 }
 
-// Clone returns a duplicate of the ChargeUsageBasedRevenueRecognitionOverageCreditsQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Clone() *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Clone() *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	if _q == nil {
 		return nil
 	}
-	return &ChargeUsageBasedRevenueRecognitionOverageCreditsQuery{
+	return &ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery{
 		config:     _q.config,
 		ctx:        _q.ctx.Clone(),
-		order:      append([]chargeusagebasedrevenuerecognitionoveragecredits.OrderOption{}, _q.order...),
+		order:      append([]chargeusagebasedrevenuerecognitioninvoicedusage.OrderOption{}, _q.order...),
 		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.ChargeUsageBasedRevenueRecognitionOverageCredits{}, _q.predicates...),
+		predicates: append([]predicate.ChargeUsageBasedRevenueRecognitionInvoicedUsage{}, _q.predicates...),
 		withRun:    _q.withRun.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
@@ -285,7 +285,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Clone() *Charge
 
 // WithRun tells the query-builder to eager-load the nodes that are connected to
 // the "run" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) WithRun(opts ...func(*ChargeUsageBasedRevenueRecognitionsQuery)) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) WithRun(opts ...func(*ChargeUsageBasedRevenueRecognitionsQuery)) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	query := (&ChargeUsageBasedRevenueRecognitionsClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
@@ -300,19 +300,19 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) WithRun(opts ..
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		LineID string `json:"line_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.ChargeUsageBasedRevenueRecognitionOverageCredits.Query().
-//		GroupBy(chargeusagebasedrevenuerecognitionoveragecredits.FieldNamespace).
+//	client.ChargeUsageBasedRevenueRecognitionInvoicedUsage.Query().
+//		GroupBy(chargeusagebasedrevenuerecognitioninvoicedusage.FieldLineID).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) GroupBy(field string, fields ...string) *ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) GroupBy(field string, fields ...string) *ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy{build: _q}
+	grbuild := &ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = chargeusagebasedrevenuerecognitionoveragecredits.Label
+	grbuild.label = chargeusagebasedrevenuerecognitioninvoicedusage.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -323,26 +323,26 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) GroupBy(field s
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		LineID string `json:"line_id,omitempty"`
 //	}
 //
-//	client.ChargeUsageBasedRevenueRecognitionOverageCredits.Query().
-//		Select(chargeusagebasedrevenuerecognitionoveragecredits.FieldNamespace).
+//	client.ChargeUsageBasedRevenueRecognitionInvoicedUsage.Query().
+//		Select(chargeusagebasedrevenuerecognitioninvoicedusage.FieldLineID).
 //		Scan(ctx, &v)
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Select(fields ...string) *ChargeUsageBasedRevenueRecognitionOverageCreditsSelect {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Select(fields ...string) *ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &ChargeUsageBasedRevenueRecognitionOverageCreditsSelect{ChargeUsageBasedRevenueRecognitionOverageCreditsQuery: _q}
-	sbuild.label = chargeusagebasedrevenuerecognitionoveragecredits.Label
+	sbuild := &ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect{ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery: _q}
+	sbuild.label = chargeusagebasedrevenuerecognitioninvoicedusage.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a ChargeUsageBasedRevenueRecognitionOverageCreditsSelect configured with the given aggregations.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRevenueRecognitionOverageCreditsSelect {
+// Aggregate returns a ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect configured with the given aggregations.
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) prepareQuery(ctx context.Context) error {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("db: uninitialized interceptor (forgotten import db/runtime?)")
@@ -354,7 +354,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) prepareQuery(ct
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !chargeusagebasedrevenuerecognitionoveragecredits.ValidColumn(f) {
+		if !chargeusagebasedrevenuerecognitioninvoicedusage.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -368,19 +368,19 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) prepareQuery(ct
 	return nil
 }
 
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ChargeUsageBasedRevenueRecognitionOverageCredits, error) {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*ChargeUsageBasedRevenueRecognitionInvoicedUsage, error) {
 	var (
-		nodes       = []*ChargeUsageBasedRevenueRecognitionOverageCredits{}
+		nodes       = []*ChargeUsageBasedRevenueRecognitionInvoicedUsage{}
 		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
 			_q.withRun != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*ChargeUsageBasedRevenueRecognitionOverageCredits).scanValues(nil, columns)
+		return (*ChargeUsageBasedRevenueRecognitionInvoicedUsage).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &ChargeUsageBasedRevenueRecognitionOverageCredits{config: _q.config}
+		node := &ChargeUsageBasedRevenueRecognitionInvoicedUsage{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -399,7 +399,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) sqlAll(ctx cont
 	}
 	if query := _q.withRun; query != nil {
 		if err := _q.loadRun(ctx, query, nodes, nil,
-			func(n *ChargeUsageBasedRevenueRecognitionOverageCredits, e *ChargeUsageBasedRevenueRecognitions) {
+			func(n *ChargeUsageBasedRevenueRecognitionInvoicedUsage, e *ChargeUsageBasedRevenueRecognitions) {
 				n.Edges.Run = e
 			}); err != nil {
 			return nil, err
@@ -408,9 +408,9 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) sqlAll(ctx cont
 	return nodes, nil
 }
 
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) loadRun(ctx context.Context, query *ChargeUsageBasedRevenueRecognitionsQuery, nodes []*ChargeUsageBasedRevenueRecognitionOverageCredits, init func(*ChargeUsageBasedRevenueRecognitionOverageCredits), assign func(*ChargeUsageBasedRevenueRecognitionOverageCredits, *ChargeUsageBasedRevenueRecognitions)) error {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) loadRun(ctx context.Context, query *ChargeUsageBasedRevenueRecognitionsQuery, nodes []*ChargeUsageBasedRevenueRecognitionInvoicedUsage, init func(*ChargeUsageBasedRevenueRecognitionInvoicedUsage), assign func(*ChargeUsageBasedRevenueRecognitionInvoicedUsage, *ChargeUsageBasedRevenueRecognitions)) error {
 	ids := make([]string, 0, len(nodes))
-	nodeids := make(map[string][]*ChargeUsageBasedRevenueRecognitionOverageCredits)
+	nodeids := make(map[string][]*ChargeUsageBasedRevenueRecognitionInvoicedUsage)
 	for i := range nodes {
 		fk := nodes[i].RunID
 		if _, ok := nodeids[fk]; !ok {
@@ -438,7 +438,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) loadRun(ctx con
 	return nil
 }
 
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	if len(_q.modifiers) > 0 {
 		_spec.Modifiers = _q.modifiers
@@ -450,8 +450,8 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) sqlCount(ctx co
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(chargeusagebasedrevenuerecognitionoveragecredits.Table, chargeusagebasedrevenuerecognitionoveragecredits.Columns, sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString))
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(chargeusagebasedrevenuerecognitioninvoicedusage.Table, chargeusagebasedrevenuerecognitioninvoicedusage.Columns, sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -460,14 +460,14 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) querySpec() *sq
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, chargeusagebasedrevenuerecognitionoveragecredits.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, chargeusagebasedrevenuerecognitioninvoicedusage.FieldID)
 		for i := range fields {
-			if fields[i] != chargeusagebasedrevenuerecognitionoveragecredits.FieldID {
+			if fields[i] != chargeusagebasedrevenuerecognitioninvoicedusage.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
 		if _q.withRun != nil {
-			_spec.Node.AddColumnOnce(chargeusagebasedrevenuerecognitionoveragecredits.FieldRunID)
+			_spec.Node.AddColumnOnce(chargeusagebasedrevenuerecognitioninvoicedusage.FieldRunID)
 		}
 	}
 	if ps := _q.predicates; len(ps) > 0 {
@@ -493,12 +493,12 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) querySpec() *sq
 	return _spec
 }
 
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(chargeusagebasedrevenuerecognitionoveragecredits.Table)
+	t1 := builder.Table(chargeusagebasedrevenuerecognitioninvoicedusage.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = chargeusagebasedrevenuerecognitionoveragecredits.Columns
+		columns = chargeusagebasedrevenuerecognitioninvoicedusage.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -531,7 +531,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) sqlQuery(ctx co
 // ForUpdate locks the selected rows against concurrent updates, and prevent them from being
 // updated, deleted or "selected ... for update" by other sessions, until the transaction is
 // either committed or rolled-back.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) ForUpdate(opts ...sql.LockOption) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) ForUpdate(opts ...sql.LockOption) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -544,7 +544,7 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) ForUpdate(opts 
 // ForShare behaves similarly to ForUpdate, except that it acquires a shared mode lock
 // on any rows that are read. Other sessions can read the rows, but cannot modify them
 // until your transaction commits.
-func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) ForShare(opts ...sql.LockOption) *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery {
+func (_q *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) ForShare(opts ...sql.LockOption) *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery {
 	if _q.driver.Dialect() == dialect.Postgres {
 		_q.Unique(false)
 	}
@@ -554,28 +554,28 @@ func (_q *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) ForShare(opts .
 	return _q
 }
 
-// ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy is the group-by builder for ChargeUsageBasedRevenueRecognitionOverageCredits entities.
-type ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy struct {
+// ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy is the group-by builder for ChargeUsageBasedRevenueRecognitionInvoicedUsage entities.
+type ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy struct {
 	selector
-	build *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery
+	build *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy {
+func (_g *ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ChargeUsageBasedRevenueRecognitionOverageCreditsQuery, *ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery, *ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy) sqlScan(ctx context.Context, root *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery, v any) error {
+func (_g *ChargeUsageBasedRevenueRecognitionInvoicedUsageGroupBy) sqlScan(ctx context.Context, root *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -602,28 +602,28 @@ func (_g *ChargeUsageBasedRevenueRecognitionOverageCreditsGroupBy) sqlScan(ctx c
 	return sql.ScanSlice(rows, v)
 }
 
-// ChargeUsageBasedRevenueRecognitionOverageCreditsSelect is the builder for selecting fields of ChargeUsageBasedRevenueRecognitionOverageCredits entities.
-type ChargeUsageBasedRevenueRecognitionOverageCreditsSelect struct {
-	*ChargeUsageBasedRevenueRecognitionOverageCreditsQuery
+// ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect is the builder for selecting fields of ChargeUsageBasedRevenueRecognitionInvoicedUsage entities.
+type ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect struct {
+	*ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *ChargeUsageBasedRevenueRecognitionOverageCreditsSelect) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRevenueRecognitionOverageCreditsSelect {
+func (_s *ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect) Aggregate(fns ...AggregateFunc) *ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *ChargeUsageBasedRevenueRecognitionOverageCreditsSelect) Scan(ctx context.Context, v any) error {
+func (_s *ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ChargeUsageBasedRevenueRecognitionOverageCreditsQuery, *ChargeUsageBasedRevenueRecognitionOverageCreditsSelect](ctx, _s.ChargeUsageBasedRevenueRecognitionOverageCreditsQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery, *ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect](ctx, _s.ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery, _s, _s.inters, v)
 }
 
-func (_s *ChargeUsageBasedRevenueRecognitionOverageCreditsSelect) sqlScan(ctx context.Context, root *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery, v any) error {
+func (_s *ChargeUsageBasedRevenueRecognitionInvoicedUsageSelect) sqlScan(ctx context.Context, root *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

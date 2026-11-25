@@ -37,8 +37,6 @@ type ChargeFlatFeeRunCreditAllocations struct {
 	SortHint int `json:"sort_hint,omitempty"`
 	// Type holds the value of the "type" field.
 	Type creditrealization.Type `json:"type,omitempty"`
-	// CorrectsRealizationID holds the value of the "corrects_realization_id" field.
-	CorrectsRealizationID *string `json:"corrects_realization_id,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -49,6 +47,8 @@ type ChargeFlatFeeRunCreditAllocations struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// Annotations holds the value of the "annotations" field.
 	Annotations models.Annotations `json:"annotations,omitempty"`
+	// CorrectsRealizationID holds the value of the "corrects_realization_id" field.
+	CorrectsRealizationID *string `json:"corrects_realization_id,omitempty"`
 	// RunID holds the value of the "run_id" field.
 	RunID string `json:"run_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -125,7 +125,7 @@ func (*ChargeFlatFeeRunCreditAllocations) scanValues(columns []string) ([]any, e
 			values[i] = new(alpacadecimal.Decimal)
 		case chargeflatfeeruncreditallocations.FieldSortHint:
 			values[i] = new(sql.NullInt64)
-		case chargeflatfeeruncreditallocations.FieldID, chargeflatfeeruncreditallocations.FieldLineID, chargeflatfeeruncreditallocations.FieldLedgerTransactionGroupID, chargeflatfeeruncreditallocations.FieldType, chargeflatfeeruncreditallocations.FieldCorrectsRealizationID, chargeflatfeeruncreditallocations.FieldNamespace, chargeflatfeeruncreditallocations.FieldRunID:
+		case chargeflatfeeruncreditallocations.FieldID, chargeflatfeeruncreditallocations.FieldLineID, chargeflatfeeruncreditallocations.FieldLedgerTransactionGroupID, chargeflatfeeruncreditallocations.FieldType, chargeflatfeeruncreditallocations.FieldNamespace, chargeflatfeeruncreditallocations.FieldCorrectsRealizationID, chargeflatfeeruncreditallocations.FieldRunID:
 			values[i] = new(sql.NullString)
 		case chargeflatfeeruncreditallocations.FieldServicePeriodFrom, chargeflatfeeruncreditallocations.FieldServicePeriodTo, chargeflatfeeruncreditallocations.FieldCreatedAt, chargeflatfeeruncreditallocations.FieldUpdatedAt, chargeflatfeeruncreditallocations.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -193,13 +193,6 @@ func (_m *ChargeFlatFeeRunCreditAllocations) assignValues(columns []string, valu
 			} else if value.Valid {
 				_m.Type = creditrealization.Type(value.String)
 			}
-		case chargeflatfeeruncreditallocations.FieldCorrectsRealizationID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field corrects_realization_id", values[i])
-			} else if value.Valid {
-				_m.CorrectsRealizationID = new(string)
-				*_m.CorrectsRealizationID = value.String
-			}
 		case chargeflatfeeruncreditallocations.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
@@ -232,6 +225,13 @@ func (_m *ChargeFlatFeeRunCreditAllocations) assignValues(columns []string, valu
 				if err := json.Unmarshal(*value, &_m.Annotations); err != nil {
 					return fmt.Errorf("unmarshal field annotations: %w", err)
 				}
+			}
+		case chargeflatfeeruncreditallocations.FieldCorrectsRealizationID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field corrects_realization_id", values[i])
+			} else if value.Valid {
+				_m.CorrectsRealizationID = new(string)
+				*_m.CorrectsRealizationID = value.String
 			}
 		case chargeflatfeeruncreditallocations.FieldRunID:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -318,11 +318,6 @@ func (_m *ChargeFlatFeeRunCreditAllocations) String() string {
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Type))
 	builder.WriteString(", ")
-	if v := _m.CorrectsRealizationID; v != nil {
-		builder.WriteString("corrects_realization_id=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
@@ -339,6 +334,11 @@ func (_m *ChargeFlatFeeRunCreditAllocations) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("annotations=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Annotations))
+	builder.WriteString(", ")
+	if v := _m.CorrectsRealizationID; v != nil {
+		builder.WriteString("corrects_realization_id=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("run_id=")
 	builder.WriteString(_m.RunID)

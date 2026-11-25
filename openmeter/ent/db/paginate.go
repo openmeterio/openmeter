@@ -2891,7 +2891,7 @@ var _ pagination.Paginator[*ChargeUsageBasedRevenueRecognitionDetailedLine] = (*
 
 // Paginate runs the query and returns a paginated response.
 // If page is its zero value, it returns all items and derives the total from them.
-func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits], error) {
+func (_m *ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.Result[*ChargeUsageBasedRevenueRecognitionInvoicedUsage], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
 
@@ -2900,7 +2900,7 @@ func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Paginate(ctx co
 	_m.ctx.Offset = &zero
 	_m.ctx.Limit = &zero
 
-	pagedResponse := pagination.Result[*ChargeUsageBasedRevenueRecognitionOverageCredits]{
+	pagedResponse := pagination.Result[*ChargeUsageBasedRevenueRecognitionInvoicedUsage]{
 		Page: page,
 	}
 
@@ -2936,7 +2936,7 @@ func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Paginate(ctx co
 	// If there are no items, return the empty response early
 	if count == 0 {
 		// Items should be [] not null.
-		pagedResponse.Items = make([]*ChargeUsageBasedRevenueRecognitionOverageCredits, 0)
+		pagedResponse.Items = make([]*ChargeUsageBasedRevenueRecognitionInvoicedUsage, 0)
 		return pagedResponse, nil
 	}
 
@@ -2951,7 +2951,7 @@ func (_m *ChargeUsageBasedRevenueRecognitionOverageCreditsQuery) Paginate(ctx co
 }
 
 // type check
-var _ pagination.Paginator[*ChargeUsageBasedRevenueRecognitionOverageCredits] = (*ChargeUsageBasedRevenueRecognitionOverageCreditsQuery)(nil)
+var _ pagination.Paginator[*ChargeUsageBasedRevenueRecognitionInvoicedUsage] = (*ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery)(nil)
 
 // Paginate runs the query and returns a paginated response.
 // If page is its zero value, it returns all items and derives the total from them.

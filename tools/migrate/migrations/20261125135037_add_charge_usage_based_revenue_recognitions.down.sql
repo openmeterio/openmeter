@@ -1,13 +1,13 @@
--- reverse: create index "chargeusagebasedrevenuerecognitionoveragecredits_namespace" to table: "charge_usage_based_revenue_recognition_overage_credits"
-DROP INDEX "chargeusagebasedrevenuerecognitionoveragecredits_namespace";
--- reverse: create index "chargeusagebasedrevenuerecognitionoveragecredits_id" to table: "charge_usage_based_revenue_recognition_overage_credits"
-DROP INDEX "chargeusagebasedrevenuerecognitionoveragecredits_id";
--- reverse: create index "chargeusagebasedrevenuerecognitionoveragecredits_annotations" to table: "charge_usage_based_revenue_recognition_overage_credits"
-DROP INDEX "chargeusagebasedrevenuerecognitionoveragecredits_annotations";
--- reverse: create index "chargeubrevrecoveragecredits_ns_run" to table: "charge_usage_based_revenue_recognition_overage_credits"
-DROP INDEX "chargeubrevrecoveragecredits_ns_run";
--- reverse: create "charge_usage_based_revenue_recognition_overage_credits" table
-DROP TABLE "charge_usage_based_revenue_recognition_overage_credits";
+-- reverse: create index "chargeusagebasedrevenuerecognitioninvoicedusage_namespace" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+DROP INDEX "chargeusagebasedrevenuerecognitioninvoicedusage_namespace";
+-- reverse: create index "chargeusagebasedrevenuerecognitioninvoicedusage_id" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+DROP INDEX "chargeusagebasedrevenuerecognitioninvoicedusage_id";
+-- reverse: create index "chargeusagebasedrevenuerecognitioninvoicedusage_annotations" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+DROP INDEX "chargeusagebasedrevenuerecognitioninvoicedusage_annotations";
+-- reverse: create index "chargeubrevrecinvoicedusage_ns_run" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+DROP INDEX "chargeubrevrecinvoicedusage_ns_run";
+-- reverse: create "charge_usage_based_revenue_recognition_invoiced_usages" table
+DROP TABLE "charge_usage_based_revenue_recognition_invoiced_usages";
 -- reverse: create index "chargeusagebasedrevenuerecognitiondetailedline_namespace_id" to table: "charge_usage_based_revenue_recognition_detailed_line"
 DROP INDEX "chargeusagebasedrevenuerecognitiondetailedline_namespace_id";
 -- reverse: create index "chargeusagebasedrevenuerecognitiondetailedline_namespace" to table: "charge_usage_based_revenue_recognition_detailed_line"

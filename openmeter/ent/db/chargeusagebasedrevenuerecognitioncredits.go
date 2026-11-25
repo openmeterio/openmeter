@@ -22,6 +22,20 @@ type ChargeUsageBasedRevenueRecognitionCredits struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
+	// LineID holds the value of the "line_id" field.
+	LineID *string `json:"line_id,omitempty"`
+	// Amount holds the value of the "amount" field.
+	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
+	// ServicePeriodFrom holds the value of the "service_period_from" field.
+	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
+	// ServicePeriodTo holds the value of the "service_period_to" field.
+	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
+	// LedgerTransactionGroupID holds the value of the "ledger_transaction_group_id" field.
+	LedgerTransactionGroupID string `json:"ledger_transaction_group_id,omitempty"`
+	// SortHint holds the value of the "sort_hint" field.
+	SortHint int `json:"sort_hint,omitempty"`
+	// Type holds the value of the "type" field.
+	Type creditrealization.Type `json:"type,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -34,16 +48,6 @@ type ChargeUsageBasedRevenueRecognitionCredits struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// RunID holds the value of the "run_id" field.
 	RunID string `json:"run_id,omitempty"`
-	// Amount holds the value of the "amount" field.
-	Amount alpacadecimal.Decimal `json:"amount,omitempty"`
-	// ServicePeriodFrom holds the value of the "service_period_from" field.
-	ServicePeriodFrom time.Time `json:"service_period_from,omitempty"`
-	// ServicePeriodTo holds the value of the "service_period_to" field.
-	ServicePeriodTo time.Time `json:"service_period_to,omitempty"`
-	// Type holds the value of the "type" field.
-	Type creditrealization.Type `json:"type,omitempty"`
-	// LedgerTransactionGroupID holds the value of the "ledger_transaction_group_id" field.
-	LedgerTransactionGroupID *string `json:"ledger_transaction_group_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ChargeUsageBasedRevenueRecognitionCreditsQuery when eager-loading is set.
 	Edges        ChargeUsageBasedRevenueRecognitionCreditsEdges `json:"edges"`
@@ -79,9 +83,11 @@ func (*ChargeUsageBasedRevenueRecognitionCredits) scanValues(columns []string) (
 			values[i] = new([]byte)
 		case chargeusagebasedrevenuerecognitioncredits.FieldAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case chargeusagebasedrevenuerecognitioncredits.FieldID, chargeusagebasedrevenuerecognitioncredits.FieldNamespace, chargeusagebasedrevenuerecognitioncredits.FieldRunID, chargeusagebasedrevenuerecognitioncredits.FieldType, chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID:
+		case chargeusagebasedrevenuerecognitioncredits.FieldSortHint:
+			values[i] = new(sql.NullInt64)
+		case chargeusagebasedrevenuerecognitioncredits.FieldID, chargeusagebasedrevenuerecognitioncredits.FieldLineID, chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID, chargeusagebasedrevenuerecognitioncredits.FieldType, chargeusagebasedrevenuerecognitioncredits.FieldNamespace, chargeusagebasedrevenuerecognitioncredits.FieldRunID:
 			values[i] = new(sql.NullString)
-		case chargeusagebasedrevenuerecognitioncredits.FieldCreatedAt, chargeusagebasedrevenuerecognitioncredits.FieldUpdatedAt, chargeusagebasedrevenuerecognitioncredits.FieldDeletedAt, chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo:
+		case chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, chargeusagebasedrevenuerecognitioncredits.FieldCreatedAt, chargeusagebasedrevenuerecognitioncredits.FieldUpdatedAt, chargeusagebasedrevenuerecognitioncredits.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -103,6 +109,49 @@ func (_m *ChargeUsageBasedRevenueRecognitionCredits) assignValues(columns []stri
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				_m.ID = value.String
+			}
+		case chargeusagebasedrevenuerecognitioncredits.FieldLineID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field line_id", values[i])
+			} else if value.Valid {
+				_m.LineID = new(string)
+				*_m.LineID = value.String
+			}
+		case chargeusagebasedrevenuerecognitioncredits.FieldAmount:
+			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
+				return fmt.Errorf("unexpected type %T for field amount", values[i])
+			} else if value != nil {
+				_m.Amount = *value
+			}
+		case chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodFrom = value.Time
+			}
+		case chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
+			} else if value.Valid {
+				_m.ServicePeriodTo = value.Time
+			}
+		case chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ledger_transaction_group_id", values[i])
+			} else if value.Valid {
+				_m.LedgerTransactionGroupID = value.String
+			}
+		case chargeusagebasedrevenuerecognitioncredits.FieldSortHint:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field sort_hint", values[i])
+			} else if value.Valid {
+				_m.SortHint = int(value.Int64)
+			}
+		case chargeusagebasedrevenuerecognitioncredits.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				_m.Type = creditrealization.Type(value.String)
 			}
 		case chargeusagebasedrevenuerecognitioncredits.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -142,37 +191,6 @@ func (_m *ChargeUsageBasedRevenueRecognitionCredits) assignValues(columns []stri
 				return fmt.Errorf("unexpected type %T for field run_id", values[i])
 			} else if value.Valid {
 				_m.RunID = value.String
-			}
-		case chargeusagebasedrevenuerecognitioncredits.FieldAmount:
-			if value, ok := values[i].(*alpacadecimal.Decimal); !ok {
-				return fmt.Errorf("unexpected type %T for field amount", values[i])
-			} else if value != nil {
-				_m.Amount = *value
-			}
-		case chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field service_period_from", values[i])
-			} else if value.Valid {
-				_m.ServicePeriodFrom = value.Time
-			}
-		case chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field service_period_to", values[i])
-			} else if value.Valid {
-				_m.ServicePeriodTo = value.Time
-			}
-		case chargeusagebasedrevenuerecognitioncredits.FieldType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
-			} else if value.Valid {
-				_m.Type = creditrealization.Type(value.String)
-			}
-		case chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field ledger_transaction_group_id", values[i])
-			} else if value.Valid {
-				_m.LedgerTransactionGroupID = new(string)
-				*_m.LedgerTransactionGroupID = value.String
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
@@ -215,6 +233,29 @@ func (_m *ChargeUsageBasedRevenueRecognitionCredits) String() string {
 	var builder strings.Builder
 	builder.WriteString("ChargeUsageBasedRevenueRecognitionCredits(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
+	if v := _m.LineID; v != nil {
+		builder.WriteString("line_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("amount=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
+	builder.WriteString(", ")
+	builder.WriteString("service_period_from=")
+	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("service_period_to=")
+	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("ledger_transaction_group_id=")
+	builder.WriteString(_m.LedgerTransactionGroupID)
+	builder.WriteString(", ")
+	builder.WriteString("sort_hint=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SortHint))
+	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Type))
+	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(_m.Namespace)
 	builder.WriteString(", ")
@@ -234,23 +275,6 @@ func (_m *ChargeUsageBasedRevenueRecognitionCredits) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("run_id=")
 	builder.WriteString(_m.RunID)
-	builder.WriteString(", ")
-	builder.WriteString("amount=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Amount))
-	builder.WriteString(", ")
-	builder.WriteString("service_period_from=")
-	builder.WriteString(_m.ServicePeriodFrom.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("service_period_to=")
-	builder.WriteString(_m.ServicePeriodTo.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", _m.Type))
-	builder.WriteString(", ")
-	if v := _m.LedgerTransactionGroupID; v != nil {
-		builder.WriteString("ledger_transaction_group_id=")
-		builder.WriteString(*v)
-	}
 	builder.WriteByte(')')
 	return builder.String()
 }

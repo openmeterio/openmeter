@@ -113,26 +113,6 @@ func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) AddSortHint(v int) 
 	return _u
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
-	_u.mutation.SetCorrectsRealizationID(v)
-	return _u
-}
-
-// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
-	if v != nil {
-		_u.SetCorrectsRealizationID(*v)
-	}
-	return _u
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
-	_u.mutation.ClearCorrectsRealizationID()
-	return _u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -168,6 +148,26 @@ func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetAnnotations(v mo
 // ClearAnnotations clears the value of the "annotations" field.
 func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) ClearAnnotations() *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
 	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdate) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpdate {
+	_u.mutation.ClearCorrectsRealizationID()
 	return _u
 }
 
@@ -516,26 +516,6 @@ func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) AddSortHint(v in
 	return _u
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
-	_u.mutation.SetCorrectsRealizationID(v)
-	return _u
-}
-
-// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
-func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
-	if v != nil {
-		_u.SetCorrectsRealizationID(*v)
-	}
-	return _u
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
-	_u.mutation.ClearCorrectsRealizationID()
-	return _u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -571,6 +551,26 @@ func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetAnnotations(v
 // ClearAnnotations clears the value of the "annotations" field.
 func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) ClearAnnotations() *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
 	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpdateOne {
+	_u.mutation.ClearCorrectsRealizationID()
 	return _u
 }
 

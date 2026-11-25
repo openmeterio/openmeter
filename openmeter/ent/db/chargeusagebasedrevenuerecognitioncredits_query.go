@@ -300,12 +300,12 @@ func (_q *ChargeUsageBasedRevenueRecognitionCreditsQuery) WithRun(opts ...func(*
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		LineID string `json:"line_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.ChargeUsageBasedRevenueRecognitionCredits.Query().
-//		GroupBy(chargeusagebasedrevenuerecognitioncredits.FieldNamespace).
+//		GroupBy(chargeusagebasedrevenuerecognitioncredits.FieldLineID).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (_q *ChargeUsageBasedRevenueRecognitionCreditsQuery) GroupBy(field string, fields ...string) *ChargeUsageBasedRevenueRecognitionCreditsGroupBy {
@@ -323,11 +323,11 @@ func (_q *ChargeUsageBasedRevenueRecognitionCreditsQuery) GroupBy(field string, 
 // Example:
 //
 //	var v []struct {
-//		Namespace string `json:"namespace,omitempty"`
+//		LineID string `json:"line_id,omitempty"`
 //	}
 //
 //	client.ChargeUsageBasedRevenueRecognitionCredits.Query().
-//		Select(chargeusagebasedrevenuerecognitioncredits.FieldNamespace).
+//		Select(chargeusagebasedrevenuerecognitioncredits.FieldLineID).
 //		Scan(ctx, &v)
 func (_q *ChargeUsageBasedRevenueRecognitionCreditsQuery) Select(fields ...string) *ChargeUsageBasedRevenueRecognitionCreditsSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)

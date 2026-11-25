@@ -114,26 +114,6 @@ func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) AddSortHint(v int) *Ch
 	return _u
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
-	_u.mutation.SetCorrectsRealizationID(v)
-	return _u
-}
-
-// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
-	if v != nil {
-		_u.SetCorrectsRealizationID(*v)
-	}
-	return _u
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
-	_u.mutation.ClearCorrectsRealizationID()
-	return _u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -169,6 +149,26 @@ func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetAnnotations(v model
 // ClearAnnotations clears the value of the "annotations" field.
 func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) ClearAnnotations() *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
 	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdate) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpdate {
+	_u.mutation.ClearCorrectsRealizationID()
 	return _u
 }
 
@@ -565,26 +565,6 @@ func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) AddSortHint(v int) 
 	return _u
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
-	_u.mutation.SetCorrectsRealizationID(v)
-	return _u
-}
-
-// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
-func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
-	if v != nil {
-		_u.SetCorrectsRealizationID(*v)
-	}
-	return _u
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
-	_u.mutation.ClearCorrectsRealizationID()
-	return _u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -620,6 +600,26 @@ func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetAnnotations(v mo
 // ClearAnnotations clears the value of the "annotations" field.
 func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) ClearAnnotations() *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
 	_u.mutation.ClearAnnotations()
+	return _u
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	_u.mutation.SetCorrectsRealizationID(v)
+	return _u
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	if v != nil {
+		_u.SetCorrectsRealizationID(*v)
+	}
+	return _u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (_u *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpdateOne {
+	_u.mutation.ClearCorrectsRealizationID()
 	return _u
 }
 

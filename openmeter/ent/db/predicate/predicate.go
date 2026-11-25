@@ -295,8 +295,8 @@ type ChargeUsageBasedRevenueRecognitionCredits func(*sql.Selector)
 // ChargeUsageBasedRevenueRecognitionDetailedLine is the predicate function for chargeusagebasedrevenuerecognitiondetailedline builders.
 type ChargeUsageBasedRevenueRecognitionDetailedLine func(*sql.Selector)
 
-// ChargeUsageBasedRevenueRecognitionOverageCredits is the predicate function for chargeusagebasedrevenuerecognitionoveragecredits builders.
-type ChargeUsageBasedRevenueRecognitionOverageCredits func(*sql.Selector)
+// ChargeUsageBasedRevenueRecognitionInvoicedUsage is the predicate function for chargeusagebasedrevenuerecognitioninvoicedusage builders.
+type ChargeUsageBasedRevenueRecognitionInvoicedUsage func(*sql.Selector)
 
 // ChargeUsageBasedRevenueRecognitions is the predicate function for chargeusagebasedrevenuerecognitions builders.
 type ChargeUsageBasedRevenueRecognitions func(*sql.Selector)

@@ -1,7 +1,6 @@
 package creditrealization
 
 import (
-	"slices"
 	"time"
 
 	"entgo.io/ent"
@@ -17,12 +16,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-type Mixin struct {
-	entutils.RecursiveMixin[mixinBase]
-
-	SelfReferenceType   any
-	SelfReferenceSymbol string
-}
+// Mixin holds the columns every credit realization table has. The pointer to
+// the realization a correction corrects is not one of them: tables that need it
+// add CorrectionMixin.
+type Mixin = entutils.RecursiveMixin[mixinBase]
 
 type mixinBase struct {
 	mixin.Schema
@@ -67,7 +64,21 @@ func (m mixinBase) Fields() []ent.Field {
 		field.Enum("type").
 			GoType(Type("")).
 			Immutable(),
+	}
+}
 
+// CorrectionMixin lets a correction name the allocation it corrects. It is
+// separate from Mixin because not every credit realization table can point at
+// the corrected row.
+type CorrectionMixin struct {
+	mixin.Schema
+
+	SelfReferenceType   any
+	SelfReferenceSymbol string
+}
+
+func (CorrectionMixin) Fields() []ent.Field {
+	return []ent.Field{
 		field.String("corrects_realization_id").
 			SchemaType(map[string]string{
 				dialect.Postgres: "char(26)",
@@ -78,24 +89,20 @@ func (m mixinBase) Fields() []ent.Field {
 	}
 }
 
-func (mixinBase) Edges() []ent.Edge {
-	return nil
-}
-
-func (m Mixin) Edges() []ent.Edge {
-	edges := m.RecursiveMixin.Edges()
-
-	return slices.Concat(edges, []ent.Edge{
+func (m CorrectionMixin) Edges() []ent.Edge {
+	return []ent.Edge{
 		edge.To("allocation", m.SelfReferenceType).
 			Field("corrects_realization_id").
 			Unique().
 			StorageKey(edge.Symbol(m.SelfReferenceSymbol)),
 		edge.From("corrections", m.SelfReferenceType).
 			Ref("allocation"),
-	})
+	}
 }
 
-type Creator[T any] interface {
+// MixinCreator and MixinGetter cover the columns of Mixin. Creator and Getter
+// add the column of CorrectionMixin.
+type MixinCreator[T any] interface {
 	SetID(id string) T
 	SetNamespace(namespace string) T
 	SetAnnotations(annotations models.Annotations) T
@@ -106,11 +113,15 @@ type Creator[T any] interface {
 	SetServicePeriodTo(servicePeriodTo time.Time) T
 	SetLedgerTransactionGroupID(ledgerTransactionGroupID string) T
 	SetType(t Type) T
-	SetNillableCorrectsRealizationID(correctsRealizationID *string) T
 	SetSortHint(sortHint int) T
 }
 
-func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realization CreateInput) T {
+type Creator[T any] interface {
+	MixinCreator[T]
+	SetNillableCorrectsRealizationID(correctsRealizationID *string) T
+}
+
+func CreateMixin[T MixinCreator[T]](creator MixinCreator[T], ns string, sortHint int, realization CreateInput) T {
 	create := creator.SetAnnotations(realization.Annotations).
 		SetNamespace(ns).
 		SetNillableLineID(realization.LineID).
@@ -119,8 +130,7 @@ func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realizati
 		SetServicePeriodTo(realization.ServicePeriod.To.In(time.UTC)).
 		SetLedgerTransactionGroupID(realization.LedgerTransaction.TransactionGroupID).
 		SetSortHint(sortHint).
-		SetType(realization.Type).
-		SetNillableCorrectsRealizationID(realization.CorrectsRealizationID)
+		SetType(realization.Type)
 
 	if realization.ID != "" {
 		create = create.SetID(realization.ID)
@@ -129,7 +139,12 @@ func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realizati
 	return create
 }
 
-type Getter interface {
+func Create[T Creator[T]](creator Creator[T], ns string, sortHint int, realization CreateInput) T {
+	return CreateMixin[T](creator, ns, sortHint, realization).
+		SetNillableCorrectsRealizationID(realization.CorrectsRealizationID)
+}
+
+type MixinGetter interface {
 	entutils.TimeMixinGetter
 	entutils.NamespaceMixinGetter
 	entutils.IDMixinGetter
@@ -142,10 +157,14 @@ type Getter interface {
 	GetLedgerTransactionGroupID() string
 	GetSortHint() int
 	GetType() Type
+}
+
+type Getter interface {
+	MixinGetter
 	GetCorrectsRealizationID() *string
 }
 
-func FromDBRealization(dbEntity Getter) Realization {
+func FromDBMixinRealization(dbEntity MixinGetter) Realization {
 	return Realization{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: dbEntity.GetNamespace(),
@@ -164,12 +183,27 @@ func FromDBRealization(dbEntity Getter) Realization {
 			LedgerTransaction: ledgertransaction.GroupReference{
 				TransactionGroupID: dbEntity.GetLedgerTransactionGroupID(),
 			},
-			LineID:                dbEntity.GetLineID(),
-			Type:                  dbEntity.GetType(),
-			CorrectsRealizationID: dbEntity.GetCorrectsRealizationID(),
+			LineID: dbEntity.GetLineID(),
+			Type:   dbEntity.GetType(),
 		},
 		SortHint: dbEntity.GetSortHint(),
 	}
+}
+
+func FromDBMixinRealizations[T MixinGetter](dbEntities []T) Realizations {
+	realizations := make(Realizations, 0, len(dbEntities))
+	for _, dbEntity := range dbEntities {
+		realizations = append(realizations, FromDBMixinRealization(dbEntity))
+	}
+
+	return realizations
+}
+
+func FromDBRealization(dbEntity Getter) Realization {
+	realization := FromDBMixinRealization(dbEntity)
+	realization.CorrectsRealizationID = dbEntity.GetCorrectsRealizationID()
+
+	return realization
 }
 
 func FromDBRealizations[T Getter](dbEntities []T) Realizations {

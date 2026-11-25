@@ -77,20 +77,6 @@ func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetType(v creditrea
 	return _c
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsCreate {
-	_c.mutation.SetCorrectsRealizationID(v)
-	return _c
-}
-
-// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunOverageCreditAllocationsCreate {
-	if v != nil {
-		_c.SetCorrectsRealizationID(*v)
-	}
-	return _c
-}
-
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetNamespace(v string) *ChargeUsageBasedRunOverageCreditAllocationsCreate {
 	_c.mutation.SetNamespace(v)
@@ -142,6 +128,20 @@ func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetNillableDeletedA
 // SetAnnotations sets the "annotations" field.
 func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetAnnotations(v models.Annotations) *ChargeUsageBasedRunOverageCreditAllocationsCreate {
 	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsCreate {
+	_c.mutation.SetCorrectsRealizationID(v)
+	return _c
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeUsageBasedRunOverageCreditAllocationsCreate {
+	if v != nil {
+		_c.SetCorrectsRealizationID(*v)
+	}
 	return _c
 }
 
@@ -288,11 +288,6 @@ func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunOverageCreditAllocations.type": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
-		if err := chargeusagebasedrunoveragecreditallocations.CorrectsRealizationIDValidator(v); err != nil {
-			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunOverageCreditAllocations.corrects_realization_id": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeUsageBasedRunOverageCreditAllocations.namespace"`)}
 	}
@@ -306,6 +301,11 @@ func (_c *ChargeUsageBasedRunOverageCreditAllocationsCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeUsageBasedRunOverageCreditAllocations.updated_at"`)}
+	}
+	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
+		if err := chargeusagebasedrunoveragecreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRunOverageCreditAllocations.corrects_realization_id": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.RunID(); !ok {
 		return &ValidationError{Name: "run_id", err: errors.New(`db: missing required field "ChargeUsageBasedRunOverageCreditAllocations.run_id"`)}
@@ -571,24 +571,6 @@ func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) AddSortHint(v int) *
 	return u
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
-	u.Set(chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID, v)
-	return u
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
-	u.SetExcluded(chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID)
-	return u
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
-	u.SetNull(chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID)
-	return u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
 	u.Set(chargeusagebasedrunoveragecreditallocations.FieldUpdatedAt, v)
@@ -634,6 +616,24 @@ func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) UpdateAnnotations() 
 // ClearAnnotations clears the value of the "annotations" field.
 func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) ClearAnnotations() *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
 	u.SetNull(chargeusagebasedrunoveragecreditallocations.FieldAnnotations)
+	return u
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
+	u.Set(chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID, v)
+	return u
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
+	u.SetExcluded(chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID)
+	return u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsert {
+	u.SetNull(chargeusagebasedrunoveragecreditallocations.FieldCorrectsRealizationID)
 	return u
 }
 
@@ -784,27 +784,6 @@ func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) UpdateSortHint() 
 	})
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
-		s.SetCorrectsRealizationID(v)
-	})
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
-		s.UpdateCorrectsRealizationID()
-	})
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
-		s.ClearCorrectsRealizationID()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
@@ -858,6 +837,27 @@ func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) UpdateAnnotations
 func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) ClearAnnotations() *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 
@@ -1175,27 +1175,6 @@ func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) UpdateSortHint()
 	})
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
-		s.SetCorrectsRealizationID(v)
-	})
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
-		s.UpdateCorrectsRealizationID()
-	})
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
-		s.ClearCorrectsRealizationID()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) SetUpdatedAt(v time.Time) *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
@@ -1249,6 +1228,27 @@ func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) UpdateAnnotation
 func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) ClearAnnotations() *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeUsageBasedRunOverageCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeUsageBasedRunOverageCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 

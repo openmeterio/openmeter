@@ -104,8 +104,8 @@ type Tx struct {
 	ChargeUsageBasedRevenueRecognitionCredits *ChargeUsageBasedRevenueRecognitionCreditsClient
 	// ChargeUsageBasedRevenueRecognitionDetailedLine is the client for interacting with the ChargeUsageBasedRevenueRecognitionDetailedLine builders.
 	ChargeUsageBasedRevenueRecognitionDetailedLine *ChargeUsageBasedRevenueRecognitionDetailedLineClient
-	// ChargeUsageBasedRevenueRecognitionOverageCredits is the client for interacting with the ChargeUsageBasedRevenueRecognitionOverageCredits builders.
-	ChargeUsageBasedRevenueRecognitionOverageCredits *ChargeUsageBasedRevenueRecognitionOverageCreditsClient
+	// ChargeUsageBasedRevenueRecognitionInvoicedUsage is the client for interacting with the ChargeUsageBasedRevenueRecognitionInvoicedUsage builders.
+	ChargeUsageBasedRevenueRecognitionInvoicedUsage *ChargeUsageBasedRevenueRecognitionInvoicedUsageClient
 	// ChargeUsageBasedRevenueRecognitions is the client for interacting with the ChargeUsageBasedRevenueRecognitions builders.
 	ChargeUsageBasedRevenueRecognitions *ChargeUsageBasedRevenueRecognitionsClient
 	// ChargeUsageBasedRunCreditAllocations is the client for interacting with the ChargeUsageBasedRunCreditAllocations builders.
@@ -386,7 +386,7 @@ func (tx *Tx) init() {
 	tx.ChargeUsageBasedOverride = NewChargeUsageBasedOverrideClient(tx.config)
 	tx.ChargeUsageBasedRevenueRecognitionCredits = NewChargeUsageBasedRevenueRecognitionCreditsClient(tx.config)
 	tx.ChargeUsageBasedRevenueRecognitionDetailedLine = NewChargeUsageBasedRevenueRecognitionDetailedLineClient(tx.config)
-	tx.ChargeUsageBasedRevenueRecognitionOverageCredits = NewChargeUsageBasedRevenueRecognitionOverageCreditsClient(tx.config)
+	tx.ChargeUsageBasedRevenueRecognitionInvoicedUsage = NewChargeUsageBasedRevenueRecognitionInvoicedUsageClient(tx.config)
 	tx.ChargeUsageBasedRevenueRecognitions = NewChargeUsageBasedRevenueRecognitionsClient(tx.config)
 	tx.ChargeUsageBasedRunCreditAllocations = NewChargeUsageBasedRunCreditAllocationsClient(tx.config)
 	tx.ChargeUsageBasedRunDetailedLine = NewChargeUsageBasedRunDetailedLineClient(tx.config)

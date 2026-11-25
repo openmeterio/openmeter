@@ -13,7 +13,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/creditsapplied"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -38,30 +37,22 @@ type RevenueRecognitionRun struct {
 	StoredAtLT time.Time `json:"storedAtLT"`
 	// ServicePeriodTo is the end of the period the run covers.
 	ServicePeriodTo time.Time `json:"servicePeriodTo"`
-	// Period is the cadence the run belongs to, for example P1D for a daily run.
-	Period datetime.ISODuration `json:"period"`
-	// PriorRunID identifies the preceding revenue recognition run. It is nil for
-	// the first run.
-	PriorRunID *RevenueRecognitionRunID `json:"priorRunId,omitempty"`
+	// PriorRevRecogRunID identifies the preceding revenue recognition run. It is
+	// nil for the first run.
+	PriorRevRecogRunID *RevenueRecognitionRunID `json:"priorRevRecogRunId,omitempty"`
 	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
 	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
-	// DeltaMeteredQuantity is the change in MeteredQuantity since the previous
-	// revenue recognition run. It is negative when earlier usage is corrected.
-	DeltaMeteredQuantity alpacadecimal.Decimal `json:"deltaMeteredQuantity"`
 	// Totals is the change since the previous revenue recognition run.
 	Totals                                totals.DeltaTotals `json:"totals"`
 	DetailedLinesIncludeCreditAllocations bool               `json:"detailedLinesIncludeCreditAllocations"`
-	// InvoiceUsageTotal is the part of the run that credits do not cover. It is
-	// nil when the run has no such part.
-	InvoiceUsageTotal *alpacadecimal.Decimal `json:"invoiceUsageTotal,omitempty"`
 
-	// CreditsAllocated and FiatOverageCreditRealizations only carry the ID,
-	// annotations, service period, amount, type, and ledger transaction. LineID,
-	// CorrectsRealizationID, and SortHint are not stored for revenue recognition
-	// runs and are always empty.
-	CreditsAllocated              creditrealization.Realizations   `json:"creditsAllocated"`
-	FiatOverageCreditRealizations creditrealization.Realizations   `json:"fiatOverageCreditRealizations"`
-	DetailedLines                 []RevenueRecognitionDetailedLine `json:"detailedLines"`
+	// CreditsAllocated and InvoicedUsages never carry CorrectsRealizationID: the
+	// revenue recognition tables have no column for it.
+	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
+	// InvoicedUsages is the part of the run that credits do not cover. The run's
+	// invoiced total is the sum of their amounts.
+	InvoicedUsages creditrealization.Realizations   `json:"invoicedUsages"`
+	DetailedLines  []RevenueRecognitionDetailedLine `json:"detailedLines"`
 }
 
 type RevenueRecognitionRuns []RevenueRecognitionRun
@@ -123,20 +114,16 @@ func (l RevenueRecognitionDetailedLine) Validate() error {
 }
 
 type CreateRevenueRecognitionRunInput struct {
-	ChargeID        meta.ChargeID `json:"chargeId"`
-	FeatureID       string        `json:"featureId"`
-	StoredAtLT      time.Time     `json:"storedAtLT"`
-	ServicePeriodTo time.Time     `json:"servicePeriodTo"`
-	// Period is stored as daily (P1D) when left empty.
-	Period                                datetime.ISODuration           `json:"period"`
-	PriorRunID                            *RevenueRecognitionRunID       `json:"priorRunId,omitempty"`
+	ChargeID                              meta.ChargeID                  `json:"chargeId"`
+	FeatureID                             string                         `json:"featureId"`
+	StoredAtLT                            time.Time                      `json:"storedAtLT"`
+	ServicePeriodTo                       time.Time                      `json:"servicePeriodTo"`
+	PriorRevRecogRunID                    *RevenueRecognitionRunID       `json:"priorRevRecogRunId,omitempty"`
 	MeteredQuantity                       alpacadecimal.Decimal          `json:"meteredQuantity"`
-	DeltaMeteredQuantity                  alpacadecimal.Decimal          `json:"deltaMeteredQuantity"`
 	Totals                                totals.DeltaTotals             `json:"totals"`
 	DetailedLinesIncludeCreditAllocations bool                           `json:"detailedLinesIncludeCreditAllocations"`
-	InvoiceUsageTotal                     *alpacadecimal.Decimal         `json:"invoiceUsageTotal,omitempty"`
 	CreditsAllocated                      creditrealization.CreateInputs `json:"creditsAllocated"`
-	FiatOverageCreditRealizations         creditrealization.CreateInputs `json:"fiatOverageCreditRealizations"`
+	InvoicedUsages                        creditrealization.CreateInputs `json:"invoicedUsages"`
 	// DetailedLines take their namespace from the charge.
 	DetailedLines []RevenueRecognitionDetailedLine `json:"detailedLines"`
 }
@@ -162,17 +149,13 @@ func (i CreateRevenueRecognitionRunInput) Validate() error {
 		errs = append(errs, errors.New("service period to must be set"))
 	}
 
-	if !i.Period.IsZero() && !i.Period.IsPositive() {
-		errs = append(errs, errors.New("period must be positive"))
-	}
-
-	if i.PriorRunID != nil {
-		if err := i.PriorRunID.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf("prior run id: %w", err))
+	if i.PriorRevRecogRunID != nil {
+		if err := i.PriorRevRecogRunID.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("prior revenue recognition run id: %w", err))
 		}
 
-		if i.PriorRunID.Namespace != i.ChargeID.Namespace {
-			errs = append(errs, errors.New("prior run namespace must match charge namespace"))
+		if i.PriorRevRecogRunID.Namespace != i.ChargeID.Namespace {
+			errs = append(errs, errors.New("prior revenue recognition run namespace must match charge namespace"))
 		}
 	}
 
@@ -180,16 +163,12 @@ func (i CreateRevenueRecognitionRunInput) Validate() error {
 		errs = append(errs, fmt.Errorf("totals: %w", err))
 	}
 
-	if i.InvoiceUsageTotal != nil && i.InvoiceUsageTotal.IsNegative() {
-		errs = append(errs, errors.New("invoice usage total is negative"))
-	}
-
-	if err := validateRevenueRecognitionCreditRealizations(i.CreditsAllocated); err != nil {
+	if err := validateRevenueRecognitionRealizations(i.CreditsAllocated); err != nil {
 		errs = append(errs, fmt.Errorf("credits allocated: %w", err))
 	}
 
-	if err := validateRevenueRecognitionCreditRealizations(i.FiatOverageCreditRealizations); err != nil {
-		errs = append(errs, fmt.Errorf("fiat overage credit realizations: %w", err))
+	if err := validateRevenueRecognitionRealizations(i.InvoicedUsages); err != nil {
+		errs = append(errs, fmt.Errorf("invoiced usages: %w", err))
 	}
 
 	for idx, line := range i.DetailedLines {
@@ -201,11 +180,12 @@ func (i CreateRevenueRecognitionRunInput) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// validateRevenueRecognitionCreditRealizations replaces
+// validateRevenueRecognitionRealizations replaces
 // creditrealization.CreateInput.Validate for revenue recognition runs. The
-// ledger transaction is optional here, and the fields that have no column are
-// rejected so they are not dropped silently.
-func validateRevenueRecognitionCreditRealizations(inputs creditrealization.CreateInputs) error {
+// shared check requires a correction to name the realization it corrects, but
+// these tables have no column for that, so setting it is rejected instead of
+// dropped silently.
+func validateRevenueRecognitionRealizations(inputs creditrealization.CreateInputs) error {
 	var errs []error
 
 	for idx, input := range inputs {
@@ -228,8 +208,12 @@ func validateRevenueRecognitionCreditRealizations(inputs creditrealization.Creat
 			}
 		}
 
-		if input.LineID != nil {
-			errs = append(errs, fmt.Errorf("[%d]: line id is not stored for revenue recognition runs", idx))
+		if err := input.LedgerTransaction.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf("[%d]: ledger transaction: %w", idx, err))
+		}
+
+		if input.LineID != nil && *input.LineID == "" {
+			errs = append(errs, fmt.Errorf("[%d]: line id must be non-empty", idx))
 		}
 
 		if input.CorrectsRealizationID != nil {

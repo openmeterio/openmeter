@@ -14,7 +14,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioncredits"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitiondetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitionoveragecredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -198,20 +198,6 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) SetNillableMeteredQuantity(
 	return _u
 }
 
-// SetDeltaMeteredQuantity sets the "delta_metered_quantity" field.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) SetDeltaMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.SetDeltaMeteredQuantity(v)
-	return _u
-}
-
-// SetNillableDeltaMeteredQuantity sets the "delta_metered_quantity" field if the given value is not nil.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) SetNillableDeltaMeteredQuantity(v *alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	if v != nil {
-		_u.SetDeltaMeteredQuantity(*v)
-	}
-	return _u
-}
-
 // SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
 func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRevenueRecognitionsUpdate {
 	_u.mutation.SetDetailedLinesIncludeCreditAllocations(v)
@@ -226,39 +212,19 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) SetNillableDetailedLinesInc
 	return _u
 }
 
-// SetInvoiceUsageTotal sets the "invoice_usage_total" field.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) SetInvoiceUsageTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.SetInvoiceUsageTotal(v)
+// AddNextRevRecogRunIDs adds the "next_rev_recog_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddNextRevRecogRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.AddNextRevRecogRunIDs(ids...)
 	return _u
 }
 
-// SetNillableInvoiceUsageTotal sets the "invoice_usage_total" field if the given value is not nil.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) SetNillableInvoiceUsageTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	if v != nil {
-		_u.SetInvoiceUsageTotal(*v)
-	}
-	return _u
-}
-
-// ClearInvoiceUsageTotal clears the value of the "invoice_usage_total" field.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) ClearInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.ClearInvoiceUsageTotal()
-	return _u
-}
-
-// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.AddNextRunIDs(ids...)
-	return _u
-}
-
-// AddNextRuns adds the "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdate {
+// AddNextRevRecogRuns adds the "next_rev_recog_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddNextRevRecogRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddNextRunIDs(ids...)
+	return _u.AddNextRevRecogRunIDs(ids...)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionCredits entity by IDs.
@@ -276,19 +242,19 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddCreditAllocations(v ...*
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
-// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionOverageCredits entity by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.AddFiatOverageCreditAllocationIDs(ids...)
+// AddInvoicedUsageIDs adds the "invoiced_usages" edge to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddInvoicedUsageIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.AddInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// AddFiatOverageCreditAllocations adds the "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionOverageCredits entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddFiatOverageCreditAllocations(v ...*ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionsUpdate {
+// AddInvoicedUsages adds the "invoiced_usages" edges to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) AddInvoicedUsages(v ...*ChargeUsageBasedRevenueRecognitionInvoicedUsage) *ChargeUsageBasedRevenueRecognitionsUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddFiatOverageCreditAllocationIDs(ids...)
+	return _u.AddInvoicedUsageIDs(ids...)
 }
 
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRevenueRecognitionDetailedLine entity by IDs.
@@ -311,25 +277,25 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) Mutation() *ChargeUsageBase
 	return _u.mutation
 }
 
-// ClearNextRuns clears all "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) ClearNextRuns() *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.ClearNextRuns()
+// ClearNextRevRecogRuns clears all "next_rev_recog_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) ClearNextRevRecogRuns() *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.ClearNextRevRecogRuns()
 	return _u
 }
 
-// RemoveNextRunIDs removes the "next_runs" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.RemoveNextRunIDs(ids...)
+// RemoveNextRevRecogRunIDs removes the "next_rev_recog_runs" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveNextRevRecogRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.RemoveNextRevRecogRunIDs(ids...)
 	return _u
 }
 
-// RemoveNextRuns removes "next_runs" edges to ChargeUsageBasedRevenueRecognitions entities.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdate {
+// RemoveNextRevRecogRuns removes "next_rev_recog_runs" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveNextRevRecogRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveNextRunIDs(ids...)
+	return _u.RemoveNextRevRecogRunIDs(ids...)
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionCredits entity.
@@ -353,25 +319,25 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveCreditAllocations(v .
 	return _u.RemoveCreditAllocationIDs(ids...)
 }
 
-// ClearFiatOverageCreditAllocations clears all "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionOverageCredits entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) ClearFiatOverageCreditAllocations() *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.ClearFiatOverageCreditAllocations()
+// ClearInvoicedUsages clears all "invoiced_usages" edges to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) ClearInvoicedUsages() *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.ClearInvoicedUsages()
 	return _u
 }
 
-// RemoveFiatOverageCreditAllocationIDs removes the "fiat_overage_credit_allocations" edge to ChargeUsageBasedRevenueRecognitionOverageCredits entities by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
-	_u.mutation.RemoveFiatOverageCreditAllocationIDs(ids...)
+// RemoveInvoicedUsageIDs removes the "invoiced_usages" edge to ChargeUsageBasedRevenueRecognitionInvoicedUsage entities by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveInvoicedUsageIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdate {
+	_u.mutation.RemoveInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// RemoveFiatOverageCreditAllocations removes "fiat_overage_credit_allocations" edges to ChargeUsageBasedRevenueRecognitionOverageCredits entities.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveFiatOverageCreditAllocations(v ...*ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionsUpdate {
+// RemoveInvoicedUsages removes "invoiced_usages" edges to ChargeUsageBasedRevenueRecognitionInvoicedUsage entities.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) RemoveInvoicedUsages(v ...*ChargeUsageBasedRevenueRecognitionInvoicedUsage) *ChargeUsageBasedRevenueRecognitionsUpdate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveFiatOverageCreditAllocationIDs(ids...)
+	return _u.RemoveInvoicedUsageIDs(ids...)
 }
 
 // ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedRevenueRecognitionDetailedLine entity.
@@ -493,24 +459,15 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) sqlSave(ctx context.Context
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldMeteredQuantity, field.TypeOther, value)
 	}
-	if value, ok := _u.mutation.DeltaMeteredQuantity(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldDeltaMeteredQuantity, field.TypeOther, value)
-	}
 	if value, ok := _u.mutation.DetailedLinesIncludeCreditAllocations(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldDetailedLinesIncludeCreditAllocations, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.InvoiceUsageTotal(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, field.TypeOther, value)
-	}
-	if _u.mutation.InvoiceUsageTotalCleared() {
-		_spec.ClearField(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, field.TypeOther)
-	}
-	if _u.mutation.NextRunsCleared() {
+	if _u.mutation.NextRevRecogRunsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.NextRevRecogRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRevRecogRunsColumn},
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -518,12 +475,12 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) sqlSave(ctx context.Context
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedNextRunsIDs(); len(nodes) > 0 && !_u.mutation.NextRunsCleared() {
+	if nodes := _u.mutation.RemovedNextRevRecogRunsIDs(); len(nodes) > 0 && !_u.mutation.NextRevRecogRunsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.NextRevRecogRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRevRecogRunsColumn},
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -534,12 +491,12 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) sqlSave(ctx context.Context
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.NextRunsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.NextRevRecogRunsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.NextRevRecogRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRevRecogRunsColumn},
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -595,28 +552,28 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) sqlSave(ctx context.Context
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.FiatOverageCreditAllocationsCleared() {
+	if _u.mutation.InvoicedUsagesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.InvoicedUsagesTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.InvoicedUsagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedFiatOverageCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.FiatOverageCreditAllocationsCleared() {
+	if nodes := _u.mutation.RemovedInvoicedUsagesIDs(); len(nodes) > 0 && !_u.mutation.InvoicedUsagesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.InvoicedUsagesTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.InvoicedUsagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -624,15 +581,15 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdate) sqlSave(ctx context.Context
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.FiatOverageCreditAllocationsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.InvoicedUsagesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.InvoicedUsagesTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.InvoicedUsagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -871,20 +828,6 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetNillableMeteredQuanti
 	return _u
 }
 
-// SetDeltaMeteredQuantity sets the "delta_metered_quantity" field.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetDeltaMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.SetDeltaMeteredQuantity(v)
-	return _u
-}
-
-// SetNillableDeltaMeteredQuantity sets the "delta_metered_quantity" field if the given value is not nil.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetNillableDeltaMeteredQuantity(v *alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	if v != nil {
-		_u.SetDeltaMeteredQuantity(*v)
-	}
-	return _u
-}
-
 // SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
 func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
 	_u.mutation.SetDetailedLinesIncludeCreditAllocations(v)
@@ -899,39 +842,19 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetNillableDetailedLines
 	return _u
 }
 
-// SetInvoiceUsageTotal sets the "invoice_usage_total" field.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetInvoiceUsageTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.SetInvoiceUsageTotal(v)
+// AddNextRevRecogRunIDs adds the "next_rev_recog_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddNextRevRecogRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.AddNextRevRecogRunIDs(ids...)
 	return _u
 }
 
-// SetNillableInvoiceUsageTotal sets the "invoice_usage_total" field if the given value is not nil.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) SetNillableInvoiceUsageTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	if v != nil {
-		_u.SetInvoiceUsageTotal(*v)
-	}
-	return _u
-}
-
-// ClearInvoiceUsageTotal clears the value of the "invoice_usage_total" field.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) ClearInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.ClearInvoiceUsageTotal()
-	return _u
-}
-
-// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.AddNextRunIDs(ids...)
-	return _u
-}
-
-// AddNextRuns adds the "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+// AddNextRevRecogRuns adds the "next_rev_recog_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddNextRevRecogRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddNextRunIDs(ids...)
+	return _u.AddNextRevRecogRunIDs(ids...)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionCredits entity by IDs.
@@ -949,19 +872,19 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddCreditAllocations(v .
 	return _u.AddCreditAllocationIDs(ids...)
 }
 
-// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionOverageCredits entity by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.AddFiatOverageCreditAllocationIDs(ids...)
+// AddInvoicedUsageIDs adds the "invoiced_usages" edge to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddInvoicedUsageIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.AddInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// AddFiatOverageCreditAllocations adds the "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionOverageCredits entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddFiatOverageCreditAllocations(v ...*ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+// AddInvoicedUsages adds the "invoiced_usages" edges to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) AddInvoicedUsages(v ...*ChargeUsageBasedRevenueRecognitionInvoicedUsage) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.AddFiatOverageCreditAllocationIDs(ids...)
+	return _u.AddInvoicedUsageIDs(ids...)
 }
 
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRevenueRecognitionDetailedLine entity by IDs.
@@ -984,25 +907,25 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) Mutation() *ChargeUsageB
 	return _u.mutation
 }
 
-// ClearNextRuns clears all "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) ClearNextRuns() *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.ClearNextRuns()
+// ClearNextRevRecogRuns clears all "next_rev_recog_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) ClearNextRevRecogRuns() *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.ClearNextRevRecogRuns()
 	return _u
 }
 
-// RemoveNextRunIDs removes the "next_runs" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.RemoveNextRunIDs(ids...)
+// RemoveNextRevRecogRunIDs removes the "next_rev_recog_runs" edge to ChargeUsageBasedRevenueRecognitions entities by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveNextRevRecogRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.RemoveNextRevRecogRunIDs(ids...)
 	return _u
 }
 
-// RemoveNextRuns removes "next_runs" edges to ChargeUsageBasedRevenueRecognitions entities.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+// RemoveNextRevRecogRuns removes "next_rev_recog_runs" edges to ChargeUsageBasedRevenueRecognitions entities.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveNextRevRecogRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveNextRunIDs(ids...)
+	return _u.RemoveNextRevRecogRunIDs(ids...)
 }
 
 // ClearCreditAllocations clears all "credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionCredits entity.
@@ -1026,25 +949,25 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveCreditAllocations(
 	return _u.RemoveCreditAllocationIDs(ids...)
 }
 
-// ClearFiatOverageCreditAllocations clears all "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionOverageCredits entity.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) ClearFiatOverageCreditAllocations() *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.ClearFiatOverageCreditAllocations()
+// ClearInvoicedUsages clears all "invoiced_usages" edges to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) ClearInvoicedUsages() *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.ClearInvoicedUsages()
 	return _u
 }
 
-// RemoveFiatOverageCreditAllocationIDs removes the "fiat_overage_credit_allocations" edge to ChargeUsageBasedRevenueRecognitionOverageCredits entities by IDs.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
-	_u.mutation.RemoveFiatOverageCreditAllocationIDs(ids...)
+// RemoveInvoicedUsageIDs removes the "invoiced_usages" edge to ChargeUsageBasedRevenueRecognitionInvoicedUsage entities by IDs.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveInvoicedUsageIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+	_u.mutation.RemoveInvoicedUsageIDs(ids...)
 	return _u
 }
 
-// RemoveFiatOverageCreditAllocations removes "fiat_overage_credit_allocations" edges to ChargeUsageBasedRevenueRecognitionOverageCredits entities.
-func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveFiatOverageCreditAllocations(v ...*ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
+// RemoveInvoicedUsages removes "invoiced_usages" edges to ChargeUsageBasedRevenueRecognitionInvoicedUsage entities.
+func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) RemoveInvoicedUsages(v ...*ChargeUsageBasedRevenueRecognitionInvoicedUsage) *ChargeUsageBasedRevenueRecognitionsUpdateOne {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _u.RemoveFiatOverageCreditAllocationIDs(ids...)
+	return _u.RemoveInvoicedUsageIDs(ids...)
 }
 
 // ClearDetailedLines clears all "detailed_lines" edges to the ChargeUsageBasedRevenueRecognitionDetailedLine entity.
@@ -1196,24 +1119,15 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) sqlSave(ctx context.Cont
 	if value, ok := _u.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldMeteredQuantity, field.TypeOther, value)
 	}
-	if value, ok := _u.mutation.DeltaMeteredQuantity(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldDeltaMeteredQuantity, field.TypeOther, value)
-	}
 	if value, ok := _u.mutation.DetailedLinesIncludeCreditAllocations(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldDetailedLinesIncludeCreditAllocations, field.TypeBool, value)
 	}
-	if value, ok := _u.mutation.InvoiceUsageTotal(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, field.TypeOther, value)
-	}
-	if _u.mutation.InvoiceUsageTotalCleared() {
-		_spec.ClearField(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, field.TypeOther)
-	}
-	if _u.mutation.NextRunsCleared() {
+	if _u.mutation.NextRevRecogRunsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.NextRevRecogRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRevRecogRunsColumn},
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -1221,12 +1135,12 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) sqlSave(ctx context.Cont
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedNextRunsIDs(); len(nodes) > 0 && !_u.mutation.NextRunsCleared() {
+	if nodes := _u.mutation.RemovedNextRevRecogRunsIDs(); len(nodes) > 0 && !_u.mutation.NextRevRecogRunsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.NextRevRecogRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRevRecogRunsColumn},
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -1237,12 +1151,12 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) sqlSave(ctx context.Cont
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.NextRunsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.NextRevRecogRunsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.NextRevRecogRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRevRecogRunsColumn},
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -1298,28 +1212,28 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) sqlSave(ctx context.Cont
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if _u.mutation.FiatOverageCreditAllocationsCleared() {
+	if _u.mutation.InvoicedUsagesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.InvoicedUsagesTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.InvoicedUsagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.RemovedFiatOverageCreditAllocationsIDs(); len(nodes) > 0 && !_u.mutation.FiatOverageCreditAllocationsCleared() {
+	if nodes := _u.mutation.RemovedInvoicedUsagesIDs(); len(nodes) > 0 && !_u.mutation.InvoicedUsagesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.InvoicedUsagesTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.InvoicedUsagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1327,15 +1241,15 @@ func (_u *ChargeUsageBasedRevenueRecognitionsUpdateOne) sqlSave(ctx context.Cont
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := _u.mutation.FiatOverageCreditAllocationsIDs(); len(nodes) > 0 {
+	if nodes := _u.mutation.InvoicedUsagesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.InvoicedUsagesTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.InvoicedUsagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -78,20 +78,6 @@ func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetType(v creditrealiz
 	return _c
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsCreate {
-	_c.mutation.SetCorrectsRealizationID(v)
-	return _c
-}
-
-// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunOverageCreditAllocationsCreate {
-	if v != nil {
-		_c.SetCorrectsRealizationID(*v)
-	}
-	return _c
-}
-
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetNamespace(v string) *ChargeFlatFeeRunOverageCreditAllocationsCreate {
 	_c.mutation.SetNamespace(v)
@@ -143,6 +129,20 @@ func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetNillableDeletedAt(v
 // SetAnnotations sets the "annotations" field.
 func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetAnnotations(v models.Annotations) *ChargeFlatFeeRunOverageCreditAllocationsCreate {
 	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsCreate {
+	_c.mutation.SetCorrectsRealizationID(v)
+	return _c
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunOverageCreditAllocationsCreate {
+	if v != nil {
+		_c.SetCorrectsRealizationID(*v)
+	}
 	return _c
 }
 
@@ -308,11 +308,6 @@ func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunOverageCreditAllocations.type": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
-		if err := chargeflatfeerunoveragecreditallocations.CorrectsRealizationIDValidator(v); err != nil {
-			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunOverageCreditAllocations.corrects_realization_id": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeFlatFeeRunOverageCreditAllocations.namespace"`)}
 	}
@@ -326,6 +321,11 @@ func (_c *ChargeFlatFeeRunOverageCreditAllocationsCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeFlatFeeRunOverageCreditAllocations.updated_at"`)}
+	}
+	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
+		if err := chargeflatfeerunoveragecreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunOverageCreditAllocations.corrects_realization_id": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.RunID(); !ok {
 		return &ValidationError{Name: "run_id", err: errors.New(`db: missing required field "ChargeFlatFeeRunOverageCreditAllocations.run_id"`)}
@@ -604,24 +604,6 @@ func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) AddSortHint(v int) *Cha
 	return u
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
-	u.Set(chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID, v)
-	return u
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
-	u.SetExcluded(chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID)
-	return u
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
-	u.SetNull(chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID)
-	return u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
 	u.Set(chargeflatfeerunoveragecreditallocations.FieldUpdatedAt, v)
@@ -667,6 +649,24 @@ func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) UpdateAnnotations() *Ch
 // ClearAnnotations clears the value of the "annotations" field.
 func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) ClearAnnotations() *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
 	u.SetNull(chargeflatfeerunoveragecreditallocations.FieldAnnotations)
+	return u
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
+	u.Set(chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID, v)
+	return u
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
+	u.SetExcluded(chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID)
+	return u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsert {
+	u.SetNull(chargeflatfeerunoveragecreditallocations.FieldCorrectsRealizationID)
 	return u
 }
 
@@ -817,27 +817,6 @@ func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) UpdateSortHint() *Ch
 	})
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
-		s.SetCorrectsRealizationID(v)
-	})
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
-		s.UpdateCorrectsRealizationID()
-	})
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
-		s.ClearCorrectsRealizationID()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
@@ -891,6 +870,27 @@ func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) UpdateAnnotations() 
 func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) ClearAnnotations() *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 
@@ -1208,27 +1208,6 @@ func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) UpdateSortHint() *C
 	})
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
-		s.SetCorrectsRealizationID(v)
-	})
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
-		s.UpdateCorrectsRealizationID()
-	})
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
-		s.ClearCorrectsRealizationID()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
@@ -1282,6 +1261,27 @@ func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) UpdateAnnotations()
 func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) ClearAnnotations() *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeFlatFeeRunOverageCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunOverageCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 

@@ -30,41 +30,23 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) Where(ps ...predicate
 	return _u
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetUpdatedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
-	_u.mutation.SetUpdatedAt(v)
+// SetLineID sets the "line_id" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetLineID(v string) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.SetLineID(v)
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetDeletedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetNillableDeletedAt(v *time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetNillableLineID(v *string) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
 	if v != nil {
-		_u.SetDeletedAt(*v)
+		_u.SetLineID(*v)
 	}
 	return _u
 }
 
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) ClearDeletedAt() *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetAnnotations sets the "annotations" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetAnnotations(v models.Annotations) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
-	_u.mutation.SetAnnotations(v)
-	return _u
-}
-
-// ClearAnnotations clears the value of the "annotations" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) ClearAnnotations() *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
-	_u.mutation.ClearAnnotations()
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) ClearLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.ClearLineID()
 	return _u
 }
 
@@ -107,6 +89,65 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetNillableServicePer
 	if v != nil {
 		_u.SetServicePeriodTo(*v)
 	}
+	return _u
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.ResetSortHint()
+	_u.mutation.SetSortHint(v)
+	return _u
+}
+
+// SetNillableSortHint sets the "sort_hint" field if the given value is not nil.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetNillableSortHint(v *int) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	if v != nil {
+		_u.SetSortHint(*v)
+	}
+	return _u
+}
+
+// AddSortHint adds value to the "sort_hint" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) AddSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.AddSortHint(v)
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetUpdatedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetDeletedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetNillableDeletedAt(v *time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) ClearDeletedAt() *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) SetAnnotations(v models.Annotations) *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) ClearAnnotations() *ChargeUsageBasedRevenueRecognitionCreditsUpdate {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -153,6 +194,11 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) check() error {
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargeusagebasedrevenuerecognitioncredits.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRevenueRecognitionCredits.line_id": %w`, err)}
+		}
+	}
 	if _u.mutation.RunCleared() && len(_u.mutation.RunIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRevenueRecognitionCredits.run"`)
 	}
@@ -171,6 +217,27 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) sqlSave(ctx context.C
 			}
 		}
 	}
+	if value, ok := _u.mutation.LineID(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldLineID, field.TypeString, value)
+	}
+	if _u.mutation.LineIDCleared() {
+		_spec.ClearField(chargeusagebasedrevenuerecognitioncredits.FieldLineID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Amount(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.SortHint(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortHint(); ok {
+		_spec.AddField(chargeusagebasedrevenuerecognitioncredits.FieldSortHint, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -185,18 +252,6 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdate) sqlSave(ctx context.C
 	}
 	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(chargeusagebasedrevenuerecognitioncredits.FieldAnnotations, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldAmount, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.ServicePeriodTo(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, field.TypeTime, value)
-	}
-	if _u.mutation.LedgerTransactionGroupIDCleared() {
-		_spec.ClearField(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -218,41 +273,23 @@ type ChargeUsageBasedRevenueRecognitionCreditsUpdateOne struct {
 	mutation *ChargeUsageBasedRevenueRecognitionCreditsMutation
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetUpdatedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
-	_u.mutation.SetUpdatedAt(v)
+// SetLineID sets the "line_id" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetLineID(v string) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.SetLineID(v)
 	return _u
 }
 
-// SetDeletedAt sets the "deleted_at" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetDeletedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
-	_u.mutation.SetDeletedAt(v)
-	return _u
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetNillableDeletedAt(v *time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+// SetNillableLineID sets the "line_id" field if the given value is not nil.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetNillableLineID(v *string) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
 	if v != nil {
-		_u.SetDeletedAt(*v)
+		_u.SetLineID(*v)
 	}
 	return _u
 }
 
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) ClearDeletedAt() *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
-	_u.mutation.ClearDeletedAt()
-	return _u
-}
-
-// SetAnnotations sets the "annotations" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetAnnotations(v models.Annotations) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
-	_u.mutation.SetAnnotations(v)
-	return _u
-}
-
-// ClearAnnotations clears the value of the "annotations" field.
-func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) ClearAnnotations() *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
-	_u.mutation.ClearAnnotations()
+// ClearLineID clears the value of the "line_id" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) ClearLineID() *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.ClearLineID()
 	return _u
 }
 
@@ -295,6 +332,65 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetNillableService
 	if v != nil {
 		_u.SetServicePeriodTo(*v)
 	}
+	return _u
+}
+
+// SetSortHint sets the "sort_hint" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.ResetSortHint()
+	_u.mutation.SetSortHint(v)
+	return _u
+}
+
+// SetNillableSortHint sets the "sort_hint" field if the given value is not nil.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetNillableSortHint(v *int) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	if v != nil {
+		_u.SetSortHint(*v)
+	}
+	return _u
+}
+
+// AddSortHint adds value to the "sort_hint" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) AddSortHint(v int) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.AddSortHint(v)
+	return _u
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetUpdatedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.SetUpdatedAt(v)
+	return _u
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetDeletedAt(v time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.SetDeletedAt(v)
+	return _u
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetNillableDeletedAt(v *time.Time) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	if v != nil {
+		_u.SetDeletedAt(*v)
+	}
+	return _u
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) ClearDeletedAt() *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.ClearDeletedAt()
+	return _u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) SetAnnotations(v models.Annotations) *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.SetAnnotations(v)
+	return _u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) ClearAnnotations() *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne {
+	_u.mutation.ClearAnnotations()
 	return _u
 }
 
@@ -354,6 +450,11 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) check() error {
+	if v, ok := _u.mutation.LineID(); ok {
+		if err := chargeusagebasedrevenuerecognitioncredits.LineIDValidator(v); err != nil {
+			return &ValidationError{Name: "line_id", err: fmt.Errorf(`db: validator failed for field "ChargeUsageBasedRevenueRecognitionCredits.line_id": %w`, err)}
+		}
+	}
 	if _u.mutation.RunCleared() && len(_u.mutation.RunIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "ChargeUsageBasedRevenueRecognitionCredits.run"`)
 	}
@@ -389,6 +490,27 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) sqlSave(ctx contex
 			}
 		}
 	}
+	if value, ok := _u.mutation.LineID(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldLineID, field.TypeString, value)
+	}
+	if _u.mutation.LineIDCleared() {
+		_spec.ClearField(chargeusagebasedrevenuerecognitioncredits.FieldLineID, field.TypeString)
+	}
+	if value, ok := _u.mutation.Amount(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldAmount, field.TypeOther, value)
+	}
+	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.ServicePeriodTo(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.SortHint(); ok {
+		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldSortHint, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortHint(); ok {
+		_spec.AddField(chargeusagebasedrevenuerecognitioncredits.FieldSortHint, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldUpdatedAt, field.TypeTime, value)
 	}
@@ -403,18 +525,6 @@ func (_u *ChargeUsageBasedRevenueRecognitionCreditsUpdateOne) sqlSave(ctx contex
 	}
 	if _u.mutation.AnnotationsCleared() {
 		_spec.ClearField(chargeusagebasedrevenuerecognitioncredits.FieldAnnotations, field.TypeJSON)
-	}
-	if value, ok := _u.mutation.Amount(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldAmount, field.TypeOther, value)
-	}
-	if value, ok := _u.mutation.ServicePeriodFrom(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodFrom, field.TypeTime, value)
-	}
-	if value, ok := _u.mutation.ServicePeriodTo(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitioncredits.FieldServicePeriodTo, field.TypeTime, value)
-	}
-	if _u.mutation.LedgerTransactionGroupIDCleared() {
-		_spec.ClearField(chargeusagebasedrevenuerecognitioncredits.FieldLedgerTransactionGroupID, field.TypeString)
 	}
 	_node = &ChargeUsageBasedRevenueRecognitionCredits{config: _u.config}
 	_spec.Assign = _node.assignValues

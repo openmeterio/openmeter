@@ -15,16 +15,13 @@ CREATE TABLE "charge_usage_based_revenue_recognitions" (
   "total" numeric NOT NULL,
   "stored_at_lt" timestamptz NOT NULL,
   "service_period_to" timestamptz NOT NULL,
-  "period" character varying NOT NULL DEFAULT 'P1D',
   "metered_quantity" numeric NOT NULL,
-  "delta_metered_quantity" numeric NOT NULL,
-  "detailed_lines_include_credit_allocations" boolean NOT NULL DEFAULT false,
-  "invoice_usage_total" numeric NULL,
+  "detailed_lines_include_credit_allocations" boolean NOT NULL,
   "charge_id" character(26) NOT NULL,
-  "prior_run_id" character(26) NULL,
+  "prior_rev_recog_run_id" character(26) NULL,
   "feature_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "charge_ub_revrec_prior_run" FOREIGN KEY ("prior_run_id") REFERENCES "charge_usage_based_revenue_recognitions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "charge_ub_revrec_prior_rev_recog_run" FOREIGN KEY ("prior_rev_recog_run_id") REFERENCES "charge_usage_based_revenue_recognitions" ("id") ON UPDATE NO ACTION ON DELETE SET NULL,
   CONSTRAINT "charge_usage_based_revenue_recognitions_charge_usage_based_reve" FOREIGN KEY ("charge_id") REFERENCES "charge_usage_based" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT "charge_usage_based_revenue_recognitions_features_usage_based_re" FOREIGN KEY ("feature_id") REFERENCES "features" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
@@ -37,16 +34,18 @@ CREATE INDEX "chargeusagebasedrevenuerecognitions_namespace_charge_id" ON "charg
 -- create "charge_usage_based_revenue_recognition_credits" table
 CREATE TABLE "charge_usage_based_revenue_recognition_credits" (
   "id" character(26) NOT NULL,
+  "line_id" character(26) NULL,
+  "amount" numeric NOT NULL,
+  "service_period_from" timestamptz NOT NULL,
+  "service_period_to" timestamptz NOT NULL,
+  "ledger_transaction_group_id" character(26) NOT NULL,
+  "sort_hint" bigint NOT NULL,
+  "type" character varying NOT NULL,
   "namespace" character varying NOT NULL,
   "created_at" timestamptz NOT NULL,
   "updated_at" timestamptz NOT NULL,
   "deleted_at" timestamptz NULL,
   "annotations" jsonb NULL,
-  "amount" numeric NOT NULL,
-  "service_period_from" timestamptz NOT NULL,
-  "service_period_to" timestamptz NOT NULL,
-  "type" character varying NOT NULL,
-  "ledger_transaction_group_id" character(26) NULL,
   "run_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
   CONSTRAINT "charge_ub_revrec_credits_run" FOREIGN KEY ("run_id") REFERENCES "charge_usage_based_revenue_recognitions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
@@ -94,28 +93,30 @@ CREATE UNIQUE INDEX "chargeusagebasedrevenuerecognitiondetailedline_id" ON "char
 CREATE INDEX "chargeusagebasedrevenuerecognitiondetailedline_namespace" ON "charge_usage_based_revenue_recognition_detailed_line" ("namespace");
 -- create index "chargeusagebasedrevenuerecognitiondetailedline_namespace_id" to table: "charge_usage_based_revenue_recognition_detailed_line"
 CREATE UNIQUE INDEX "chargeusagebasedrevenuerecognitiondetailedline_namespace_id" ON "charge_usage_based_revenue_recognition_detailed_line" ("namespace", "id");
--- create "charge_usage_based_revenue_recognition_overage_credits" table
-CREATE TABLE "charge_usage_based_revenue_recognition_overage_credits" (
+-- create "charge_usage_based_revenue_recognition_invoiced_usages" table
+CREATE TABLE "charge_usage_based_revenue_recognition_invoiced_usages" (
   "id" character(26) NOT NULL,
+  "line_id" character(26) NULL,
+  "amount" numeric NOT NULL,
+  "service_period_from" timestamptz NOT NULL,
+  "service_period_to" timestamptz NOT NULL,
+  "ledger_transaction_group_id" character(26) NOT NULL,
+  "sort_hint" bigint NOT NULL,
+  "type" character varying NOT NULL,
   "namespace" character varying NOT NULL,
   "created_at" timestamptz NOT NULL,
   "updated_at" timestamptz NOT NULL,
   "deleted_at" timestamptz NULL,
   "annotations" jsonb NULL,
-  "amount" numeric NOT NULL,
-  "service_period_from" timestamptz NOT NULL,
-  "service_period_to" timestamptz NOT NULL,
-  "type" character varying NOT NULL,
-  "ledger_transaction_group_id" character(26) NULL,
   "run_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "charge_ub_revrec_overage_credits_run" FOREIGN KEY ("run_id") REFERENCES "charge_usage_based_revenue_recognitions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+  CONSTRAINT "charge_ub_revrec_invoiced_usage_run" FOREIGN KEY ("run_id") REFERENCES "charge_usage_based_revenue_recognitions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
--- create index "chargeubrevrecoveragecredits_ns_run" to table: "charge_usage_based_revenue_recognition_overage_credits"
-CREATE INDEX "chargeubrevrecoveragecredits_ns_run" ON "charge_usage_based_revenue_recognition_overage_credits" ("namespace", "run_id");
--- create index "chargeusagebasedrevenuerecognitionoveragecredits_annotations" to table: "charge_usage_based_revenue_recognition_overage_credits"
-CREATE INDEX "chargeusagebasedrevenuerecognitionoveragecredits_annotations" ON "charge_usage_based_revenue_recognition_overage_credits" USING gin ("annotations");
--- create index "chargeusagebasedrevenuerecognitionoveragecredits_id" to table: "charge_usage_based_revenue_recognition_overage_credits"
-CREATE UNIQUE INDEX "chargeusagebasedrevenuerecognitionoveragecredits_id" ON "charge_usage_based_revenue_recognition_overage_credits" ("id");
--- create index "chargeusagebasedrevenuerecognitionoveragecredits_namespace" to table: "charge_usage_based_revenue_recognition_overage_credits"
-CREATE INDEX "chargeusagebasedrevenuerecognitionoveragecredits_namespace" ON "charge_usage_based_revenue_recognition_overage_credits" ("namespace");
+-- create index "chargeubrevrecinvoicedusage_ns_run" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+CREATE INDEX "chargeubrevrecinvoicedusage_ns_run" ON "charge_usage_based_revenue_recognition_invoiced_usages" ("namespace", "run_id");
+-- create index "chargeusagebasedrevenuerecognitioninvoicedusage_annotations" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+CREATE INDEX "chargeusagebasedrevenuerecognitioninvoicedusage_annotations" ON "charge_usage_based_revenue_recognition_invoiced_usages" USING gin ("annotations");
+-- create index "chargeusagebasedrevenuerecognitioninvoicedusage_id" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+CREATE UNIQUE INDEX "chargeusagebasedrevenuerecognitioninvoicedusage_id" ON "charge_usage_based_revenue_recognition_invoiced_usages" ("id");
+-- create index "chargeusagebasedrevenuerecognitioninvoicedusage_namespace" to table: "charge_usage_based_revenue_recognition_invoiced_usages"
+CREATE INDEX "chargeusagebasedrevenuerecognitioninvoicedusage_namespace" ON "charge_usage_based_revenue_recognition_invoiced_usages" ("namespace");

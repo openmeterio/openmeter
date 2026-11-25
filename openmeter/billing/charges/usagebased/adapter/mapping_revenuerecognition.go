@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"strings"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/creditrealization"
-	"github.com/openmeterio/openmeter/openmeter/billing/charges/models/ledgertransaction"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -27,9 +24,9 @@ func fromDBChargeUsageBasedRevenueRecognitions(dbRun *entdb.ChargeUsageBasedReve
 		return usagebased.RevenueRecognitionRun{}, fmt.Errorf("mapping credit allocations for revenue recognition run [id=%s]: %w", dbRun.ID, err)
 	}
 
-	dbOverageCredits, err := dbRun.Edges.FiatOverageCreditAllocationsOrErr()
+	dbInvoicedUsages, err := dbRun.Edges.InvoicedUsagesOrErr()
 	if err != nil {
-		return usagebased.RevenueRecognitionRun{}, fmt.Errorf("mapping fiat overage credit realizations for revenue recognition run [id=%s]: %w", dbRun.ID, err)
+		return usagebased.RevenueRecognitionRun{}, fmt.Errorf("mapping invoiced usages for revenue recognition run [id=%s]: %w", dbRun.ID, err)
 	}
 
 	dbLines, err := dbRun.Edges.DetailedLinesOrErr()
@@ -37,20 +34,15 @@ func fromDBChargeUsageBasedRevenueRecognitions(dbRun *entdb.ChargeUsageBasedReve
 		return usagebased.RevenueRecognitionRun{}, fmt.Errorf("mapping detailed lines for revenue recognition run [id=%s]: %w", dbRun.ID, err)
 	}
 
-	period, err := dbRun.Period.Parse()
-	if err != nil {
-		return usagebased.RevenueRecognitionRun{}, fmt.Errorf("parsing period of revenue recognition run [id=%s]: %w", dbRun.ID, err)
-	}
-
-	var priorRunID *usagebased.RevenueRecognitionRunID
-	if dbRun.PriorRunID != nil {
-		if *dbRun.PriorRunID == dbRun.ID {
+	var priorRevRecogRunID *usagebased.RevenueRecognitionRunID
+	if dbRun.PriorRevRecogRunID != nil {
+		if *dbRun.PriorRevRecogRunID == dbRun.ID {
 			return usagebased.RevenueRecognitionRun{}, fmt.Errorf("revenue recognition run cannot reference itself as prior run [id=%s]", dbRun.ID)
 		}
 
-		priorRunID = &usagebased.RevenueRecognitionRunID{
+		priorRevRecogRunID = &usagebased.RevenueRecognitionRunID{
 			Namespace: dbRun.Namespace,
-			ID:        *dbRun.PriorRunID,
+			ID:        *dbRun.PriorRevRecogRunID,
 		}
 	}
 
@@ -65,63 +57,14 @@ func fromDBChargeUsageBasedRevenueRecognitions(dbRun *entdb.ChargeUsageBasedReve
 		FeatureID:                             dbRun.FeatureID,
 		StoredAtLT:                            dbRun.StoredAtLt.UTC(),
 		ServicePeriodTo:                       dbRun.ServicePeriodTo.UTC(),
-		Period:                                period,
-		PriorRunID:                            priorRunID,
+		PriorRevRecogRunID:                    priorRevRecogRunID,
 		MeteredQuantity:                       dbRun.MeteredQuantity,
-		DeltaMeteredQuantity:                  dbRun.DeltaMeteredQuantity,
 		Totals:                                totals.DeltaTotals{Totals: totals.FromDB(dbRun)},
 		DetailedLinesIncludeCreditAllocations: dbRun.DetailedLinesIncludeCreditAllocations,
-		InvoiceUsageTotal:                     dbRun.InvoiceUsageTotal,
-		CreditsAllocated:                      fromDBChargeUsageBasedRevenueRecognitionCredits(dbCredits),
-		FiatOverageCreditRealizations:         fromDBChargeUsageBasedRevenueRecognitionCredits(dbOverageCredits),
+		CreditsAllocated:                      creditrealization.FromDBMixinRealizations(dbCredits),
+		InvoicedUsages:                        creditrealization.FromDBMixinRealizations(dbInvoicedUsages),
 		DetailedLines:                         fromDBChargeUsageBasedRevenueRecognitionDetailedLines(dbLines),
 	}, nil
-}
-
-type revenueRecognitionCreditGetter interface {
-	entutils.TimeMixinGetter
-	entutils.NamespaceMixinGetter
-	entutils.IDMixinGetter
-	entutils.AnnotationsMixinGetter
-
-	GetAmount() alpacadecimal.Decimal
-	GetServicePeriodFrom() time.Time
-	GetServicePeriodTo() time.Time
-	GetType() creditrealization.Type
-	GetLedgerTransactionGroupID() *string
-}
-
-// fromDBChargeUsageBasedRevenueRecognitionCredits also maps the overage
-// credits table, which has the same columns. The realizations come back in ID
-// order, since the tables have no sort hint.
-func fromDBChargeUsageBasedRevenueRecognitionCredits[T revenueRecognitionCreditGetter](dbEntities []T) creditrealization.Realizations {
-	realizations := lo.Map(dbEntities, func(dbEntity T, _ int) creditrealization.Realization {
-		return creditrealization.Realization{
-			NamespacedModel: models.NamespacedModel{
-				Namespace: dbEntity.GetNamespace(),
-			},
-			ManagedModel: entutils.MapTimeMixinFromDB(dbEntity),
-			CreateInput: creditrealization.CreateInput{
-				ID:          dbEntity.GetID(),
-				Annotations: dbEntity.GetAnnotations(),
-				ServicePeriod: timeutil.ClosedPeriod{
-					From: dbEntity.GetServicePeriodFrom().In(time.UTC),
-					To:   dbEntity.GetServicePeriodTo().In(time.UTC),
-				},
-				Amount: dbEntity.GetAmount(),
-				LedgerTransaction: ledgertransaction.GroupReference{
-					TransactionGroupID: lo.FromPtr(dbEntity.GetLedgerTransactionGroupID()),
-				},
-				Type: dbEntity.GetType(),
-			},
-		}
-	})
-
-	slices.SortFunc(realizations, func(a, b creditrealization.Realization) int {
-		return strings.Compare(a.ID, b.ID)
-	})
-
-	return realizations
 }
 
 func fromDBChargeUsageBasedRevenueRecognitionDetailedLines(dbLines []*entdb.ChargeUsageBasedRevenueRecognitionDetailedLine) []usagebased.RevenueRecognitionDetailedLine {

@@ -550,7 +550,8 @@ type ChargeFlatFeeRunCreditAllocations struct {
 
 func (ChargeFlatFeeRunCreditAllocations) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		creditrealization.Mixin{
+		creditrealization.Mixin{},
+		creditrealization.CorrectionMixin{
 			SelfReferenceType:   ChargeFlatFeeRunCreditAllocations.Type,
 			SelfReferenceSymbol: "charge_flat_fee_run_credit_allocations_charge_flat_fee_run_cred",
 		},
@@ -588,7 +589,8 @@ type ChargeFlatFeeRunOverageCreditAllocations struct {
 
 func (ChargeFlatFeeRunOverageCreditAllocations) Mixin() []ent.Mixin {
 	return []ent.Mixin{
-		creditrealization.Mixin{
+		creditrealization.Mixin{},
+		creditrealization.CorrectionMixin{
 			SelfReferenceType:   ChargeFlatFeeRunOverageCreditAllocations.Type,
 			SelfReferenceSymbol: "charge_ff_overage_credit_alloc_correction",
 		},

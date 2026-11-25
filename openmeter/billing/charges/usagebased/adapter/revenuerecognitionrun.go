@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
@@ -13,6 +12,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
+	dbchargeusagebasedrevenuerecognitioncredits "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioncredits"
+	dbchargeusagebasedrevenuerecognitioninvoicedusage "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioninvoicedusage"
 	dbchargeusagebasedrevenuerecognitions "github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -37,17 +38,10 @@ func (a *adapter) CreateRevenueRecognitionRun(ctx context.Context, input usageba
 				SetStoredAtLt(meta.NormalizeTimestamp(input.StoredAtLT)).
 				SetServicePeriodTo(meta.NormalizeTimestamp(input.ServicePeriodTo)).
 				SetMeteredQuantity(input.MeteredQuantity).
-				SetDeltaMeteredQuantity(input.DeltaMeteredQuantity).
-				SetDetailedLinesIncludeCreditAllocations(input.DetailedLinesIncludeCreditAllocations).
-				SetNillableInvoiceUsageTotal(input.InvoiceUsageTotal)
+				SetDetailedLinesIncludeCreditAllocations(input.DetailedLinesIncludeCreditAllocations)
 
-			// An empty period falls back to the column default, which is daily.
-			if !input.Period.IsZero() {
-				create = create.SetPeriod(input.Period.ISOString())
-			}
-
-			if input.PriorRunID != nil {
-				create = create.SetPriorRunID(input.PriorRunID.ID)
+			if input.PriorRevRecogRunID != nil {
+				create = create.SetPriorRevRecogRunID(input.PriorRevRecogRunID.ID)
 			}
 
 			create = totals.Set(create, input.Totals.Totals)
@@ -63,8 +57,10 @@ func (a *adapter) CreateRevenueRecognitionRun(ctx context.Context, input usageba
 			}
 
 			if len(input.CreditsAllocated) > 0 {
-				creates := lo.Map(input.CreditsAllocated, func(realization creditrealization.CreateInput, _ int) *entdb.ChargeUsageBasedRevenueRecognitionCreditsCreate {
-					return setRevenueRecognitionCredit(tx.db.ChargeUsageBasedRevenueRecognitionCredits.Create(), runID, realization)
+				creates := lo.Map(input.CreditsAllocated, func(realization creditrealization.CreateInput, idx int) *entdb.ChargeUsageBasedRevenueRecognitionCreditsCreate {
+					create := tx.db.ChargeUsageBasedRevenueRecognitionCredits.Create().SetRunID(runID.ID)
+
+					return creditrealization.CreateMixin(create, runID.Namespace, idx, realization)
 				})
 
 				if err := tx.db.ChargeUsageBasedRevenueRecognitionCredits.CreateBulk(creates...).Exec(ctx); err != nil {
@@ -72,13 +68,15 @@ func (a *adapter) CreateRevenueRecognitionRun(ctx context.Context, input usageba
 				}
 			}
 
-			if len(input.FiatOverageCreditRealizations) > 0 {
-				creates := lo.Map(input.FiatOverageCreditRealizations, func(realization creditrealization.CreateInput, _ int) *entdb.ChargeUsageBasedRevenueRecognitionOverageCreditsCreate {
-					return setRevenueRecognitionCredit(tx.db.ChargeUsageBasedRevenueRecognitionOverageCredits.Create(), runID, realization)
+			if len(input.InvoicedUsages) > 0 {
+				creates := lo.Map(input.InvoicedUsages, func(realization creditrealization.CreateInput, idx int) *entdb.ChargeUsageBasedRevenueRecognitionInvoicedUsageCreate {
+					create := tx.db.ChargeUsageBasedRevenueRecognitionInvoicedUsage.Create().SetRunID(runID.ID)
+
+					return creditrealization.CreateMixin(create, runID.Namespace, idx, realization)
 				})
 
-				if err := tx.db.ChargeUsageBasedRevenueRecognitionOverageCredits.CreateBulk(creates...).Exec(ctx); err != nil {
-					return usagebased.RevenueRecognitionRun{}, fmt.Errorf("creating fiat overage credit realizations for revenue recognition run [id=%s]: %w", runID.ID, err)
+				if err := tx.db.ChargeUsageBasedRevenueRecognitionInvoicedUsage.CreateBulk(creates...).Exec(ctx); err != nil {
+					return usagebased.RevenueRecognitionRun{}, fmt.Errorf("creating invoiced usages for revenue recognition run [id=%s]: %w", runID.ID, err)
 				}
 			}
 
@@ -131,8 +129,12 @@ func (a *adapter) GetRevenueRecognitionRunByID(ctx context.Context, id usagebase
 		dbRun, err := tx.db.ChargeUsageBasedRevenueRecognitions.Query().
 			Where(dbchargeusagebasedrevenuerecognitions.Namespace(id.Namespace)).
 			Where(dbchargeusagebasedrevenuerecognitions.ID(id.ID)).
-			WithCreditAllocations().
-			WithFiatOverageCreditAllocations().
+			WithCreditAllocations(func(q *entdb.ChargeUsageBasedRevenueRecognitionCreditsQuery) {
+				q.Order(dbchargeusagebasedrevenuerecognitioncredits.BySortHint(), dbchargeusagebasedrevenuerecognitioncredits.ByID())
+			}).
+			WithInvoicedUsages(func(q *entdb.ChargeUsageBasedRevenueRecognitionInvoicedUsageQuery) {
+				q.Order(dbchargeusagebasedrevenuerecognitioninvoicedusage.BySortHint(), dbchargeusagebasedrevenuerecognitioninvoicedusage.ByID())
+			}).
 			WithDetailedLines().
 			First(ctx)
 		if err != nil {
@@ -145,34 +147,4 @@ func (a *adapter) GetRevenueRecognitionRunByID(ctx context.Context, id usagebase
 
 		return fromDBChargeUsageBasedRevenueRecognitions(dbRun)
 	})
-}
-
-type revenueRecognitionCreditCreator[T any] interface {
-	SetID(id string) T
-	SetNamespace(namespace string) T
-	SetRunID(runID string) T
-	SetAnnotations(annotations models.Annotations) T
-	SetAmount(amount alpacadecimal.Decimal) T
-	SetServicePeriodFrom(servicePeriodFrom time.Time) T
-	SetServicePeriodTo(servicePeriodTo time.Time) T
-	SetType(t creditrealization.Type) T
-	SetNillableLedgerTransactionGroupID(ledgerTransactionGroupID *string) T
-}
-
-func setRevenueRecognitionCredit[T revenueRecognitionCreditCreator[T]](create T, runID usagebased.RevenueRecognitionRunID, realization creditrealization.CreateInput) T {
-	create = create.
-		SetNamespace(runID.Namespace).
-		SetRunID(runID.ID).
-		SetAnnotations(realization.Annotations).
-		SetAmount(realization.Amount).
-		SetServicePeriodFrom(realization.ServicePeriod.From.In(time.UTC)).
-		SetServicePeriodTo(realization.ServicePeriod.To.In(time.UTC)).
-		SetType(realization.Type).
-		SetNillableLedgerTransactionGroupID(realization.LedgerTransaction.GetIDOrNull())
-
-	if realization.ID != "" {
-		create = create.SetID(realization.ID)
-	}
-
-	return create
 }

@@ -78,20 +78,6 @@ func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetType(v creditrealization.T
 	return _c
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsCreate {
-	_c.mutation.SetCorrectsRealizationID(v)
-	return _c
-}
-
-// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
-func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunCreditAllocationsCreate {
-	if v != nil {
-		_c.SetCorrectsRealizationID(*v)
-	}
-	return _c
-}
-
 // SetNamespace sets the "namespace" field.
 func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetNamespace(v string) *ChargeFlatFeeRunCreditAllocationsCreate {
 	_c.mutation.SetNamespace(v)
@@ -143,6 +129,20 @@ func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetNillableDeletedAt(v *time.
 // SetAnnotations sets the "annotations" field.
 func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetAnnotations(v models.Annotations) *ChargeFlatFeeRunCreditAllocationsCreate {
 	_c.mutation.SetAnnotations(v)
+	return _c
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsCreate {
+	_c.mutation.SetCorrectsRealizationID(v)
+	return _c
+}
+
+// SetNillableCorrectsRealizationID sets the "corrects_realization_id" field if the given value is not nil.
+func (_c *ChargeFlatFeeRunCreditAllocationsCreate) SetNillableCorrectsRealizationID(v *string) *ChargeFlatFeeRunCreditAllocationsCreate {
+	if v != nil {
+		_c.SetCorrectsRealizationID(*v)
+	}
 	return _c
 }
 
@@ -308,11 +308,6 @@ func (_c *ChargeFlatFeeRunCreditAllocationsCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunCreditAllocations.type": %w`, err)}
 		}
 	}
-	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
-		if err := chargeflatfeeruncreditallocations.CorrectsRealizationIDValidator(v); err != nil {
-			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunCreditAllocations.corrects_realization_id": %w`, err)}
-		}
-	}
 	if _, ok := _c.mutation.Namespace(); !ok {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "ChargeFlatFeeRunCreditAllocations.namespace"`)}
 	}
@@ -326,6 +321,11 @@ func (_c *ChargeFlatFeeRunCreditAllocationsCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "ChargeFlatFeeRunCreditAllocations.updated_at"`)}
+	}
+	if v, ok := _c.mutation.CorrectsRealizationID(); ok {
+		if err := chargeflatfeeruncreditallocations.CorrectsRealizationIDValidator(v); err != nil {
+			return &ValidationError{Name: "corrects_realization_id", err: fmt.Errorf(`db: validator failed for field "ChargeFlatFeeRunCreditAllocations.corrects_realization_id": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.RunID(); !ok {
 		return &ValidationError{Name: "run_id", err: errors.New(`db: missing required field "ChargeFlatFeeRunCreditAllocations.run_id"`)}
@@ -604,24 +604,6 @@ func (u *ChargeFlatFeeRunCreditAllocationsUpsert) AddSortHint(v int) *ChargeFlat
 	return u
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsUpsert {
-	u.Set(chargeflatfeeruncreditallocations.FieldCorrectsRealizationID, v)
-	return u
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsert {
-	u.SetExcluded(chargeflatfeeruncreditallocations.FieldCorrectsRealizationID)
-	return u
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsert {
-	u.SetNull(chargeflatfeeruncreditallocations.FieldCorrectsRealizationID)
-	return u
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeFlatFeeRunCreditAllocationsUpsert) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunCreditAllocationsUpsert {
 	u.Set(chargeflatfeeruncreditallocations.FieldUpdatedAt, v)
@@ -667,6 +649,24 @@ func (u *ChargeFlatFeeRunCreditAllocationsUpsert) UpdateAnnotations() *ChargeFla
 // ClearAnnotations clears the value of the "annotations" field.
 func (u *ChargeFlatFeeRunCreditAllocationsUpsert) ClearAnnotations() *ChargeFlatFeeRunCreditAllocationsUpsert {
 	u.SetNull(chargeflatfeeruncreditallocations.FieldAnnotations)
+	return u
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsert) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsUpsert {
+	u.Set(chargeflatfeeruncreditallocations.FieldCorrectsRealizationID, v)
+	return u
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsert) UpdateCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsert {
+	u.SetExcluded(chargeflatfeeruncreditallocations.FieldCorrectsRealizationID)
+	return u
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsert) ClearCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsert {
+	u.SetNull(chargeflatfeeruncreditallocations.FieldCorrectsRealizationID)
 	return u
 }
 
@@ -817,27 +817,6 @@ func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) UpdateSortHint() *ChargeFla
 	})
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
-		s.SetCorrectsRealizationID(v)
-	})
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
-		s.UpdateCorrectsRealizationID()
-	})
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertOne {
-	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
-		s.ClearCorrectsRealizationID()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
@@ -891,6 +870,27 @@ func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) UpdateAnnotations() *Charge
 func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) ClearAnnotations() *ChargeFlatFeeRunCreditAllocationsUpsertOne {
 	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) UpdateCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsertOne) ClearCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertOne {
+	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 
@@ -1208,27 +1208,6 @@ func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) UpdateSortHint() *ChargeFl
 	})
 }
 
-// SetCorrectsRealizationID sets the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
-		s.SetCorrectsRealizationID(v)
-	})
-}
-
-// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
-		s.UpdateCorrectsRealizationID()
-	})
-}
-
-// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
-func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
-	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
-		s.ClearCorrectsRealizationID()
-	})
-}
-
 // SetUpdatedAt sets the "updated_at" field.
 func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) SetUpdatedAt(v time.Time) *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
@@ -1282,6 +1261,27 @@ func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) UpdateAnnotations() *Charg
 func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) ClearAnnotations() *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
 	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
 		s.ClearAnnotations()
+	})
+}
+
+// SetCorrectsRealizationID sets the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) SetCorrectsRealizationID(v string) *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
+		s.SetCorrectsRealizationID(v)
+	})
+}
+
+// UpdateCorrectsRealizationID sets the "corrects_realization_id" field to the value that was provided on create.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) UpdateCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
+		s.UpdateCorrectsRealizationID()
+	})
+}
+
+// ClearCorrectsRealizationID clears the value of the "corrects_realization_id" field.
+func (u *ChargeFlatFeeRunCreditAllocationsUpsertBulk) ClearCorrectsRealizationID() *ChargeFlatFeeRunCreditAllocationsUpsertBulk {
+	return u.Update(func(s *ChargeFlatFeeRunCreditAllocationsUpsert) {
+		s.ClearCorrectsRealizationID()
 	})
 }
 

@@ -45,41 +45,42 @@ Table `charge_usage_based_revenue_recognitions`, named after
 | `feature_id` | Feature the run was metered on |
 | `stored_at_lt` | Only usage stored before this instant is included |
 | `service_period_to` | End of the period the run covers; the day boundary |
-| `period` | Cadence the run belongs to, as an ISO 8601 duration. Defaults to daily (`P1D`) |
-| `prior_run_id` | The charge's previous revenue recognition run, the baseline for the deltas. Empty for the first run |
+| `prior_rev_recog_run_id` | The charge's previous revenue recognition run, the baseline for the deltas. Empty for the first run |
 | `metered_quantity` | Cumulative quantity from the charge start to `service_period_to` |
-| `delta_metered_quantity` | Change in quantity since the previous run |
 | Totals columns (`amount`, `credits_total`, `total`, ...) | Change in amounts since the previous run. May be renamed to amounts |
-| `detailed_lines_include_credit_allocations` | Same meaning as on realization runs |
-| `invoice_usage_total` | Part of the run that credits do not cover, as one amount. Empty when there is none |
+| `detailed_lines_include_credit_allocations` | Same meaning as on realization runs. It has no default, so every run sets it |
 
-There is no run type, invoice line, invoice, or payment. The prior-run pointer
-has the same shape as the one on realization runs, but it only ever points at
-another revenue recognition run.
+There is no run type, invoice line, invoice, or payment.
+`prior_rev_recog_run_id` only ever points at another revenue recognition run.
 
 A run owns three kinds of child rows, each pointing at it through `run_id`:
 
 | Table | Holds | Columns |
 | --- | --- | --- |
-| `charge_usage_based_revenue_recognition_credits` | Credits allocated in the charge currency | `id`, `annotations`, service period, `amount`, `type`, optional `ledger_transaction_group_id` |
-| `charge_usage_based_revenue_recognition_overage_credits` | Credits allocated against the fiat overage | Same as above |
+| `charge_usage_based_revenue_recognition_credits` | Credits allocated in the charge currency | `creditrealization.Mixin`: `id`, `annotations`, `line_id`, `amount`, service period, `ledger_transaction_group_id`, `sort_hint`, `type` |
+| `charge_usage_based_revenue_recognition_invoiced_usages` | The part of the run that credits do not cover, as many rows | Same as above |
 | `charge_usage_based_revenue_recognition_detailed_line` | Detailed lines | `id`, `name`, `description`, `annotations`, `metadata`, `currency`, service period, `child_unique_reference_id`, `index`, `quantity`, `per_unit_amount`, `amount`, `amount_discounts`, `credits_applied` |
 
-These tables are narrower than the realization run ones on purpose:
+How these compare with the realization run tables:
 
-- The credit tables have no invoice line, sort hint, or pointer to the
-  realization a correction corrects.
+- The credit and invoiced usage tables use the same mixin as the realization
+  run credit tables. They only lack `corrects_realization_id`, which lives in
+  `creditrealization.CorrectionMixin` and is added by the tables that need it.
+- Invoiced usage is stored as rows, not as one amount on the run, so part of it
+  can be reverted by a later row. The run's invoiced total is the sum of the
+  row amounts.
 - A detailed line has one `amount` (before discounts and credits) instead of
   the totals columns, and no category, payment term, pricer reference, or
   invoicing app reference.
+- Credits allocated against the fiat overage are not stored. That only happens
+  once an invoice is finalized, and is left for when it is implemented.
 
 ### Domain
 
-- `usagebased.RevenueRecognitionRun` is the run. `Period` is a
-  `datetime.ISODuration` and `PriorRunID` points at the previous run.
-  `CreditsAllocated` and
-  `FiatOverageCreditRealizations` use the same `creditrealization.Realizations`
-  type as realization runs, with the fields that are not stored left empty.
+- `usagebased.RevenueRecognitionRun` is the run. `PriorRevRecogRunID` points at
+  the previous run. `CreditsAllocated` and `InvoicedUsages` use the same
+  `creditrealization.Realizations` type as realization runs, with
+  `CorrectsRealizationID` always empty.
 - `usagebased.RevenueRecognitionDetailedLine` is a run's detailed line. It is
   its own type, not the realization run detailed line.
 - `Charge.RevenueRecognitionRuns` holds a charge's runs, a slice like
@@ -107,12 +108,13 @@ problems came only from sharing that table and no longer apply:
   rules: `Amount` and `DiscountsTotal` may be negative, `Total` and
   `CreditsTotal` may not. A correction that would take the net amount or the
   credits below zero cannot be stored yet.
-- **Credit corrections.** A correction row can be stored, but it cannot name the
-  allocation it corrects, and that allocation would live in an earlier run.
+- **Corrections.** A credit or invoiced usage correction row can be stored, but
+  it cannot name the row it corrects, and that row would live in an earlier
+  run.
 - **Fiat amount for custom-currency charges.** The totals are in the charge
-  currency. `invoice_usage_total` carries no currency of its own, and
-  converting per run rounds per run, so daily conversions can drift from a
-  single invoice conversion.
+  currency. Invoiced usage rows carry no currency of their own, and converting
+  per run rounds per run, so daily conversions can drift from a single invoice
+  conversion.
 - **Ledger overlap.** If runs post to the ledger, invoice issuance must not
   book the same amount as accrued again.
 - **Uniqueness.** A charge has one run per `service_period_to`. That only
@@ -123,13 +125,12 @@ problems came only from sharing that table and no longer apply:
 
 ## Open questions
 
-- Is the ledger reference on a credit row required once runs post to the
-  ledger? It is optional today.
-- Should the credits get a domain type of their own? `CreditsAllocated` and
-  `FiatOverageCreditRealizations` reuse `creditrealization.Realizations`, so
-  each one carries `LineID`, `CorrectsRealizationID`, and `SortHint`, which are
-  never stored and always empty. A type specific to revenue recognition would
-  hold only the stored fields, as the detailed line type already does.
+- Credit and invoiced usage rows require a ledger transaction, because the
+  shared mixin does. A run cannot store these rows until it posts to the
+  ledger. Is that the intended order of work?
+- Should the credits and invoiced usages get a domain type of their own? They
+  reuse `creditrealization.Realizations`, so each one carries
+  `CorrectsRealizationID`, which is never stored and always empty.
 - What happens to a charge's runs when the charge is shrunk, extended,
   overridden, or deleted?
   - Note (borosr): the change should be noted and booked at the next revenue

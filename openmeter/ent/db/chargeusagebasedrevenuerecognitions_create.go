@@ -16,10 +16,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioncredits"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitiondetailedline"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitionoveragecredits"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitioninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrevenuerecognitions"
 	dbfeature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
-	"github.com/openmeterio/openmeter/pkg/datetime"
 )
 
 // ChargeUsageBasedRevenueRecognitionsCreate is the builder for creating a ChargeUsageBasedRevenueRecognitions entity.
@@ -150,30 +149,16 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetServicePeriodTo(v time.T
 	return _c
 }
 
-// SetPeriod sets the "period" field.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPeriod(v datetime.ISODurationString) *ChargeUsageBasedRevenueRecognitionsCreate {
-	_c.mutation.SetPeriod(v)
+// SetPriorRevRecogRunID sets the "prior_rev_recog_run_id" field.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPriorRevRecogRunID(v string) *ChargeUsageBasedRevenueRecognitionsCreate {
+	_c.mutation.SetPriorRevRecogRunID(v)
 	return _c
 }
 
-// SetNillablePeriod sets the "period" field if the given value is not nil.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetNillablePeriod(v *datetime.ISODurationString) *ChargeUsageBasedRevenueRecognitionsCreate {
+// SetNillablePriorRevRecogRunID sets the "prior_rev_recog_run_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetNillablePriorRevRecogRunID(v *string) *ChargeUsageBasedRevenueRecognitionsCreate {
 	if v != nil {
-		_c.SetPeriod(*v)
-	}
-	return _c
-}
-
-// SetPriorRunID sets the "prior_run_id" field.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPriorRunID(v string) *ChargeUsageBasedRevenueRecognitionsCreate {
-	_c.mutation.SetPriorRunID(v)
-	return _c
-}
-
-// SetNillablePriorRunID sets the "prior_run_id" field if the given value is not nil.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetNillablePriorRunID(v *string) *ChargeUsageBasedRevenueRecognitionsCreate {
-	if v != nil {
-		_c.SetPriorRunID(*v)
+		_c.SetPriorRevRecogRunID(*v)
 	}
 	return _c
 }
@@ -184,37 +169,9 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetMeteredQuantity(v alpaca
 	return _c
 }
 
-// SetDeltaMeteredQuantity sets the "delta_metered_quantity" field.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetDeltaMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsCreate {
-	_c.mutation.SetDeltaMeteredQuantity(v)
-	return _c
-}
-
 // SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
 func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRevenueRecognitionsCreate {
 	_c.mutation.SetDetailedLinesIncludeCreditAllocations(v)
-	return _c
-}
-
-// SetNillableDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field if the given value is not nil.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetNillableDetailedLinesIncludeCreditAllocations(v *bool) *ChargeUsageBasedRevenueRecognitionsCreate {
-	if v != nil {
-		_c.SetDetailedLinesIncludeCreditAllocations(*v)
-	}
-	return _c
-}
-
-// SetInvoiceUsageTotal sets the "invoice_usage_total" field.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetInvoiceUsageTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsCreate {
-	_c.mutation.SetInvoiceUsageTotal(v)
-	return _c
-}
-
-// SetNillableInvoiceUsageTotal sets the "invoice_usage_total" field if the given value is not nil.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetNillableInvoiceUsageTotal(v *alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsCreate {
-	if v != nil {
-		_c.SetInvoiceUsageTotal(*v)
-	}
 	return _c
 }
 
@@ -248,24 +205,24 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetFeature(v *Feature) *Cha
 	return _c.SetFeatureID(v.ID)
 }
 
-// AddNextRunIDs adds the "next_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddNextRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsCreate {
-	_c.mutation.AddNextRunIDs(ids...)
+// AddNextRevRecogRunIDs adds the "next_rev_recog_runs" edge to the ChargeUsageBasedRevenueRecognitions entity by IDs.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddNextRevRecogRunIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsCreate {
+	_c.mutation.AddNextRevRecogRunIDs(ids...)
 	return _c
 }
 
-// AddNextRuns adds the "next_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddNextRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsCreate {
+// AddNextRevRecogRuns adds the "next_rev_recog_runs" edges to the ChargeUsageBasedRevenueRecognitions entity.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddNextRevRecogRuns(v ...*ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddNextRunIDs(ids...)
+	return _c.AddNextRevRecogRunIDs(ids...)
 }
 
-// SetPriorRun sets the "prior_run" edge to the ChargeUsageBasedRevenueRecognitions entity.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPriorRun(v *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsCreate {
-	return _c.SetPriorRunID(v.ID)
+// SetPriorRevRecogRun sets the "prior_rev_recog_run" edge to the ChargeUsageBasedRevenueRecognitions entity.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) SetPriorRevRecogRun(v *ChargeUsageBasedRevenueRecognitions) *ChargeUsageBasedRevenueRecognitionsCreate {
+	return _c.SetPriorRevRecogRunID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionCredits entity by IDs.
@@ -283,19 +240,19 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddCreditAllocations(v ...*
 	return _c.AddCreditAllocationIDs(ids...)
 }
 
-// AddFiatOverageCreditAllocationIDs adds the "fiat_overage_credit_allocations" edge to the ChargeUsageBasedRevenueRecognitionOverageCredits entity by IDs.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddFiatOverageCreditAllocationIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsCreate {
-	_c.mutation.AddFiatOverageCreditAllocationIDs(ids...)
+// AddInvoicedUsageIDs adds the "invoiced_usages" edge to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity by IDs.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddInvoicedUsageIDs(ids ...string) *ChargeUsageBasedRevenueRecognitionsCreate {
+	_c.mutation.AddInvoicedUsageIDs(ids...)
 	return _c
 }
 
-// AddFiatOverageCreditAllocations adds the "fiat_overage_credit_allocations" edges to the ChargeUsageBasedRevenueRecognitionOverageCredits entity.
-func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddFiatOverageCreditAllocations(v ...*ChargeUsageBasedRevenueRecognitionOverageCredits) *ChargeUsageBasedRevenueRecognitionsCreate {
+// AddInvoicedUsages adds the "invoiced_usages" edges to the ChargeUsageBasedRevenueRecognitionInvoicedUsage entity.
+func (_c *ChargeUsageBasedRevenueRecognitionsCreate) AddInvoicedUsages(v ...*ChargeUsageBasedRevenueRecognitionInvoicedUsage) *ChargeUsageBasedRevenueRecognitionsCreate {
 	ids := make([]string, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
-	return _c.AddFiatOverageCreditAllocationIDs(ids...)
+	return _c.AddInvoicedUsageIDs(ids...)
 }
 
 // AddDetailedLineIDs adds the "detailed_lines" edge to the ChargeUsageBasedRevenueRecognitionDetailedLine entity by IDs.
@@ -355,14 +312,6 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) defaults() {
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		v := chargeusagebasedrevenuerecognitions.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
-	}
-	if _, ok := _c.mutation.Period(); !ok {
-		v := chargeusagebasedrevenuerecognitions.DefaultPeriod
-		_c.mutation.SetPeriod(v)
-	}
-	if _, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); !ok {
-		v := chargeusagebasedrevenuerecognitions.DefaultDetailedLinesIncludeCreditAllocations
-		_c.mutation.SetDetailedLinesIncludeCreditAllocations(v)
 	}
 	if _, ok := _c.mutation.ID(); !ok {
 		v := chargeusagebasedrevenuerecognitions.DefaultID()
@@ -427,14 +376,8 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) check() error {
 	if _, ok := _c.mutation.ServicePeriodTo(); !ok {
 		return &ValidationError{Name: "service_period_to", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.service_period_to"`)}
 	}
-	if _, ok := _c.mutation.Period(); !ok {
-		return &ValidationError{Name: "period", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.period"`)}
-	}
 	if _, ok := _c.mutation.MeteredQuantity(); !ok {
 		return &ValidationError{Name: "metered_quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.metered_quantity"`)}
-	}
-	if _, ok := _c.mutation.DeltaMeteredQuantity(); !ok {
-		return &ValidationError{Name: "delta_metered_quantity", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.delta_metered_quantity"`)}
 	}
 	if _, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); !ok {
 		return &ValidationError{Name: "detailed_lines_include_credit_allocations", err: errors.New(`db: missing required field "ChargeUsageBasedRevenueRecognitions.detailed_lines_include_credit_allocations"`)}
@@ -537,25 +480,13 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) createSpec() (*ChargeUsageB
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldServicePeriodTo, field.TypeTime, value)
 		_node.ServicePeriodTo = value
 	}
-	if value, ok := _c.mutation.Period(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldPeriod, field.TypeString, value)
-		_node.Period = value
-	}
 	if value, ok := _c.mutation.MeteredQuantity(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldMeteredQuantity, field.TypeOther, value)
 		_node.MeteredQuantity = value
 	}
-	if value, ok := _c.mutation.DeltaMeteredQuantity(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldDeltaMeteredQuantity, field.TypeOther, value)
-		_node.DeltaMeteredQuantity = value
-	}
 	if value, ok := _c.mutation.DetailedLinesIncludeCreditAllocations(); ok {
 		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldDetailedLinesIncludeCreditAllocations, field.TypeBool, value)
 		_node.DetailedLinesIncludeCreditAllocations = value
-	}
-	if value, ok := _c.mutation.InvoiceUsageTotal(); ok {
-		_spec.SetField(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, field.TypeOther, value)
-		_node.InvoiceUsageTotal = &value
 	}
 	if nodes := _c.mutation.UsageBasedIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -591,12 +522,12 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) createSpec() (*ChargeUsageB
 		_node.FeatureID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.NextRunsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.NextRevRecogRunsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.NextRunsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.NextRunsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.NextRevRecogRunsTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.NextRevRecogRunsColumn},
 			Bidi:    true,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -607,12 +538,12 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) createSpec() (*ChargeUsageB
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.PriorRunIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.PriorRevRecogRunIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   chargeusagebasedrevenuerecognitions.PriorRunTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.PriorRunColumn},
+			Table:   chargeusagebasedrevenuerecognitions.PriorRevRecogRunTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.PriorRevRecogRunColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitions.FieldID, field.TypeString),
@@ -621,7 +552,7 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) createSpec() (*ChargeUsageB
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.PriorRunID = &nodes[0]
+		_node.PriorRevRecogRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
@@ -640,15 +571,15 @@ func (_c *ChargeUsageBasedRevenueRecognitionsCreate) createSpec() (*ChargeUsageB
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := _c.mutation.FiatOverageCreditAllocationsIDs(); len(nodes) > 0 {
+	if nodes := _c.mutation.InvoicedUsagesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsTable,
-			Columns: []string{chargeusagebasedrevenuerecognitions.FiatOverageCreditAllocationsColumn},
+			Table:   chargeusagebasedrevenuerecognitions.InvoicedUsagesTable,
+			Columns: []string{chargeusagebasedrevenuerecognitions.InvoicedUsagesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitionoveragecredits.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedrevenuerecognitioninvoicedusage.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -874,18 +805,6 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsert) UpdateMeteredQuantity() *Cha
 	return u
 }
 
-// SetDeltaMeteredQuantity sets the "delta_metered_quantity" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsert) SetDeltaMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpsert {
-	u.Set(chargeusagebasedrevenuerecognitions.FieldDeltaMeteredQuantity, v)
-	return u
-}
-
-// UpdateDeltaMeteredQuantity sets the "delta_metered_quantity" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsert) UpdateDeltaMeteredQuantity() *ChargeUsageBasedRevenueRecognitionsUpsert {
-	u.SetExcluded(chargeusagebasedrevenuerecognitions.FieldDeltaMeteredQuantity)
-	return u
-}
-
 // SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
 func (u *ChargeUsageBasedRevenueRecognitionsUpsert) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRevenueRecognitionsUpsert {
 	u.Set(chargeusagebasedrevenuerecognitions.FieldDetailedLinesIncludeCreditAllocations, v)
@@ -895,24 +814,6 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsert) SetDetailedLinesIncludeCredi
 // UpdateDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field to the value that was provided on create.
 func (u *ChargeUsageBasedRevenueRecognitionsUpsert) UpdateDetailedLinesIncludeCreditAllocations() *ChargeUsageBasedRevenueRecognitionsUpsert {
 	u.SetExcluded(chargeusagebasedrevenuerecognitions.FieldDetailedLinesIncludeCreditAllocations)
-	return u
-}
-
-// SetInvoiceUsageTotal sets the "invoice_usage_total" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsert) SetInvoiceUsageTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpsert {
-	u.Set(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal, v)
-	return u
-}
-
-// UpdateInvoiceUsageTotal sets the "invoice_usage_total" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsert) UpdateInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpsert {
-	u.SetExcluded(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal)
-	return u
-}
-
-// ClearInvoiceUsageTotal clears the value of the "invoice_usage_total" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsert) ClearInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpsert {
-	u.SetNull(chargeusagebasedrevenuerecognitions.FieldInvoiceUsageTotal)
 	return u
 }
 
@@ -948,11 +849,8 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) UpdateNewValues() *Charge
 		if _, exists := u.create.mutation.ServicePeriodTo(); exists {
 			s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldServicePeriodTo)
 		}
-		if _, exists := u.create.mutation.Period(); exists {
-			s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPeriod)
-		}
-		if _, exists := u.create.mutation.PriorRunID(); exists {
-			s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPriorRunID)
+		if _, exists := u.create.mutation.PriorRevRecogRunID(); exists {
+			s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPriorRevRecogRunID)
 		}
 	}))
 	return u
@@ -1160,20 +1058,6 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) UpdateMeteredQuantity() *
 	})
 }
 
-// SetDeltaMeteredQuantity sets the "delta_metered_quantity" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) SetDeltaMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.SetDeltaMeteredQuantity(v)
-	})
-}
-
-// UpdateDeltaMeteredQuantity sets the "delta_metered_quantity" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) UpdateDeltaMeteredQuantity() *ChargeUsageBasedRevenueRecognitionsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.UpdateDeltaMeteredQuantity()
-	})
-}
-
 // SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
 func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRevenueRecognitionsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
@@ -1185,27 +1069,6 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) SetDetailedLinesIncludeCr
 func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) UpdateDetailedLinesIncludeCreditAllocations() *ChargeUsageBasedRevenueRecognitionsUpsertOne {
 	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
 		s.UpdateDetailedLinesIncludeCreditAllocations()
-	})
-}
-
-// SetInvoiceUsageTotal sets the "invoice_usage_total" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) SetInvoiceUsageTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.SetInvoiceUsageTotal(v)
-	})
-}
-
-// UpdateInvoiceUsageTotal sets the "invoice_usage_total" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) UpdateInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.UpdateInvoiceUsageTotal()
-	})
-}
-
-// ClearInvoiceUsageTotal clears the value of the "invoice_usage_total" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertOne) ClearInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpsertOne {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.ClearInvoiceUsageTotal()
 	})
 }
 
@@ -1407,11 +1270,8 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) UpdateNewValues() *Charg
 			if _, exists := b.mutation.ServicePeriodTo(); exists {
 				s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldServicePeriodTo)
 			}
-			if _, exists := b.mutation.Period(); exists {
-				s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPeriod)
-			}
-			if _, exists := b.mutation.PriorRunID(); exists {
-				s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPriorRunID)
+			if _, exists := b.mutation.PriorRevRecogRunID(); exists {
+				s.SetIgnore(chargeusagebasedrevenuerecognitions.FieldPriorRevRecogRunID)
 			}
 		}
 	}))
@@ -1620,20 +1480,6 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) UpdateMeteredQuantity() 
 	})
 }
 
-// SetDeltaMeteredQuantity sets the "delta_metered_quantity" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) SetDeltaMeteredQuantity(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.SetDeltaMeteredQuantity(v)
-	})
-}
-
-// UpdateDeltaMeteredQuantity sets the "delta_metered_quantity" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) UpdateDeltaMeteredQuantity() *ChargeUsageBasedRevenueRecognitionsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.UpdateDeltaMeteredQuantity()
-	})
-}
-
 // SetDetailedLinesIncludeCreditAllocations sets the "detailed_lines_include_credit_allocations" field.
 func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) SetDetailedLinesIncludeCreditAllocations(v bool) *ChargeUsageBasedRevenueRecognitionsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
@@ -1645,27 +1491,6 @@ func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) SetDetailedLinesIncludeC
 func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) UpdateDetailedLinesIncludeCreditAllocations() *ChargeUsageBasedRevenueRecognitionsUpsertBulk {
 	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
 		s.UpdateDetailedLinesIncludeCreditAllocations()
-	})
-}
-
-// SetInvoiceUsageTotal sets the "invoice_usage_total" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) SetInvoiceUsageTotal(v alpacadecimal.Decimal) *ChargeUsageBasedRevenueRecognitionsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.SetInvoiceUsageTotal(v)
-	})
-}
-
-// UpdateInvoiceUsageTotal sets the "invoice_usage_total" field to the value that was provided on create.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) UpdateInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.UpdateInvoiceUsageTotal()
-	})
-}
-
-// ClearInvoiceUsageTotal clears the value of the "invoice_usage_total" field.
-func (u *ChargeUsageBasedRevenueRecognitionsUpsertBulk) ClearInvoiceUsageTotal() *ChargeUsageBasedRevenueRecognitionsUpsertBulk {
-	return u.Update(func(s *ChargeUsageBasedRevenueRecognitionsUpsert) {
-		s.ClearInvoiceUsageTotal()
 	})
 }
 

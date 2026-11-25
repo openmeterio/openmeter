@@ -30,8 +30,6 @@ const (
 	FieldSortHint = "sort_hint"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
-	// FieldCorrectsRealizationID holds the string denoting the corrects_realization_id field in the database.
-	FieldCorrectsRealizationID = "corrects_realization_id"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -42,6 +40,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldAnnotations holds the string denoting the annotations field in the database.
 	FieldAnnotations = "annotations"
+	// FieldCorrectsRealizationID holds the string denoting the corrects_realization_id field in the database.
+	FieldCorrectsRealizationID = "corrects_realization_id"
 	// FieldRunID holds the string denoting the run_id field in the database.
 	FieldRunID = "run_id"
 	// EdgeAllocation holds the string denoting the allocation edge name in mutations.
@@ -88,12 +88,12 @@ var Columns = []string{
 	FieldLedgerTransactionGroupID,
 	FieldSortHint,
 	FieldType,
-	FieldCorrectsRealizationID,
 	FieldNamespace,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldAnnotations,
+	FieldCorrectsRealizationID,
 	FieldRunID,
 }
 
@@ -112,8 +112,6 @@ var (
 	LineIDValidator func(string) error
 	// LedgerTransactionGroupIDValidator is a validator for the "ledger_transaction_group_id" field. It is called by the builders before save.
 	LedgerTransactionGroupIDValidator func(string) error
-	// CorrectsRealizationIDValidator is a validator for the "corrects_realization_id" field. It is called by the builders before save.
-	CorrectsRealizationIDValidator func(string) error
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -122,6 +120,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// CorrectsRealizationIDValidator is a validator for the "corrects_realization_id" field. It is called by the builders before save.
+	CorrectsRealizationIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -179,11 +179,6 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
-// ByCorrectsRealizationID orders the results by the corrects_realization_id field.
-func ByCorrectsRealizationID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCorrectsRealizationID, opts...).ToFunc()
-}
-
 // ByNamespace orders the results by the namespace field.
 func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
@@ -202,6 +197,11 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// ByCorrectsRealizationID orders the results by the corrects_realization_id field.
+func ByCorrectsRealizationID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCorrectsRealizationID, opts...).ToFunc()
 }
 
 // ByRunID orders the results by the run_id field.

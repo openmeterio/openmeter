@@ -1524,10 +1524,6 @@ func (e *ChargeFlatFeeRunCreditAllocations) GetType() creditrealization.Type {
 	return e.Type
 }
 
-func (e *ChargeFlatFeeRunCreditAllocations) GetCorrectsRealizationID() *string {
-	return e.CorrectsRealizationID
-}
-
 func (e *ChargeFlatFeeRunCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -1546,6 +1542,10 @@ func (e *ChargeFlatFeeRunCreditAllocations) GetDeletedAt() *time.Time {
 
 func (e *ChargeFlatFeeRunCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
+}
+
+func (e *ChargeFlatFeeRunCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
 }
 
 func (e *ChargeFlatFeeRunDetailedLine) GetID() string {
@@ -1764,10 +1764,6 @@ func (e *ChargeFlatFeeRunOverageCreditAllocations) GetType() creditrealization.T
 	return e.Type
 }
 
-func (e *ChargeFlatFeeRunOverageCreditAllocations) GetCorrectsRealizationID() *string {
-	return e.CorrectsRealizationID
-}
-
 func (e *ChargeFlatFeeRunOverageCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -1786,6 +1782,10 @@ func (e *ChargeFlatFeeRunOverageCreditAllocations) GetDeletedAt() *time.Time {
 
 func (e *ChargeFlatFeeRunOverageCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
+}
+
+func (e *ChargeFlatFeeRunOverageCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
 }
 
 func (e *ChargeFlatFeeRunPayment) GetID() string {
@@ -2032,6 +2032,34 @@ func (e *ChargeUsageBasedRevenueRecognitionCredits) GetID() string {
 	return e.ID
 }
 
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetLineID() *string {
+	return e.LineID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetAmount() alpacadecimal.Decimal {
+	return e.Amount
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetServicePeriodFrom() time.Time {
+	return e.ServicePeriodFrom
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetServicePeriodTo() time.Time {
+	return e.ServicePeriodTo
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetLedgerTransactionGroupID() string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetSortHint() int {
+	return e.SortHint
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionCredits) GetType() creditrealization.Type {
+	return e.Type
+}
+
 func (e *ChargeUsageBasedRevenueRecognitionCredits) GetNamespace() string {
 	return e.Namespace
 }
@@ -2050,30 +2078,6 @@ func (e *ChargeUsageBasedRevenueRecognitionCredits) GetDeletedAt() *time.Time {
 
 func (e *ChargeUsageBasedRevenueRecognitionCredits) GetAnnotations() models.Annotations {
 	return e.Annotations
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionCredits) GetRunID() string {
-	return e.RunID
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionCredits) GetAmount() alpacadecimal.Decimal {
-	return e.Amount
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionCredits) GetServicePeriodFrom() time.Time {
-	return e.ServicePeriodFrom
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionCredits) GetServicePeriodTo() time.Time {
-	return e.ServicePeriodTo
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionCredits) GetType() creditrealization.Type {
-	return e.Type
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionCredits) GetLedgerTransactionGroupID() *string {
-	return e.LedgerTransactionGroupID
 }
 
 func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetID() string {
@@ -2112,52 +2116,56 @@ func (e *ChargeUsageBasedRevenueRecognitionDetailedLine) GetAnnotations() models
 	return e.Annotations
 }
 
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetID() string {
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetID() string {
 	return e.ID
 }
 
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetNamespace() string {
-	return e.Namespace
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetLineID() *string {
+	return e.LineID
 }
 
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetCreatedAt() time.Time {
-	return e.CreatedAt
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetUpdatedAt() time.Time {
-	return e.UpdatedAt
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetDeletedAt() *time.Time {
-	return e.DeletedAt
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetAnnotations() models.Annotations {
-	return e.Annotations
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetRunID() string {
-	return e.RunID
-}
-
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetAmount() alpacadecimal.Decimal {
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetAmount() alpacadecimal.Decimal {
 	return e.Amount
 }
 
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetServicePeriodFrom() time.Time {
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetServicePeriodFrom() time.Time {
 	return e.ServicePeriodFrom
 }
 
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetServicePeriodTo() time.Time {
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetServicePeriodTo() time.Time {
 	return e.ServicePeriodTo
 }
 
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetType() creditrealization.Type {
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetLedgerTransactionGroupID() string {
+	return e.LedgerTransactionGroupID
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetSortHint() int {
+	return e.SortHint
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetType() creditrealization.Type {
 	return e.Type
 }
 
-func (e *ChargeUsageBasedRevenueRecognitionOverageCredits) GetLedgerTransactionGroupID() *string {
-	return e.LedgerTransactionGroupID
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetNamespace() string {
+	return e.Namespace
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetCreatedAt() time.Time {
+	return e.CreatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetUpdatedAt() time.Time {
+	return e.UpdatedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetDeletedAt() *time.Time {
+	return e.DeletedAt
+}
+
+func (e *ChargeUsageBasedRevenueRecognitionInvoicedUsage) GetAnnotations() models.Annotations {
+	return e.Annotations
 }
 
 func (e *ChargeUsageBasedRevenueRecognitions) GetID() string {
@@ -2244,10 +2252,6 @@ func (e *ChargeUsageBasedRunCreditAllocations) GetType() creditrealization.Type 
 	return e.Type
 }
 
-func (e *ChargeUsageBasedRunCreditAllocations) GetCorrectsRealizationID() *string {
-	return e.CorrectsRealizationID
-}
-
 func (e *ChargeUsageBasedRunCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -2266,6 +2270,10 @@ func (e *ChargeUsageBasedRunCreditAllocations) GetDeletedAt() *time.Time {
 
 func (e *ChargeUsageBasedRunCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRunCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
 }
 
 func (e *ChargeUsageBasedRunDetailedLine) GetID() string {
@@ -2484,10 +2492,6 @@ func (e *ChargeUsageBasedRunOverageCreditAllocations) GetType() creditrealizatio
 	return e.Type
 }
 
-func (e *ChargeUsageBasedRunOverageCreditAllocations) GetCorrectsRealizationID() *string {
-	return e.CorrectsRealizationID
-}
-
 func (e *ChargeUsageBasedRunOverageCreditAllocations) GetNamespace() string {
 	return e.Namespace
 }
@@ -2506,6 +2510,10 @@ func (e *ChargeUsageBasedRunOverageCreditAllocations) GetDeletedAt() *time.Time 
 
 func (e *ChargeUsageBasedRunOverageCreditAllocations) GetAnnotations() models.Annotations {
 	return e.Annotations
+}
+
+func (e *ChargeUsageBasedRunOverageCreditAllocations) GetCorrectsRealizationID() *string {
+	return e.CorrectsRealizationID
 }
 
 func (e *ChargeUsageBasedRunPayment) GetID() string {
