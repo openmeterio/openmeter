@@ -35,7 +35,8 @@ func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardI
 //
 // A line without a Tax Code, or whose Tax Code has no mapping for the invoicing app, gets "":
 // the provider's default applies. Gathering invoices are skipped because they are not tied to an
-// invoicing app yet. Without an invoicing app type (invoice simulation) lines are left untouched.
+// invoicing app yet. Without an invoicing app type there is nothing to stamp with, so lines are
+// left untouched; the billing service always provides one.
 func StampInvoicingAppTaxCodes(invoice *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	if invoice.Status == billing.StandardInvoiceStatusGathering || deps.InvoicingAppType == "" {
 		return nil

@@ -2,6 +2,7 @@ package billingservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -12,15 +13,26 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/service/invoicecalc"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type resolveTaxCodesInput struct {
 	Namespace string
 	Invoice   *billing.StandardInvoice
+}
 
-	// WithoutInvoicingApp lets the caller go on without an expanded invoicing app. Only invoice
-	// simulation sets it: its lines are never stamped. For real invoices a missing app is an error.
-	WithoutInvoicingApp bool
+func (i resolveTaxCodesInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	if i.Invoice == nil {
+		errs = append(errs, errors.New("invoice is required"))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 // resolveTaxCodes prepares the tax inputs of invoice calculation: the invoice's default tax
@@ -30,11 +42,16 @@ type resolveTaxCodesInput struct {
 func (s *Service) resolveTaxCodes(ctx context.Context, in resolveTaxCodesInput) (invoicecalc.StandardInvoiceCalculatorDependencies, error) {
 	var deps invoicecalc.StandardInvoiceCalculatorDependencies
 
-	if apps := in.Invoice.Workflow.Apps; apps != nil && apps.Invoicing != nil {
-		deps.InvoicingAppType = apps.Invoicing.GetType()
-	} else if !in.WithoutInvoicingApp {
+	if err := in.Validate(); err != nil {
+		return deps, err
+	}
+
+	apps := in.Invoice.Workflow.Apps
+	if apps == nil || apps.Invoicing == nil {
 		return deps, fmt.Errorf("resolving the invoicing app type of invoice [%s]: apps are not expanded", in.Invoice.ID)
 	}
+
+	deps.InvoicingAppType = apps.Invoicing.GetType()
 
 	cfg := in.Invoice.Workflow.Config.Invoicing.DefaultTaxConfig
 

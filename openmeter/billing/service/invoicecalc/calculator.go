@@ -61,8 +61,8 @@ type StandardInvoiceCalculatorDependencies struct {
 	// included, so a line keeps the mapping of a Tax Code deleted after the line referenced it.
 	TaxCodes productcatalog.TaxCodesByID
 
-	// InvoicingAppType is the type of the invoice's invoicing app. It is empty only when the
-	// caller has no apps expanded (invoice simulation), in which case nothing gets stamped.
+	// InvoicingAppType is the type of the invoice's invoicing app, whose provider tax codes get
+	// stamped on the lines.
 	InvoicingAppType app.AppType
 }
 
