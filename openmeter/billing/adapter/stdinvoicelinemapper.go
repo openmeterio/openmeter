@@ -84,12 +84,19 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 
 			Currency: dbLine.Currency,
 
-			TaxConfig:         productcatalog.FromDBTaxColumns(dbLine.TaxCodeID, dbLine.TaxBehavior),
-			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
-			CreditsApplied:    creditsApplied,
-			Totals:            totals.FromDB(dbLine),
-			ExternalIDs:       externalid.MapLineExternalIDFromDB(dbLine),
+			TaxConfig:           productcatalog.FromDBTaxColumns(dbLine.TaxCodeID, dbLine.TaxBehavior),
+			InvoicingAppTaxCode: dbLine.InvoicingAppTaxCode,
+			RateCardDiscounts:   lo.FromPtr(dbLine.RatecardDiscounts),
+			CreditsApplied:      creditsApplied,
+			Totals:              totals.FromDB(dbLine),
+			ExternalIDs:         externalid.MapLineExternalIDFromDB(dbLine),
 		},
+	}
+
+	// Only the stripe code of the legacy JSON is needed, as the billed code of lines that were
+	// never stamped.
+	if dbLine.TaxConfig.Stripe != nil {
+		invoiceLine.LegacyStripeTaxCode = dbLine.TaxConfig.Stripe.Code
 	}
 
 	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {

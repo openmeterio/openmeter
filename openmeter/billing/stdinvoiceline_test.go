@@ -5,9 +5,11 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -239,4 +241,83 @@ func validStandardLineForValidation() StandardLine {
 			}),
 		},
 	}
+}
+
+func TestStandardLineBaseBilledTaxCode(t *testing.T) {
+	tests := []struct {
+		name                string
+		invoicingAppTaxCode *string
+		legacyStripeTaxCode string
+		invoicingAppType    app.AppType
+		want                string
+	}{
+		{
+			name:                "stamped value wins",
+			invoicingAppTaxCode: lo.ToPtr("txcd_20000000"),
+			invoicingAppType:    app.AppTypeStripe,
+			want:                "txcd_20000000",
+		},
+		{
+			name:                "stamped value is used on non-Stripe invoices too",
+			invoicingAppTaxCode: lo.ToPtr("custom-code"),
+			invoicingAppType:    app.AppTypeCustomInvoicing,
+			want:                "custom-code",
+		},
+		{
+			name:                "stamped empty means provider default",
+			invoicingAppTaxCode: lo.ToPtr(""),
+			invoicingAppType:    app.AppTypeStripe,
+			want:                "",
+		},
+		{
+			name:                "stamped empty wins over the legacy code",
+			invoicingAppTaxCode: lo.ToPtr(""),
+			legacyStripeTaxCode: "txcd_10000000",
+			invoicingAppType:    app.AppTypeStripe,
+			want:                "",
+		},
+		{
+			name:                "unstamped Stripe line falls back to the legacy code",
+			legacyStripeTaxCode: "txcd_10000000",
+			invoicingAppType:    app.AppTypeStripe,
+			want:                "txcd_10000000",
+		},
+		{
+			name:             "unstamped Stripe line without a legacy code uses the provider default",
+			invoicingAppType: app.AppTypeStripe,
+			want:             "",
+		},
+		{
+			name:                "unstamped non-Stripe line ignores the legacy code",
+			legacyStripeTaxCode: "txcd_10000000",
+			invoicingAppType:    app.AppTypeCustomInvoicing,
+			want:                "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a line with the stamp and legacy code of the test case
+			line := StandardLineBase{
+				InvoicingAppTaxCode: tt.invoicingAppTaxCode,
+				LegacyStripeTaxCode: tt.legacyStripeTaxCode,
+			}
+
+			// when / then: the billed tax code follows the stamp, then the Stripe legacy code
+			require.Equal(t, tt.want, line.BilledTaxCode(tt.invoicingAppType))
+		})
+	}
+}
+
+func TestStandardLineBaseCloneCopiesInvoicingAppTaxCode(t *testing.T) {
+	// given: a stamped line
+	line := StandardLineBase{InvoicingAppTaxCode: lo.ToPtr("txcd_10000000")}
+
+	// when: it is cloned and the original stamp changes
+	cloned := line.Clone()
+	*line.InvoicingAppTaxCode = "changed"
+
+	// then: the clone keeps its own value, and Equal sees the difference
+	require.Equal(t, "txcd_10000000", *cloned.InvoicingAppTaxCode)
+	require.False(t, line.Equal(cloned))
 }

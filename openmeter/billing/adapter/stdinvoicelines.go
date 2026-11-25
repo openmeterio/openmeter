@@ -97,6 +97,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					SetNillableDeletedAt(line.DeletedAt).
 					SetInvoiceAt(line.InvoiceAt.In(time.UTC)).
 					SetNillableOverrideCollectionPeriodEnd(line.OverrideCollectionPeriodEnd).
+					SetNillableInvoicingAppTaxCode(line.InvoicingAppTaxCode).
 					SetStatus(billing.InvoiceLineStatusValid).
 					SetManagedBy(line.ManagedBy).
 					SetEngine(line.Engine).
@@ -166,6 +167,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 					UpdateCreditsApplied().
 					UpdateChargeID().
 					UpdateOverrideCollectionPeriodEnd().
+					UpdateInvoicingAppTaxCode().
 					UpdateTaxCodeID().
 					UpdateTaxBehavior().
 					UpdateDescription().

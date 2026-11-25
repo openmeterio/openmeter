@@ -2,6 +2,7 @@ package billing
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -322,4 +323,155 @@ func (s *LineTaxConfigTestSuite) requireDeletedTaxCodeSnapshot(lineID string, ta
 	s.Require().NotNil(row.TaxConfig.TaxCode)
 	s.Equal(taxCodeID, row.TaxConfig.TaxCode.ID)
 	s.NotNil(row.TaxConfig.TaxCode.DeletedAt, "the embedded Tax Code is the deleted one")
+}
+
+// TestInvoicingAppTaxCodeRoundTrip checks that a standard line persists its invoicing app tax code
+// stamp as written (a code, or '' for "stamped, provider default"), that a line that was never
+// stamped reads NULL, and that its legacy stored stripe code is exposed for the unstamped fallback.
+func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-roundtrip")
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	// given: a draft invoice whose standard line has a stored legacy stripe code and no stamp
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(namespace, "test")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+
+	s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
+		"taxed": {Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior), TaxCodeID: taxCode.ID},
+	})
+
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+
+	invoiceID := invoices[0].GetInvoiceID()
+	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
+	lineID := invoices[0].Lines.OrEmpty()[0].ID
+
+	s.Run("then: the unstamped line reads NULL and exposes the legacy stripe code", func() {
+		s.Nil(s.storedLine(lineID).InvoicingAppTaxCode)
+
+		line := s.readStandardLine(invoiceID, lineID)
+		s.Nil(line.InvoicingAppTaxCode)
+		s.Equal("txcd_10000000", line.LegacyStripeTaxCode)
+		s.Equal("txcd_10000000", line.BilledTaxCode(app.AppTypeStripe))
+		s.Equal("", line.BilledTaxCode(app.AppTypeCustomInvoicing))
+	})
+
+	s.Run("when: the line is saved with a stamp", func() {
+		s.setInvoicingAppTaxCode(invoiceID, lineID, lo.ToPtr("txcd_20000000"))
+	})
+
+	s.Run("then: the stamp is persisted and read back, winning over the legacy code", func() {
+		s.Equal("txcd_20000000", lo.FromPtr(s.storedLine(lineID).InvoicingAppTaxCode))
+
+		line := s.readStandardLine(invoiceID, lineID)
+		s.Equal("txcd_20000000", lo.FromPtr(line.InvoicingAppTaxCode))
+		s.Equal("txcd_20000000", line.BilledTaxCode(app.AppTypeStripe))
+		s.Equal("txcd_10000000", line.LegacyStripeTaxCode, "the stored legacy JSON is not rewritten")
+	})
+
+	s.Run("when: the line is saved with an empty stamp", func() {
+		s.setInvoicingAppTaxCode(invoiceID, lineID, lo.ToPtr(""))
+	})
+
+	s.Run("then: the empty stamp is kept apart from NULL and still wins over the legacy code", func() {
+		stored := s.storedLine(lineID).InvoicingAppTaxCode
+		s.Require().NotNil(stored)
+		s.Equal("", *stored)
+
+		line := s.readStandardLine(invoiceID, lineID)
+		s.Require().NotNil(line.InvoicingAppTaxCode)
+		s.Equal("", line.BilledTaxCode(app.AppTypeStripe))
+	})
+}
+
+// TestGatheringLinesKeepInvoicingAppTaxCodeNull checks that gathering lines, which share the
+// billing_invoice_lines table, never get an invoicing app tax code stamp, on insert or on a later
+// upsert.
+func (s *LineTaxConfigTestSuite) TestGatheringLinesKeepInvoicingAppTaxCodeNull() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-gathering")
+	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
+
+	// given: a pending gathering line
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(namespace, "test")
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+
+	pending := s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
+		"taxed": {TaxCodeID: taxCode.ID},
+	})
+	line := pending.Lines[0]
+
+	s.Run("then: the insert leaves the column NULL", func() {
+		s.Nil(s.storedLine(line.ID).InvoicingAppTaxCode)
+	})
+
+	s.Run("when: the gathering line is upserted again", func() {
+		_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+			Invoice:      billing.InvoiceID{Namespace: namespace, ID: line.InvoiceID},
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			EditFn: func(invoice *billing.GatheringInvoice) error {
+				edited, ok := invoice.Lines.GetByID(line.ID)
+				s.Require().True(ok)
+
+				edited.Name = "edited"
+
+				return invoice.Lines.ReplaceByID(edited)
+			},
+		})
+		s.Require().NoError(err)
+	})
+
+	s.Run("then: the column is still NULL", func() {
+		row := s.storedLine(line.ID)
+		s.Equal("edited", row.Name)
+		s.Nil(row.InvoicingAppTaxCode)
+	})
+}
+
+// readStandardLine loads a standard line through the billing service.
+func (s *LineTaxConfigTestSuite) readStandardLine(invoiceID billing.InvoiceID, lineID string) *billing.StandardLine {
+	s.T().Helper()
+
+	invoice, err := s.BillingService.GetStandardInvoiceById(s.T().Context(), billing.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+		Expand:  billing.StandardInvoiceExpands{billing.StandardInvoiceExpandLines},
+	})
+	s.Require().NoError(err)
+
+	line := invoice.Lines.GetByID(lineID)
+	s.Require().NotNil(line)
+
+	return line
+}
+
+// setInvoicingAppTaxCode saves the invoicing app tax code stamp on a draft invoice line through
+// the regular invoice update path.
+func (s *LineTaxConfigTestSuite) setInvoicingAppTaxCode(invoiceID billing.InvoiceID, lineID string, code *string) {
+	s.T().Helper()
+
+	_, err := s.BillingService.UpdateStandardInvoice(s.T().Context(), billing.UpdateStandardInvoiceInput{
+		Invoice:      invoiceID,
+		ChangeSource: billing.ChangeSourceSystem,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			line := invoice.Lines.GetByID(lineID)
+			if line == nil {
+				return fmt.Errorf("line[%s] not found", lineID)
+			}
+
+			line.InvoicingAppTaxCode = code
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
 }
