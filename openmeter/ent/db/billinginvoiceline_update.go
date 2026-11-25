@@ -435,6 +435,26 @@ func (_u *BillingInvoiceLineUpdate) ClearOverrideCollectionPeriodEnd() *BillingI
 	return _u
 }
 
+// SetInvoicingAppTaxCode sets the "invoicing_app_tax_code" field.
+func (_u *BillingInvoiceLineUpdate) SetInvoicingAppTaxCode(v string) *BillingInvoiceLineUpdate {
+	_u.mutation.SetInvoicingAppTaxCode(v)
+	return _u
+}
+
+// SetNillableInvoicingAppTaxCode sets the "invoicing_app_tax_code" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdate) SetNillableInvoicingAppTaxCode(v *string) *BillingInvoiceLineUpdate {
+	if v != nil {
+		_u.SetInvoicingAppTaxCode(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppTaxCode clears the value of the "invoicing_app_tax_code" field.
+func (_u *BillingInvoiceLineUpdate) ClearInvoicingAppTaxCode() *BillingInvoiceLineUpdate {
+	_u.mutation.ClearInvoicingAppTaxCode()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *BillingInvoiceLineUpdate) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpdate {
 	_u.mutation.SetStatus(v)
@@ -1246,6 +1266,12 @@ func (_u *BillingInvoiceLineUpdate) sqlSave(ctx context.Context) (_node int, err
 	}
 	if _u.mutation.OverrideCollectionPeriodEndCleared() {
 		_spec.ClearField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime)
+	}
+	if value, ok := _u.mutation.InvoicingAppTaxCode(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppTaxCode, field.TypeString, value)
+	}
+	if _u.mutation.InvoicingAppTaxCodeCleared() {
+		_spec.ClearField(billinginvoiceline.FieldInvoicingAppTaxCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)
@@ -2305,6 +2331,26 @@ func (_u *BillingInvoiceLineUpdateOne) ClearOverrideCollectionPeriodEnd() *Billi
 	return _u
 }
 
+// SetInvoicingAppTaxCode sets the "invoicing_app_tax_code" field.
+func (_u *BillingInvoiceLineUpdateOne) SetInvoicingAppTaxCode(v string) *BillingInvoiceLineUpdateOne {
+	_u.mutation.SetInvoicingAppTaxCode(v)
+	return _u
+}
+
+// SetNillableInvoicingAppTaxCode sets the "invoicing_app_tax_code" field if the given value is not nil.
+func (_u *BillingInvoiceLineUpdateOne) SetNillableInvoicingAppTaxCode(v *string) *BillingInvoiceLineUpdateOne {
+	if v != nil {
+		_u.SetInvoicingAppTaxCode(*v)
+	}
+	return _u
+}
+
+// ClearInvoicingAppTaxCode clears the value of the "invoicing_app_tax_code" field.
+func (_u *BillingInvoiceLineUpdateOne) ClearInvoicingAppTaxCode() *BillingInvoiceLineUpdateOne {
+	_u.mutation.ClearInvoicingAppTaxCode()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *BillingInvoiceLineUpdateOne) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -3146,6 +3192,12 @@ func (_u *BillingInvoiceLineUpdateOne) sqlSave(ctx context.Context) (_node *Bill
 	}
 	if _u.mutation.OverrideCollectionPeriodEndCleared() {
 		_spec.ClearField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime)
+	}
+	if value, ok := _u.mutation.InvoicingAppTaxCode(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppTaxCode, field.TypeString, value)
+	}
+	if _u.mutation.InvoicingAppTaxCodeCleared() {
+		_spec.ClearField(billinginvoiceline.FieldInvoicingAppTaxCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(billinginvoiceline.FieldStatus, field.TypeEnum, value)

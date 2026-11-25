@@ -472,6 +472,13 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		// The provider tax code the invoice's invoicing app bills this line with.
+		// NULL means not stamped yet, '' means stamped without a mapping (provider
+		// default). Only standard lines are stamped; gathering lines leave it NULL.
+		field.String("invoicing_app_tax_code").
+			Optional().
+			Nillable(),
+
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
 		field.Enum("type").
