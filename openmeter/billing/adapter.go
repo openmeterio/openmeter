@@ -46,7 +46,8 @@ type CustomerBillingProfileAdapter interface {
 }
 
 type CustomerSynchronizationAdapter interface {
-	// LockCustomerForUpdate creates and locks the customer synchronization row in the caller's transaction.
+	// LockCustomerForUpdate locks the customer synchronization row in the caller's transaction,
+	// creating it first when it is missing.
 	LockCustomerForUpdate(ctx context.Context, input LockCustomerForUpdateAdapterInput) error
 }
 
