@@ -648,6 +648,38 @@ func TestListEvents_Sort(t *testing.T) {
 		assert.Equal(t, older.ID, result.Items[1].ID)
 	})
 
+	t.Run("created_at desc pages events with the same timestamp by id", func(t *testing.T) {
+		// given events created at the same instant
+		tiedNS := ulid.Make().String()
+		tiedChannel := seedChannel(t, env, tiedNS)
+		tiedRule := seedRule(t, env, tiedNS, notification.EventTypeBalanceThreshold, tiedChannel.ID)
+
+		var want []string
+		for range 3 {
+			want = append(want, seedEvent(t, env, tiedNS, tiedRule, frozen, nil).ID)
+		}
+
+		slices.Sort(want)
+		slices.Reverse(want)
+
+		// when they are listed one per page
+		var got []string
+		for page := 1; page <= len(want); page++ {
+			result, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
+				Namespaces: []string{tiedNS},
+				OrderBy:    notification.OrderByCreatedAt,
+				Order:      sortx.OrderDesc,
+				Page:       pagination.NewPage(page, 1),
+			})
+			require.NoError(t, err)
+			require.Len(t, result.Items, 1)
+			got = append(got, result.Items[0].ID)
+		}
+
+		// then id breaks the tie, so no event is skipped or repeated
+		assert.Equal(t, want, got)
+	})
+
 	t.Run("id asc returns ULID creation order", func(t *testing.T) {
 		result, err := env.adapter.ListEvents(t.Context(), notification.ListEventsInput{
 			Namespaces: []string{ns},

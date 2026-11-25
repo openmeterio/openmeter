@@ -5070,6 +5070,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{NotificationEventsColumns[1], NotificationEventsColumns[4]},
 			},
+			{
+				Name:    "notificationevent_namespace_created_at_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventsColumns[1], NotificationEventsColumns[3], NotificationEventsColumns[0]},
+			},
 		},
 	}
 	// NotificationEventDeliveryStatusColumns holds the columns for the "notification_event_delivery_status" table.
