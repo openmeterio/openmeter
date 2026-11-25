@@ -112,6 +112,20 @@ table, amount-discount table, and flat-fee reference column. Usage-based
 configurations, usage discounts, and parent-line relationships remain in use by
 standard and split lines.
 
+## Line tax config
+
+Line adapters read only the `tax_code_id` and `tax_behavior` columns. The
+`tax_config` JSON is a write-only legacy copy, kept for older readers and for the
+CHECK constraints that compare it with those two columns.
+
+The standard line upsert keeps the stored JSON unless the line's Tax Code ID or
+behavior changed, so lines past draft keep their stored copy byte-identical.
+Events rebuild the legacy `taxOverrides` from the referenced Tax Codes at publish
+time.
+
+The JSON copy goes away once a per-line snapshot of the billed provider tax code
+replaces it and the legacy JSON columns are dropped.
+
 ## Time has distinct meanings
 
 - a line's service period is when the service was provided

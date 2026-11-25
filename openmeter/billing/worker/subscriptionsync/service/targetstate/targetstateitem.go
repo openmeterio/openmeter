@@ -65,11 +65,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 	}
 
 	// Sync never compares tax config on existing lines, so an empty reference doesn't churn them.
-	var taxConfig *productcatalog.TaxCodeConfig
-	if cfg := r.Spec.RateCard.AsMeta().TaxConfig; cfg != nil && !cfg.IsEmpty() {
-		taxConfig = cfg
-	}
-
+	// Sync never compares tax config on existing lines, so an empty reference doesn't churn them.
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -80,7 +76,7 @@ func (r StateItem) GetExpectedLine() (*billing.GatheringLine, error) {
 			ManagedBy:              billing.SubscriptionManagedLine,
 			Currency:               currencyx.FiatCode(r.Currency.GetCode()),
 			ChildUniqueReferenceID: &r.UniqueID,
-			TaxConfig:              taxConfig,
+			TaxConfig:              lo.FromPtr(r.Spec.RateCard.AsMeta().TaxConfig).EmptyAsNilPtr(),
 			ServicePeriod:          r.GetServicePeriod(),
 			InvoiceAt:              r.GetInvoiceAt(),
 			RateCardDiscounts:      billing.DiscountsFromProductCatalog(r.Spec.RateCard.AsMeta().Discounts),

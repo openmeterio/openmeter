@@ -499,3 +499,30 @@ func TestTaxConfigClone(t *testing.T) {
 	// Values must now differ
 	assert.False(t, original.Equal(&cloned))
 }
+
+func TestTaxCodeConfigEmptyAsNilPtr(t *testing.T) {
+	t.Run("empty config is nil", func(t *testing.T) {
+		assert.Nil(t, TaxCodeConfig{}.EmptyAsNilPtr())
+	})
+
+	t.Run("non-empty config is a clone", func(t *testing.T) {
+		cfg := TaxCodeConfig{
+			TaxCodeID: "01AN4Z07BY79KA1307SR9X4MV3",
+			Behavior:  lo.ToPtr(InclusiveTaxBehavior),
+		}
+
+		out := cfg.EmptyAsNilPtr()
+
+		require.NotNil(t, out)
+		assert.Equal(t, cfg, *out)
+		assert.NotSame(t, &cfg, out)
+		assert.NotSame(t, cfg.Behavior, out.Behavior)
+	})
+
+	t.Run("behavior-only config is kept", func(t *testing.T) {
+		out := TaxCodeConfig{Behavior: lo.ToPtr(ExclusiveTaxBehavior)}.EmptyAsNilPtr()
+
+		require.NotNil(t, out)
+		assert.Equal(t, ExclusiveTaxBehavior, *out.Behavior)
+	})
+}

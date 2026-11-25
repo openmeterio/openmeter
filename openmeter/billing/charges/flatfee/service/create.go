@@ -227,12 +227,6 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 		return billing.GatheringLine{}, fmt.Errorf("getting invoice currency: %w", err)
 	}
 
-	// An empty config must stay nil so the line stores no tax_code_id / tax_config.
-	var taxConfig *productcatalog.TaxCodeConfig
-	if !lineIntent.TaxConfig.IsEmpty() {
-		taxConfig = lo.ToPtr(lineIntent.TaxConfig)
-	}
-
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -252,7 +246,7 @@ func buildFlatFeeGatheringLine(input buildFlatFeeGatheringLineInput) (billing.Ga
 			ServicePeriod: lineIntent.ServicePeriod,
 			InvoiceAt:     lineIntent.InvoiceAt,
 
-			TaxConfig: taxConfig,
+			TaxConfig: lineIntent.TaxConfig.EmptyAsNilPtr(),
 
 			Engine:       billing.LineEngineTypeChargeFlatFee,
 			ChargeID:     lo.ToPtr(flatFee.ID),

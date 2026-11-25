@@ -180,12 +180,6 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 		return usagebased.ChargeWithGatheringLine{}, fmt.Errorf("getting invoice currency: %w", err)
 	}
 
-	// An empty config must stay nil so the line stores no tax_code_id / tax_config.
-	var taxConfig *productcatalog.TaxCodeConfig
-	if !intent.TaxConfig.IsEmpty() {
-		taxConfig = lo.ToPtr(intent.TaxConfig)
-	}
-
 	gatheringLine := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -206,7 +200,7 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     invoiceAt,
 
-			TaxConfig: taxConfig,
+			TaxConfig: intent.TaxConfig.EmptyAsNilPtr(),
 
 			ChargeID:     lo.ToPtr(charge.ID),
 			Engine:       billing.LineEngineTypeChargeUsageBased,

@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/clone"
 )
 
 // StoredLineTaxConfig is the persisted line copy of a legacy tax config, kept only so invoice
@@ -27,40 +28,55 @@ type StoredLineTaxConfig struct {
 // NewStoredStandardLineTaxConfig builds the legacy tax config of a standard line, including the
 // full Tax Code. A nil config yields nil.
 func NewStoredStandardLineTaxConfig(cfg *productcatalog.TaxCodeConfig, taxCodes productcatalog.TaxCodesByID) (*StoredLineTaxConfig, error) {
-	return newStoredLineTaxConfig(cfg, taxCodes, true)
+	return newStoredLineTaxConfig(newStoredLineTaxConfigInput{
+		Config:         cfg,
+		TaxCodes:       taxCodes,
+		IncludeTaxCode: true,
+	})
 }
 
 // NewStoredGatheringLineTaxConfig builds the legacy tax config of a gathering line, which never
 // embeds the Tax Code. A nil config yields nil.
 func NewStoredGatheringLineTaxConfig(cfg *productcatalog.TaxCodeConfig, taxCodes productcatalog.TaxCodesByID) (*StoredLineTaxConfig, error) {
-	return newStoredLineTaxConfig(cfg, taxCodes, false)
+	return newStoredLineTaxConfig(newStoredLineTaxConfigInput{
+		Config:   cfg,
+		TaxCodes: taxCodes,
+	})
 }
 
-func newStoredLineTaxConfig(cfg *productcatalog.TaxCodeConfig, taxCodes productcatalog.TaxCodesByID, withTaxCode bool) (*StoredLineTaxConfig, error) {
-	if cfg == nil {
+type newStoredLineTaxConfigInput struct {
+	Config   *productcatalog.TaxCodeConfig
+	TaxCodes productcatalog.TaxCodesByID
+
+	// IncludeTaxCode embeds the full Tax Code entity in the stored JSON. Standard lines did in the
+	// legacy shape; gathering lines didn't.
+	IncludeTaxCode bool
+}
+
+func newStoredLineTaxConfig(in newStoredLineTaxConfigInput) (*StoredLineTaxConfig, error) {
+	if in.Config == nil {
 		return nil, nil
 	}
 
-	// Clone so the stored copy doesn't share the behavior pointer with the line it was built from.
-	cloned := cfg.Clone()
-	out := &StoredLineTaxConfig{Behavior: cloned.Behavior}
+	// Clone the behavior so the stored copy doesn't share its pointer with the line.
+	out := &StoredLineTaxConfig{Behavior: clone.CloneEnumPtr(in.Config.Behavior)}
 
-	if cloned.TaxCodeID == "" {
+	if in.Config.TaxCodeID == "" {
 		return out, nil
 	}
 
-	out.TaxCodeID = lo.ToPtr(cloned.TaxCodeID)
+	out.TaxCodeID = lo.ToPtr(in.Config.TaxCodeID)
 
-	tc, ok := taxCodes.Get(cloned.TaxCodeID)
+	tc, ok := in.TaxCodes.Get(in.Config.TaxCodeID)
 	if !ok {
-		return nil, fmt.Errorf("tax code %q not found", cloned.TaxCodeID)
+		return nil, fmt.Errorf("tax code %q not found", in.Config.TaxCodeID)
 	}
 
 	if mapping, ok := tc.GetAppMapping(app.AppTypeStripe); ok {
 		out.Stripe = &productcatalog.StripeTaxConfig{Code: mapping.TaxCode}
 	}
 
-	if withTaxCode {
+	if in.IncludeTaxCode {
 		out.TaxCode = tc
 	}
 

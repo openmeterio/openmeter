@@ -370,16 +370,17 @@ func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after
 		return line.GetID()
 	})
 
-	// One reference per changed line; the validator looks each distinct ID up once.
+	// One reference per changed line; the validator looks each distinct ID up once. A line without
+	// a tax config has an empty ID; the sanitizer normalized missing IDs the same way on both sides.
 	var refs []billing.RequestTaxCodeRef
 	for idx, afterLine := range after.GetGenericLines().OrEmpty() {
-		taxCodeID := taxCodeIDFromTaxConfig(afterLine.GetTaxConfig())
+		taxCodeID := lo.FromPtr(afterLine.GetTaxConfig()).TaxCodeID
 		if taxCodeID == "" {
 			continue
 		}
 
 		if beforeLine, ok := beforeByLineID[afterLine.GetID()]; ok {
-			if beforeTaxCodeID := taxCodeIDFromTaxConfig(beforeLine.GetTaxConfig()); beforeTaxCodeID == taxCodeID {
+			if lo.FromPtr(beforeLine.GetTaxConfig()).TaxCodeID == taxCodeID {
 				continue
 			}
 		}
@@ -401,16 +402,6 @@ func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after
 		Resolver:   s.taxCodeResolver,
 		References: refs,
 	})
-}
-
-// taxCodeIDFromTaxConfig returns "" for no Tax Code; the sanitizer already normalized missing
-// IDs the same way on both sides.
-func taxCodeIDFromTaxConfig(taxConfig *productcatalog.TaxCodeConfig) string {
-	if taxConfig == nil {
-		return ""
-	}
-
-	return taxConfig.TaxCodeID
 }
 
 func validateInvoiceReaderForDiff(invoice billing.GenericInvoiceReader) error {

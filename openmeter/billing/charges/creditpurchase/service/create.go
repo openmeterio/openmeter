@@ -136,12 +136,6 @@ func buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.Charge) (bill
 	annotations[billing.AnnotationKeyTaxable] = lo.ToPtr("false")
 	annotations[billing.AnnotationKeyReason] = lo.ToPtr(billing.AnnotationValueReasonCreditPurchase)
 
-	// An empty config must stay nil so the line stores no tax_code_id / tax_config.
-	var taxConfig *productcatalog.TaxCodeConfig
-	if !intent.TaxConfig.IsEmpty() {
-		taxConfig = lo.ToPtr(intent.TaxConfig)
-	}
-
 	return billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -163,7 +157,7 @@ func buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.Charge) (bill
 			Currency:      fiatCurrency.GetFiatCode(),
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.CalculateEffectiveAt(),
-			TaxConfig:     taxConfig,
+			TaxConfig:     intent.TaxConfig.EmptyAsNilPtr(),
 			ChargeID:      lo.ToPtr(charge.ID),
 			Engine:        billing.LineEngineTypeChargeCreditPurchase,
 		},

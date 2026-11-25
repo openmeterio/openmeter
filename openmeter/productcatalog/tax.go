@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	"github.com/openmeterio/openmeter/pkg/clone"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -91,11 +92,7 @@ func (c *TaxConfig) Validate() error {
 }
 
 func (c TaxConfig) Clone() TaxConfig {
-	out := TaxConfig{}
-
-	if c.Behavior != nil {
-		out.Behavior = lo.ToPtr(*c.Behavior)
-	}
+	out := TaxConfig{Behavior: clone.CloneEnumPtr(c.Behavior)}
 
 	if c.Stripe != nil {
 		out.Stripe = lo.ToPtr(c.Stripe.Clone())
@@ -178,21 +175,27 @@ func (c *TaxCodeConfig) Equal(v *TaxCodeConfig) bool {
 }
 
 func (c TaxCodeConfig) Clone() TaxCodeConfig {
-	out := TaxCodeConfig{TaxCodeID: c.TaxCodeID}
+	return TaxCodeConfig{
+		TaxCodeID: c.TaxCodeID,
+		Behavior:  clone.CloneEnumPtr(c.Behavior),
+	}
+}
 
-	if c.Behavior != nil {
-		out.Behavior = lo.ToPtr(*c.Behavior)
+// EmptyAsNilPtr returns a pointer to a clone of the config, or nil when it is empty. An empty
+// config must stay nil so the line stores no tax_code_id / tax_config.
+func (c TaxCodeConfig) EmptyAsNilPtr() *TaxCodeConfig {
+	if c.IsEmpty() {
+		return nil
 	}
 
-	return out
+	cloned := c.Clone()
+
+	return &cloned
 }
 
 // ToTaxConfig converts TaxCodeConfig to TaxConfig (without provider-specific fields).
 func (c TaxCodeConfig) ToTaxConfig() TaxConfig {
-	out := TaxConfig{}
-	if c.Behavior != nil {
-		out.Behavior = lo.ToPtr(*c.Behavior)
-	}
+	out := TaxConfig{Behavior: clone.CloneEnumPtr(c.Behavior)}
 
 	if c.TaxCodeID != "" {
 		out.TaxCodeID = lo.ToPtr(c.TaxCodeID)
@@ -224,10 +227,7 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 		return TaxCodeConfig{}
 	}
 
-	out := TaxCodeConfig{}
-	if cfg.Behavior != nil {
-		out.Behavior = lo.ToPtr(*cfg.Behavior)
-	}
+	out := TaxCodeConfig{Behavior: clone.CloneEnumPtr(cfg.Behavior)}
 
 	if cfg.TaxCodeID != nil {
 		out.TaxCodeID = *cfg.TaxCodeID
