@@ -288,6 +288,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesTaxCodeAuthore
 		s.Require().Error(err)
 		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
 		s.ErrorAs(err, &billing.ValidationError{})
+		// and: the issue is addressed by the lines the client sent, not by internal intents
+		s.ErrorContains(err, "lines/0/tax_config/tax_code")
+		s.NotContains(err.Error(), "intents/")
 	})
 
 	s.Run("when a system create carries the same deleted reference", func() {

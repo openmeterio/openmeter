@@ -377,15 +377,18 @@ func validateTaxConfigTaxCodeIDResolvedForDiff(taxConfig *billing.TaxConfig) err
 // validateChangedLineTaxCodes rejects an API edit that sets a line's Tax Code ID to a deleted (or
 // missing) Tax Code. Lines that keep their stored Tax Code ID are not checked: it may point at a
 // code deleted since. Both states are already sanitized, so IDs are compared as resolved.
+//
+// Issues are reported by the line's position in the submitted lines (lines/<index>/...), not by
+// line ID: new lines have no ID yet at this point, and the sanity checks and pending-line
+// validation address lines by index too.
 func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after billing.GenericInvoiceReader) error {
-	afterLines := after.GetGenericLines().OrEmpty()
 	beforeByLineID := lo.KeyBy(before.GetGenericLines().OrEmpty(), func(line billing.GenericInvoiceLine) string {
 		return line.GetID()
 	})
 
-	// Distinct changed IDs, resolved in one batch.
-	changedTaxCodeIDs := make(map[string]string) // tax code ID -> first line ID referencing it
-	for _, afterLine := range afterLines {
+	// One reference per changed line; the validator looks each distinct ID up once.
+	var refs []billing.RequestTaxCodeRef
+	for idx, afterLine := range after.GetGenericLines().OrEmpty() {
 		taxCodeID := taxCodeIDFromTaxConfig(afterLine.GetTaxConfig())
 		if taxCodeID == "" {
 			continue
@@ -397,34 +400,23 @@ func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after
 			}
 		}
 
-		if _, seen := changedTaxCodeIDs[taxCodeID]; !seen {
-			changedTaxCodeIDs[taxCodeID] = afterLine.GetID()
-		}
+		refs = append(refs, billing.RequestTaxCodeRef{
+			TaxCodeID: taxCodeID,
+			FieldPath: fmt.Sprintf("lines/%d/tax_config/tax_code", idx),
+		})
 	}
 
-	if len(changedTaxCodeIDs) == 0 {
+	if len(refs) == 0 {
 		return nil
 	}
 
 	// The sanitizer already rejects IDs the namespace cannot resolve, so only the
 	// deleted case can fail here.
-	refs := make([]billing.RequestTaxCodeRef, 0, len(changedTaxCodeIDs))
-	for taxCodeID, lineID := range changedTaxCodeIDs {
-		refs = append(refs, billing.RequestTaxCodeRef{
-			TaxCodeID: taxCodeID,
-			FieldPath: fmt.Sprintf("lines/%s/tax_config/tax_code", lineID),
-		})
-	}
-
-	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
+	return billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
 		Namespace:  after.GetInvoiceID().Namespace,
 		Resolver:   s.taxCodeResolver,
 		References: refs,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 // taxCodeIDFromTaxConfig returns "" for no Tax Code; the sanitizer already normalized nil and

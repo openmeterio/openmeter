@@ -446,6 +446,63 @@ func TestDiffMutableInvoiceLinesRejectsNewlyReferencedDeletedTaxCode(t *testing.
 	require.ErrorIs(t, err, billing.ErrTaxCodeDeleted)
 }
 
+func TestDiffMutableInvoiceLinesReportsNewLineWithDeletedTaxCodeByIndex(t *testing.T) {
+	deletedTaxCodeID := "deleted-tax-code-id"
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(nil, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[deletedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: deletedTaxCodeID},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		Key:          "deleted",
+		Name:         "Deleted Tax Code",
+	}
+
+	// given: an edit that keeps line-1 and appends a new line, which has no ID yet
+	newLine := newStandardLineForLineEngineTest("", billing.LineEngineTypeInvoice, false)
+	newLine.TaxConfig = &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deletedTaxCodeID)},
+	}
+	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{edited.Lines.OrEmpty()[0], newLine})
+
+	// when: diffing the edit
+	_, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+
+	// then: the new line is addressed by its position in the submitted lines
+	require.ErrorIs(t, err, billing.ErrTaxCodeDeleted)
+	require.ErrorContains(t, err, "lines/1/tax_config/tax_code")
+	require.NotContains(t, err.Error(), "lines//")
+}
+
+func TestDiffMutableInvoiceLinesReportsEveryLineReferencingSameDeletedTaxCode(t *testing.T) {
+	deletedTaxCodeID := "deleted-tax-code-id"
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(nil, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[deletedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: deletedTaxCodeID},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		Key:          "deleted",
+		Name:         "Deleted Tax Code",
+	}
+
+	// given: an edit where an existing line and a new line both newly reference the same deleted code
+	deletedTaxConfig := &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deletedTaxCodeID)},
+	}
+	changedLine := edited.Lines.OrEmpty()[0]
+	changedLine.TaxConfig = cloneBillingTaxConfigForTest(deletedTaxConfig)
+	newLine := newStandardLineForLineEngineTest("", billing.LineEngineTypeInvoice, false)
+	newLine.TaxConfig = cloneBillingTaxConfigForTest(deletedTaxConfig)
+	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{changedLine, newLine})
+
+	// when: diffing the edit
+	_, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+
+	// then: each referencing line gets its own issue
+	require.ErrorIs(t, err, billing.ErrTaxCodeDeleted)
+	require.ErrorContains(t, err, "lines/0/tax_config/tax_code")
+	require.ErrorContains(t, err, "lines/1/tax_config/tax_code")
+}
+
 func TestInvoiceWithSanitizedTaxConfigForDiffNormalizesExplicitTaxCodeIdentity(t *testing.T) {
 	explicitTaxCodeID := "explicit-tax-code-id"
 	canonicalStripeCode := "txcd_10000000"

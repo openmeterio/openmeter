@@ -55,6 +55,9 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 			// Passed through: the lines' Tax Code IDs are checked only when the request
 			// itself came from an API caller.
 			ChangeSource: input.ChangeSource,
+			// Intents map 1:1 to the request's lines, so a rejected Tax Code is reported
+			// under the lines the client sent.
+			IntentsFieldPath: "lines",
 		})
 		if err != nil {
 			return nil, err

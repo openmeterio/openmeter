@@ -153,9 +153,11 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 // validateRequestTaxCodes rejects Tax Code IDs the caller sent in this request when they
 // reference a missing or deleted Tax Code. It runs before applyDefaultTaxCodes so stamped
 // defaults, which may be deleted, are not checked. Each failing intent gets its own issue.
-func (s *service) validateRequestTaxCodes(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
-	refs := make([]billing.RequestTaxCodeRef, 0, len(intents))
-	for idx, createIntent := range intents {
+func (s *service) validateRequestTaxCodes(ctx context.Context, input charges.CreateInput) error {
+	intentsFieldPath := lo.CoalesceOrEmpty(input.IntentsFieldPath, "intents")
+
+	refs := make([]billing.RequestTaxCodeRef, 0, len(input.Intents))
+	for idx, createIntent := range input.Intents {
 		taxCodeID, err := createIntent.TaxCodeID()
 		if err != nil {
 			return err
@@ -167,7 +169,7 @@ func (s *service) validateRequestTaxCodes(ctx context.Context, namespace string,
 
 		refs = append(refs, billing.RequestTaxCodeRef{
 			TaxCodeID: taxCodeID,
-			FieldPath: fmt.Sprintf("intents/%d/tax_config/tax_code", idx),
+			FieldPath: fmt.Sprintf("%s/%d/tax_config/tax_code", intentsFieldPath, idx),
 		})
 	}
 
@@ -176,7 +178,7 @@ func (s *service) validateRequestTaxCodes(ctx context.Context, namespace string,
 	}
 
 	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
-		Namespace:  namespace,
+		Namespace:  input.Namespace,
 		Resolver:   s.taxCodeResolver,
 		References: refs,
 	}); err != nil {
@@ -224,7 +226,7 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 
 	// Only API requests carry Tax Code IDs the caller sent.
 	if input.ChangeSource == billing.ChangeSourceAPIRequest {
-		if err := s.validateRequestTaxCodes(ctx, input.Namespace, input.Intents); err != nil {
+		if err := s.validateRequestTaxCodes(ctx, input); err != nil {
 			return nil, err
 		}
 	}
