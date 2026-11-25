@@ -56,6 +56,11 @@ type EventTypeDefinition struct {
 	EventType         EventType
 	PayloadJSONSchema json.RawMessage
 
+	// Description explains the Event type to API users, including legacy names
+	// it replaces. It is documentation, not contract: Equal and the definition
+	// fingerprint leave it out.
+	Description string
+
 	// Rule is nil when no Rule can produce the Event type, e.g. system Events.
 	Rule *RuleConfigDefinition
 
@@ -104,7 +109,7 @@ func (d EventTypeDefinition) ValidateWith(validators ...models.ValidatorFunc[Eve
 }
 
 // Equal compares the contract: identity, schemas in canonical form, Rule
-// capability, and replacement.
+// capability, and replacement. Description is not part of it.
 func (d EventTypeDefinition) Equal(other EventTypeDefinition) bool {
 	return d.EventType == other.EventType &&
 		jsonSchemaEqual(d.PayloadJSONSchema, other.PayloadJSONSchema) &&

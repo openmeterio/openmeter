@@ -30,6 +30,7 @@ var BillingInvoiceCreatedV1RuleConfigJSONSchema []byte
 var BillingInvoiceCreatedV1Definition = v4.EventTypeDefinition{
 	EventType:         BillingInvoiceCreatedV1EventType,
 	PayloadJSONSchema: BillingInvoiceCreatedV1PayloadJSONSchema,
+	Description:       "An invoice was created. The payload is the invoice as it was created.\n\nLegacy name: `invoice.created`.",
 	Rule: &v4.RuleConfigDefinition{
 		JSONSchema: BillingInvoiceCreatedV1RuleConfigJSONSchema,
 	},
@@ -57,6 +58,7 @@ var BillingInvoiceUpdatedV1RuleConfigJSONSchema []byte
 var BillingInvoiceUpdatedV1Definition = v4.EventTypeDefinition{
 	EventType:         BillingInvoiceUpdatedV1EventType,
 	PayloadJSONSchema: BillingInvoiceUpdatedV1PayloadJSONSchema,
+	Description:       "An invoice was updated. The payload is the invoice after the update.\n\nLegacy name: `invoice.updated`.",
 	Rule: &v4.RuleConfigDefinition{
 		JSONSchema: BillingInvoiceUpdatedV1RuleConfigJSONSchema,
 	},
@@ -84,6 +86,7 @@ var EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema []byte
 var EntitlementBalanceThresholdTriggeredV1Definition = v4.EventTypeDefinition{
 	EventType:         EntitlementBalanceThresholdTriggeredV1EventType,
 	PayloadJSONSchema: EntitlementBalanceThresholdTriggeredV1PayloadJSONSchema,
+	Description:       "A metered entitlement's balance crossed one of the thresholds configured on the\nRule. The payload carries the entitlement, its feature, subject, customer and\nvalue, and the threshold that was crossed.\n\nLegacy name: `entitlements.balance.threshold`.",
 	Rule: &v4.RuleConfigDefinition{
 		JSONSchema: EntitlementBalanceThresholdTriggeredV1RuleConfigJSONSchema,
 	},
@@ -111,6 +114,7 @@ var EntitlementUsagePeriodResetV1RuleConfigJSONSchema []byte
 var EntitlementUsagePeriodResetV1Definition = v4.EventTypeDefinition{
 	EventType:         EntitlementUsagePeriodResetV1EventType,
 	PayloadJSONSchema: EntitlementUsagePeriodResetV1PayloadJSONSchema,
+	Description:       "A metered entitlement's usage period was reset. The payload carries the\nentitlement, its feature, subject, customer and value.\n\nLegacy name: `entitlements.reset`.",
 	Rule: &v4.RuleConfigDefinition{
 		JSONSchema: EntitlementUsagePeriodResetV1RuleConfigJSONSchema,
 	},

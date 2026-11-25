@@ -35,6 +35,7 @@ function contract({
         limit: int32;
       }
 
+      /** A thing happened. Replaces the legacy "thing.happened" type. */
       @jsonSchema
       @id("${payloadId}")
       @eventType("${eventType}", ThingHappenedV1RuleConfig)
@@ -182,6 +183,7 @@ var WidgetThingHappenedV1RuleConfigJSONSchema []byte
 var WidgetThingHappenedV1Definition = v4.EventTypeDefinition{
 	EventType:         WidgetThingHappenedV1EventType,
 	PayloadJSONSchema: WidgetThingHappenedV1PayloadJSONSchema,
+	Description:       "A thing happened. Replaces the legacy \\"thing.happened\\" type.",
 	Rule: &v4.RuleConfigDefinition{
 		JSONSchema: WidgetThingHappenedV1RuleConfigJSONSchema,
 	},
@@ -300,6 +302,7 @@ func All() []v4.EventTypeDefinition {
       .toContain(`var WidgetThingCreatedV1Definition = v4.EventTypeDefinition{
 	EventType:         WidgetThingCreatedV1EventType,
 	PayloadJSONSchema: WidgetThingCreatedV1PayloadJSONSchema,
+	Description:       "",
 }
 `)
   })

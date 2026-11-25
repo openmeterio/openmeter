@@ -11,13 +11,15 @@ using NotificationCodegen;
 /**
  * The legacy Event types as v1 Notification Event contracts. Each payload is the
  * `data` of the legacy payload as the v3 API returns it, and each Rule
- * configuration is the type-specific part of the v3 Rule.
+ * configuration is the type-specific part of the v3 Rule. A payload's doc
+ * comment is also its Event type's description in the API.
  */
 namespace Notifications.LegacyV1;
 
 /**
- * Payload of `v1.billing.invoice.created`, the legacy `invoice.created` Event
- * type: the invoice as it was created.
+ * An invoice was created. The payload is the invoice as it was created.
+ *
+ * Legacy name: `invoice.created`.
  */
 @jsonSchema
 @id("v1.billing.invoice.created.payload")
@@ -37,8 +39,9 @@ model InvoiceCreatedV1Payload {
 model InvoiceCreatedV1RuleConfig {}
 
 /**
- * Payload of `v1.billing.invoice.updated`, the legacy `invoice.updated` Event
- * type: the invoice after the update.
+ * An invoice was updated. The payload is the invoice after the update.
+ *
+ * Legacy name: `invoice.updated`.
  */
 @jsonSchema
 @id("v1.billing.invoice.updated.payload")
@@ -58,8 +61,11 @@ model InvoiceUpdatedV1Payload {
 model InvoiceUpdatedV1RuleConfig {}
 
 /**
- * Payload of `v1.entitlement.balance_threshold.triggered`, the legacy
- * `entitlements.balance.threshold` Event type.
+ * A metered entitlement's balance crossed one of the thresholds configured on the
+ * Rule. The payload carries the entitlement, its feature, subject, customer and
+ * value, and the threshold that was crossed.
+ *
+ * Legacy name: `entitlements.balance.threshold`.
  */
 @jsonSchema
 @id("v1.entitlement.balance_threshold.triggered.payload")
@@ -91,8 +97,10 @@ model BalanceThresholdTriggeredV1RuleConfig {
 }
 
 /**
- * Payload of `v1.entitlement.usage_period.reset`, the legacy `entitlements.reset`
- * Event type.
+ * A metered entitlement's usage period was reset. The payload carries the
+ * entitlement, its feature, subject, customer and value.
+ *
+ * Legacy name: `entitlements.reset`.
  */
 @jsonSchema
 @id("v1.entitlement.usage_period.reset.payload")

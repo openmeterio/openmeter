@@ -826,3 +826,11 @@ func (s *Server) GetBillingNotificationEvent(w http.ResponseWriter, r *http.Requ
 func (s *Server) ResendBillingNotificationEvent(w http.ResponseWriter, r *http.Request, notificationEventId apiv3models.ULID) {
 	s.notificationEventsHandler.ResendNotificationEvent().With(notificationEventId).ServeHTTP(w, r)
 }
+
+func (s *Server) ListBillingNotificationEventTypes(w http.ResponseWriter, r *http.Request, params apiv3models.ListBillingNotificationEventTypesParams) {
+	s.notificationEventTypesHandler.ListNotificationEventTypes().With(params).ServeHTTP(w, r)
+}
+
+func (s *Server) GetBillingNotificationEventType(w http.ResponseWriter, r *http.Request, notificationEventType string) {
+	s.notificationEventTypesHandler.GetNotificationEventType().With(notificationEventType).ServeHTTP(w, r)
+}

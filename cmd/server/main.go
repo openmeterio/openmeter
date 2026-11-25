@@ -187,6 +187,7 @@ func main() {
 			MeterManageService:          app.MeterManageService,
 			MeterEventService:           app.MeterEventService,
 			Notification:                app.Notification,
+			NotificationEventRegistry:   app.NotificationEventRegistry,
 			Plan:                        app.Plan,
 			PlanAddon:                   app.PlanAddon,
 			PlanSubscriptionService:     app.Subscription.PlanSubscriptionService,

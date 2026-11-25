@@ -41,6 +41,10 @@ import type {
   GetBillingNotificationEventResponse,
   ResendBillingNotificationEventRequest,
   ResendBillingNotificationEventResponse,
+  ListBillingNotificationEventTypesRequest,
+  ListBillingNotificationEventTypesResponse,
+  GetBillingNotificationEventTypeRequest,
+  GetBillingNotificationEventTypeResponse,
 } from '../models/operations/notifications.js'
 
 /**
@@ -632,5 +636,95 @@ export function resendBillingNotificationEvent(
       assertValid(schemas.resendBillingNotificationEventBodyWire, body)
     }
     await http(client).post(path, { ...options, json: body })
+  })
+}
+
+/**
+ * List notification event types
+ *
+ * List the notification event types, without their JSON Schemas. Event types are
+ * the same in every namespace. Deprecated event types stay listed.
+ *
+ * GET /openmeter/notification/event-types
+ */
+export function listBillingNotificationEventTypes(
+  client: Client,
+  req: ListBillingNotificationEventTypesRequest = {},
+  options?: RequestOptions,
+): Promise<Result<ListBillingNotificationEventTypesResponse>> {
+  return request(() => {
+    const query = toWire(
+      {
+        page: req.page,
+        filter: req.filter,
+      },
+      schemas.listBillingNotificationEventTypesQueryParams,
+    )
+    if (client._options.validate) {
+      assertValid(
+        schemas.listBillingNotificationEventTypesQueryParamsWire,
+        query,
+      )
+    }
+    const searchParams = toURLSearchParams(query)
+    return http(client)
+      .get('openmeter/notification/event-types', { ...options, searchParams })
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(
+            schemas.listBillingNotificationEventTypesResponseWire,
+            data,
+          )
+        }
+        return fromWire(data, schemas.listBillingNotificationEventTypesResponse)
+      })
+  })
+}
+
+/**
+ * Get notification event type
+ *
+ * Get a notification event type with the JSON Schemas of its payload and rule
+ * configuration.
+ *
+ * GET /openmeter/notification/event-types/{notificationEventType}
+ */
+export function getBillingNotificationEventType(
+  client: Client,
+  req: GetBillingNotificationEventTypeRequest,
+  options?: RequestOptions,
+): Promise<Result<GetBillingNotificationEventTypeResponse>> {
+  return request(() => {
+    const pathParamsInput = {
+      notificationEventType: req.notificationEventType,
+    }
+    const pathParams = client._options.validate
+      ? toPathWire(
+          pathParamsInput,
+          schemas.getBillingNotificationEventTypePathParams,
+        )
+      : pathParamsInput
+    if (client._options.validate) {
+      assertValid(
+        schemas.getBillingNotificationEventTypePathParamsWire,
+        pathParams,
+      )
+    }
+    const path = `openmeter/notification/event-types/${(() => {
+      if (pathParams.notificationEventType === undefined) {
+        throw new Error('missing path parameter: notificationEventType')
+      }
+      return encodeURIComponent(String(pathParams.notificationEventType))
+    })()}`
+    return http(client)
+      .get(path, options)
+      .json()
+      .then((data) => {
+        if (client._options.validate) {
+          assertValid(schemas.getBillingNotificationEventTypeResponseWire, data)
+        }
+        return fromWire(data, schemas.getBillingNotificationEventTypeResponse)
+      })
   })
 }
