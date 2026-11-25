@@ -82,6 +82,27 @@ func (_u *NotificationRuleUpdate) ClearMetadata() *NotificationRuleUpdate {
 	return _u
 }
 
+// SetRevision sets the "revision" field.
+func (_u *NotificationRuleUpdate) SetRevision(v int) *NotificationRuleUpdate {
+	_u.mutation.ResetRevision()
+	_u.mutation.SetRevision(v)
+	return _u
+}
+
+// SetNillableRevision sets the "revision" field if the given value is not nil.
+func (_u *NotificationRuleUpdate) SetNillableRevision(v *int) *NotificationRuleUpdate {
+	if v != nil {
+		_u.SetRevision(*v)
+	}
+	return _u
+}
+
+// AddRevision adds value to the "revision" field.
+func (_u *NotificationRuleUpdate) AddRevision(v int) *NotificationRuleUpdate {
+	_u.mutation.AddRevision(v)
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *NotificationRuleUpdate) SetName(v string) *NotificationRuleUpdate {
 	_u.mutation.SetName(v)
@@ -237,6 +258,11 @@ func (_u *NotificationRuleUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NotificationRuleUpdate) check() error {
+	if v, ok := _u.mutation.Revision(); ok {
+		if err := notificationrule.RevisionValidator(v); err != nil {
+			return &ValidationError{Name: "revision", err: fmt.Errorf(`db: validator failed for field "NotificationRule.revision": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
@@ -277,6 +303,12 @@ func (_u *NotificationRuleUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(notificationrule.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Revision(); ok {
+		_spec.SetField(notificationrule.FieldRevision, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedRevision(); ok {
+		_spec.AddField(notificationrule.FieldRevision, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(notificationrule.FieldName, field.TypeString, value)
@@ -454,6 +486,27 @@ func (_u *NotificationRuleUpdateOne) ClearMetadata() *NotificationRuleUpdateOne 
 	return _u
 }
 
+// SetRevision sets the "revision" field.
+func (_u *NotificationRuleUpdateOne) SetRevision(v int) *NotificationRuleUpdateOne {
+	_u.mutation.ResetRevision()
+	_u.mutation.SetRevision(v)
+	return _u
+}
+
+// SetNillableRevision sets the "revision" field if the given value is not nil.
+func (_u *NotificationRuleUpdateOne) SetNillableRevision(v *int) *NotificationRuleUpdateOne {
+	if v != nil {
+		_u.SetRevision(*v)
+	}
+	return _u
+}
+
+// AddRevision adds value to the "revision" field.
+func (_u *NotificationRuleUpdateOne) AddRevision(v int) *NotificationRuleUpdateOne {
+	_u.mutation.AddRevision(v)
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *NotificationRuleUpdateOne) SetName(v string) *NotificationRuleUpdateOne {
 	_u.mutation.SetName(v)
@@ -622,6 +675,11 @@ func (_u *NotificationRuleUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *NotificationRuleUpdateOne) check() error {
+	if v, ok := _u.mutation.Revision(); ok {
+		if err := notificationrule.RevisionValidator(v); err != nil {
+			return &ValidationError{Name: "revision", err: fmt.Errorf(`db: validator failed for field "NotificationRule.revision": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.Name(); ok {
 		if err := notificationrule.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationRule.name": %w`, err)}
@@ -679,6 +737,12 @@ func (_u *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Notifi
 	}
 	if _u.mutation.MetadataCleared() {
 		_spec.ClearField(notificationrule.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.Revision(); ok {
+		_spec.SetField(notificationrule.FieldRevision, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedRevision(); ok {
+		_spec.AddField(notificationrule.FieldRevision, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(notificationrule.FieldName, field.TypeString, value)

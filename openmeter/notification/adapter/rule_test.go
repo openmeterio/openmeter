@@ -1,12 +1,16 @@
 package adapter
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"maps"
+	"math"
 	"path"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -983,4 +988,159 @@ func TestRuleConfigNormalizationMigration(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestRuleRevision(t *testing.T) {
+	env := newChannelTestEnv(t)
+	tests := []struct {
+		name            string
+		initialRevision int
+		updates         int
+		rollback        bool
+		delete          bool
+		wantError       bool
+		wantRevision    int
+	}{
+		{
+			name:         "creation starts at one",
+			wantRevision: 1,
+		},
+		{
+			name:         "each update increments",
+			updates:      2,
+			wantRevision: 3,
+		},
+		{
+			name:         "rollback preserves revision",
+			updates:      1,
+			rollback:     true,
+			wantRevision: 1,
+		},
+		{
+			name:         "deletion preserves revision",
+			updates:      1,
+			delete:       true,
+			wantRevision: 2,
+		},
+		{
+			name:            "last valid increment",
+			initialRevision: math.MaxInt32 - 1,
+			updates:         1,
+			wantRevision:    math.MaxInt32,
+		},
+		{
+			name:            "overflow rolls back update",
+			initialRevision: math.MaxInt32,
+			updates:         1,
+			wantError:       true,
+			wantRevision:    math.MaxInt32,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a stored Rule, optionally at the revision limit
+			rule := createRule(t, env, ulid.Make().String(), clock.Now(), nil)
+			if tt.initialRevision != 0 {
+				err := env.db.NotificationRule.UpdateOneID(rule.ID).SetRevision(tt.initialRevision).Exec(t.Context())
+				require.NoError(t, err)
+			}
+
+			before, err := env.db.NotificationRule.Get(t.Context(), rule.ID)
+			require.NoError(t, err)
+
+			input := notification.UpdateRuleInput{
+				NamespacedID: rule.NamespacedID,
+				Type:         rule.Type,
+				Name:         "updated",
+				Config:       rule.Config,
+			}
+			rollback := errors.New("rollback requested")
+
+			// when: updates commit, roll back, or exceed the database integer range
+			for range tt.updates {
+				err = transaction.RunWithNoValue(t.Context(), env.adapter, func(ctx context.Context) error {
+					if _, err := env.adapter.UpdateRule(ctx, input); err != nil {
+						return err
+					}
+
+					if tt.rollback {
+						return rollback
+					}
+
+					return nil
+				})
+				switch {
+				case tt.rollback:
+					require.ErrorIs(t, err, rollback)
+				case tt.wantError:
+					require.Error(t, err)
+				default:
+					require.NoError(t, err)
+				}
+			}
+
+			if tt.delete {
+				err = env.adapter.DeleteRule(t.Context(), notification.DeleteRuleInput{Namespace: rule.Namespace, ID: rule.ID})
+				require.NoError(t, err)
+			}
+
+			// then: revisions track committed updates only, without wrapping at the limit
+			stored, err := env.db.NotificationRule.Get(t.Context(), rule.ID)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.wantRevision, stored.Revision)
+
+			if tt.rollback || tt.wantError {
+				require.Equal(t, before.Name, stored.Name)
+				require.Equal(t, before.UpdatedAt, stored.UpdatedAt)
+			}
+
+			if tt.delete {
+				require.NotNil(t, stored.DeletedAt)
+			}
+		})
+	}
+}
+
+func TestRuleRevisionMigration(t *testing.T) {
+	env := newChannelTestEnv(t)
+	files, err := fs.Glob(migrate.OMMigrationsConfig.FS, path.Join(migrate.OMMigrationsConfig.FSPath, "*_notification_rule_revision.up.sql"))
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+
+	up, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, files[0])
+	require.NoError(t, err)
+
+	down, err := fs.ReadFile(migrate.OMMigrationsConfig.FS, strings.TrimSuffix(files[0], ".up.sql")+".down.sql")
+	require.NoError(t, err)
+
+	// given: an existing Rule in the schema before revisions were introduced
+	rule := createRule(t, env, ulid.Make().String(), clock.Now(), nil)
+	tx, err := env.sqlDB.BeginTx(t.Context(), nil)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, tx.Rollback()) }()
+
+	_, err = tx.ExecContext(t.Context(), string(down))
+	require.NoError(t, err)
+
+	// when: the additive migration is applied to historical data
+	_, err = tx.ExecContext(t.Context(), string(up))
+	require.NoError(t, err)
+
+	newID := ulid.Make().String()
+	_, err = tx.ExecContext(t.Context(), `INSERT INTO notification_rules
+		(id, namespace, type, name, config, created_at, updated_at)
+		VALUES ($1, $2, 'v1.billing.invoice.created', 'new', '{}', now(), now())`, newID, rule.Namespace)
+	require.NoError(t, err)
+
+	// then: existing and new Rules both get the baseline without an explicit revision write
+	for _, id := range []string{rule.ID, newID} {
+		var revision int
+		err := tx.QueryRowContext(t.Context(), "SELECT revision FROM notification_rules WHERE id = $1", id).Scan(&revision)
+		require.NoError(t, err)
+
+		require.Equal(t, 1, revision)
+	}
 }

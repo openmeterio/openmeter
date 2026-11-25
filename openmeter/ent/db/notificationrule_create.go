@@ -87,6 +87,20 @@ func (_c *NotificationRuleCreate) SetMetadata(v map[string]string) *Notification
 	return _c
 }
 
+// SetRevision sets the "revision" field.
+func (_c *NotificationRuleCreate) SetRevision(v int) *NotificationRuleCreate {
+	_c.mutation.SetRevision(v)
+	return _c
+}
+
+// SetNillableRevision sets the "revision" field if the given value is not nil.
+func (_c *NotificationRuleCreate) SetNillableRevision(v *int) *NotificationRuleCreate {
+	if v != nil {
+		_c.SetRevision(*v)
+	}
+	return _c
+}
+
 // SetType sets the "type" field.
 func (_c *NotificationRuleCreate) SetType(v string) *NotificationRuleCreate {
 	_c.mutation.SetType(v)
@@ -206,6 +220,10 @@ func (_c *NotificationRuleCreate) defaults() {
 		v := notificationrule.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.Revision(); !ok {
+		v := notificationrule.DefaultRevision
+		_c.mutation.SetRevision(v)
+	}
 	if _, ok := _c.mutation.Disabled(); !ok {
 		v := notificationrule.DefaultDisabled
 		_c.mutation.SetDisabled(v)
@@ -231,6 +249,14 @@ func (_c *NotificationRuleCreate) check() error {
 	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "NotificationRule.updated_at"`)}
+	}
+	if _, ok := _c.mutation.Revision(); !ok {
+		return &ValidationError{Name: "revision", err: errors.New(`db: missing required field "NotificationRule.revision"`)}
+	}
+	if v, ok := _c.mutation.Revision(); ok {
+		if err := notificationrule.RevisionValidator(v); err != nil {
+			return &ValidationError{Name: "revision", err: fmt.Errorf(`db: validator failed for field "NotificationRule.revision": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.GetType(); !ok {
 		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "NotificationRule.type"`)}
@@ -308,6 +334,10 @@ func (_c *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.Cre
 	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(notificationrule.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
+	}
+	if value, ok := _c.mutation.Revision(); ok {
+		_spec.SetField(notificationrule.FieldRevision, field.TypeInt, value)
+		_node.Revision = value
 	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(notificationrule.FieldType, field.TypeString, value)
@@ -476,6 +506,24 @@ func (u *NotificationRuleUpsert) UpdateMetadata() *NotificationRuleUpsert {
 // ClearMetadata clears the value of the "metadata" field.
 func (u *NotificationRuleUpsert) ClearMetadata() *NotificationRuleUpsert {
 	u.SetNull(notificationrule.FieldMetadata)
+	return u
+}
+
+// SetRevision sets the "revision" field.
+func (u *NotificationRuleUpsert) SetRevision(v int) *NotificationRuleUpsert {
+	u.Set(notificationrule.FieldRevision, v)
+	return u
+}
+
+// UpdateRevision sets the "revision" field to the value that was provided on create.
+func (u *NotificationRuleUpsert) UpdateRevision() *NotificationRuleUpsert {
+	u.SetExcluded(notificationrule.FieldRevision)
+	return u
+}
+
+// AddRevision adds v to the "revision" field.
+func (u *NotificationRuleUpsert) AddRevision(v int) *NotificationRuleUpsert {
+	u.Add(notificationrule.FieldRevision, v)
 	return u
 }
 
@@ -652,6 +700,27 @@ func (u *NotificationRuleUpsertOne) UpdateMetadata() *NotificationRuleUpsertOne 
 func (u *NotificationRuleUpsertOne) ClearMetadata() *NotificationRuleUpsertOne {
 	return u.Update(func(s *NotificationRuleUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetRevision sets the "revision" field.
+func (u *NotificationRuleUpsertOne) SetRevision(v int) *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.SetRevision(v)
+	})
+}
+
+// AddRevision adds v to the "revision" field.
+func (u *NotificationRuleUpsertOne) AddRevision(v int) *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.AddRevision(v)
+	})
+}
+
+// UpdateRevision sets the "revision" field to the value that was provided on create.
+func (u *NotificationRuleUpsertOne) UpdateRevision() *NotificationRuleUpsertOne {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.UpdateRevision()
 	})
 }
 
@@ -1005,6 +1074,27 @@ func (u *NotificationRuleUpsertBulk) UpdateMetadata() *NotificationRuleUpsertBul
 func (u *NotificationRuleUpsertBulk) ClearMetadata() *NotificationRuleUpsertBulk {
 	return u.Update(func(s *NotificationRuleUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetRevision sets the "revision" field.
+func (u *NotificationRuleUpsertBulk) SetRevision(v int) *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.SetRevision(v)
+	})
+}
+
+// AddRevision adds v to the "revision" field.
+func (u *NotificationRuleUpsertBulk) AddRevision(v int) *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.AddRevision(v)
+	})
+}
+
+// UpdateRevision sets the "revision" field to the value that was provided on create.
+func (u *NotificationRuleUpsertBulk) UpdateRevision() *NotificationRuleUpsertBulk {
+	return u.Update(func(s *NotificationRuleUpsert) {
+		s.UpdateRevision()
 	})
 }
 

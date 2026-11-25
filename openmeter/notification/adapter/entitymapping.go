@@ -90,6 +90,7 @@ func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
 				return &deletedAt
 			}(),
 		},
+		Revision: e.Revision,
 		Type:     eventType,
 		Name:     e.Name,
 		Disabled: e.Disabled,

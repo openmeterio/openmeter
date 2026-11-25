@@ -242,6 +242,7 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 		query := a.db.NotificationRule.UpdateOneID(params.ID).
 			Where(ruledb.Namespace(params.Namespace)).
 			SetDisabled(params.Disabled).
+			AddRevision(1).
 			SetConfig(config).
 			SetName(params.Name).
 			SetAnnotations(params.Annotations).

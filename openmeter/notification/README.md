@@ -113,6 +113,9 @@ Caller-owned configuration is not modified. V1 responses keep their existing
 a later release backfills them. Deploy this writer on all replicas and drain
 older writers before upgrading to that release.
 
+Rule revisions start at 1, including for existing Rules. Each committed Rule update
+increments the revision atomically. Soft deletion preserves the last revision.
+
 ## Event storage compatibility
 
 Ent exposes Event payloads as `json.RawMessage`; the adapter continues writing

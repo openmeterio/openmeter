@@ -254,9 +254,23 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			"removals", channelIDsDiff.Removals(),
 		)
 
+		persist := func() (*notification.Rule, error) {
+			updated, err := s.adapter.UpdateRule(ctx, params)
+			if err != nil {
+				return nil, err
+			}
+
+			// Another writer may also have committed since GetRule.
+			if updated == nil || updated.Revision <= rule.Revision {
+				return nil, fmt.Errorf("failed to advance rule revision [namespace=%s rule.id=%s]", params.Namespace, params.ID)
+			}
+
+			return updated, nil
+		}
+
 		// We can return early ff there is no change in the list of channels assigned to rule.
 		if !channelIDsDiff.HasChanged() {
-			return s.adapter.UpdateRule(ctx, params)
+			return persist()
 		}
 
 		// Fetch all the channels from repo which are either added or removed from rule
@@ -311,7 +325,7 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			}
 		}
 
-		return s.adapter.UpdateRule(ctx, params)
+		return persist()
 	}
 
 	return transaction.Run(ctx, s.adapter, fn)
