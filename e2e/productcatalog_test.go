@@ -1156,32 +1156,44 @@ func TestPlan(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, 201, customerAPIRes.StatusCode(), "received the following body: %s", customerAPIRes.Body)
 
-		// Let's make sure both customers do exist!
-		apiRes, err := client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{})
-		require.Nil(t, err)
+		// Let's make sure all three customers exist. Read every page: one page only holds
+		// 100 customers and the rest of the suite creates customers too. Order by ID so the
+		// pages don't shift when customers share a name.
+		var customers []api.Customer
+		for page := 1; ; page++ {
+			apiRes, err := client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{
+				Page:    lo.ToPtr(page),
+				OrderBy: lo.ToPtr(api.CustomerOrderById),
+			})
+			require.Nil(t, err)
+			require.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
+			require.NotNil(t, apiRes.JSON200)
 
-		assert.Equal(t, 200, apiRes.StatusCode(), "received the following body: %s", apiRes.Body)
-		require.NotNil(t, apiRes.JSON200)
-		require.NotNil(t, apiRes.JSON200.Items)
-		require.GreaterOrEqual(t, len(apiRes.JSON200.Items), 3)
+			customers = append(customers, apiRes.JSON200.Items...)
+			if len(apiRes.JSON200.Items) == 0 || len(customers) >= apiRes.JSON200.TotalCount {
+				break
+			}
+		}
 
-		_, foundFirst := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+		require.GreaterOrEqual(t, len(customers), 3)
+
+		_, foundFirst := lo.Find(customers, func(item api.Customer) bool {
 			return item.Id == customer1.Id
 		})
 		require.True(t, foundFirst)
 
-		_, foundSecond := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+		_, foundSecond := lo.Find(customers, func(item api.Customer) bool {
 			return item.Id == customer2.Id
 		})
 		require.True(t, foundSecond)
 
-		_, foundThird := lo.Find(apiRes.JSON200.Items, func(item api.Customer) bool {
+		_, foundThird := lo.Find(customers, func(item api.Customer) bool {
 			return item.Id == customerAPIRes.JSON201.Id
 		})
 		require.True(t, foundThird)
 
 		// Now let's check the filtering works
-		apiRes, err = client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{
+		apiRes, err := client.ListCustomersWithResponse(ctx, &api.ListCustomersParams{
 			PlanKey: lo.ToPtr(PlanKey),
 		})
 		require.Nil(t, err)
