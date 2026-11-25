@@ -310,15 +310,15 @@ func TestFromAPIChargeTaxConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, stripeCode, err := fromAPIChargeTaxConfig(tt.input)
+			got, err := fromAPIChargeTaxConfig(tt.input)
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 				return
 			}
 
 			require.NoError(t, err)
-			assert.Equal(t, tt.want, got)
-			assert.Equal(t, tt.wantStripeCode, stripeCode)
+			assert.Equal(t, tt.want, got.TaxConfig)
+			assert.Equal(t, tt.wantStripeCode, got.StripeCode)
 		})
 	}
 }

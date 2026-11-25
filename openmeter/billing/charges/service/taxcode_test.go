@@ -148,7 +148,7 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 				},
 				{
 					// The namespace has no Tax Code mapped to this Stripe code yet, so the
-					// handler creates one inside the request transaction.
+					// handler resolves one before the create.
 					name: "unknown Stripe code is backfilled",
 					taxConfig: apiv3models.BillingTaxConfig{
 						Behavior: lo.ToPtr(apiv3models.BillingTaxBehaviorExclusive),
@@ -255,17 +255,19 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeCreatePreservesExplicitT
 	}
 }
 
-// A deprecated stripe.code is resolved in the same transaction as the charge create, so a create
-// that fails after the code was resolved doesn't leave a new Tax Code behind.
-func (s *TaxCodePersistenceTestSuite) TestCustomerChargeAPIFailedCreateLeavesNoBackfilledTaxCode() {
+// A deprecated stripe.code is resolved in its own transaction before the charge create, so the
+// create keeps its own transaction boundaries. The trade-off: a create that fails after the
+// resolution leaves the Tax Code behind, and the next request with the same code reuses it.
+func (s *TaxCodePersistenceTestSuite) TestCustomerChargeAPIFailedCreateKeepsResolvedTaxCodeAndRetryReusesIt() {
 	// given: a namespace without a Tax Code mapped to the Stripe code, and a customer ID that
 	// doesn't exist. The decoder doesn't look customers up, so the request only fails when the
 	// charge row is inserted, after the Stripe code was resolved.
 	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("customer-charge-api-tax-rollback")
+	ns := s.GetUniqueNamespace("customer-charge-api-tax-retry")
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
 	missingCustomerID := ulid.Make().String()
 
 	servicePeriod := apiv3models.ClosedPeriod{
@@ -292,24 +294,51 @@ func (s *TaxCodePersistenceTestSuite) TestCustomerChargeAPIFailedCreateLeavesNoB
 		"tax_config":              apiv3models.BillingTaxConfig{Stripe: &apiv3models.BillingTaxConfigStripe{Code: "txcd_30000000"}},
 	})
 	s.Require().NoError(err)
+
+	// when: the handler creates the charge for the missing customer
 	request := httptest.NewRequestWithContext(ctx, http.MethodPost, "/api/v3/openmeter/customers/"+missingCustomerID+"/charges", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
-
-	// when: the handler creates the charge for the missing customer
 	handler.CreateCustomerCharge().With(chargehandlers.CreateCustomerChargesParams{CustomerID: missingCustomerID}).ServeHTTP(response, request)
 
-	// then: the create fails on the missing customer and the Tax Code resolved for the Stripe
-	// code is rolled back with it
+	// then: the create fails on the missing customer, but the Tax Code resolved for the Stripe
+	// code was committed before the create and stays
 	s.Require().Equal(http.StatusBadRequest, response.Code, response.Body.String())
 	s.Contains(response.Body.String(), "references a resource that does not exist")
 
-	_, err = s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+	leftBehind, err := s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
 		Namespace: ns,
 		AppType:   app.AppTypeStripe,
 		TaxCode:   "txcd_30000000",
 	})
-	s.True(taxcode.IsTaxCodeNotFoundError(err), "expected no Tax Code for the Stripe code, got: %v", err)
+	s.Require().NoError(err)
+
+	// when: the same request is retried for an existing customer
+	request = httptest.NewRequestWithContext(ctx, http.MethodPost, "/api/v3/openmeter/customers/"+cust.ID+"/charges", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response = httptest.NewRecorder()
+	handler.CreateCustomerCharge().With(chargehandlers.CreateCustomerChargesParams{CustomerID: cust.ID}).ServeHTTP(response, request)
+
+	// then: the charge uses the Tax Code the failed request left behind, and the Stripe code still
+	// maps to that one Tax Code
+	s.Require().Equal(http.StatusCreated, response.Code, response.Body.String())
+
+	var created struct {
+		ID        string                        `json:"id"`
+		TaxConfig *apiv3models.BillingTaxConfig `json:"tax_config"`
+	}
+	s.Require().NoError(json.Unmarshal(response.Body.Bytes(), &created))
+	s.Require().NotNil(created.TaxConfig)
+	s.Require().NotNil(created.TaxConfig.TaxCode)
+	s.Equal(leftBehind.ID, created.TaxConfig.TaxCode.Id)
+
+	afterRetry, err := s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
+		Namespace: ns,
+		AppType:   app.AppTypeStripe,
+		TaxCode:   "txcd_30000000",
+	})
+	s.Require().NoError(err)
+	s.Equal(leftBehind.ID, afterRetry.ID)
 }
 
 // TestFlatFeeChargePersistsTaxConfig verifies that TaxCodeID and TaxBehavior set on a flat fee

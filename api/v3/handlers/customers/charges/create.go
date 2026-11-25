@@ -18,8 +18,8 @@ import (
 )
 
 type (
-	// CreateCustomerChargesRequest carries the deprecated stripe.code separately: resolving it
-	// may create a Tax Code, which has to happen in the same transaction as the create.
+	// CreateCustomerChargesRequest carries the deprecated stripe.code separately: it is
+	// resolved to a Tax Code ID right before the create.
 	CreateCustomerChargesRequest struct {
 		Input         billingcharges.CreateCustomerChargeInput
 		StripeTaxCode string
@@ -132,7 +132,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
-			taxConfig, stripeTaxCode, err := fromAPIChargeTaxConfig(apiTaxConfig)
+			taxConfig, err := fromAPIChargeTaxConfig(apiTaxConfig)
 			if err != nil {
 				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{
@@ -143,7 +143,7 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
-			input.TaxConfig = taxConfig
+			input.TaxConfig = taxConfig.TaxConfig
 
 			if err := input.Validate(); err != nil {
 				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -157,18 +157,20 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 
 			return CreateCustomerChargesRequest{
 				Input:         input,
-				StripeTaxCode: stripeTaxCode,
+				StripeTaxCode: taxConfig.StripeCode,
 			}, nil
 		},
 		func(ctx context.Context, request CreateCustomerChargesRequest) (CreateCustomerChargesResponse, error) {
-			var resp CreateCustomerChargesResponse
+			input := request.Input
 
-			// Resolving a deprecated stripe.code may create its Tax Code; doing it in the create's
-			// transaction means a failed request leaves no new Tax Code behind.
-			err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
-				input := request.Input
-
-				if request.StripeTaxCode != "" {
+			// The Tax Code is resolved in its own short transaction and the create runs after it
+			// commits. The charges service commits the charge, then invoices and advances it in
+			// separate transactions (so the created charge survives a failed advance or an
+			// invoicing app sync); wrapping the create in the resolver transaction would fold
+			// all of that into one. The cost is that a create that fails after resolving can leave
+			// a Tax Code behind, which is harmless: the next request with the same code reuses it.
+			if request.StripeTaxCode != "" {
+				err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
 					tc, err := resolver.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
 						Namespace:  input.Namespace,
 						StripeCode: request.StripeTaxCode,
@@ -178,24 +180,22 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 					}
 
 					input.TaxConfig.TaxCodeID = tc.ID
-				}
 
-				charge, err := h.service.CreateCustomerCharge(ctx, input)
+					return nil
+				})
 				if err != nil {
-					return err
+					return CreateCustomerChargesResponse{}, err
 				}
+			}
 
-				// No expands on the create path: every expandable relation
-				// serializes as a reference.
-				resp, err = convertChargeToAPI(charge, meta.ExpandNone)
-
-				return err
-			})
+			charge, err := h.service.CreateCustomerCharge(ctx, input)
 			if err != nil {
 				return CreateCustomerChargesResponse{}, err
 			}
 
-			return resp, nil
+			// No expands on the create path: every expandable relation
+			// serializes as a reference.
+			return convertChargeToAPI(charge, meta.ExpandNone)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateCustomerChargesResponse](http.StatusCreated),
 		httptransport.AppendOptions(
