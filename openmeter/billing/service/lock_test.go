@@ -68,8 +68,8 @@ func TestCustomerLockSerializesConcurrentTransactions(t *testing.T) {
 		name     string
 		setup    func(*testing.T, *testutils.TestDB, customer.CustomerID)
 		firstErr error
-		// blockedOn is the statement the second transaction waits in. Only a waiter on the
-		// row lock keeps its place in line; a waiter on the insert has to lock afterwards.
+		// blockedOn is the statement the second transaction waits in. A waiter on the row
+		// lock takes it when it resumes; a waiter on the insert still has to lock afterwards.
 		blockedOn string
 	}{
 		{

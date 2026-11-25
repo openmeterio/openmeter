@@ -30,8 +30,8 @@ func (a *adapter) LockCustomerForUpdate(ctx context.Context, input billing.LockC
 			return err
 		}
 
-		// Try the lock first: when the row exists, every caller queues on the row lock and
-		// gets it in arrival order.
+		// Try the lock first: when the row exists, callers wait on the row lock itself
+		// instead of on an insert.
 		err := lockRow()
 		if err == nil {
 			return nil

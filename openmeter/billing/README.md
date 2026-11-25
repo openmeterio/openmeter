@@ -404,15 +404,16 @@ the lifecycle operation.
 
 ## Consistency invariants
 
-Lock acquisition first locks the customer's existing lock row, so callers queue
-on the row lock and get it in arrival order. Only when the row is missing is it
-created, in the same billing transaction; nested invoice operations reuse the
-caller's connection, and a failed billing transaction also rolls back any lock
-row it created. Concurrent first use waits for the competing
+Lock acquisition first locks the customer's existing lock row, so a caller
+waits on the row lock itself and resumes when the holder finishes. Only when the
+row is missing is it created, in the same billing transaction; nested invoice
+operations reuse the caller's connection, and a failed billing transaction also
+rolls back any lock row it created. Concurrent first use waits for the competing
 insert to commit or roll back and then locks with a separate statement under
-READ COMMITTED isolation. That waiter is not in the row-lock queue, so the first
-holder's next transaction can lock the customer before it: first use guarantees
-mutual exclusion, not ordering.
+READ COMMITTED isolation, which gives the first holder's next transaction more
+room to lock the customer before the waiter does. The customer lock guarantees
+mutual exclusion; it does not guarantee that callers acquire it in arrival
+order.
 
 - invoice manipulation is serialized per customer and runs under the billing
   transaction and customer update lock
