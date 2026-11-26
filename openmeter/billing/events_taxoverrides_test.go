@@ -118,6 +118,17 @@ func eventTestFirstLine(t *testing.T, invoice any) map[string]any {
 func TestEventStandardInvoiceLegacyTaxOverrides(t *testing.T) {
 	taxCodes := map[string]*taxcode.TaxCode{eventTestTaxCodeID: eventTestTaxCode(true)}
 
+	t.Run("a line referencing a Tax Code that is not loaded is a validation error", func(t *testing.T) {
+		// given: a standard line whose Tax Code is missing from the loaded Tax Codes
+		// when: the event is constructed
+		_, err := NewEventStandardInvoice(eventTestStandardInvoice(eventTestTaxConfig()), productcatalog.TaxCodesByID{})
+
+		// then: construction fails before anything is built, naming the reference
+		require.Error(t, err)
+		require.True(t, models.IsGenericValidationError(err))
+		require.ErrorContains(t, err, eventTestTaxCodeID)
+	})
+
 	t.Run("created event renders the legacy taxOverrides", func(t *testing.T) {
 		// given: a standard line referencing a Tax Code with a Stripe mapping
 		// when: the created event is serialized

@@ -2,10 +2,12 @@ package billing
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // The event payload keeps the legacy `taxOverrides` shape for consumers of the system events
@@ -25,7 +27,34 @@ type newStandardLineTaxOverridesInput struct {
 	InvoicingAppType app.AppType
 }
 
+// Validate requires every Tax Code a line references to be loaded: the payload embeds the Tax
+// Code, and an event must not be published with a reference it cannot expand.
+func (i newStandardLineTaxOverridesInput) Validate() error {
+	var errs []error
+
+	for idx, line := range i.Lines {
+		if line == nil {
+			errs = append(errs, fmt.Errorf("line [%d] is nil", idx))
+			continue
+		}
+
+		if line.TaxConfig == nil || line.TaxConfig.TaxCodeID == "" {
+			continue
+		}
+
+		if _, ok := i.TaxCodes.Get(line.TaxConfig.TaxCodeID); !ok {
+			errs = append(errs, fmt.Errorf("line %s: tax code %q not found", line.ID, line.TaxConfig.TaxCodeID))
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}
+
 func newStandardLineTaxOverrides(in newStandardLineTaxOverridesInput) (lineTaxOverrides, error) {
+	if err := in.Validate(); err != nil {
+		return nil, err
+	}
+
 	out := make(lineTaxOverrides, len(in.Lines))
 
 	for _, line := range in.Lines {
