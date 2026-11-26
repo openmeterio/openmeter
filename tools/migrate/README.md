@@ -65,3 +65,16 @@ version (`20261125160000`) and rerun the migrations. If the replacement is
 already valid and matches the intended unique definition, the build completed.
 Record the build version as clean and resume the migration that removes the old
 index.
+
+## Notification Channel Event type filters
+
+Deploy #5638 on all V1 writers and drain earlier writers and in-flight transactions.
+After Rule type normalization, run the [Channel filter preflight](notification_channel_event_type_filters_preflight.sql).
+It shows the stored and expected filters, flags rows the backfill will update, and
+lists enabled Channels without a live Rule assignment. Disabled Rules count as assignments.
+
+The backfill locks live Channels in ID order and may delay assignment or
+Channel changes until commit. It writes only changed filters and preserves enabled
+state, timestamps, soft-deleted Channels and Svix routing. Downgrading keeps the
+projection. At V4 routing cutover, fence assignment changes, rerun the preflight,
+and disable the legacy Channels flagged as catch-all before switching routing.
