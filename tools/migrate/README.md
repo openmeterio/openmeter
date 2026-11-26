@@ -78,3 +78,11 @@ Channel changes until commit. It writes only changed filters and preserves enabl
 state, timestamps, soft-deleted Channels and Svix routing. Downgrading keeps the
 projection. At V4 routing cutover, fence assignment changes, rerun the preflight,
 and disable the legacy Channels flagged as catch-all before switching routing.
+
+## Notification Rule threshold types
+
+After the V1 writer rollout, the threshold migration converts `NUMBER` to
+`usage_value` and `PERCENT` to `usage_percentage` in balance-threshold Rules,
+including deleted Rules. It preserves threshold order, Rule revisions, and
+timestamps. Historical Event payloads keep their original values. Downgrading
+keeps the canonical types, which the previous release already accepts.
