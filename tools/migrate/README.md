@@ -19,10 +19,20 @@ annotations. The command adds the regeneration header and writes
 
 ## Notification Rule feature ID backfill
 
-Upgrade through the release containing [the V1 Rule writer](https://github.com/openmeterio/openmeter/pull/5638)
-and drain older writers **before deploying the release containing this migration**.
-With automatic migrations enabled, the first new server can run the backfill
-while old replicas are still serving writes.
+Use three separately deployed releases for the Notification storage transition:
+
+1. Deploy the [dual-reader changes (#5638)](https://github.com/openmeterio/openmeter/pull/5638)
+   to every API and worker. These still write Rule feature strings and typed Event envelopes.
+2. Deploy the writer release (`fix/notification-canonical-writers`) everywhere. It writes
+   Feature ID objects and bare, snake_case Event snapshots. Wait for older processes
+   and their in-flight writes to drain.
+3. Deploy the data migrations in #5639 after running their preflights. Each data
+   backfill preserves resource identity and lifecycle fields.
+
+The writer PR is stacked on #5638; #5639 is stacked on the writer PR. Merging
+these together into one release would bypass the reader rollout requirement.
+Rollback after the writer release must stop at the dual-reader release. Its old-format
+writes would require another backfill before V4 takes over.
 
 After Rule config normalization, run the [read-only preflight](notification_rule_feature_ids_preflight.sql).
 For a live Rule, a key must identify the feature active at its last update.
@@ -91,3 +101,22 @@ After the V1 writer rollout, the threshold migration converts `NUMBER` to
 including deleted Rules. It preserves threshold order, Rule revisions, and
 timestamps. Historical Event payloads keep their original values. Downgrading
 keeps the canonical types, which the previous release already accepts.
+
+## Notification Event payload snapshots
+
+Run [the Event payload preflight](notification_event_payload_snapshots_preflight.sql)
+after the writer rollout. `legacy_envelope` rows need conversion; `invalid` rows
+block the migration and require repair. Unexpected envelope fields also block
+conversion so they cannot be silently discarded. Unknown Event types are skipped.
+
+The backfill extracts each stored type-specific snapshot and converts model field
+names to snake_case. It preserves exact JSON numbers, array order, and keys inside
+metadata, annotations and meter filters. Event IDs, timestamps, Rule references,
+snapshots, annotations, provider data and delivery records remain unchanged.
+It does not fetch live billing or entitlement state. Canonical rows are not rewritten;
+rerunning is safe. Downgrading preserves the payloads, which the prerequisite
+reader release already supports.
+
+The conversion runs transactionally and can hold row locks until completion.
+Size the historical Event set before scheduling the backfill. This does not alter
+Svix messages already accepted by the provider or enable V4 routing.

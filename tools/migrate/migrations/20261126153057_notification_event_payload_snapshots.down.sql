@@ -1,0 +1,2 @@
+-- Keep historical snapshots in their canonical representation. The prerequisite
+-- reader release understands both formats; reconstructing old envelopes is unnecessary.
