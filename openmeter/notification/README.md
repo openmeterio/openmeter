@@ -114,7 +114,8 @@ Rule create/update uses the product-catalog `FeatureResolver` to resolve feature
 IDs or keys to active, same-namespace feature IDs before persistence. ID/key
 aliases for the same feature collapse to one ID, keeping first-occurrence order. Missing references fail the write.
 The V1 adapter accepts strings and V4 `{"id":"…"}` objects in stored feature
-lists for balance-threshold and entitlement-reset Rules. Reads preserve the stored JSON.
+lists for balance-threshold and entitlement-reset Rules. Create and update write
+ID objects, omit a nil list and preserve an explicit empty list. Reads preserve the stored JSON.
 Caller-owned configuration is not modified. V1 responses keep their existing
 `FeatureMeta` shape and populate `id` with the stored ID. Existing Rules can contain historical keys until
 a later release backfills them. Deploy this writer on all replicas and drain
@@ -262,10 +263,11 @@ means.
   defined by the versioned Event type. They reconstruct the V1 payload from the
   stored snapshot; Event ID and creation time come from the Event row. User-owned
   map keys and numeric precision are preserved. Reads never rewrite payloads.
-- Writers still store the legacy envelope. Its invoice version must be `1`;
-  unsupported envelope versions are rejected. Deploy the dual-reader release to
-  every API and worker before introducing bare-payload writers. Deploy those
+- Writers store the bare, snake_case snapshot. The legacy invoice envelope's
+  version must still be `1` when reading older Events. Deploy the dual-reader
+  release to every API and worker before this writer release. Deploy these
   writers everywhere and drain old writes before the separate backfill release.
+  V1/V3 HTTP responses and Svix messages retain their existing envelopes.
 
 Adding or changing an event type is therefore a persistence and external
 contract change, not only a new consumer branch. The domain type, rule and

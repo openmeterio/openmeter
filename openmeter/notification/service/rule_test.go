@@ -529,11 +529,18 @@ func TestRuleFeatureIDResolution(t *testing.T) {
 						require.NoError(t, err)
 
 						var persisted struct {
-							Features []string `json:"features"`
+							Features json.RawMessage `json:"features"`
 						}
 						require.NoError(t, json.Unmarshal(stored.Config, &persisted))
 
-						require.Equal(t, expected, persisted.Features)
+						switch {
+						case expected == nil:
+							require.Nil(t, persisted.Features)
+						case len(expected) == 0:
+							require.JSONEq(t, "[]", string(persisted.Features))
+						default:
+							require.JSONEq(t, `[{"id":"`+f.ID+`"}]`, string(persisted.Features))
+						}
 
 						// V1 retains FeatureMeta response objects, now containing actual IDs.
 						var responseFeatures *[]notification.FeatureMeta

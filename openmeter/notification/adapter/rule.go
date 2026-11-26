@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -301,7 +302,7 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 }
 
 type ruleFeatureFilter struct {
-	Features ruleFeatures `json:"features,omitempty"`
+	Features ruleFeatures `json:"features,omitzero"`
 }
 
 type ruleFeatures []string
@@ -332,6 +333,14 @@ func (f *ruleFeatures) UnmarshalJSON(data []byte) error {
 	*f = ids
 
 	return nil
+}
+
+func (f ruleFeatures) MarshalJSON() ([]byte, error) {
+	refs := slicesx.Map(f, func(id string) feature.FeatureReference {
+		return feature.FeatureReference{ID: &id}
+	})
+
+	return json.Marshal(refs)
 }
 
 type balanceThresholdConfig struct {
@@ -430,13 +439,17 @@ func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
 	switch config.Type {
 	case notification.EventTypeBalanceThreshold:
 		if config.BalanceThreshold != nil {
-			balance := *config.BalanceThreshold
-			balance.Thresholds = slices.Clone(balance.Thresholds)
-			normalizeThresholdTypes(balance.Thresholds)
-			data = balance
+			thresholds := slices.Clone(config.BalanceThreshold.Thresholds)
+			normalizeThresholdTypes(thresholds)
+			data = balanceThresholdConfig{
+				ruleFeatureFilter: ruleFeatureFilter{Features: config.BalanceThreshold.Features},
+				Thresholds:        thresholds,
+			}
 		}
 	case notification.EventTypeEntitlementReset:
-		data = config.EntitlementReset
+		if config.EntitlementReset != nil {
+			data = ruleFeatureFilter{Features: config.EntitlementReset.Features}
+		}
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		data = config.Invoice
 	default:

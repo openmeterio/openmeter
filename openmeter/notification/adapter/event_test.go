@@ -122,18 +122,21 @@ func seedEvent(t *testing.T, env *eventTestEnv, ns string, rule notification.Rul
 	clock.FreezeTime(at)
 	defer clock.UnFreeze()
 
+	payload := notification.EventPayload{
+		EventPayloadMeta: notification.EventPayloadMeta{Type: rule.Type, Version: notification.EventPayloadVersionCurrent},
+	}
+	switch rule.Type {
+	case notification.EventTypeBalanceThreshold:
+		payload.BalanceThreshold = &notification.BalanceThresholdPayload{}
+	case notification.EventTypeEntitlementReset:
+		payload.EntitlementReset = &notification.EntitlementResetPayload{}
+	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+		payload.Invoice = &notification.InvoicePayload{}
+	}
+
 	event, err := env.adapter.CreateEvent(t.Context(), notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{Namespace: ns},
-		Type:            rule.Type,
-		RuleID:          rule.ID,
-		Annotations:     annotations,
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{
-				Type:    rule.Type,
-				Version: notification.EventPayloadVersionCurrent,
-			},
-			BalanceThreshold: &notification.BalanceThresholdPayload{},
-		},
+		Type:            rule.Type, RuleID: rule.ID, Annotations: annotations, Payload: payload,
 	})
 	require.NoError(t, err, "seeding event must not fail")
 	require.NotNil(t, event)
@@ -923,10 +926,20 @@ func TestEventTypeStorageCompatibility(t *testing.T) {
 			).Scan(&storedType, &storedPayload)
 			require.NoError(t, err)
 
-			expectedPayload, err := json.Marshal(payload)
+			wire, err := apievents.ToAPIBillingNotificationEvent(*created)
 			require.NoError(t, err)
 
-			// then: storage uses the versioned name and the original payload representation
+			wireJSON, err := json.Marshal(wire.Payload)
+			require.NoError(t, err)
+
+			var expected struct {
+				Data json.RawMessage `json:"data"`
+			}
+			require.NoError(t, json.Unmarshal(wireJSON, &expected))
+
+			expectedPayload := expected.Data
+
+			// then: storage uses the versioned name and the bare canonical payload
 			assert.Equal(t, tt.versioned, storedType)
 			assert.JSONEq(t, string(expectedPayload), storedPayload)
 
@@ -1977,6 +1990,12 @@ func TestEventPayloadDualReader(t *testing.T) {
 						Data json.RawMessage `json:"data"`
 					}
 					require.NoError(t, json.Unmarshal(wireJSON, &wire))
+
+					stored, err := env.db.NotificationEvent.Get(t.Context(), created.ID)
+					require.NoError(t, err)
+
+					// The new writer stores precisely the data defined by the versioned contract.
+					assert.JSONEq(t, string(wire.Data), string(stored.Payload))
 
 					for _, storage := range []struct {
 						name    string

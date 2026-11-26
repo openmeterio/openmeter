@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"maps"
 	"math"
 	"path"
@@ -21,6 +22,8 @@ import (
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
+	"github.com/openmeterio/openmeter/openmeter/notification/v4/definitions"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -488,6 +491,12 @@ func TestRuleTypeStorageCompatibility(t *testing.T) {
 
 func TestRuleConfigStorageCompatibility(t *testing.T) {
 	env := newChannelTestEnv(t)
+	registry, err := v4.NewEventRegistry(v4.EventRegistryConfig{
+		Logger:      slog.New(slog.DiscardHandler),
+		Definitions: definitions.All(),
+	})
+	require.NoError(t, err)
+
 	tests := []struct {
 		eventType notification.EventType
 		payload   string
@@ -518,17 +527,25 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 		{
 			eventType: notification.EventTypeInvoiceCreated,
 			payload:   `{}`,
+			v4Payload: `{}`,
 			config:    notification.RuleConfig{Invoice: &notification.InvoiceRuleConfig{}},
 		},
 		{
 			eventType: notification.EventTypeInvoiceUpdated,
 			payload:   `{}`,
+			v4Payload: `{}`,
 			config:    notification.RuleConfig{Invoice: &notification.InvoiceRuleConfig{}},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(string(tt.eventType), func(t *testing.T) {
+			versioned, err := v4.ParseEventType(toDBEventType(tt.eventType))
+			require.NoError(t, err)
+
+			validate, err := registry.RuleConfigSchemaValidator(versioned)
+			require.NoError(t, err)
+
 			legacy := fmt.Sprintf(`{"type":%q,"data":%s}`, tt.eventType, tt.payload)
 			type storedFormat struct {
 				name string
@@ -540,7 +557,7 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 				{name: "flat config", data: tt.payload},
 			}
 
-			if tt.v4Payload != "" {
+			if tt.v4Payload != tt.payload {
 				formats = append(formats, storedFormat{name: "V4 config", data: tt.v4Payload})
 			}
 
@@ -558,7 +575,9 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 					entity, err := env.db.NotificationRule.Get(t.Context(), created.ID)
 					require.NoError(t, err)
 
-					assert.JSONEq(t, tt.payload, string(entity.Config))
+					require.NoError(t, validate(t.Context(), channel.Namespace, entity.Config))
+
+					assert.JSONEq(t, tt.v4Payload, string(entity.Config))
 
 					_, err = env.sqlDB.ExecContext(t.Context(),
 						"UPDATE notification_rules SET config = $1 WHERE id = $2", format.data, created.ID)
@@ -603,7 +622,9 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 					entity, err = env.db.NotificationRule.Get(t.Context(), created.ID)
 					require.NoError(t, err)
 
-					assert.JSONEq(t, tt.payload, string(entity.Config))
+					require.NoError(t, validate(t.Context(), channel.Namespace, entity.Config))
+
+					assert.JSONEq(t, tt.v4Payload, string(entity.Config))
 				})
 			}
 		})
@@ -688,7 +709,7 @@ func TestRuleThresholdTypeCompatibility(t *testing.T) {
 		stored, err := toDBRuleConfig(config)
 		require.NoError(t, err)
 
-		assert.JSONEq(t, canonical, string(stored))
+		assert.JSONEq(t, `{"thresholds":[{"type":"usage_value","value":10},{"type":"usage_percentage","value":75},{"type":"balance_value","value":0}]}`, string(stored))
 		assert.Equal(t, notification.BalanceThresholdTypeNumber, config.BalanceThreshold.Thresholds[0].Type)
 		assert.Equal(t, notification.BalanceThresholdTypePercent, config.BalanceThreshold.Thresholds[1].Type)
 	})
