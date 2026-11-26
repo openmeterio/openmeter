@@ -40,6 +40,28 @@ Downgrading keeps the resolved IDs and does not restore dropped references.
 Run the [duplicate preflight](notification_delivery_duplicate_preflight.sql) before
 upgrading. Each result lists the delivery IDs for one namespace, Event, and
 Channel. Inspect their attempts and resolve duplicates before applying the unique
-index. The index build blocks delivery writes while it scans the table, so schedule
-the upgrade accordingly. If duplicates remain, PostgreSQL rejects the index and
-the transaction rolls back, preserving the original index and delivery history.
+index. The first migration builds `notification_delivery_destination_unique`
+concurrently. Once it is valid, a second migration drops the old lookup index
+concurrently. Each migration executes a single statement, so deliveries can
+continue throughout the swap. Downgrading restores the lookup index before
+removing uniqueness.
+
+If a duplicate appears after preflight, the build can fail with
+`schema_om` dirty at `20261125171748`. The old index still serves lookups.
+Inspect the replacement before retrying:
+
+```sql
+SELECT indisvalid, indisready, pg_get_indexdef(indexrelid)
+FROM pg_index
+WHERE indexrelid = to_regclass('notification_delivery_destination_unique');
+```
+
+For an invalid replacement, run
+`DROP INDEX CONCURRENTLY notification_delivery_destination_unique` outside a
+transaction. Rerun the duplicate preflight and repair any conflicts. After
+verifying the old index is valid and the replacement is absent, use
+golang-migrate with `x-migrations-table=schema_om` to force the preceding
+version (`20261125160000`) and rerun the migrations. If the replacement is
+already valid and matches the intended unique definition, the build completed.
+Record the build version as clean and resume the migration that removes the old
+index.

@@ -1,4 +1,4 @@
-h1:0gh/FZvX5ZD3QHApSyH6VxkZ5yG/MQY1/gXK6y7C3ns=
+h1:Teyud+eGWjuxFJFjB/ai7p/duudoJtTHSk+nTyWCtLY=
 20240826120919_init.up.sql h1:tc1V91/smlmaeJGQ8h+MzTEeFjjnrrFDbDAjOYJK91o=
 20240903155435_entitlement-expired-index.up.sql h1:Hp8u5uckmLXc1cRvWU0AtVnnK8ShlpzZNp8pbiJLhac=
 20240917172257_billing-entities.up.sql h1:Q1dAMo0Vjiit76OybClNfYPGC5nmvov2/M2W1ioi4Kw=
@@ -348,4 +348,5 @@ h1:0gh/FZvX5ZD3QHApSyH6VxkZ5yG/MQY1/gXK6y7C3ns=
 20261124154809_notification_events_created_at_index.up.sql h1:RMrcOrMlV6FP0015rKEfdrhMQz2wBZCzNx/Q7w8EeuE=
 20261125131306_notification_rule_revision.up.sql h1:qk8cgiJcwC19bekIZnKdjjXi7yoVGCyefegWWx8xgB8=
 20261125160000_notification_rule_feature_ids.up.sql h1:KLQwFqxW+vEF/TOues6mb/tNeAjgTCAVzH7U9hmnB7c=
-20261125171748_notification_delivery_unique_destination.up.sql h1:oW7RsgrVk4C0/dlLXDUDBV/5N/rg86bkx2t8RMrNReQ=
+20261125171748_notification_delivery_unique_destination.up.sql h1:v9M1uXWBWHGD6kBBI/BznhfKzPrSu2lL3pv9kgAmazE=
+20261125171749_notification_delivery_drop_nonunique_destination.up.sql h1:yRQMF+hCe/xC6BOkpDTXcjFj1MnnuEk5l5dUlaKsoOw=
