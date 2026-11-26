@@ -7,9 +7,11 @@ rollbacks discard their events. `Publish` means stored, not delivered to Kafka.
 Other topics still publish directly.
 
 Message metadata is stored with the row and published unchanged. The event bus
-puts the trace context of the publishing span into that metadata, so a consumer
-continues the trace of the operation that enqueued the event, not of the drain
-worker.
+puts the trace context of the publishing span into that metadata with the global
+OpenTelemetry propagator, so a consumer continues the trace of the operation that
+enqueued the event, not of the drain worker. The default global propagator is a
+no-op: the application must install one, as `common.GlobalInitializer` does with
+`common.NewDefaultTextMapPropagator`, or no trace context is stored.
 
 ## Delivery and ordering
 
