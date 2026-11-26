@@ -610,6 +610,43 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 	}
 }
 
+func TestRuleFeatureFilterDecoding(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want []string
+	}{
+		{
+			name: "legacy strings preserve keys, order and duplicates",
+			data: `["feature-key","feature-id","feature-key"]`,
+			want: []string{"feature-key", "feature-id", "feature-key"},
+		},
+		{
+			name: "references return their IDs even when a key is present",
+			data: `[{"id":"first","key":"old-key"},{"id":"second"},{"id":"first"}]`,
+			want: []string{"first", "second", "first"},
+		},
+		{
+			name: "empty filter",
+			data: `[]`,
+			want: []string{},
+		},
+		{
+			name: "null filter",
+			data: `null`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got ruleFeatures
+			require.NoError(t, json.Unmarshal([]byte(tt.data), &got))
+
+			require.Equal(t, tt.want, []string(got))
+		})
+	}
+}
+
 func TestRuleThresholdTypeCompatibility(t *testing.T) {
 	const legacy = `{"thresholds":[{"type":"NUMBER","value":10},{"type":"PERCENT","value":75},{"type":"balance_value","value":0}],"features":null}`
 	const canonical = `{"thresholds":[{"type":"usage_value","value":10},{"type":"usage_percentage","value":75},{"type":"balance_value","value":0}],"features":null}`
@@ -673,8 +710,9 @@ func TestRuleConfigMappingInvalid(t *testing.T) {
 		{name: "null data", data: `{"type":"invoice.created","data":null}`},
 		{name: "array data", data: `{"type":"invoice.created","data":[]}`},
 		{name: "feature reference missing id", data: `{"features":[{"key":"a"}]}`},
-		{name: "extra key in id reference", data: `{"features":[{"id":"a","key":null}]}`},
-		{name: "feature reference null", data: `{"features":[null]}`},
+		{name: "mixed feature formats", data: `{"features":["a",{"id":"b"}]}`},
+		{name: "null reference alongside an object", data: `{"features":[{"id":"a"},null]}`},
+		{name: "numeric feature", data: `{"features":[42]}`},
 		{name: "feature reference empty id", data: `{"features":[{"id":""}]}`},
 		{name: "invalid features", data: `{"features":"invalid"}`},
 		{name: "unknown flat fields", data: `{"unexpected":true}`},

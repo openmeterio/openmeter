@@ -20,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -307,46 +306,30 @@ type ruleFeatureFilter struct {
 
 type ruleFeatures []string
 
-// Historical filters use strings (IDs or keys). A V4 reference has exactly one field, id.
+// String lists predate Feature references and can still contain historical keys.
 func (f *ruleFeatures) UnmarshalJSON(data []byte) error {
-	var items []json.RawMessage
-	if err := json.Unmarshal(data, &items); err != nil {
-		return err
+	var values []string
+	if err := json.Unmarshal(data, &values); err == nil {
+		*f = values
+
+		return nil
 	}
 
-	values, err := slicesx.MapWithErr(items, func(item json.RawMessage) (string, error) {
-		if item[0] == '"' {
-			var value string
-			err := json.Unmarshal(item, &value)
+	var refs []feature.FeatureReference
+	if err := json.Unmarshal(data, &refs); err != nil {
+		return fmt.Errorf("invalid rule feature filter: expected a list of strings or feature references: %w", err)
+	}
 
-			return value, err
-		}
-
-		var fields map[string]json.RawMessage
-		if err := json.Unmarshal(item, &fields); err != nil {
-			return "", err
-		}
-
-		if len(fields) != 1 || fields["id"] == nil {
-			return "", fmt.Errorf("invalid rule feature reference: expected an id object")
-		}
-
-		var ref feature.FeatureReference
-		if err := json.Unmarshal(fields["id"], &ref.ID); err != nil {
-			return "", err
-		}
-
+	ids := make([]string, len(refs))
+	for i, ref := range refs {
 		if ref.ID == nil || *ref.ID == "" {
-			return "", fmt.Errorf("invalid rule feature reference: missing id")
+			return fmt.Errorf("invalid rule feature reference at index %d: missing id", i)
 		}
 
-		return *ref.ID, nil
-	})
-	if err != nil {
-		return err
+		ids[i] = *ref.ID
 	}
 
-	*f = values
+	*f = ids
 
 	return nil
 }
