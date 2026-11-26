@@ -19,7 +19,19 @@ type UsageQuerier interface {
 	QueryUsage(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (float64, error)
 }
 
+// PhaseUsageReader queries the same customer, meter and filters for a half-open interval.
+// Value also reports whether the scalar read suggested an empty interval. Only
+// HasEvents can certify that no matching source rows exist.
+type PhaseUsageReader struct {
+	Value     func(timeutil.ClosedPeriod) (value float64, empty bool, err error)
+	HasEvents func(timeutil.ClosedPeriod) (bool, error)
+}
+
+// PhaseUsageQuery returns the phase's raw usage. The owner applies unit conversion once.
+type PhaseUsageQuery func(timeutil.ClosedPeriod, PhaseUsageReader) (float64, error)
+
 type UsageQuerierConfig struct {
+	PhaseUsageQuery       PhaseUsageQuery
 	StreamingConnector    streaming.Connector
 	DescribeOwner         func(ctx context.Context, id models.NamespacedID) (grant.Owner, error)
 	GetUsagePeriodStartAt func(ctx context.Context, ownerID models.NamespacedID, at time.Time) (time.Time, error)
@@ -105,16 +117,7 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 			return 0.0, nil
 		}
 
-		params.From = &period.From
-		params.To = &period.To
-
-		// Let's query the meter
-		rows, err := u.StreamingConnector.QueryMeter(ctx, ownerID.Namespace, owner.Meter, params)
-		if err != nil {
-			return 0.0, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
-		}
-
-		usage, err := u.getValueFromRows(rows)
+		usage, err := u.queryPhase(ctx, ownerID.Namespace, owner, period)
 		if err != nil {
 			return 0.0, err
 		}
@@ -127,6 +130,54 @@ func (u *usageQuerier) QueryUsage(ctx context.Context, ownerID models.Namespaced
 	default:
 		return 0.0, fmt.Errorf("unsupported aggregation %s", owner.Meter.Aggregation)
 	}
+}
+
+func (u *usageQuerier) queryPhase(ctx context.Context, namespace string, owner grant.Owner, period timeutil.ClosedPeriod) (float64, error) {
+	read := func(p timeutil.ClosedPeriod) (float64, bool, error) {
+		query := owner.DefaultQueryParams
+		query.From, query.To = &p.From, &p.To
+		rows, err := u.StreamingConnector.QueryMeter(ctx, namespace, owner.Meter, query)
+		if err != nil {
+			return 0, false, fmt.Errorf("failed to query meter %s: %w", owner.Meter.Key, err)
+		}
+
+		value, err := u.getValueFromRows(rows)
+		empty := len(rows) == 0 || (owner.Meter.Aggregation == meter.MeterAggregationCount && value == 0)
+
+		return value, empty, err
+	}
+
+	if u.PhaseUsageQuery == nil {
+		value, _, err := read(period)
+		return value, err
+	}
+
+	reader := PhaseUsageReader{Value: read}
+	switch owner.Meter.Aggregation {
+	case meter.MeterAggregationCount:
+		reader.HasEvents = func(p timeutil.ClosedPeriod) (bool, error) {
+			count, _, err := read(p)
+			return count != 0, err
+		}
+	case meter.MeterAggregationSum:
+		source, ok := u.StreamingConnector.(streaming.MeterEventChecker)
+		if !ok {
+			value, _, err := read(period)
+			return value, err
+		}
+
+		reader.HasEvents = func(p timeutil.ClosedPeriod) (bool, error) {
+			query := owner.DefaultQueryParams
+			query.From, query.To = &p.From, &p.To
+
+			return source.HasMeterEvents(ctx, namespace, owner.Meter, query)
+		}
+	default:
+		value, _, err := read(period)
+		return value, err
+	}
+
+	return u.PhaseUsageQuery(period, reader)
 }
 
 func (u *usageQuerier) getValueFromRows(rows []meter.MeterQueryRow) (float64, error) {

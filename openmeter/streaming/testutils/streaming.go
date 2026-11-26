@@ -2,6 +2,7 @@ package testutils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -198,7 +199,7 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 			}
 		}
 	} else {
-		row, err := m.aggregateEvents(mm, params)
+		row, err := m.aggregateEvents(mm, params, false)
 		if err != nil {
 			return rows, err
 		}
@@ -207,6 +208,20 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	}
 
 	return rows, nil
+}
+
+func (m *MockStreamingConnector) HasMeterEvents(_ context.Context, _ string, mm meter.Meter, params streaming.QueryParams) (bool, error) {
+	m.meterQueriesMu.Lock()
+	m.meterQueries = append(m.meterQueries, snapshotQueryParams(params))
+	m.meterQueriesMu.Unlock()
+
+	if _, preaggregated := m.rows[mm.Key]; preaggregated {
+		return false, errors.ErrUnsupported
+	}
+
+	rows, err := m.aggregateEvents(mm, params, true)
+
+	return len(rows) > 0, err
 }
 
 func (m *MockStreamingConnector) BatchInsert(ctx context.Context, events []streaming.RawEvent) error {
@@ -271,7 +286,7 @@ func filterStoredAt(f *filter.FilterTimeUnix, storedAt time.Time) bool {
 }
 
 // We approximate the actual logic by a simple filter + aggregation for most cases
-func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streaming.QueryParams) ([]meter.MeterQueryRow, error) {
+func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streaming.QueryParams, countRows bool) ([]meter.MeterQueryRow, error) {
 	events, ok := m.events[mm.Key]
 	if !ok {
 		return []meter.MeterQueryRow{}, meter.NewMeterNotFoundError(mm.Key)
@@ -351,6 +366,11 @@ func (m *MockStreamingConnector) aggregateEvents(mm meter.Meter, params streamin
 
 			if (eventWindowStart.After(row.WindowStart) || eventWindowStart.Equal(row.WindowStart)) &&
 				(eventWindowEnd.Before(row.WindowEnd) || eventWindowEnd.Equal(row.WindowEnd)) {
+				if countRows {
+					value++
+					continue
+				}
+
 				// TODO: Add support for more aggregation types
 				switch mm.Aggregation {
 				case meter.MeterAggregationLatest:

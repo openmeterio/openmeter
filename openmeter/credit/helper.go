@@ -109,6 +109,7 @@ func (m *connector) runEngineInSpan(ctx context.Context, eng engine.Engine, runP
 }
 
 type buildEngineForOwnerParams struct {
+	phaseUsageQuery balance.PhaseUsageQuery
 	// The owner that will be queried
 	owner grant.Owner
 	// A limit to that period that can be queried
@@ -147,6 +148,7 @@ func (m *connector) buildEngineForOwner(ctx context.Context, params buildEngineF
 
 	// We build a custom UsageQuerier for our usecase here. The engine should only every query the one owner we fetched above.
 	usageQuerier := balance.NewUsageQuerier(balance.UsageQuerierConfig{
+		PhaseUsageQuery:    params.phaseUsageQuery,
 		StreamingConnector: m.StreamingConnector,
 		DescribeOwner: func(ctx context.Context, id models.NamespacedID) (grant.Owner, error) {
 			if id != params.owner.NamespacedID {

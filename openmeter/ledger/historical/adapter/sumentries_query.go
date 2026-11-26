@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -18,7 +19,8 @@ import (
 )
 
 type sumEntriesQuery struct {
-	query ledger.Query
+	query       ledger.Query
+	bookedAfter *time.Time
 }
 
 func (b *sumEntriesQuery) Build(client *db.Client) (*db.LedgerEntryQuery, error) {
@@ -103,9 +105,12 @@ func (b *sumEntriesQuery) entryPredicates() ([]predicate.LedgerEntry, error) {
 	}
 
 	if b.query.Filters.AsOf != nil {
-		entryPredicates = append(entryPredicates, ledgerentrydb.HasTransactionWith(
-			ledgertransactiondb.BookedAtLTE(*b.query.Filters.AsOf),
-		))
+		period := []predicate.LedgerTransaction{ledgertransactiondb.BookedAtLTE(*b.query.Filters.AsOf)}
+		if b.bookedAfter != nil {
+			period = append(period, ledgertransactiondb.BookedAtGT(*b.bookedAfter))
+		}
+
+		entryPredicates = append(entryPredicates, ledgerentrydb.HasTransactionWith(period...))
 	}
 
 	subAccountPredicates, err := b.subAccountPredicates()

@@ -27,6 +27,8 @@ type BalanceBucketQuery struct {
 	Namespace string
 	Filters   Filters
 	GroupBy   []string
+	// SubAccountIDs restricts complete buckets to these subaccounts. Nil includes all.
+	SubAccountIDs []string
 
 	// ExcludeAnnotationFilters excludes entries whose transaction annotations
 	// contain any given key-value pair.

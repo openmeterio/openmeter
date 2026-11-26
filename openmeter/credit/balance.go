@@ -49,7 +49,7 @@ func WithoutBalanceSnapshotWrites(ctx context.Context) context.Context {
 }
 
 // GetBalanceSinceSnapshot returns the result of the engine.Run since a given snapshot.
-func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time) (engine.RunResult, error) {
+func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.NamespacedID, snap balance.Snapshot, at time.Time, usage balance.PhaseUsageQuery) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceSinceSnapshot", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
@@ -83,6 +83,7 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&snap, grants, period.From)
 
 	eng, err := m.buildEngineForOwner(ctx, buildEngineForOwnerParams{
+		phaseUsageQuery:       usage,
 		owner:                 owner,
 		queryBounds:           period,
 		inbetweenPeriodStarts: resetTimesInclusive,
@@ -136,6 +137,11 @@ func (m *connector) getBalanceSinceSnapshot(ctx context.Context, ownerID models.
 }
 
 func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedID, at time.Time) (engine.RunResult, error) {
+	return m.GetBalanceAtWithUsageQuery(ctx, ownerID, at, nil)
+}
+
+// GetBalanceAtWithUsageQuery lets a caller combine usage queries across grant burn phases.
+func (m *connector) GetBalanceAtWithUsageQuery(ctx context.Context, ownerID models.NamespacedID, at time.Time, usage balance.PhaseUsageQuery) (engine.RunResult, error) {
 	ctx, span := m.Tracer.Start(ctx, "credit.GetBalanceAt", cTrace.WithOwner(ownerID), trace.WithAttributes(attribute.String("at", at.String())))
 	defer span.End()
 
@@ -155,7 +161,7 @@ func (m *connector) GetBalanceAt(ctx context.Context, ownerID models.NamespacedI
 		return def, err
 	}
 
-	return m.getBalanceSinceSnapshot(ctx, ownerID, snap, at)
+	return m.getBalanceSinceSnapshot(ctx, ownerID, snap, at, usage)
 }
 
 func (m *connector) GetBalanceForPeriod(ctx context.Context, ownerID models.NamespacedID, period timeutil.ClosedPeriod) (engine.RunResult, error) {

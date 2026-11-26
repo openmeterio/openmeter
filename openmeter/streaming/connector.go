@@ -35,6 +35,12 @@ type RawEvent struct {
 	CustomerID *string   `ch:"customer_id" json:"customer_id,omitempty,omitzero"`
 }
 
+// MeterEventChecker can prove a usage interval contains no matching source events.
+// A zero SUM alone is inconclusive because positive and negative usage can cancel.
+type MeterEventChecker interface {
+	HasMeterEvents(context.Context, string, meter.Meter, QueryParams) (bool, error)
+}
+
 type Connector interface {
 	namespace.Handler
 

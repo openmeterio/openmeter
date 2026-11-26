@@ -53,6 +53,10 @@ func (q minimumBalanceBucketsQuery) scopedEntries() (*sql.Selector, error) {
 		return nil, err
 	}
 
+	if q.query.SubAccountIDs != nil {
+		predicates = append(predicates, ledgerentrydb.SubAccountIDIn(q.query.SubAccountIDs...))
+	}
+
 	for _, key := range slices.Sorted(maps.Keys(q.query.ExcludeAnnotationFilters)) {
 		predicates = append(predicates, ledgerentrydb.HasTransactionWith(transactionAnnotationNotEqual(key, q.query.ExcludeAnnotationFilters[key])))
 	}
