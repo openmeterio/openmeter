@@ -6,15 +6,19 @@ Thank you for sending a pull request! Here are some tips for contributors:
 3. If the Pull Request is a work in progress, make use of GitHub's "Draft PR" feature and mark it as such.
 -->
 
-## Overview
+## What
 
-<!--
-Please include a summary of the changes and the related issue.
-Please also include relevant motivation and context.
-List any dependencies that are required for this change.
--->
+<!-- Describe the changes in this PR. -->
+
+## Why
+
+<!-- Explain the motivation and context: what problem does this change solve? Link related issues if there are any. -->
 
 Fixes #(issue)
+
+## How
+
+<!-- Describe how the change is implemented: key decisions, alternatives considered, and their trade-offs. -->
 
 ## Notes for reviewer
 

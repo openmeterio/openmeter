@@ -1,0 +1,44 @@
+name: PR Template Validation
+
+on:
+  pull_request:
+    types:
+    - opened
+    - edited
+    - reopened
+    - synchronize
+
+permissions:
+  contents: read
+
+jobs:
+  validate-pr-template:
+    name: Validate PR template
+    # Bot-authored PRs (Renovate, release tooling) do not fill the template.
+    if: ${{ github.event.pull_request.user.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+          use-policy-store: ${{ secrets.STEP_SECURITY_API_KEY != '' }}
+          api-key: ${{ secrets.STEP_SECURITY_API_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run PR template check unit tests
+        run: python3 -m unittest discover -s .github/tools/pr-template -p 'test_*.py'
+
+      - name: Check PR template
+        # The body is written via env so it is never interpolated into run:.
+        # An empty body arrives as an empty file and must fail the check.
+        run: |
+          printf '%s' "$PR_BODY" > "$PR_BODY_PATH"
+          python3 .github/tools/pr-template/check_pr_template.py "$PR_BODY_PATH"
+        env:
+          PR_BODY_PATH: pr-body.md
+          PR_BODY: ${{ github.event.pull_request.body }}
