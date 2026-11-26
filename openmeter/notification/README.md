@@ -118,6 +118,11 @@ Caller-owned configuration is not modified. V1 responses keep their existing
 a later release backfills them. Deploy this writer on all replicas and drain
 older writers before upgrading to that release.
 
+V1 accepts `NUMBER` and `PERCENT` in balance-threshold Rules. Create and
+update store `usage_value` and `usage_percentage`, respectively. Reads return
+those same spellings, including for Rules written before the backfill.
+Historical Event payloads retain the threshold recorded when the Event fired.
+
 Rule revisions start at 1, including for existing Rules. Each committed Rule update
 increments the revision atomically. Soft deletion preserves the last revision.
 

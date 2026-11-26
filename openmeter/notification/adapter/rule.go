@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -322,6 +323,10 @@ func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (n
 		return notification.RuleConfig{}, err
 	}
 
+	if config.BalanceThreshold != nil {
+		normalizeThresholdTypes(config.BalanceThreshold.Thresholds)
+	}
+
 	return config, nil
 }
 
@@ -376,7 +381,12 @@ func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
 
 	switch config.Type {
 	case notification.EventTypeBalanceThreshold:
-		data = config.BalanceThreshold
+		if config.BalanceThreshold != nil {
+			balance := *config.BalanceThreshold
+			balance.Thresholds = slices.Clone(balance.Thresholds)
+			normalizeThresholdTypes(balance.Thresholds)
+			data = balance
+		}
 	case notification.EventTypeEntitlementReset:
 		data = config.EntitlementReset
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
@@ -391,4 +401,15 @@ func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
 	}
 
 	return encoded, nil
+}
+
+func normalizeThresholdTypes(thresholds []notification.BalanceThreshold) {
+	for i, threshold := range thresholds {
+		switch threshold.Type {
+		case notification.BalanceThresholdTypeNumber:
+			thresholds[i].Type = notification.BalanceThresholdTypeUsageValue
+		case notification.BalanceThresholdTypePercent:
+			thresholds[i].Type = notification.BalanceThresholdTypeUsagePercentage
+		}
+	}
 }

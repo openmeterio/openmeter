@@ -601,6 +601,53 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 	}
 }
 
+func TestRuleThresholdTypeCompatibility(t *testing.T) {
+	const legacy = `{"thresholds":[{"type":"NUMBER","value":10},{"type":"PERCENT","value":75},{"type":"balance_value","value":0}],"features":null}`
+	const canonical = `{"thresholds":[{"type":"usage_value","value":10},{"type":"usage_percentage","value":75},{"type":"balance_value","value":0}],"features":null}`
+
+	tests := []struct {
+		name string
+		data string
+	}{
+		{
+			name: "legacy flat config",
+			data: legacy,
+		},
+		{
+			name: "legacy envelope",
+			data: `{"type":"entitlements.balance.threshold","data":` + legacy + `}`,
+		},
+		{
+			name: "canonical flat config",
+			data: canonical,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := fromDBRuleConfig(notification.EventTypeBalanceThreshold, json.RawMessage(tt.data))
+			require.NoError(t, err)
+
+			got, err := json.Marshal(config.BalanceThreshold)
+			require.NoError(t, err)
+
+			assert.JSONEq(t, canonical, string(got))
+		})
+	}
+
+	t.Run("writes accept aliases without modifying the caller's thresholds", func(t *testing.T) {
+		config := notification.RuleConfig{RuleConfigMeta: notification.RuleConfigMeta{Type: notification.EventTypeBalanceThreshold}}
+		require.NoError(t, json.Unmarshal([]byte(legacy), &config.BalanceThreshold))
+
+		stored, err := toDBRuleConfig(config)
+		require.NoError(t, err)
+
+		assert.JSONEq(t, canonical, string(stored))
+		assert.Equal(t, notification.BalanceThresholdTypeNumber, config.BalanceThreshold.Thresholds[0].Type)
+		assert.Equal(t, notification.BalanceThresholdTypePercent, config.BalanceThreshold.Thresholds[1].Type)
+	})
+}
+
 func TestRuleConfigMappingInvalid(t *testing.T) {
 	tests := []struct {
 		name string

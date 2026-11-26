@@ -50,11 +50,11 @@ func newBalanceThresholdRuleConfig(features ...string) notification.RuleConfig {
 			Features: features,
 			Thresholds: []notification.BalanceThreshold{
 				{
-					Type:  notification.BalanceThresholdTypeNumber,
+					Type:  notification.BalanceThresholdTypeUsageValue,
 					Value: 1000,
 				},
 				{
-					Type:  notification.BalanceThresholdTypePercent,
+					Type:  notification.BalanceThresholdTypeUsagePercentage,
 					Value: 95,
 				},
 			},
@@ -162,6 +162,9 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
+			test.CreateIn.Config.BalanceThreshold.Thresholds[0].Type = notification.BalanceThresholdTypeNumber
+			test.CreateIn.Config.BalanceThreshold.Thresholds[1].Type = notification.BalanceThresholdTypePercent
+
 			rule, err := service.CreateRule(ctx, test.CreateIn)
 			require.NoError(t, err, "Creating rule must not return error")
 			require.NotNil(t, rule, "Rule must not be nil")
@@ -256,7 +259,11 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 
 	assert.Equal(t, updateIn.Disabled, rule2.Disabled, "Rule must not be disabled")
 	assert.Equal(t, updateIn.Type, rule2.Type, "Rule type must be the same")
-	assert.EqualValues(t, updateIn.Config, rule2.Config, "Rule config must be the same")
+	assert.Equal(t, []notification.BalanceThreshold{
+		{Type: notification.BalanceThresholdTypeUsageValue, Value: 1000},
+		{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 95},
+		{Type: notification.BalanceThresholdTypeUsageValue, Value: 2000},
+	}, rule2.Config.BalanceThreshold.Thresholds)
 	assert.Equalf(t, updateIn.Annotations, rule2.Annotations, "Annotations must be the same")
 	assert.Equalf(t, updateIn.Metadata, rule2.Metadata, "Metadata must be the same")
 }
