@@ -85,12 +85,8 @@ func (s *RepositoryTestSuite) Setup(ctx context.Context, t *testing.T) {
 			notification.AnnotationEventFeatureID:  TestFeatureID,
 		},
 
-		Type: notification.EventTypeBalanceThreshold,
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{
-				Type: notification.EventTypeBalanceThreshold,
-			},
-		},
+		Type:    notification.EventTypeBalanceThreshold,
+		Payload: NewBalanceThresholdPayload(),
 
 		RuleID: rule.ID,
 	})
@@ -106,12 +102,8 @@ func (s *RepositoryTestSuite) Setup(ctx context.Context, t *testing.T) {
 			notification.AnnotationEventSubjectKey: TestSubjectKey,
 		},
 
-		Type: notification.EventTypeBalanceThreshold,
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{
-				Type: notification.EventTypeBalanceThreshold,
-			},
-		},
+		Type:    notification.EventTypeBalanceThreshold,
+		Payload: NewBalanceThresholdPayload(),
 
 		RuleID: rule.ID,
 	})
@@ -130,12 +122,8 @@ func (s *RepositoryTestSuite) Setup(ctx context.Context, t *testing.T) {
 			notification.AnnotationEventFeatureID:  TestFeatureID,
 		},
 
-		Type: notification.EventTypeBalanceThreshold,
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{
-				Type: notification.EventTypeBalanceThreshold,
-			},
-		},
+		Type:    notification.EventTypeBalanceThreshold,
+		Payload: NewBalanceThresholdPayload(),
 
 		RuleID: rule.ID,
 	})
@@ -149,12 +137,8 @@ func (s *RepositoryTestSuite) Setup(ctx context.Context, t *testing.T) {
 
 		Annotations: nil,
 
-		Type: notification.EventTypeBalanceThreshold,
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{
-				Type: notification.EventTypeBalanceThreshold,
-			},
-		},
+		Type:    notification.EventTypeBalanceThreshold,
+		Payload: NewBalanceThresholdPayload(),
 
 		RuleID: rule.ID,
 	})
