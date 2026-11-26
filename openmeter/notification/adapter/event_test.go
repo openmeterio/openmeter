@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io/fs"
+	"os"
 	"path"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,9 +16,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	apievents "github.com/openmeterio/openmeter/api/v3/handlers/notification/events"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationadapter "github.com/openmeterio/openmeter/openmeter/notification/adapter"
+	"github.com/openmeterio/openmeter/openmeter/notification/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
@@ -1880,6 +1884,114 @@ func TestListEvents_MixedTypeSpellingsAcrossPages(t *testing.T) {
 
 							// then: pagination includes each matching row once, regardless of storage spelling
 							assert.Equal(t, want, got)
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestEventPayloadDualReader(t *testing.T) {
+	env := newEventTestEnv(t)
+	fixturesJSON, err := os.ReadFile("../../../api/v3/handlers/notification/events/testdata/legacy_payloads.json")
+	require.NoError(t, err)
+
+	var fixtures map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(fixturesJSON, &fixtures))
+
+	cases := []struct {
+		eventType notification.EventType
+		prefix    string
+		field     string
+	}{
+		{eventType: notification.EventTypeInvoiceCreated, prefix: "invoice_", field: "invoice"},
+		{eventType: notification.EventTypeInvoiceUpdated, prefix: "invoice_", field: "invoice"},
+		{eventType: notification.EventTypeBalanceThreshold, prefix: "balance_threshold_", field: "balanceThreshold"},
+		{eventType: notification.EventTypeEntitlementReset, prefix: "entitlement_reset_", field: "entitlementReset"},
+	}
+
+	for _, tc := range cases {
+		t.Run(string(tc.eventType), func(t *testing.T) {
+			for name, raw := range fixtures {
+				if !strings.HasPrefix(name, tc.prefix) {
+					continue
+				}
+
+				t.Run(name, func(t *testing.T) {
+					// Given a historical snapshot with every supported property and union variant.
+					ns := ulid.Make().String()
+					channel := seedChannel(t, env, ns)
+					rule := seedRule(t, env, ns, tc.eventType, channel.ID)
+					envelope, err := json.Marshal(map[string]any{
+						"type": tc.eventType, "version": notification.EventPayloadVersionCurrent, tc.field: raw,
+					})
+					require.NoError(t, err)
+
+					var payload notification.EventPayload
+					require.NoError(t, json.Unmarshal(envelope, &payload))
+
+					created, err := env.adapter.CreateEvent(t.Context(), notification.CreateEventInput{
+						NamespacedModel: models.NamespacedModel{Namespace: ns},
+						Type:            tc.eventType, RuleID: rule.ID, Payload: payload,
+					})
+					require.NoError(t, err)
+
+					wantV1, err := httpdriver.FromEvent(*created)
+					require.NoError(t, err)
+
+					wantV3, err := apievents.ToAPIBillingNotificationEvent(*created)
+					require.NoError(t, err)
+
+					wireJSON, err := json.Marshal(wantV3.Payload)
+					require.NoError(t, err)
+
+					var wire struct {
+						Data json.RawMessage `json:"data"`
+					}
+					require.NoError(t, json.Unmarshal(wireJSON, &wire))
+
+					for _, storage := range []struct {
+						name    string
+						payload json.RawMessage
+					}{
+						{name: "legacy envelope", payload: envelope},
+						{name: "canonical bare payload", payload: wire.Data},
+					} {
+						t.Run(storage.name, func(t *testing.T) {
+							// When either representation is stored, reads must not change the snapshot.
+							_, err := env.db.NotificationEvent.UpdateOneID(created.ID).SetPayload(storage.payload).Save(t.Context())
+							require.NoError(t, err)
+
+							got, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{Namespace: ns, ID: created.ID, Expand: &notification.EventExpand{DeliveryStatus: true}})
+							require.NoError(t, err)
+
+							gotV1, err := httpdriver.FromEvent(*got)
+							require.NoError(t, err)
+
+							gotV3, err := apievents.ToAPIBillingNotificationEvent(*got)
+							require.NoError(t, err)
+
+							// Then both APIs and the webhook mapper retain the same content and Event metadata.
+							wantV1JSON, err := json.Marshal(wantV1)
+							require.NoError(t, err)
+
+							gotV1JSON, err := json.Marshal(gotV1)
+							require.NoError(t, err)
+
+							wantV3JSON, err := json.Marshal(wantV3)
+							require.NoError(t, err)
+
+							gotV3JSON, err := json.Marshal(gotV3)
+							require.NoError(t, err)
+
+							assert.JSONEq(t, string(wantV1JSON), string(gotV1JSON))
+							assert.JSONEq(t, string(wantV3JSON), string(gotV3JSON))
+
+							row, err := env.db.NotificationEvent.Get(t.Context(), created.ID)
+							require.NoError(t, err)
+
+							assert.JSONEq(t, string(storage.payload), string(row.Payload))
 						})
 					}
 				})

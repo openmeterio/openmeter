@@ -257,9 +257,14 @@ means.
 - Invoice payloads are eagerly converted from the billing event to the v1 API
   `Invoice` model (`api/models`) before persistence. The notification package does not persist
   the internal billing aggregate.
-- Current invoice payloads use persisted payload version `1`. Invoice reads
-  reject unsupported versions. Entitlement payloads remain unversioned, so
-  payload-version changes must account for existing rows by event type.
+- Readers accept both the legacy typed envelope and the bare, snake_case payload
+  defined by the versioned Event type. They reconstruct the V1 payload from the
+  stored snapshot; Event ID and creation time come from the Event row. User-owned
+  map keys and numeric precision are preserved. Reads never rewrite payloads.
+- Writers still store the legacy envelope. Its invoice version must be `1`;
+  unsupported envelope versions are rejected. Deploy the dual-reader release to
+  every API and worker before introducing bare-payload writers. Deploy those
+  writers everywhere and drain old writes before the separate backfill release.
 
 Adding or changing an event type is therefore a persistence and external
 contract change, not only a new consumer branch. The domain type, rule and
