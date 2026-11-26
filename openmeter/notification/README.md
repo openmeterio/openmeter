@@ -131,9 +131,10 @@ increments the revision atomically. Soft deletion preserves the last revision.
 
 ## Event storage compatibility
 
-Ent exposes Event payloads as `json.RawMessage`; the adapter continues writing
-and decoding the existing typed JSON format, including invoice payload version
-checks. Raw payloads remain JSON objects in PostgreSQL, without an extra JSON
+Ent exposes Event payloads as `json.RawMessage`. The adapter writes bare,
+snake_case snapshots defined by the versioned Event type. Readers accept both
+these snapshots and legacy typed envelopes, retaining the legacy invoice payload
+version checks. Payloads remain JSON objects in PostgreSQL, without an extra JSON
 string or base64 encoding. Reads do not rewrite historical payloads.
 
 The Event `rule_id` column is nullable in preparation for system Events. Current
