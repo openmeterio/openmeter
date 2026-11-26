@@ -290,7 +290,8 @@ jobs:
         env:
           GO_TEST_PACKAGE_PARALLELISM: 16
           SVIX_HOST: localhost
-          TEST_CLICKHOUSE_DSN: ${{ vars.TEST_CLICKHOUSE_DSN }}
+          # Use the local Compose service so missing repository variables cannot skip integration tests.
+          TEST_CLICKHOUSE_DSN: clickhouse://default:default@127.0.0.1:9000/openmeter
           # Dev JWT secret, non-sensitive
           SVIX_JWT_SECRET: DUMMY_JWT_SECRET
         # count=1 is needed to force retest
