@@ -400,3 +400,83 @@ func (s *ConnectorTestSuite) TestConnectorValidateJSONPath() {
 		s.Equal(tc.valid, valid, tc.jsonPath)
 	}
 }
+
+func (s *ConnectorTestSuite) TestConnectorQueryMeterUniqueCountMissingAndEmptyProperty() {
+	ctx := s.T().Context()
+	now := time.Now().UTC()
+	from := now.Add(-time.Hour)
+	to := now
+	eventTime := now.Add(-time.Minute)
+	subject := "test-subject-unique-count"
+	eventType := "test-event-unique-count"
+
+	err := s.Connector.BatchInsert(ctx, []streaming.RawEvent{
+		{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       eventTime,
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"name": "a"}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
+		{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       eventTime.Add(time.Second),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"name": null}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
+		{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       eventTime.Add(2 * time.Second),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"other": "x"}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
+		{
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       eventTime.Add(3 * time.Second),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"name": ""}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
+	})
+	s.NoError(err)
+
+	m := meter.Meter{
+		Key:           "test-unique-count-missing",
+		EventType:     eventType,
+		ValueProperty: lo.ToPtr("$.name"),
+		Aggregation:   meter.MeterAggregationUniqueCount,
+	}
+	s.NoError(m.Validate())
+
+	rows, err := s.Connector.QueryMeter(ctx, namespace, m, streaming.QueryParams{
+		From: &from,
+		To:   &to,
+	})
+	s.NoError(err)
+	s.Equal([]meter.MeterQueryRow{
+		{
+			WindowStart: from,
+			WindowEnd:   to,
+			Value:       2,
+			GroupBy:     map[string]*string{},
+		},
+	}, rows)
+}
