@@ -21,7 +21,8 @@ import (
 // Code and every Tax Code its lines' tax configs reference (see ResolveInvoiceTaxCodes) for
 // their stripe.code to show. On Stripe invoices a line's stripe.code is the code it was billed
 // with instead; invoicingAppType tells which invoices those are ("" when unknown, which maps
-// like a non-Stripe invoice).
+// like a non-Stripe invoice). Gathering invoices always map like that: their lines are never
+// stamped, so the preview shows the current mapping.
 func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode, invoicingAppType app.AppType) (apiv1models.Invoice, error) {
 	var apps *apiv1models.BillingProfileAppsOrReference
 	var err error
@@ -112,8 +113,13 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*
 		Workflow:               workflowConfig,
 	}
 
+	billedAppType := invoicingAppType
+	if invoice.Status == billing.StandardInvoiceStatusGathering {
+		billedAppType = ""
+	}
+
 	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (apiv1models.InvoiceLine, error) {
-		mappedLine, err := mapInvoiceLineToAPI(line, taxCodes, invoicingAppType)
+		mappedLine, err := mapInvoiceLineToAPI(line, taxCodes, billedAppType)
 		if err != nil {
 			return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
 		}

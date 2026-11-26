@@ -218,6 +218,82 @@ func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices(
 	s.requireV1LineStripeCode(apiLines["Legacy fee without a code"], providerDefault.ID, "")
 }
 
+// A gathering invoice has no billed code yet, so its v1 preview shows the Tax Code's current
+// Stripe mapping, also on a Stripe profile.
+func (s *StripeInvoiceTestSuite) TestV1GatheringPreviewShowsTheLiveStripeCode() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("stripe-v1-gathering-code")
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z")),
+	}
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+
+	stripeApp, err := s.Fixture.setupApp(ctx, namespace)
+	s.Require().NoError(err)
+
+	s.ProvisionBillingProfile(ctx, namespace, stripeApp.GetID(), billingtest.WithManualApproval())
+
+	// given: a gathering invoice on a Stripe profile with a line on a mapped Tax Code
+	cust := s.CreateTestCustomer(namespace, "test")
+
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+
+	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Namespace:     namespace,
+		Period:        period,
+		InvoiceAt:     period.To,
+		ManagedBy:     billing.ManuallyManagedLine,
+		Name:          "Gathering fee",
+		PerUnitAmount: alpacadecimal.NewFromInt(100),
+		Currency:      currencyx.FiatCode(currency.USD),
+		PaymentTerm:   productcatalog.InArrearsPaymentTerm,
+	})
+	line.TaxConfig = exclusiveTaxConfig(taxCode.ID)
+
+	res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
+		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
+	})
+	s.Require().NoError(err)
+
+	// when: the preview is rendered like the v1 invoice handlers do
+	invoice, err := s.BillingService.GetInvoiceById(ctx, billing.GetInvoiceByIdInput{
+		Invoice: res.Invoice.GetInvoiceID(),
+		Expand: billing.InvoiceExpands{
+			billing.InvoiceExpandLines,
+			billing.InvoiceExpandCalculateGatheringInvoiceWithLiveData,
+		},
+	})
+	s.Require().NoError(err)
+
+	preview, err := invoice.AsStandardInvoice()
+	s.Require().NoError(err)
+	s.Require().Equal(billing.StandardInvoiceStatusGathering, preview.Status)
+	s.Require().Equal(app.AppTypeStripe, preview.Workflow.InvoicingAppType())
+
+	taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, s.TaxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:     preview.Namespace,
+		Workflows:     []billing.WorkflowConfig{preview.Workflow.Config},
+		StandardLines: preview.Lines.OrEmpty(),
+	})
+	s.Require().NoError(err)
+
+	apiInvoice, err := billinghttpdriver.MapStandardInvoiceToAPI(preview, taxCodes)
+	s.Require().NoError(err)
+	s.Require().NotNil(apiInvoice.Lines)
+	s.Require().Len(*apiInvoice.Lines, 1)
+
+	// then: the line, its rate card and its detailed lines show the live mapping
+	s.requireV1LineStripeCode((*apiInvoice.Lines)[0], taxCode.ID, "txcd_10000000")
+}
+
 func exclusiveTaxConfig(taxCodeID string) *productcatalog.TaxCodeConfig {
 	return &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),

@@ -337,3 +337,69 @@ func TestToAPIEventInvoiceTaxOverridesStripeCode(t *testing.T) {
 		})
 	}
 }
+
+func TestToAPIStandardInvoiceGatheringPreviewShowsLiveStripeCode(t *testing.T) {
+	const taxCodeID = "01JTAXCODE0000000000000000A"
+
+	taxCodes := productcatalog.TaxCodesByID{taxCodeID: {
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: taxCodeID},
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_live"}},
+	}}
+
+	tests := []struct {
+		name   string
+		status billing.StandardInvoiceStatus
+		// wantCode is the stripe.code every rendering of the line shows, "" for no stripe object.
+		wantCode string
+	}{
+		{
+			name:     "a gathering invoice shows the live mapping",
+			status:   billing.StandardInvoiceStatusGathering,
+			wantCode: "txcd_live",
+		},
+		{
+			// The line was never stamped and has no legacy code, so it was billed without one.
+			name:     "an issued invoice shows the billed code, which is none",
+			status:   billing.StandardInvoiceStatusIssued,
+			wantCode: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: a Stripe invoice with an unstamped line with a detailed line
+			var base billing.StandardInvoiceCreatedEvent
+			require.NoError(t, json.Unmarshal([]byte(mainFormatInvoiceEvent), &base))
+
+			invoice := base.Invoice
+			invoice.Status = tt.status
+
+			line := invoice.Lines.OrEmpty()[0]
+			line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID}
+			line.InvoicingAppTaxCode = nil
+			line.LegacyStripeTaxCode = ""
+			line.DetailedLines = billing.DetailedLines{{}}
+
+			// when
+			got, err := ToAPIStandardInvoice(invoice, taxCodes, app.AppTypeStripe)
+			require.NoError(t, err)
+
+			// then: the line, its rate card and its detailed lines agree
+			var want *apiv1models.StripeTaxConfig
+			if tt.wantCode != "" {
+				want = &apiv1models.StripeTaxConfig{Code: tt.wantCode}
+			}
+
+			require.NotNil(t, got.Lines)
+			require.Len(t, *got.Lines, 1)
+
+			apiLine := (*got.Lines)[0]
+			require.Equal(t, want, apiLine.TaxConfig.Stripe, "line")
+			require.Equal(t, want, apiLine.RateCard.TaxConfig.Stripe, "rate card")
+
+			require.NotNil(t, apiLine.Children)
+			require.Len(t, *apiLine.Children, 1)
+			require.Equal(t, want, (*apiLine.Children)[0].TaxConfig.Stripe, "detailed line")
+		})
+	}
+}
