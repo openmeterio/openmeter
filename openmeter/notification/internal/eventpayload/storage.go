@@ -49,6 +49,7 @@ func FromCanonicalJSON(data json.RawMessage, eventType notification.EventType) (
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		err = json.Unmarshal(mapped, &payload.Invoice)
 	}
+
 	if err != nil {
 		return notification.EventPayload{}, fmt.Errorf("invalid notification event payload: %w", err)
 	}
@@ -89,11 +90,13 @@ func mapJSONFields(data json.RawMessage, rename func(string) string) (json.RawMe
 							return nil, err
 						}
 					}
+
 					value, err = json.Marshal(filters)
 				}
 			default:
 				value, err = mapJSONFields(value, rename)
 			}
+
 			if err != nil {
 				return nil, err
 			}
