@@ -491,14 +491,16 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 	tests := []struct {
 		eventType notification.EventType
 		payload   string
+		v4Payload string
 		config    notification.RuleConfig
 	}{
 		{
 			eventType: notification.EventTypeBalanceThreshold,
-			payload:   `{"features":["feature-a"],"thresholds":[{"type":"usage_percentage","value":50}]}`,
+			payload:   `{"features":["01G65Z755AFWAKHE12NY0CQ9FA"],"thresholds":[{"type":"usage_percentage","value":50}]}`,
+			v4Payload: `{"features":[{"id":"01G65Z755AFWAKHE12NY0CQ9FA"}],"thresholds":[{"type":"usage_percentage","value":50}]}`,
 			config: notification.RuleConfig{
 				BalanceThreshold: &notification.BalanceThresholdRuleConfig{
-					Features: []string{"feature-a"},
+					Features: []string{"01G65Z755AFWAKHE12NY0CQ9FA"},
 					Thresholds: []notification.BalanceThreshold{
 						{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50},
 					},
@@ -507,9 +509,10 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 		},
 		{
 			eventType: notification.EventTypeEntitlementReset,
-			payload:   `{"features":["feature-a"]}`,
+			payload:   `{"features":["01G65Z755AFWAKHE12NY0CQ9FA"]}`,
+			v4Payload: `{"features":[{"id":"01G65Z755AFWAKHE12NY0CQ9FA"}]}`,
 			config: notification.RuleConfig{
-				EntitlementReset: &notification.EntitlementResetRuleConfig{Features: []string{"feature-a"}},
+				EntitlementReset: &notification.EntitlementResetRuleConfig{Features: []string{"01G65Z755AFWAKHE12NY0CQ9FA"}},
 			},
 		},
 		{
@@ -527,12 +530,18 @@ func TestRuleConfigStorageCompatibility(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(string(tt.eventType), func(t *testing.T) {
 			legacy := fmt.Sprintf(`{"type":%q,"data":%s}`, tt.eventType, tt.payload)
-			formats := []struct {
+			type storedFormat struct {
 				name string
 				data string
-			}{
+			}
+
+			formats := []storedFormat{
 				{name: "legacy envelope", data: legacy},
 				{name: "flat config", data: tt.payload},
+			}
+
+			if tt.v4Payload != "" {
+				formats = append(formats, storedFormat{name: "V4 config", data: tt.v4Payload})
 			}
 
 			for _, format := range formats {
@@ -663,6 +672,9 @@ func TestRuleConfigMappingInvalid(t *testing.T) {
 		{name: "missing data", data: `{"type":"invoice.created"}`},
 		{name: "null data", data: `{"type":"invoice.created","data":null}`},
 		{name: "array data", data: `{"type":"invoice.created","data":[]}`},
+		{name: "feature reference missing id", data: `{"features":[{"key":"a"}]}`},
+		{name: "feature reference null", data: `{"features":[null]}`},
+		{name: "feature reference empty id", data: `{"features":[{"id":""}]}`},
 		{name: "invalid features", data: `{"features":"invalid"}`},
 		{name: "unknown flat fields", data: `{"unexpected":true}`},
 	}

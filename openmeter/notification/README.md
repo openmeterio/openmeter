@@ -113,6 +113,8 @@ Rule reads and nested Event reads.
 Rule create/update uses the product-catalog `FeatureResolver` to resolve feature
 IDs or keys to active, same-namespace feature IDs before persistence. ID/key
 aliases for the same feature collapse to one ID, keeping first-occurrence order. Missing references fail the write.
+The V1 adapter accepts strings and V4 `{"id":"…"}` objects in stored feature
+lists for balance-threshold and entitlement-reset Rules. Reads preserve the stored JSON.
 Caller-owned configuration is not modified. V1 responses keep their existing
 `FeatureMeta` shape and populate `id` with the stored ID. Existing Rules can contain historical keys until
 a later release backfills them. Deploy this writer on all replicas and drain

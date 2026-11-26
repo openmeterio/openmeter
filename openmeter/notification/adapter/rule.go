@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -299,6 +300,46 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 	return entutils.TransactingRepo(ctx, a, fn)
 }
 
+// Historical Rule configs contain strings (IDs or keys). V4 stores resolved IDs as objects.
+type ruleFeatureReference struct {
+	ID string `json:"id"`
+}
+
+func (r *ruleFeatureReference) UnmarshalJSON(data []byte) error {
+	if len(data) > 0 && data[0] == '"' {
+		return json.Unmarshal(data, &r.ID)
+	}
+
+	type reference ruleFeatureReference
+	var ref reference
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&ref); err != nil {
+		return fmt.Errorf("invalid rule feature reference: %w", err)
+	}
+
+	if ref.ID == "" {
+		return fmt.Errorf("invalid rule feature reference: missing id")
+	}
+
+	*r = ruleFeatureReference(ref)
+
+	return nil
+}
+
+type ruleFeatureFilter struct {
+	Features []ruleFeatureReference `json:"features,omitempty"`
+}
+
+func (f ruleFeatureFilter) featureIDs() []string {
+	return slicesx.Map(f.Features, func(ref ruleFeatureReference) string { return ref.ID })
+}
+
+type balanceThresholdConfig struct {
+	ruleFeatureFilter
+	Thresholds []notification.BalanceThreshold `json:"thresholds"`
+}
+
 // fromDBRuleConfig uses the row's type for unwrapped configs. Decoding does not
 // revalidate historical rule conditions; validation belongs to the write path.
 func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (notification.RuleConfig, error) {
@@ -310,9 +351,21 @@ func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (n
 
 	switch eventType {
 	case notification.EventTypeBalanceThreshold:
-		config.BalanceThreshold, err = fromDBRuleConfigPayload[notification.BalanceThresholdRuleConfig](eventType, data)
+		var balance *balanceThresholdConfig
+		balance, err = fromDBRuleConfigPayload[balanceThresholdConfig](eventType, data)
+		if err == nil {
+			normalizeThresholdTypes(balance.Thresholds)
+			config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{
+				Features:   balance.featureIDs(),
+				Thresholds: balance.Thresholds,
+			}
+		}
 	case notification.EventTypeEntitlementReset:
-		config.EntitlementReset, err = fromDBRuleConfigPayload[notification.EntitlementResetRuleConfig](eventType, data)
+		var reset *ruleFeatureFilter
+		reset, err = fromDBRuleConfigPayload[ruleFeatureFilter](eventType, data)
+		if err == nil {
+			config.EntitlementReset = &notification.EntitlementResetRuleConfig{Features: reset.featureIDs()}
+		}
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		config.Invoice, err = fromDBRuleConfigPayload[notification.InvoiceRuleConfig](eventType, data)
 	default:
@@ -321,10 +374,6 @@ func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (n
 
 	if err != nil {
 		return notification.RuleConfig{}, err
-	}
-
-	if config.BalanceThreshold != nil {
-		normalizeThresholdTypes(config.BalanceThreshold.Thresholds)
 	}
 
 	return config, nil
