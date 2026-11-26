@@ -47,10 +47,30 @@ func TestNotificationEventPayloadSnapshotsMigration(t *testing.T) {
 		prefix        string
 		wrapper       string
 	}{
-		{legacyType: notification.EventTypeInvoiceCreated, canonicalType: "v1.billing.invoice.created", prefix: "invoice_", wrapper: "invoice"},
-		{legacyType: notification.EventTypeInvoiceUpdated, canonicalType: "v1.billing.invoice.updated", prefix: "invoice_", wrapper: "invoice"},
-		{legacyType: notification.EventTypeBalanceThreshold, canonicalType: "v1.entitlement.balance_threshold.triggered", prefix: "balance_threshold_", wrapper: "balanceThreshold"},
-		{legacyType: notification.EventTypeEntitlementReset, canonicalType: "v1.entitlement.usage_period.reset", prefix: "entitlement_reset_", wrapper: "entitlementReset"},
+		{
+			legacyType:    notification.EventTypeInvoiceCreated,
+			canonicalType: "v1.billing.invoice.created",
+			prefix:        "invoice_",
+			wrapper:       "invoice",
+		},
+		{
+			legacyType:    notification.EventTypeInvoiceUpdated,
+			canonicalType: "v1.billing.invoice.updated",
+			prefix:        "invoice_",
+			wrapper:       "invoice",
+		},
+		{
+			legacyType:    notification.EventTypeBalanceThreshold,
+			canonicalType: "v1.entitlement.balance_threshold.triggered",
+			prefix:        "balance_threshold_",
+			wrapper:       "balanceThreshold",
+		},
+		{
+			legacyType:    notification.EventTypeEntitlementReset,
+			canonicalType: "v1.entitlement.usage_period.reset",
+			prefix:        "entitlement_reset_",
+			wrapper:       "entitlementReset",
+		},
 	}
 
 	for _, tc := range cases {
@@ -165,11 +185,31 @@ func TestNotificationEventPayloadSnapshotsMigration(t *testing.T) {
 
 	t.Run("preflight detects invalid envelopes and the migration rolls back", func(t *testing.T) {
 		tests := []struct{ name, payload, problem string }{
-			{name: "unsupported version", payload: `{"type":"invoice.created","version":99,"invoice":{"id":"i"}}`, problem: "unsupported invoice envelope version"},
-			{name: "wrong type", payload: `{"type":"invoice.updated","version":1,"invoice":{"id":"i"}}`, problem: "envelope type differs"},
-			{name: "unknown envelope field", payload: `{"type":"invoice.created","version":1,"invoice":{"id":"i"},"extension":true}`, problem: "unexpected envelope fields"},
-			{name: "invalid snapshot", payload: `{"type":"invoice.created","version":1,"invoice":[]}`, problem: "invalid envelope snapshot"},
-			{name: "missing bare fields", payload: `{}`, problem: "missing required fields"},
+			{
+				name:    "unsupported version",
+				payload: `{"type":"invoice.created","version":99,"invoice":{"id":"i"}}`,
+				problem: "unsupported invoice envelope version",
+			},
+			{
+				name:    "wrong type",
+				payload: `{"type":"invoice.updated","version":1,"invoice":{"id":"i"}}`,
+				problem: "envelope type differs",
+			},
+			{
+				name:    "unknown envelope field",
+				payload: `{"type":"invoice.created","version":1,"invoice":{"id":"i"},"extension":true}`,
+				problem: "unexpected envelope fields",
+			},
+			{
+				name:    "invalid snapshot",
+				payload: `{"type":"invoice.created","version":1,"invoice":[]}`,
+				problem: "invalid envelope snapshot",
+			},
+			{
+				name:    "missing bare fields",
+				payload: `{}`,
+				problem: "missing required fields",
+			},
 		}
 
 		for _, tt := range tests {
