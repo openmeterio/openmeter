@@ -53,12 +53,19 @@ type ModelPricing struct {
 func (p ModelPricing) Validate() error {
 	var errs []error
 
-	if p.InputPerToken.IsNegative() {
-		errs = append(errs, ErrPriceMustBeNonNegative)
-	}
-
-	if p.OutputPerToken.IsNegative() {
-		errs = append(errs, ErrPriceMustBeNonNegative)
+	for _, field := range []struct {
+		name  string
+		price *alpacadecimal.Decimal
+	}{
+		{"input_per_token", &p.InputPerToken},
+		{"output_per_token", &p.OutputPerToken},
+		{"cache_read_per_token", p.CacheReadPerToken},
+		{"cache_write_per_token", p.CacheWritePerToken},
+		{"reasoning_per_token", p.ReasoningPerToken},
+	} {
+		if field.price != nil && field.price.IsNegative() {
+			errs = append(errs, ErrPriceMustBeNonNegative.WithPathString("pricing", field.name))
+		}
 	}
 
 	return models.NewNillableGenericValidationError(errors.Join(errs...))

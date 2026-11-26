@@ -7,6 +7,8 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestPriceSourceValidate(t *testing.T) {
@@ -38,20 +40,45 @@ func TestModelPricingValidate(t *testing.T) {
 		assert.NoError(t, p.Validate())
 	})
 
-	t.Run("negative input price", func(t *testing.T) {
-		p := ModelPricing{
-			InputPerToken:  alpacadecimal.NewFromFloat(-0.001),
-			OutputPerToken: alpacadecimal.NewFromFloat(0.002),
+	t.Run("negative prices identify each field", func(t *testing.T) {
+		negative := alpacadecimal.NewFromFloat(-0.001)
+
+		for field, p := range map[string]ModelPricing{
+			"input_per_token":       {InputPerToken: negative},
+			"output_per_token":      {OutputPerToken: negative},
+			"cache_read_per_token":  {CacheReadPerToken: &negative},
+			"cache_write_per_token": {CacheWritePerToken: &negative},
+			"reasoning_per_token":   {ReasoningPerToken: &negative},
+		} {
+			t.Run(field, func(t *testing.T) {
+				issues, err := models.AsValidationIssues(p.Validate())
+				require.NoError(t, err)
+				models.RequireValidationIssuesMatch(t, models.ValidationIssues{
+					ErrPriceMustBeNonNegative.WithPathString("pricing", field),
+				}, issues)
+			})
 		}
-		require.Error(t, p.Validate())
 	})
 
-	t.Run("negative output price", func(t *testing.T) {
+	t.Run("multiple negative prices report both fields", func(t *testing.T) {
+		negative := alpacadecimal.NewFromFloat(-0.001)
+		p := ModelPricing{CacheReadPerToken: &negative, ReasoningPerToken: &negative}
+		issues, err := models.AsValidationIssues(p.Validate())
+		require.NoError(t, err)
+		models.RequireValidationIssuesMatch(t, models.ValidationIssues{
+			ErrPriceMustBeNonNegative.WithPathString("pricing", "cache_read_per_token"),
+			ErrPriceMustBeNonNegative.WithPathString("pricing", "reasoning_per_token"),
+		}, issues)
+	})
+
+	t.Run("valid optional prices", func(t *testing.T) {
+		valid := alpacadecimal.NewFromFloat(0.001)
 		p := ModelPricing{
-			InputPerToken:  alpacadecimal.NewFromFloat(0.001),
-			OutputPerToken: alpacadecimal.NewFromFloat(-0.002),
+			CacheReadPerToken:  &valid,
+			CacheWritePerToken: &valid,
+			ReasoningPerToken:  &valid,
 		}
-		require.Error(t, p.Validate())
+		assert.NoError(t, p.Validate())
 	})
 }
 
