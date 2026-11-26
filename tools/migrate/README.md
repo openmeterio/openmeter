@@ -31,6 +31,11 @@ considers every feature with that key active between Rule creation and deletion.
 Multiple candidates block the backfill. Use the candidate IDs and historical
 evidence to repair the reference, then rerun the preflight.
 
+The backfill stores each resolved Feature as `{"id":"…"}`. Existing object references
+match by ID only, including when another feature uses that ID as its key. Mixed
+lists retain the first occurrence of each ID. An unrestricted JSON null becomes
+an omitted field, which the V4 contract accepts.
+
 Missing references are dropped. If every reference is missing, an enabled Rule
 stays enabled and matches every feature. The preflight flags that case separately.
 Downgrading keeps the resolved IDs and does not restore dropped references.

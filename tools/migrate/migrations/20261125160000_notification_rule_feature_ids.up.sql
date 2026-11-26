@@ -23,8 +23,13 @@ BEGIN
             RAISE EXCEPTION 'expected normalized flat rule config [namespace=% rule.id=%]', rule.namespace, rule.id;
         END IF;
 
-        -- Preserve the existing representation of unrestricted feature scope.
-        IF NOT rule.config ? 'features' OR rule.config->'features' = 'null'::jsonb THEN
+        -- V4 accepts an omitted or empty list for unrestricted scope, but rejects JSON null.
+        IF rule.config->'features' = 'null'::jsonb THEN
+            UPDATE notification_rules SET config = config - 'features' WHERE id = rule.id;
+            CONTINUE;
+        END IF;
+
+        IF NOT rule.config ? 'features' THEN
             CONTINUE;
         END IF;
 
@@ -35,8 +40,12 @@ BEGIN
         resolved := '[]'::jsonb;
         FOR reference IN SELECT value FROM jsonb_array_elements(rule.config->'features')
         LOOP
-            IF jsonb_typeof(reference) IS DISTINCT FROM 'string' OR reference #>> '{}' = '' THEN
-                RAISE EXCEPTION 'invalid rule feature reference [namespace=% rule.id=%]: expected a nonempty string', rule.namespace, rule.id;
+            IF NOT (
+                (jsonb_typeof(reference) = 'string' AND reference #>> '{}' <> '')
+                OR (reference = jsonb_build_object('id', reference->>'id')
+                    AND COALESCE(reference->>'id', '') ~ '^[0-7][0-9A-HJKMNP-TV-Z]{25}$')
+            ) THEN
+                RAISE EXCEPTION 'invalid rule feature reference [namespace=% rule.id=%]: expected a nonempty string or an ID reference', rule.namespace, rule.id;
             END IF;
 
             -- Soft deletion advances updated_at without changing the config. For
@@ -45,9 +54,9 @@ BEGIN
             FROM features AS f
             WHERE f.namespace = rule.namespace
               AND (
-                  f.id::text = reference #>> '{}'
+                  f.id::text = COALESCE(reference->>'id', reference #>> '{}')
                   OR (
-                      f.key = reference #>> '{}'
+                      jsonb_typeof(reference) = 'string' AND f.key = reference #>> '{}'
                       AND CASE WHEN rule.deleted_at IS NULL THEN f.created_at <= rule.updated_at
                                ELSE f.created_at < rule.deleted_at END
                       AND (f.archived_at IS NULL OR f.archived_at >
@@ -63,12 +72,12 @@ BEGIN
 
             IF match_count > 1 THEN
                 RAISE EXCEPTION 'ambiguous rule feature [namespace=% rule.id=% reference=% matches=%]: repair the reference and rerun; no Rule configs were changed',
-                    rule.namespace, rule.id, reference #>> '{}', match_count;
+                    rule.namespace, rule.id, reference, match_count;
             END IF;
 
             -- Preserve first-occurrence order when both an ID and its key occur.
-            IF NOT resolved ? feature_id THEN
-                resolved := resolved || jsonb_build_array(feature_id);
+            IF NOT resolved @> jsonb_build_array(jsonb_build_object('id', feature_id)) THEN
+                resolved := resolved || jsonb_build_array(jsonb_build_object('id', feature_id));
             END IF;
         END LOOP;
 

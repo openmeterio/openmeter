@@ -50,12 +50,12 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 		{
 			name:     "keys and ids preserve order and deduplicate",
 			config:   `{"features":["b","` + featureA + `","a"]}`,
-			expected: `{"features":["` + featureB + `","` + featureA + `"]}`,
+			expected: `{"features":[{"id":"` + featureB + `"},{"id":"` + featureA + `"}]}`,
 		},
 		{
 			name:       "deleted after archival without key reuse retains archived ID",
 			config:     `{"features":["a"]}`,
-			expected:   `{"features":["` + featureA + `"]}`,
+			expected:   `{"features":[{"id":"` + featureA + `"}]}`,
 			archived:   true,
 			deleteHour: new(3),
 		},
@@ -70,14 +70,14 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 		{
 			name:       "key reused at deletion cannot retarget deleted rule",
 			config:     `{"features":["a"]}`,
-			expected:   `{"features":["` + featureA + `"]}`,
+			expected:   `{"features":[{"id":"` + featureA + `"}]}`,
 			reuse:      true,
 			deleteHour: new(2),
 		},
 		{
 			name:       "feature archived before rule creation is excluded",
 			config:     `{"features":["a"]}`,
-			expected:   `{"features":["` + featureC + `"]}`,
+			expected:   `{"features":[{"id":"` + featureC + `"}]}`,
 			reuse:      true,
 			ruleHour:   new(3),
 			deleteHour: new(4),
@@ -85,19 +85,35 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 		{
 			name:       "explicit ID stays pinned on deleted rule after key reuse",
 			config:     `{"features":["` + featureA + `"]}`,
-			expected:   `{"features":["` + featureA + `"]}`,
+			expected:   `{"features":[{"id":"` + featureA + `"}]}`,
 			reuse:      true,
 			deleteHour: new(3),
 		},
 		{
+			name:      "object ID stays pinned when another feature uses the ID as a key",
+			config:    `{"features":[{"id":"` + featureA + `"}]}`,
+			expected:  `{"features":[{"id":"` + featureA + `"}]}`,
+			collision: true,
+		},
+		{
+			name:     "mixed references preserve first occurrence",
+			config:   `{"features":[{"id":"` + featureB + `"},"a","b"]}`,
+			expected: `{"features":[{"id":"` + featureB + `"},{"id":"` + featureA + `"}]}`,
+		},
+		{
+			name:      "null array entry is malformed",
+			config:    `{"features":[null]}`,
+			wantError: "invalid rule feature reference",
+		},
+		{
 			name:     "already resolved",
 			config:   `{"features":["` + featureA + `"]}`,
-			expected: `{"features":["` + featureA + `"]}`,
+			expected: `{"features":[{"id":"` + featureA + `"}]}`,
 		},
 		{
 			name:       "only missing reference is dropped",
 			config:     `{"features":["b","missing","a","b"]}`,
-			expected:   `{"features":["` + featureB + `","` + featureA + `"]}`,
+			expected:   `{"features":[{"id":"` + featureB + `"},{"id":"` + featureA + `"}]}`,
 			dropAction: "drop_missing_feature",
 			enabled:    true,
 		},
@@ -109,7 +125,7 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 		{
 			name:     "null",
 			config:   `{"features":null}`,
-			expected: `{"features":null}`,
+			expected: `{}`,
 		},
 		{
 			name:     "empty",
@@ -133,27 +149,27 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 		{
 			name:     "id stays pinned after key reuse",
 			config:   `{"features":["` + featureA + `"]}`,
-			expected: `{"features":["` + featureA + `"]}`,
+			expected: `{"features":[{"id":"` + featureA + `"}]}`,
 			reuse:    true,
 			ruleHour: new(3),
 		},
 		{
 			name:     "reused key before archive",
 			config:   `{"features":["a"]}`,
-			expected: `{"features":["` + featureA + `"]}`,
+			expected: `{"features":[{"id":"` + featureA + `"}]}`,
 			reuse:    true,
 		},
 		{
 			name:     "reused key at replacement boundary",
 			config:   `{"features":["a"]}`,
-			expected: `{"features":["` + featureC + `"]}`,
+			expected: `{"features":[{"id":"` + featureC + `"}]}`,
 			reuse:    true,
 			ruleHour: new(2),
 		},
 		{
 			name:     "key at creation boundary",
 			config:   `{"features":["a"]}`,
-			expected: `{"features":["` + featureA + `"]}`,
+			expected: `{"features":[{"id":"` + featureA + `"}]}`,
 			ruleHour: new(0),
 		},
 		{
@@ -174,7 +190,7 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 		{
 			name:           "key before deletion",
 			config:         `{"features":["a"]}`,
-			expected:       `{"features":["` + featureA + `"]}`,
+			expected:       `{"features":[{"id":"` + featureA + `"}]}`,
 			featureDeleted: true,
 		},
 		{
@@ -204,7 +220,7 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 			wantError: "invalid rule features",
 		},
 		{
-			name:      "non-string",
+			name:      "malformed object ID",
 			config:    `{"features":[{"id":"a"}]}`,
 			wantError: "invalid rule feature reference",
 		},

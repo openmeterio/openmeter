@@ -19,7 +19,11 @@ WITH rules AS (
     SELECT r.namespace, r.rule_id, r.updated_at, item.ref,
            matches.n, matches.ids,
            CASE
-               WHEN jsonb_typeof(item.ref) <> 'string' OR item.ref #>> '{}' = '' THEN 'invalid_reference'
+               WHEN NOT (
+                   (jsonb_typeof(item.ref) = 'string' AND item.ref #>> '{}' <> '')
+                   OR (item.ref = jsonb_build_object('id', item.ref->>'id')
+                       AND COALESCE(item.ref->>'id', '') ~ '^[0-7][0-9A-HJKMNP-TV-Z]{25}$')
+               ) THEN 'invalid_reference'
                WHEN matches.n = 0 THEN 'drop_missing_feature'
                WHEN matches.n > 1 THEN 'ambiguous_feature'
            END AS issue
@@ -30,9 +34,9 @@ WITH rules AS (
     CROSS JOIN LATERAL (
         SELECT count(*) AS n, array_agg(f.id::text ORDER BY f.id) AS ids
         FROM features f
-        WHERE f.namespace = r.namespace AND jsonb_typeof(item.ref) = 'string'
-          AND (f.id::text = item.ref #>> '{}' OR (
-              f.key = item.ref #>> '{}'
+        WHERE f.namespace = r.namespace
+          AND (f.id::text = COALESCE(item.ref->>'id', item.ref #>> '{}') OR (
+              jsonb_typeof(item.ref) = 'string' AND f.key = item.ref #>> '{}'
               AND CASE WHEN r.deleted_at IS NULL THEN f.created_at <= r.updated_at
                        ELSE f.created_at < r.deleted_at END
               AND (f.archived_at IS NULL OR f.archived_at >
