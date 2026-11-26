@@ -14,6 +14,7 @@ import (
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -300,39 +301,54 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 	return entutils.TransactingRepo(ctx, a, fn)
 }
 
-// Historical Rule configs contain strings (IDs or keys). V4 stores resolved IDs as objects.
-type ruleFeatureReference struct {
-	ID string `json:"id"`
+type ruleFeatureFilter struct {
+	Features ruleFeatures `json:"features,omitempty"`
 }
 
-func (r *ruleFeatureReference) UnmarshalJSON(data []byte) error {
-	if len(data) > 0 && data[0] == '"' {
-		return json.Unmarshal(data, &r.ID)
+type ruleFeatures []string
+
+// Historical filters use strings (IDs or keys). A V4 reference has exactly one field, id.
+func (f *ruleFeatures) UnmarshalJSON(data []byte) error {
+	var items []json.RawMessage
+	if err := json.Unmarshal(data, &items); err != nil {
+		return err
 	}
 
-	type reference ruleFeatureReference
-	var ref reference
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&ref); err != nil {
-		return fmt.Errorf("invalid rule feature reference: %w", err)
+	values, err := slicesx.MapWithErr(items, func(item json.RawMessage) (string, error) {
+		if item[0] == '"' {
+			var value string
+			err := json.Unmarshal(item, &value)
+
+			return value, err
+		}
+
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(item, &fields); err != nil {
+			return "", err
+		}
+
+		if len(fields) != 1 || fields["id"] == nil {
+			return "", fmt.Errorf("invalid rule feature reference: expected an id object")
+		}
+
+		var ref feature.FeatureReference
+		if err := json.Unmarshal(fields["id"], &ref.ID); err != nil {
+			return "", err
+		}
+
+		if ref.ID == nil || *ref.ID == "" {
+			return "", fmt.Errorf("invalid rule feature reference: missing id")
+		}
+
+		return *ref.ID, nil
+	})
+	if err != nil {
+		return err
 	}
 
-	if ref.ID == "" {
-		return fmt.Errorf("invalid rule feature reference: missing id")
-	}
-
-	*r = ruleFeatureReference(ref)
+	*f = values
 
 	return nil
-}
-
-type ruleFeatureFilter struct {
-	Features []ruleFeatureReference `json:"features,omitempty"`
-}
-
-func (f ruleFeatureFilter) featureIDs() []string {
-	return slicesx.Map(f.Features, func(ref ruleFeatureReference) string { return ref.ID })
 }
 
 type balanceThresholdConfig struct {
@@ -356,7 +372,7 @@ func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (n
 		if err == nil {
 			normalizeThresholdTypes(balance.Thresholds)
 			config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{
-				Features:   balance.featureIDs(),
+				Features:   balance.Features,
 				Thresholds: balance.Thresholds,
 			}
 		}
@@ -364,7 +380,7 @@ func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (n
 		var reset *ruleFeatureFilter
 		reset, err = fromDBRuleConfigPayload[ruleFeatureFilter](eventType, data)
 		if err == nil {
-			config.EntitlementReset = &notification.EntitlementResetRuleConfig{Features: reset.featureIDs()}
+			config.EntitlementReset = &notification.EntitlementResetRuleConfig{Features: reset.Features}
 		}
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		config.Invoice, err = fromDBRuleConfigPayload[notification.InvoiceRuleConfig](eventType, data)

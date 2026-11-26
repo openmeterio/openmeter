@@ -673,6 +673,7 @@ func TestRuleConfigMappingInvalid(t *testing.T) {
 		{name: "null data", data: `{"type":"invoice.created","data":null}`},
 		{name: "array data", data: `{"type":"invoice.created","data":[]}`},
 		{name: "feature reference missing id", data: `{"features":[{"key":"a"}]}`},
+		{name: "extra key in id reference", data: `{"features":[{"id":"a","key":null}]}`},
 		{name: "feature reference null", data: `{"features":[null]}`},
 		{name: "feature reference empty id", data: `{"features":[{"id":""}]}`},
 		{name: "invalid features", data: `{"features":"invalid"}`},
