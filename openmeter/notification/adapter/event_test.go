@@ -1905,10 +1905,26 @@ func TestEventPayloadDualReader(t *testing.T) {
 		prefix    string
 		field     string
 	}{
-		{eventType: notification.EventTypeInvoiceCreated, prefix: "invoice_", field: "invoice"},
-		{eventType: notification.EventTypeInvoiceUpdated, prefix: "invoice_", field: "invoice"},
-		{eventType: notification.EventTypeBalanceThreshold, prefix: "balance_threshold_", field: "balanceThreshold"},
-		{eventType: notification.EventTypeEntitlementReset, prefix: "entitlement_reset_", field: "entitlementReset"},
+		{
+			eventType: notification.EventTypeInvoiceCreated,
+			prefix:    "invoice_",
+			field:     "invoice",
+		},
+		{
+			eventType: notification.EventTypeInvoiceUpdated,
+			prefix:    "invoice_",
+			field:     "invoice",
+		},
+		{
+			eventType: notification.EventTypeBalanceThreshold,
+			prefix:    "balance_threshold_",
+			field:     "balanceThreshold",
+		},
+		{
+			eventType: notification.EventTypeEntitlementReset,
+			prefix:    "entitlement_reset_",
+			field:     "entitlementReset",
+		},
 	}
 
 	for _, tc := range cases {
@@ -1955,8 +1971,14 @@ func TestEventPayloadDualReader(t *testing.T) {
 						name    string
 						payload json.RawMessage
 					}{
-						{name: "legacy envelope", payload: envelope},
-						{name: "canonical bare payload", payload: wire.Data},
+						{
+							name:    "legacy envelope",
+							payload: envelope,
+						},
+						{
+							name:    "canonical bare payload",
+							payload: wire.Data,
+						},
 					} {
 						t.Run(storage.name, func(t *testing.T) {
 							// When either representation is stored, reads must not change the snapshot.

@@ -109,13 +109,48 @@ func TestEventPayloadFromJSONInvalidStorage(t *testing.T) {
 		eventType notification.EventType
 		want      string
 	}{
-		{name: "null", payload: `null`, eventType: notification.EventTypeInvoiceCreated, want: "missing id"},
-		{name: "malformed JSON", payload: `{`, eventType: notification.EventTypeInvoiceCreated, want: "deserialize"},
-		{name: "mismatched type", payload: `{"type":"invoice.updated","version":1}`, eventType: notification.EventTypeInvoiceCreated, want: "payload type"},
-		{name: "missing threshold", payload: `{"entitlement":{},"feature":{},"subject":{},"value":{}}`, eventType: notification.EventTypeBalanceThreshold, want: "missing threshold"},
-		{name: "unknown event type", payload: `{"id":"invoice"}`, eventType: "unknown", want: "event type"},
-		{name: "wrong field type", payload: `{"id":42}`, eventType: notification.EventTypeInvoiceCreated, want: "cannot unmarshal"},
-		{name: "colliding fields", payload: `{"id":"invoice","createdAt":null,"created_at":null}`, eventType: notification.EventTypeInvoiceCreated, want: "duplicate mapped field"},
+		{
+			name:      "null",
+			payload:   `null`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "missing id",
+		},
+		{
+			name:      "malformed JSON",
+			payload:   `{`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "deserialize",
+		},
+		{
+			name:      "mismatched type",
+			payload:   `{"type":"invoice.updated","version":1}`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "payload type",
+		},
+		{
+			name:      "missing threshold",
+			payload:   `{"entitlement":{},"feature":{},"subject":{},"value":{}}`,
+			eventType: notification.EventTypeBalanceThreshold,
+			want:      "missing threshold",
+		},
+		{
+			name:      "unknown event type",
+			payload:   `{"id":"invoice"}`,
+			eventType: "unknown",
+			want:      "event type",
+		},
+		{
+			name:      "wrong field type",
+			payload:   `{"id":42}`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "cannot unmarshal",
+		},
+		{
+			name:      "colliding fields",
+			payload:   `{"id":"invoice","createdAt":null,"created_at":null}`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "duplicate mapped field",
+		},
 	}
 
 	for _, tc := range cases {
