@@ -1953,10 +1953,21 @@ func TestEventPayloadDualReader(t *testing.T) {
 					})
 					require.NoError(t, err)
 
-					wantV1, err := httpdriver.FromEvent(*created)
+					// PostgreSQL stores timestamps at microsecond precision. Keep the original
+					// payload as the expectation, but use persisted Event and delivery metadata.
+					expected, err := env.adapter.GetEvent(t.Context(), notification.GetEventInput{
+						Namespace: ns,
+						ID:        created.ID,
+						Expand:    &notification.EventExpand{DeliveryStatus: true},
+					})
 					require.NoError(t, err)
 
-					wantV3, err := apievents.ToAPIBillingNotificationEvent(*created)
+					expected.Payload = payload
+
+					wantV1, err := httpdriver.FromEvent(*expected)
+					require.NoError(t, err)
+
+					wantV3, err := apievents.ToAPIBillingNotificationEvent(*expected)
 					require.NoError(t, err)
 
 					wireJSON, err := json.Marshal(wantV3.Payload)
