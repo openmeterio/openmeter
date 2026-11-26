@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"database/sql"
+	sqldriver "database/sql/driver"
 	"fmt"
 	"log/slog"
 
@@ -98,6 +99,7 @@ func NewPostgresDriver(
 			OmitConnPrepare:      true,
 			OmitRows:             true,
 			OmitConnectorConnect: true,
+			SpanFilter:           hasParentSpan,
 		}),
 	)
 	if err != nil {
@@ -107,9 +109,14 @@ func NewPostgresDriver(
 	return driver, func() {
 		err := driver.Close()
 		if err != nil {
-			logger.Error("failed to close postgres driver", "error", err)
+			logger.ErrorContext(ctx, "failed to close postgres driver", "error", err)
 		}
 	}, nil
+}
+
+// Background loops run SQL outside any span. Without a parent, each statement would be exported as a trace of its own.
+func hasParentSpan(ctx context.Context, _ otelsql.Method, _ string, _ []sqldriver.NamedValue) bool {
+	return trace.SpanContextFromContext(ctx).IsValid()
 }
 
 // TODO: add closer function?
