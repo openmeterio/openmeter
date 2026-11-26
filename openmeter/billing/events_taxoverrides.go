@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
@@ -15,16 +16,35 @@ import (
 // lineTaxOverrides is the legacy taxOverrides payload of the lines of an event, by line ID.
 type lineTaxOverrides map[string]*StoredLineTaxConfig
 
-func newStandardLineTaxOverrides(lines []*StandardLine, taxCodes productcatalog.TaxCodesByID) (lineTaxOverrides, error) {
-	out := make(lineTaxOverrides, len(lines))
+type newStandardLineTaxOverridesInput struct {
+	Lines    []*StandardLine
+	TaxCodes productcatalog.TaxCodesByID
 
-	for _, line := range lines {
-		stored, err := NewStoredStandardLineTaxConfig(line.TaxConfig, taxCodes)
+	// InvoicingAppType is the type of the invoice's invoicing app. On Stripe invoices the
+	// payload's stripe.code is the code the line was billed with, not the live mapping.
+	InvoicingAppType app.AppType
+}
+
+func newStandardLineTaxOverrides(in newStandardLineTaxOverridesInput) (lineTaxOverrides, error) {
+	out := make(lineTaxOverrides, len(in.Lines))
+
+	for _, line := range in.Lines {
+		stored, err := NewStoredStandardLineTaxConfig(line.TaxConfig, in.TaxCodes)
 		if err != nil {
 			return nil, fmt.Errorf("line %s: %w", line.ID, err)
 		}
 
 		if stored != nil {
+			// Decoding copies stripe.code back into the line's legacy fallback, so it must
+			// be what Stripe received, or nothing if the line was billed without a code.
+			if in.InvoicingAppType == app.AppTypeStripe {
+				stored.Stripe = nil
+
+				if code := line.BilledTaxCode(in.InvoicingAppType); code != "" {
+					stored.Stripe = &productcatalog.StripeTaxConfig{Code: code}
+				}
+			}
+
 			out[line.ID] = stored
 		}
 	}

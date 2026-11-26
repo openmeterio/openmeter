@@ -65,7 +65,11 @@ func (e EventStandardInvoice) Validate() error {
 }
 
 func NewEventStandardInvoice(invoice StandardInvoice, taxCodes productcatalog.TaxCodesByID) (EventStandardInvoice, error) {
-	taxOverrides, err := newStandardLineTaxOverrides(invoice.Lines.OrEmpty(), taxCodes)
+	taxOverrides, err := newStandardLineTaxOverrides(newStandardLineTaxOverridesInput{
+		Lines:            invoice.Lines.OrEmpty(),
+		TaxCodes:         taxCodes,
+		InvoicingAppType: invoice.Workflow.InvoicingAppType(),
+	})
 	if err != nil {
 		return EventStandardInvoice{}, err
 	}

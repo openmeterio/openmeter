@@ -182,3 +182,158 @@ func TestToAPIEventInvoiceStripeCodeFromEventLines(t *testing.T) {
 		require.Equal(t, &apiv1models.StripeTaxConfig{Code: "txcd_stamped"}, (*got.Lines)[0].TaxConfig.Stripe)
 	})
 }
+
+// eventTestApp is the smallest app the invoice event constructors accept: they only read its
+// base and event data.
+type eventTestApp struct {
+	app.App
+
+	base app.AppBase
+}
+
+func (a eventTestApp) GetAppBase() app.AppBase { return a.base }
+
+func (a eventTestApp) GetType() app.AppType { return a.base.Type }
+
+func (a eventTestApp) GetEventAppData() (app.EventAppData, error) {
+	return app.NewEventAppData(map[string]any{})
+}
+
+func TestToAPIEventInvoiceTaxOverridesStripeCode(t *testing.T) {
+	const taxCodeID = "01JTAXCODE0000000000000000A"
+
+	// The live mapping differs from every code a line was billed with below.
+	taxCodes := productcatalog.TaxCodesByID{taxCodeID: {
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: taxCodeID},
+		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_live"}},
+	}}
+
+	tests := []struct {
+		name             string
+		invoicingAppType app.AppType
+		stamp            *string
+		legacyCode       string
+
+		// wantEventCode is the stripe.code in the JSON of the event, nil for no stripe object.
+		wantEventCode *string
+		// wantRenderedCode is the stripe.code of the line in the rendered notification.
+		wantRenderedCode *string
+	}{
+		{
+			name:             "an unstamped line sends the code it was billed with, not the live mapping",
+			invoicingAppType: app.AppTypeStripe,
+			legacyCode:       "txcd_billed",
+			wantEventCode:    lo.ToPtr("txcd_billed"),
+			wantRenderedCode: lo.ToPtr("txcd_billed"),
+		},
+		{
+			name:             "an unstamped line billed without a code sends no stripe object",
+			invoicingAppType: app.AppTypeStripe,
+			wantEventCode:    nil,
+			wantRenderedCode: nil,
+		},
+		{
+			name:             "a stamped line sends its stamp",
+			invoicingAppType: app.AppTypeStripe,
+			stamp:            lo.ToPtr("txcd_stamped"),
+			legacyCode:       "txcd_billed",
+			wantEventCode:    lo.ToPtr("txcd_stamped"),
+			wantRenderedCode: lo.ToPtr("txcd_stamped"),
+		},
+		{
+			name:             "a line stamped without a code sends no stripe object",
+			invoicingAppType: app.AppTypeStripe,
+			stamp:            lo.ToPtr(""),
+			legacyCode:       "txcd_billed",
+			wantEventCode:    nil,
+			wantRenderedCode: nil,
+		},
+		{
+			name:             "a non-stripe invoice keeps the live mapping",
+			invoicingAppType: app.AppTypeSandbox,
+			legacyCode:       "txcd_billed",
+			wantEventCode:    lo.ToPtr("txcd_live"),
+			wantRenderedCode: lo.ToPtr("txcd_live"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// given: an issued invoice with one line billed as described by the case
+			var base billing.StandardInvoiceCreatedEvent
+			require.NoError(t, json.Unmarshal([]byte(mainFormatInvoiceEvent), &base))
+
+			invoice := base.Invoice
+			invoice.Status = billing.StandardInvoiceStatusIssued
+
+			line := invoice.Lines.OrEmpty()[0]
+			line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID}
+			line.InvoicingAppTaxCode = tt.stamp
+			line.LegacyStripeTaxCode = tt.legacyCode
+
+			invoicingApp := eventTestApp{base: app.AppBase{
+				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
+					Namespace: "ns",
+					ID:        "01JAPP00000000000000000001",
+					Name:      "Invoicing",
+				}),
+				Type:   tt.invoicingAppType,
+				Status: app.AppStatusReady,
+			}}
+			invoice.Workflow.Apps = &billing.ProfileApps{
+				Tax:       invoicingApp,
+				Invoicing: invoicingApp,
+				Payment:   invoicingApp,
+			}
+
+			// when: the event is built, sent over JSON and rendered like a payment update
+			built, err := billing.NewStandardInvoiceUpdatedEvent(billing.StandardInvoiceUpdatedEventInput{
+				New:      invoice,
+				Old:      base.EventStandardInvoice,
+				TaxCodes: taxCodes,
+			})
+			require.NoError(t, err)
+
+			raw, err := json.Marshal(built.New)
+			require.NoError(t, err)
+
+			var event billing.EventStandardInvoice
+			require.NoError(t, json.Unmarshal(raw, &event))
+
+			got, err := ToAPIEventInvoice(event, taxCodes)
+			require.NoError(t, err)
+
+			// then: the JSON and the rendering both carry the expected code
+			var wire struct {
+				Invoice struct {
+					Lines []struct {
+						TaxOverrides struct {
+							Stripe *struct {
+								Code string `json:"code"`
+							} `json:"stripe"`
+						} `json:"taxOverrides"`
+					} `json:"lines"`
+				} `json:"invoice"`
+			}
+			require.NoError(t, json.Unmarshal(raw, &wire))
+			require.Len(t, wire.Invoice.Lines, 1)
+
+			var eventCode *string
+			if stripe := wire.Invoice.Lines[0].TaxOverrides.Stripe; stripe != nil {
+				eventCode = &stripe.Code
+			}
+
+			require.Equal(t, tt.wantEventCode, eventCode)
+
+			require.NotNil(t, got.Lines)
+			require.Len(t, *got.Lines, 1)
+
+			var renderedCode *string
+			if stripe := (*got.Lines)[0].TaxConfig.Stripe; stripe != nil {
+				renderedCode = &stripe.Code
+			}
+
+			require.Equal(t, tt.wantRenderedCode, renderedCode)
+		})
+	}
+}
