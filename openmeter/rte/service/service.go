@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -50,8 +51,8 @@ func (c Config) Validate() error {
 }
 
 type service struct {
-	creditBalances      rte.Calculation[creditbalance.Key, creditbalance.Balance]
-	meteredEntitlements rte.Calculation[meteredentitlement.Key, meteredentitlement.Balance]
+	creditBalances      *calculation[creditbalance.Key, creditbalance.Balance]
+	meteredEntitlements *calculation[meteredentitlement.Key, meteredentitlement.Balance]
 }
 
 func New(config Config) (rte.Service, error) {
@@ -73,6 +74,24 @@ func New(config Config) (rte.Service, error) {
 		creditBalances:      newCalculation(config.CreditBalances, creditMetrics, config.Publisher, rte.NewCalculationUpdatedEvent[creditbalance.Key, creditbalance.Balance]),
 		meteredEntitlements: newCalculation(config.MeteredEntitlements, meteredMetrics, config.Publisher, rte.NewCalculationUpdatedEvent[meteredentitlement.Key, meteredentitlement.Balance]),
 	}, nil
+}
+
+func (s *service) RefreshDemand(ctx context.Context, input rte.RefreshDemandInput) error {
+	key, err := input.Target.DecodeKey()
+	if err != nil {
+		return err
+	}
+
+	switch key := key.(type) {
+	case creditbalance.Key:
+		_, err = s.creditBalances.calculate(ctx, key, input.UseCheckpoints)
+	case meteredentitlement.Key:
+		_, err = s.meteredEntitlements.calculate(ctx, key, input.UseCheckpoints)
+	default:
+		return fmt.Errorf("unsupported calculation key %T", key)
+	}
+
+	return err
 }
 
 func (s *service) CreditBalances() rte.Calculation[creditbalance.Key, creditbalance.Balance] {

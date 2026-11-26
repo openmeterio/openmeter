@@ -5,8 +5,8 @@ successful calculation after tracking expires or a caller deactivates the key.
 
 | Record | Identity | Stored information |
 | --- | --- | --- |
-| Credit balance | Namespace, customer ID, currency identity, feature scope | Calculation start and four decimal amounts |
-| Metered entitlement balance | Namespace and entitlement ID | Calculation start and the complete domain balance as JSON, including per-grant amounts |
+| Credit balance | Namespace, customer ID, currency identity, feature scope | Calculation start, four decimal amounts and optional checkpoints |
+| Metered entitlement balance | Namespace and entitlement ID | Calculation start, complete domain balance including per-grant amounts, and optional checkpoints |
 | Demand | Namespace, kind and hash of the semantic key | Decodable key, owner, background tracking, pull expiry, dirty/completed versions, entitlement deletion deadline and retry state |
 | Calculation lock | Demand row ID | One lock shared by all workers processing demand for this key |
 
@@ -14,6 +14,11 @@ For either balance store, an atomic upsert accepts a calculation whose start is 
 than the existing row. Even an equal timestamp retains the original result. The store reads back
 the winning row in the transaction. Callers must use both the returned state and the `Updated`
 flag to decide what to publish. Replicas must have synchronized clocks because `calculated_at` orders their writes.
+
+The same upsert can update the [checkpoint timeline](../service/checkpoints.md) together
+with the balance. Full calculations and stable hits preserve the existing timeline. A
+superseded attempt cannot replace or clear it. Ordinary reads and update events contain
+only the public result fields. A missing or undecodable history starts the calculator cold.
 
 The demand key hash comes from the decoded key dimensions. JSON field order or formatting cannot
 create a second demand row for the same key. Registration stores the typed key's JSON field

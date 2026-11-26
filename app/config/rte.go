@@ -8,12 +8,13 @@ import (
 )
 
 type RTEConfiguration struct {
-	ConsumerConfiguration  `mapstructure:",squash"`
-	PollInterval           time.Duration
-	CalculationTimeout     time.Duration
-	CalculationConcurrency int
-	Enabled                bool
-	ShadowSamplePercent    int
+	ConsumerConfiguration   `mapstructure:",squash"`
+	PollInterval            time.Duration
+	CalculationTimeout      time.Duration
+	CalculationConcurrency  int
+	IncrementalCalculations bool
+	Enabled                 bool
+	ShadowSamplePercent     int
 }
 
 func (c RTEConfiguration) Validate() error {
@@ -45,6 +46,7 @@ func ConfigureRTE(v *viper.Viper) {
 	v.SetDefault("rte.pollInterval", time.Second)
 	v.SetDefault("rte.calculationTimeout", 30*time.Second)
 	v.SetDefault("rte.calculationConcurrency", 4)
+	v.SetDefault("rte.incrementalCalculations", false)
 	v.SetDefault("rte.enabled", false)
 	v.SetDefault("rte.shadowSamplePercent", 10)
 	v.SetDefault("rte.dlq.topic", "om_sys.rte_dlq")

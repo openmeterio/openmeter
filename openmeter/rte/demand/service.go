@@ -3,15 +3,12 @@ package demand
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"time"
 
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/rte"
-	"github.com/openmeterio/openmeter/openmeter/rte/creditbalance"
-	"github.com/openmeterio/openmeter/openmeter/rte/meteredentitlement"
 	rtemetrics "github.com/openmeterio/openmeter/openmeter/rte/metrics"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -22,9 +19,10 @@ type Config struct {
 	Logger      *slog.Logger
 	MetricMeter metric.Meter
 
-	CalculationTimeout time.Duration
-	RetryMinDelay      time.Duration
-	RetryMaxDelay      time.Duration
+	CalculationTimeout      time.Duration
+	IncrementalCalculations bool
+	RetryMinDelay           time.Duration
+	RetryMaxDelay           time.Duration
 }
 
 func (c Config) Validate() error {
@@ -149,21 +147,9 @@ func (s *service) process(ctx context.Context, target *rte.CalculationTarget) (b
 	result, err := s.config.Repository.Process(ctx, rte.ProcessDemandInput{
 		Target: target, CalculationTimeout: s.config.CalculationTimeout, RetryMinDelay: s.config.RetryMinDelay, RetryMaxDelay: s.config.RetryMaxDelay,
 	}, func(ctx context.Context, target rte.CalculationTarget) error {
-		key, err := target.DecodeKey()
-		if err != nil {
-			return err
-		}
-
-		switch key := key.(type) {
-		case creditbalance.Key:
-			_, err = s.config.Service.CreditBalances().Calculate(ctx, key)
-		case meteredentitlement.Key:
-			_, err = s.config.Service.MeteredEntitlements().Calculate(ctx, key)
-		default:
-			return fmt.Errorf("unsupported calculation key %T", key)
-		}
-
-		return err
+		return s.config.Service.RefreshDemand(ctx, rte.RefreshDemandInput{
+			Target: target, UseCheckpoints: s.config.IncrementalCalculations,
+		})
 	})
 	outcome := rtemetrics.DemandOutcomeEmpty
 	switch {

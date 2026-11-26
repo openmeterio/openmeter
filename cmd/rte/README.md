@@ -22,6 +22,7 @@ Individual message and calculation failures follow their respective retry polici
 | `rte.retry`, `rte.dlq` | Retries and dead lettering for message handlers. With the DLQ disabled, failed messages remain eligible for broker redelivery after retries. |
 | `rte.pollInterval` | Delay after an idle background slot finds no work or fails to claim it. Defaults to 1s. |
 | `rte.calculationConcurrency` | Background slots per process. Defaults to 4. Message handlers can calculate concurrently with those slots. |
+| `rte.incrementalCalculations` | Allow demand refreshes to reuse [verified calculation checkpoints](../../openmeter/rte/service/checkpoints.md). Defaults to false. |
 | `rte.calculationTimeout` | Time budget for an individual demand calculation. Defaults to 30s. |
 | `rte.shadowSamplePercent` | Percentage of balance keys sampled by producers during the trial. Accepts 1–100 and defaults to 10. |
 

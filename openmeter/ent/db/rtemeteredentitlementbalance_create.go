@@ -83,6 +83,12 @@ func (_c *RTEMeteredEntitlementBalanceCreate) SetCalculatedAt(v time.Time) *RTEM
 	return _c
 }
 
+// SetCheckpoints sets the "checkpoints" field.
+func (_c *RTEMeteredEntitlementBalanceCreate) SetCheckpoints(v jsontext.Value) *RTEMeteredEntitlementBalanceCreate {
+	_c.mutation.SetCheckpoints(v)
+	return _c
+}
+
 // SetBalance sets the "balance" field.
 func (_c *RTEMeteredEntitlementBalanceCreate) SetBalance(v jsontext.Value) *RTEMeteredEntitlementBalanceCreate {
 	_c.mutation.SetBalance(v)
@@ -218,6 +224,14 @@ func (_c *RTEMeteredEntitlementBalanceCreate) createSpec() (*RTEMeteredEntitleme
 		_spec.SetField(rtemeteredentitlementbalance.FieldCalculatedAt, field.TypeTime, value)
 		_node.CalculatedAt = value
 	}
+	if value, ok := _c.mutation.Checkpoints(); ok {
+		vv, err := rtemeteredentitlementbalance.ValueScanner.Checkpoints.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(rtemeteredentitlementbalance.FieldCheckpoints, field.TypeString, vv)
+		_node.Checkpoints = value
+	}
 	if value, ok := _c.mutation.Balance(); ok {
 		vv, err := rtemeteredentitlementbalance.ValueScanner.Balance.Value(value)
 		if err != nil {
@@ -317,6 +331,24 @@ func (u *RTEMeteredEntitlementBalanceUpsert) SetCalculatedAt(v time.Time) *RTEMe
 // UpdateCalculatedAt sets the "calculated_at" field to the value that was provided on create.
 func (u *RTEMeteredEntitlementBalanceUpsert) UpdateCalculatedAt() *RTEMeteredEntitlementBalanceUpsert {
 	u.SetExcluded(rtemeteredentitlementbalance.FieldCalculatedAt)
+	return u
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (u *RTEMeteredEntitlementBalanceUpsert) SetCheckpoints(v jsontext.Value) *RTEMeteredEntitlementBalanceUpsert {
+	u.Set(rtemeteredentitlementbalance.FieldCheckpoints, v)
+	return u
+}
+
+// UpdateCheckpoints sets the "checkpoints" field to the value that was provided on create.
+func (u *RTEMeteredEntitlementBalanceUpsert) UpdateCheckpoints() *RTEMeteredEntitlementBalanceUpsert {
+	u.SetExcluded(rtemeteredentitlementbalance.FieldCheckpoints)
+	return u
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (u *RTEMeteredEntitlementBalanceUpsert) ClearCheckpoints() *RTEMeteredEntitlementBalanceUpsert {
+	u.SetNull(rtemeteredentitlementbalance.FieldCheckpoints)
 	return u
 }
 
@@ -429,6 +461,27 @@ func (u *RTEMeteredEntitlementBalanceUpsertOne) SetCalculatedAt(v time.Time) *RT
 func (u *RTEMeteredEntitlementBalanceUpsertOne) UpdateCalculatedAt() *RTEMeteredEntitlementBalanceUpsertOne {
 	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
 		s.UpdateCalculatedAt()
+	})
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (u *RTEMeteredEntitlementBalanceUpsertOne) SetCheckpoints(v jsontext.Value) *RTEMeteredEntitlementBalanceUpsertOne {
+	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
+		s.SetCheckpoints(v)
+	})
+}
+
+// UpdateCheckpoints sets the "checkpoints" field to the value that was provided on create.
+func (u *RTEMeteredEntitlementBalanceUpsertOne) UpdateCheckpoints() *RTEMeteredEntitlementBalanceUpsertOne {
+	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
+		s.UpdateCheckpoints()
+	})
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (u *RTEMeteredEntitlementBalanceUpsertOne) ClearCheckpoints() *RTEMeteredEntitlementBalanceUpsertOne {
+	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
+		s.ClearCheckpoints()
 	})
 }
 
@@ -712,6 +765,27 @@ func (u *RTEMeteredEntitlementBalanceUpsertBulk) SetCalculatedAt(v time.Time) *R
 func (u *RTEMeteredEntitlementBalanceUpsertBulk) UpdateCalculatedAt() *RTEMeteredEntitlementBalanceUpsertBulk {
 	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
 		s.UpdateCalculatedAt()
+	})
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (u *RTEMeteredEntitlementBalanceUpsertBulk) SetCheckpoints(v jsontext.Value) *RTEMeteredEntitlementBalanceUpsertBulk {
+	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
+		s.SetCheckpoints(v)
+	})
+}
+
+// UpdateCheckpoints sets the "checkpoints" field to the value that was provided on create.
+func (u *RTEMeteredEntitlementBalanceUpsertBulk) UpdateCheckpoints() *RTEMeteredEntitlementBalanceUpsertBulk {
+	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
+		s.UpdateCheckpoints()
+	})
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (u *RTEMeteredEntitlementBalanceUpsertBulk) ClearCheckpoints() *RTEMeteredEntitlementBalanceUpsertBulk {
+	return u.Update(func(s *RTEMeteredEntitlementBalanceUpsert) {
+		s.ClearCheckpoints()
 	})
 }
 

@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"time"
@@ -66,6 +67,18 @@ func (_u *RTECreditBalanceUpdate) SetNillableCalculatedAt(v *time.Time) *RTECred
 	if v != nil {
 		_u.SetCalculatedAt(*v)
 	}
+	return _u
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (_u *RTECreditBalanceUpdate) SetCheckpoints(v jsontext.Value) *RTECreditBalanceUpdate {
+	_u.mutation.SetCheckpoints(v)
+	return _u
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (_u *RTECreditBalanceUpdate) ClearCheckpoints() *RTECreditBalanceUpdate {
+	_u.mutation.ClearCheckpoints()
 	return _u
 }
 
@@ -187,6 +200,16 @@ func (_u *RTECreditBalanceUpdate) sqlSave(ctx context.Context) (_node int, err e
 	if value, ok := _u.mutation.CalculatedAt(); ok {
 		_spec.SetField(rtecreditbalance.FieldCalculatedAt, field.TypeTime, value)
 	}
+	if value, ok := _u.mutation.Checkpoints(); ok {
+		vv, err := rtecreditbalance.ValueScanner.Checkpoints.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(rtecreditbalance.FieldCheckpoints, field.TypeString, vv)
+	}
+	if _u.mutation.CheckpointsCleared() {
+		_spec.ClearField(rtecreditbalance.FieldCheckpoints, field.TypeString)
+	}
 	if value, ok := _u.mutation.Booked(); ok {
 		_spec.SetField(rtecreditbalance.FieldBooked, field.TypeOther, value)
 	}
@@ -256,6 +279,18 @@ func (_u *RTECreditBalanceUpdateOne) SetNillableCalculatedAt(v *time.Time) *RTEC
 	if v != nil {
 		_u.SetCalculatedAt(*v)
 	}
+	return _u
+}
+
+// SetCheckpoints sets the "checkpoints" field.
+func (_u *RTECreditBalanceUpdateOne) SetCheckpoints(v jsontext.Value) *RTECreditBalanceUpdateOne {
+	_u.mutation.SetCheckpoints(v)
+	return _u
+}
+
+// ClearCheckpoints clears the value of the "checkpoints" field.
+func (_u *RTECreditBalanceUpdateOne) ClearCheckpoints() *RTECreditBalanceUpdateOne {
+	_u.mutation.ClearCheckpoints()
 	return _u
 }
 
@@ -406,6 +441,16 @@ func (_u *RTECreditBalanceUpdateOne) sqlSave(ctx context.Context) (_node *RTECre
 	}
 	if value, ok := _u.mutation.CalculatedAt(); ok {
 		_spec.SetField(rtecreditbalance.FieldCalculatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Checkpoints(); ok {
+		vv, err := rtecreditbalance.ValueScanner.Checkpoints.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(rtecreditbalance.FieldCheckpoints, field.TypeString, vv)
+	}
+	if _u.mutation.CheckpointsCleared() {
+		_spec.ClearField(rtecreditbalance.FieldCheckpoints, field.TypeString)
 	}
 	if value, ok := _u.mutation.Booked(); ok {
 		_spec.SetField(rtecreditbalance.FieldBooked, field.TypeOther, value)

@@ -1,6 +1,7 @@
 package rte_test
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -30,53 +31,11 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 	ns := s.GetUniqueNamespace("rte-balance")
 	cust := s.CreateLedgerBackedCustomer(ns, "rte-customer")
 	currency := currencies.NewCurrencyReference(creditstest.USD)
-	dependencies := transactions.ResolverDependencies{
-		AccountService: s.LedgerResolver,
-		AccountCatalog: s.LedgerAccountService,
-		BalanceQuerier: s.BalanceQuerier,
-	}
-
-	scope := transactions.ResolutionScope{
-		CustomerID: cust.GetID(),
-		Namespace:  ns,
-	}
-
-	postCredits := func(amount int64) {
-		inputs, err := transactions.ResolveTransactions(ctx, dependencies, scope, transactions.IssueCustomerReceivableTemplate{
-			At:       now,
-			Amount:   alpacadecimal.NewFromInt(amount),
-			Currency: currency,
-		})
-		s.Require().NoError(err)
-
-		_, err = s.Ledger.CommitGroup(ctx, transactions.GroupInputs(ns, nil, inputs...))
-		s.Require().NoError(err)
-
-		// Issue alone leaves matching receivable debt; settle the payment so
-		// these are funded credits, as in the existing ledger fixtures.
-		settle, err := transactions.ResolveTransactions(ctx, dependencies, scope,
-			transactions.AuthorizeCustomerReceivablePaymentTemplate{
-				At:       now,
-				Amount:   alpacadecimal.NewFromInt(amount),
-				Currency: currency,
-			},
-			transactions.SettleCustomerReceivableFromPaymentTemplate{
-				At:       now,
-				Amount:   alpacadecimal.NewFromInt(amount),
-				Currency: currency,
-			},
-		)
-		s.Require().NoError(err)
-
-		_, err = s.Ledger.CommitGroup(ctx, transactions.GroupInputs(ns, nil, settle...))
-		s.Require().NoError(err)
-	}
-
-	postCredits(100)
+	key := creditbalance.Key{CustomerID: cust.GetID(), Currency: currency}
+	s.postFundedCredits(ctx, key, now, 100)
 
 	pipeline := s.newEventPipeline()
 	engine := pipeline.service
-	key := creditbalance.Key{CustomerID: cust.GetID(), Currency: currency}
 
 	_, err := engine.CreditBalances().Get(ctx, key)
 	s.True(models.IsGenericNotFoundError(err))
@@ -97,7 +56,7 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 
 	// Then a fresh service instance still reads that stored result after the
 	// actual ledger changes. Only another calculate request picks up the change.
-	postCredits(25)
+	s.postFundedCredits(ctx, key, now, 25)
 	reader := s.newRTE()
 	stored, err := reader.CreditBalances().Get(ctx, key)
 	s.Require().NoError(err)
@@ -138,4 +97,48 @@ func (s *RTEIntegrationSuite) TestCalculateStoreAndRead() {
 	s.Require().NoError(err)
 	s.True(fresh.CalculatedAt.After(refreshed.CalculatedAt))
 	s.Equal(refreshed.Value, fresh.Value)
+}
+
+func (s *RTEIntegrationSuite) postFundedCredits(ctx context.Context, key creditbalance.Key, bookedAt time.Time, amount int64) {
+	s.T().Helper()
+
+	dependencies := transactions.ResolverDependencies{
+		AccountService: s.LedgerResolver,
+		AccountCatalog: s.LedgerAccountService,
+		BalanceQuerier: s.BalanceQuerier,
+	}
+
+	scope := transactions.ResolutionScope{
+		CustomerID: key.CustomerID,
+		Namespace:  key.CustomerID.Namespace,
+	}
+
+	inputs, err := transactions.ResolveTransactions(ctx, dependencies, scope, transactions.IssueCustomerReceivableTemplate{
+		At:       bookedAt,
+		Amount:   alpacadecimal.NewFromInt(amount),
+		Currency: key.Currency,
+	})
+	s.Require().NoError(err)
+
+	_, err = s.Ledger.CommitGroup(ctx, transactions.GroupInputs(key.CustomerID.Namespace, nil, inputs...))
+	s.Require().NoError(err)
+
+	// Issue alone leaves matching receivable debt; settle the payment so
+	// these are funded credits, as in the existing ledger fixtures.
+	settle, err := transactions.ResolveTransactions(ctx, dependencies, scope,
+		transactions.AuthorizeCustomerReceivablePaymentTemplate{
+			At:       bookedAt,
+			Amount:   alpacadecimal.NewFromInt(amount),
+			Currency: key.Currency,
+		},
+		transactions.SettleCustomerReceivableFromPaymentTemplate{
+			At:       bookedAt,
+			Amount:   alpacadecimal.NewFromInt(amount),
+			Currency: key.Currency,
+		},
+	)
+	s.Require().NoError(err)
+
+	_, err = s.Ledger.CommitGroup(ctx, transactions.GroupInputs(key.CustomerID.Namespace, nil, settle...))
+	s.Require().NoError(err)
 }

@@ -6182,6 +6182,20 @@ func (u *RTECreditBalanceUpdateOne) SetOrClearDeletedAt(value *time.Time) *RTECr
 	return u.SetDeletedAt(*value)
 }
 
+func (u *RTECreditBalanceUpdate) SetOrClearCheckpoints(value *jsontext.Value) *RTECreditBalanceUpdate {
+	if value == nil {
+		return u.ClearCheckpoints()
+	}
+	return u.SetCheckpoints(*value)
+}
+
+func (u *RTECreditBalanceUpdateOne) SetOrClearCheckpoints(value *jsontext.Value) *RTECreditBalanceUpdateOne {
+	if value == nil {
+		return u.ClearCheckpoints()
+	}
+	return u.SetCheckpoints(*value)
+}
+
 func (u *RTEDemandUpdate) SetOrClearDeletedAt(value *time.Time) *RTEDemandUpdate {
 	if value == nil {
 		return u.ClearDeletedAt()
@@ -6250,6 +6264,20 @@ func (u *RTEMeteredEntitlementBalanceUpdateOne) SetOrClearDeletedAt(value *time.
 		return u.ClearDeletedAt()
 	}
 	return u.SetDeletedAt(*value)
+}
+
+func (u *RTEMeteredEntitlementBalanceUpdate) SetOrClearCheckpoints(value *jsontext.Value) *RTEMeteredEntitlementBalanceUpdate {
+	if value == nil {
+		return u.ClearCheckpoints()
+	}
+	return u.SetCheckpoints(*value)
+}
+
+func (u *RTEMeteredEntitlementBalanceUpdateOne) SetOrClearCheckpoints(value *jsontext.Value) *RTEMeteredEntitlementBalanceUpdateOne {
+	if value == nil {
+		return u.ClearCheckpoints()
+	}
+	return u.SetCheckpoints(*value)
 }
 
 func (u *SubjectUpdate) SetOrClearDeletedAt(value *time.Time) *SubjectUpdate {

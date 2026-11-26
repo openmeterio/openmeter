@@ -3,9 +3,11 @@
 package rtecreditbalance
 
 import (
+	"encoding/json/jsontext"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/schema/field"
 )
 
 const (
@@ -29,6 +31,8 @@ const (
 	FieldFeatureScope = "feature_scope"
 	// FieldCalculatedAt holds the string denoting the calculated_at field in the database.
 	FieldCalculatedAt = "calculated_at"
+	// FieldCheckpoints holds the string denoting the checkpoints field in the database.
+	FieldCheckpoints = "checkpoints"
 	// FieldBooked holds the string denoting the booked field in the database.
 	FieldBooked = "booked"
 	// FieldSpendable holds the string denoting the spendable field in the database.
@@ -52,6 +56,7 @@ var Columns = []string{
 	FieldCurrencyKey,
 	FieldFeatureScope,
 	FieldCalculatedAt,
+	FieldCheckpoints,
 	FieldBooked,
 	FieldSpendable,
 	FieldLive,
@@ -83,6 +88,10 @@ var (
 	CurrencyKeyValidator func(string) error
 	// FeatureScopeValidator is a validator for the "feature_scope" field. It is called by the builders before save.
 	FeatureScopeValidator func(string) error
+	// ValueScanner of all RTECreditBalance fields.
+	ValueScanner struct {
+		Checkpoints field.TypeValueScanner[jsontext.Value]
+	}
 )
 
 // OrderOption defines the ordering options for the RTECreditBalance queries.
@@ -131,6 +140,11 @@ func ByFeatureScope(opts ...sql.OrderTermOption) OrderOption {
 // ByCalculatedAt orders the results by the calculated_at field.
 func ByCalculatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCalculatedAt, opts...).ToFunc()
+}
+
+// ByCheckpoints orders the results by the checkpoints field.
+func ByCheckpoints(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCheckpoints, opts...).ToFunc()
 }
 
 // ByBooked orders the results by the booked field.

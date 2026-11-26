@@ -30,6 +30,8 @@ type RTEMeteredEntitlementBalance struct {
 	EntitlementID string `json:"entitlement_id,omitempty"`
 	// CalculatedAt holds the value of the "calculated_at" field.
 	CalculatedAt time.Time `json:"calculated_at,omitempty"`
+	// Checkpoints holds the value of the "checkpoints" field.
+	Checkpoints jsontext.Value `json:"checkpoints,omitempty"`
 	// Balance holds the value of the "balance" field.
 	Balance      jsontext.Value `json:"balance,omitempty"`
 	selectValues sql.SelectValues
@@ -46,6 +48,8 @@ func (*RTEMeteredEntitlementBalance) scanValues(columns []string) ([]any, error)
 			values[i] = new(sql.NullString)
 		case rtemeteredentitlementbalance.FieldCreatedAt, rtemeteredentitlementbalance.FieldUpdatedAt, rtemeteredentitlementbalance.FieldDeletedAt, rtemeteredentitlementbalance.FieldCalculatedAt:
 			values[i] = new(sql.NullTime)
+		case rtemeteredentitlementbalance.FieldCheckpoints:
+			values[i] = rtemeteredentitlementbalance.ValueScanner.Checkpoints.ScanValue()
 		case rtemeteredentitlementbalance.FieldBalance:
 			values[i] = rtemeteredentitlementbalance.ValueScanner.Balance.ScanValue()
 		default:
@@ -105,6 +109,12 @@ func (_m *RTEMeteredEntitlementBalance) assignValues(columns []string, values []
 				return fmt.Errorf("unexpected type %T for field calculated_at", values[i])
 			} else if value.Valid {
 				_m.CalculatedAt = value.Time
+			}
+		case rtemeteredentitlementbalance.FieldCheckpoints:
+			if value, err := rtemeteredentitlementbalance.ValueScanner.Checkpoints.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				_m.Checkpoints = value
 			}
 		case rtemeteredentitlementbalance.FieldBalance:
 			if value, err := rtemeteredentitlementbalance.ValueScanner.Balance.FromValue(values[i]); err != nil {
@@ -167,6 +177,9 @@ func (_m *RTEMeteredEntitlementBalance) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("calculated_at=")
 	builder.WriteString(_m.CalculatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("checkpoints=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Checkpoints))
 	builder.WriteString(", ")
 	builder.WriteString("balance=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Balance))

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -34,9 +35,23 @@ func (f calculatorFunc) Calculate(ctx context.Context, input rte.CalculateInput[
 	return f(ctx, input)
 }
 
+type checkpointCalculator struct {
+	calculatorFunc
+	refresh func([]rte.Checkpoint) (rte.IncrementalResult[int], error)
+}
+
+func (c checkpointCalculator) CalculateIncremental(_ context.Context, _ rte.CalculateInput[testKey], candidates []rte.Checkpoint) (rte.IncrementalResult[int], error) {
+	return c.refresh(candidates)
+}
+
 type storeStub struct {
-	store func(context.Context, rte.StoreInput[testKey, int]) (rte.StoreResult[int], error)
-	get   func(context.Context, testKey) (rte.State[int], error)
+	checkpoints func(context.Context, testKey) (rte.Checkpoints, error)
+	store       func(context.Context, rte.StoreInput[testKey, int]) (rte.StoreResult[int], error)
+	get         func(context.Context, testKey) (rte.State[int], error)
+}
+
+func (s storeStub) GetCheckpoints(ctx context.Context, key testKey) (rte.Checkpoints, error) {
+	return s.checkpoints(ctx, key)
 }
 
 func (s storeStub) Store(ctx context.Context, input rte.StoreInput[testKey, int]) (rte.StoreResult[int], error) {
@@ -193,6 +208,63 @@ func TestServiceRejectsInvalidKeys(t *testing.T) {
 
 	// Then validation stops execution before calculation or storage.
 	require.Zero(t, calls)
+}
+
+func TestCalculateWithCheckpoints(t *testing.T) {
+	ctx := t.Context()
+	key := testKey("tracked")
+	old := rte.Checkpoint{At: clock.Now().Add(-time.Hour), Data: json.RawMessage("1")}
+	history := rte.Checkpoints{old}
+	var checkpointReads, writes int
+
+	metrics, err := rtemetrics.NewCalculation(noop.NewMeterProvider().Meter("test"), rte.CalculationKindCreditBalance)
+	require.NoError(t, err)
+	partial := checkpointCalculator{
+		calculatorFunc: func(context.Context, rte.CalculateInput[testKey]) (int, error) { return 3, nil },
+		refresh: func(candidates []rte.Checkpoint) (rte.IncrementalResult[int], error) {
+			require.Equal(t, []rte.Checkpoint{old}, candidates)
+			return rte.IncrementalResult[int]{Value: 2, Use: rte.CheckpointReused}, nil
+		},
+	}
+	engine := newCalculation(Registration[testKey, int]{
+		Calculator: &partial,
+		Store: storeStub{
+			checkpoints: func(context.Context, testKey) (rte.Checkpoints, error) {
+				checkpointReads++
+				return history, nil
+			},
+			store: func(_ context.Context, input rte.StoreInput[testKey, int]) (rte.StoreResult[int], error) {
+				writes++
+				if input.Checkpoints != nil {
+					history = *input.Checkpoints
+				}
+
+				return rte.StoreResult[int]{State: input.State, Updated: true}, nil
+			},
+		},
+	}, metrics, publisherStub{publish: func(context.Context, marshaler.Event) error { return nil }}, updatedEvent)
+
+	// A verified input can be reused across refreshes without saving a second copy.
+	state, err := engine.calculate(ctx, key, true)
+	require.NoError(t, err)
+	require.Equal(t, 2, state.Value)
+	require.Equal(t, rte.Checkpoints{old}, history)
+
+	// A failed source read leaves both the public result and the checkpoint alone.
+	sourceErr := errors.New("usage unavailable")
+	partial.refresh = func([]rte.Checkpoint) (rte.IncrementalResult[int], error) {
+		return rte.IncrementalResult[int]{}, sourceErr
+	}
+	_, err = engine.calculate(ctx, key, true)
+	require.ErrorIs(t, err, sourceErr)
+	require.Equal(t, 1, writes)
+
+	// An explicit full calculation reads the sources and preserves the warm timeline.
+	state, err = engine.Calculate(ctx, key)
+	require.NoError(t, err)
+	require.Equal(t, 3, state.Value)
+	require.Equal(t, rte.Checkpoints{old}, history)
+	require.Equal(t, 2, checkpointReads)
 }
 
 type txStub struct{}

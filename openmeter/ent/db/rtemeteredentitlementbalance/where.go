@@ -86,6 +86,12 @@ func CalculatedAt(v time.Time) predicate.RTEMeteredEntitlementBalance {
 	return predicate.RTEMeteredEntitlementBalance(sql.FieldEQ(FieldCalculatedAt, v))
 }
 
+// Checkpoints applies equality check predicate on the "checkpoints" field. It's identical to CheckpointsEQ.
+func Checkpoints(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldEQ(FieldCheckpoints, vc), err)
+}
+
 // Balance applies equality check predicate on the "balance" field. It's identical to BalanceEQ.
 func Balance(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
 	vc, err := ValueScanner.Balance.Value(v)
@@ -390,6 +396,130 @@ func CalculatedAtLT(v time.Time) predicate.RTEMeteredEntitlementBalance {
 // CalculatedAtLTE applies the LTE predicate on the "calculated_at" field.
 func CalculatedAtLTE(v time.Time) predicate.RTEMeteredEntitlementBalance {
 	return predicate.RTEMeteredEntitlementBalance(sql.FieldLTE(FieldCalculatedAt, v))
+}
+
+// CheckpointsEQ applies the EQ predicate on the "checkpoints" field.
+func CheckpointsEQ(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldEQ(FieldCheckpoints, vc), err)
+}
+
+// CheckpointsNEQ applies the NEQ predicate on the "checkpoints" field.
+func CheckpointsNEQ(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldNEQ(FieldCheckpoints, vc), err)
+}
+
+// CheckpointsIn applies the In predicate on the "checkpoints" field.
+func CheckpointsIn(vs ...jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Checkpoints.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldIn(FieldCheckpoints, v...), err)
+}
+
+// CheckpointsNotIn applies the NotIn predicate on the "checkpoints" field.
+func CheckpointsNotIn(vs ...jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	var (
+		err error
+		v   = make([]any, len(vs))
+	)
+	for i := range v {
+		if v[i], err = ValueScanner.Checkpoints.Value(vs[i]); err != nil {
+			break
+		}
+	}
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldNotIn(FieldCheckpoints, v...), err)
+}
+
+// CheckpointsGT applies the GT predicate on the "checkpoints" field.
+func CheckpointsGT(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldGT(FieldCheckpoints, vc), err)
+}
+
+// CheckpointsGTE applies the GTE predicate on the "checkpoints" field.
+func CheckpointsGTE(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldGTE(FieldCheckpoints, vc), err)
+}
+
+// CheckpointsLT applies the LT predicate on the "checkpoints" field.
+func CheckpointsLT(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldLT(FieldCheckpoints, vc), err)
+}
+
+// CheckpointsLTE applies the LTE predicate on the "checkpoints" field.
+func CheckpointsLTE(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldLTE(FieldCheckpoints, vc), err)
+}
+
+// CheckpointsContains applies the Contains predicate on the "checkpoints" field.
+func CheckpointsContains(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("checkpoints value is not a string: %T", vc)
+	}
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldContains(FieldCheckpoints, vcs), err)
+}
+
+// CheckpointsHasPrefix applies the HasPrefix predicate on the "checkpoints" field.
+func CheckpointsHasPrefix(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("checkpoints value is not a string: %T", vc)
+	}
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldHasPrefix(FieldCheckpoints, vcs), err)
+}
+
+// CheckpointsHasSuffix applies the HasSuffix predicate on the "checkpoints" field.
+func CheckpointsHasSuffix(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("checkpoints value is not a string: %T", vc)
+	}
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldHasSuffix(FieldCheckpoints, vcs), err)
+}
+
+// CheckpointsIsNil applies the IsNil predicate on the "checkpoints" field.
+func CheckpointsIsNil() predicate.RTEMeteredEntitlementBalance {
+	return predicate.RTEMeteredEntitlementBalance(sql.FieldIsNull(FieldCheckpoints))
+}
+
+// CheckpointsNotNil applies the NotNil predicate on the "checkpoints" field.
+func CheckpointsNotNil() predicate.RTEMeteredEntitlementBalance {
+	return predicate.RTEMeteredEntitlementBalance(sql.FieldNotNull(FieldCheckpoints))
+}
+
+// CheckpointsEqualFold applies the EqualFold predicate on the "checkpoints" field.
+func CheckpointsEqualFold(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("checkpoints value is not a string: %T", vc)
+	}
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldEqualFold(FieldCheckpoints, vcs), err)
+}
+
+// CheckpointsContainsFold applies the ContainsFold predicate on the "checkpoints" field.
+func CheckpointsContainsFold(v jsontext.Value) predicate.RTEMeteredEntitlementBalance {
+	vc, err := ValueScanner.Checkpoints.Value(v)
+	vcs, ok := vc.(string)
+	if err == nil && !ok {
+		err = fmt.Errorf("checkpoints value is not a string: %T", vc)
+	}
+	return predicate.RTEMeteredEntitlementBalanceOrErr(sql.FieldContainsFold(FieldCheckpoints, vcs), err)
 }
 
 // BalanceEQ applies the EQ predicate on the "balance" field.

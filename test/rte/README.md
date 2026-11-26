@@ -14,6 +14,17 @@ This exercises persisted balances, demand tracking and transactional update deli
 event pipeline uses the production router and outbox with in-memory message transport.
 The separate-process test skips unless both environment variables below are set.
 
+### Credit checkpoint timings
+
+With local PostgreSQL running, compare full and incremental `EnsureFresh + Get` on customers
+with one or 32 distinct-priority grants. One workload keeps the journal unchanged and the other
+funds one additional credit before every refresh. The test checks all four amounts, reports local latency
+percentiles and excludes asynchronous outbox delivery from the timer.
+
+```sh
+POSTGRES_HOST=127.0.0.1 RTE_BENCHMARK_CREDITS=1 go test -tags=dynamic ./test/rte -run '^TestRTEIntegration$/TestCreditCheckpointPerformance$' -count=1 -v
+```
+
 ## Worker process with Kafka and ClickHouse
 
 ```sh

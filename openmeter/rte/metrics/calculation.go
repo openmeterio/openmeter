@@ -12,6 +12,15 @@ import (
 
 type CalculationOutcome string
 
+type CalculationMethod string
+
+const (
+	CalculationMethodFull     CalculationMethod = "full"
+	CalculationMethodHit      CalculationMethod = "checkpoint_hit"
+	CalculationMethodAdvanced CalculationMethod = "checkpoint_advanced"
+	CalculationMethodMiss     CalculationMethod = "checkpoint_miss"
+)
+
 const (
 	CalculationOutcomeUpdated    CalculationOutcome = "updated"
 	CalculationOutcomeSuperseded CalculationOutcome = "superseded"
@@ -30,7 +39,7 @@ type Calculation struct {
 func NewCalculation(meter metric.Meter, kind rte.CalculationKind) (Calculation, error) {
 	m := Calculation{kind: kind}
 	var err error
-	m.attempts, err = meter.Int64Counter("rte.calculations", metric.WithDescription("Exact calculations executed, by outcome"))
+	m.attempts, err = meter.Int64Counter("rte.calculations", metric.WithDescription("Balance calculations by kind, method and outcome"))
 	if err != nil {
 		return m, err
 	}
@@ -47,8 +56,8 @@ func NewCalculation(meter metric.Meter, kind rte.CalculationKind) (Calculation, 
 
 // Calculated records a service-call outcome, including failed and superseded attempts.
 // An updated result can still be rolled back by an enclosing demand transaction.
-func (m Calculation) Calculated(ctx context.Context, start time.Time, outcome CalculationOutcome) {
-	labels := metric.WithAttributes(attribute.String("kind", string(m.kind)), attribute.String("outcome", string(outcome)))
+func (m Calculation) Calculated(ctx context.Context, start time.Time, outcome CalculationOutcome, method CalculationMethod) {
+	labels := metric.WithAttributes(attribute.String("kind", string(m.kind)), attribute.String("outcome", string(outcome)), attribute.String("method", string(method)))
 	m.attempts.Add(ctx, 1, labels)
 	m.duration.Record(ctx, time.Since(start).Seconds(), labels)
 }

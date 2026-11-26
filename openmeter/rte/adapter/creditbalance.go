@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	stdsql "database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -45,7 +46,7 @@ func (a *creditBalanceStore) Store(ctx context.Context, input rte.StoreInput[cre
 	}
 
 	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.StoreResult[creditbalance.Balance], error) {
-		err := a.db.RTECreditBalance.Create().
+		create := a.db.RTECreditBalance.Create().
 			SetNamespace(input.Key.CustomerID.Namespace).
 			SetCustomerID(input.Key.CustomerID.ID).
 			SetCurrencyKey(input.Key.Currency.IdentityKey()).
@@ -54,12 +55,26 @@ func (a *creditBalanceStore) Store(ctx context.Context, input rte.StoreInput[cre
 			SetBooked(input.State.Value.Booked).
 			SetSpendable(input.State.Value.Spendable).
 			SetLive(input.State.Value.Live).
-			SetPending(input.State.Value.Pending).
-			OnConflict(
-				sql.ConflictColumns(balancedb.FieldNamespace, balancedb.FieldCustomerID, balancedb.FieldCurrencyKey, balancedb.FieldFeatureScope),
-				sql.ConflictWhere(sql.IsNull(balancedb.FieldDeletedAt)),
-				sql.UpdateWhere(sql.LT(balancedb.FieldCalculatedAt, input.State.CalculatedAt)),
-			).UpdateNewValues().Exec(ctx)
+			SetPending(input.State.Value.Pending)
+		if input.Checkpoints != nil && len(*input.Checkpoints) > 0 {
+			encoded, err := json.Marshal(input.Checkpoints)
+			if err != nil {
+				return rte.StoreResult[creditbalance.Balance]{}, fmt.Errorf("encode credit balance checkpoints: %w", err)
+			}
+
+			create.SetCheckpoints(encoded)
+		}
+
+		upsert := create.OnConflict(
+			sql.ConflictColumns(balancedb.FieldNamespace, balancedb.FieldCustomerID, balancedb.FieldCurrencyKey, balancedb.FieldFeatureScope),
+			sql.ConflictWhere(sql.IsNull(balancedb.FieldDeletedAt)),
+			sql.UpdateWhere(sql.LT(balancedb.FieldCalculatedAt, input.State.CalculatedAt)),
+		).UpdateNewValues()
+		if input.Checkpoints != nil {
+			upsert.UpdateCheckpoints()
+		}
+
+		err := upsert.Exec(ctx)
 		// PostgreSQL returns no row when the conflict condition retains the
 		// existing result. Ent's RETURNING reports that as sql.ErrNoRows.
 		if err != nil && !errors.Is(err, stdsql.ErrNoRows) {
@@ -82,7 +97,9 @@ func (a *creditBalanceStore) Get(ctx context.Context, key creditbalance.Key) (rt
 	}
 
 	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.State[creditbalance.Balance], error) {
-		entity, err := a.db.RTECreditBalance.Query().Where(balanceScope(key)).Only(ctx)
+		entity, err := a.db.RTECreditBalance.Query().Where(balanceScope(key)).
+			Select(balancedb.FieldCalculatedAt, balancedb.FieldBooked, balancedb.FieldSpendable, balancedb.FieldLive, balancedb.FieldPending).
+			Only(ctx)
 		if db.IsNotFound(err) {
 			return rte.State[creditbalance.Balance]{}, rte.NewNotCalculatedError()
 		}
@@ -100,5 +117,24 @@ func (a *creditBalanceStore) Get(ctx context.Context, key creditbalance.Key) (rt
 				Pending:   entity.Pending,
 			},
 		}, nil
+	})
+}
+
+func (a *creditBalanceStore) GetCheckpoints(ctx context.Context, key creditbalance.Key) (rte.Checkpoints, error) {
+	if err := key.Validate(); err != nil {
+		return nil, err
+	}
+
+	return entutils.TransactingRepo(ctx, a.adapter, func(ctx context.Context, a *adapter) (rte.Checkpoints, error) {
+		row, err := a.db.RTECreditBalance.Query().Where(balanceScope(key)).Select(balancedb.FieldCheckpoints).Only(ctx)
+		if db.IsNotFound(err) {
+			return nil, nil
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("get credit balance checkpoints: %w", err)
+		}
+
+		return decodeCheckpoints(row.Checkpoints), nil
 	})
 }

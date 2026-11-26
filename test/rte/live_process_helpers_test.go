@@ -73,6 +73,7 @@ func (s *RTELiveProcessSuite) startLiveProcess() *liveProcess {
 	}
 
 	v.Set("rte.enabled", true)
+	v.Set("rte.incrementalCalculations", true)
 	v.Set("rte.shadowSamplePercent", 100)
 	v.Set("rte.consumerGroupName", "rte_live_"+suffix)
 	v.Set("rte.dlq.topic", "rte_live_"+suffix+"_dlq")

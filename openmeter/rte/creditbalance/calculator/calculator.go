@@ -2,6 +2,7 @@ package calculator
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 
@@ -65,10 +66,72 @@ func (c *calculator) Calculate(ctx context.Context, input rte.CalculateInput[cre
 		return creditbalance.Balance{}, err
 	}
 
+	return mapBalance(balance), nil
+}
+
+func mapBalance(balance customerbalance.Balance) creditbalance.Balance {
 	return creditbalance.Balance{
 		Booked:    balance.Booked(),
 		Spendable: balance.Spendable(),
 		Live:      balance.Live(),
 		Pending:   balance.Pending(),
-	}, nil
+	}
+}
+
+type journalCheckpoint struct {
+	Version int                                `json:"version"`
+	Journal *customerbalance.JournalCheckpoint `json:"journal"`
+}
+
+type incrementalSource interface {
+	GetIncrementalBalance(context.Context, customerbalance.GetIncrementalBalanceInput) (customerbalance.GetIncrementalBalanceResult, error)
+}
+
+func (c *calculator) CalculateIncremental(ctx context.Context, input rte.CalculateInput[creditbalance.Key], candidates []rte.Checkpoint) (rte.IncrementalResult[creditbalance.Balance], error) {
+	source, ok := c.source.(incrementalSource)
+	if !ok {
+		value, err := c.Calculate(ctx, input)
+		return rte.IncrementalResult[creditbalance.Balance]{Value: value}, err
+	}
+
+	if err := input.Validate(); err != nil {
+		return rte.IncrementalResult[creditbalance.Balance]{}, err
+	}
+
+	request := customerbalance.GetIncrementalBalanceInput{
+		StartedAt: input.At,
+		GetBalanceServiceInput: customerbalance.GetBalanceServiceInput{
+			CustomerID:    input.Key.CustomerID,
+			Currency:      input.Key.Currency,
+			FeatureFilter: input.Key.FeatureFilter,
+		},
+	}
+	for _, cp := range candidates {
+		var stored journalCheckpoint
+		if err := json.Unmarshal(cp.Data, &stored); err == nil && stored.Version == 1 && stored.Journal != nil && stored.Journal.AsOf.Equal(cp.At) {
+			request.Checkpoints = append(request.Checkpoints, *stored.Journal)
+		}
+	}
+
+	result, err := source.GetIncrementalBalance(ctx, request)
+	if err != nil {
+		return rte.IncrementalResult[creditbalance.Balance]{}, err
+	}
+
+	output := rte.IncrementalResult[creditbalance.Balance]{Value: mapBalance(result.Balance)}
+	switch {
+	case result.Reused && result.Checkpoint != nil:
+		output.Use = rte.CheckpointAdvanced
+	case result.Reused:
+		output.Use = rte.CheckpointReused
+	}
+
+	if result.Checkpoint != nil {
+		data, err := json.Marshal(journalCheckpoint{Version: 1, Journal: result.Checkpoint})
+		if err == nil {
+			output.Checkpoint = &rte.Checkpoint{At: result.Checkpoint.AsOf, Data: data}
+		}
+	}
+
+	return output, nil
 }
