@@ -5,7 +5,7 @@ go 1.27.4
 replace github.com/openmeterio/openmeter => ../
 
 require (
-	github.com/go-co-op/gocron/v2 v2.23.1
+	github.com/go-co-op/gocron/v2 v2.23.2
 	github.com/go-logr/logr v1.4.4
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
