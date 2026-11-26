@@ -183,13 +183,23 @@ func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices(
 	})
 	s.Require().Len(linesByName, 3)
 
-	// and: the lines on the second and third Tax Codes predate the stamp
+	// and: the lines on the second and third Tax Codes predate the stamp, and the second one
+	// carries the legacy tax_config that new lines no longer get
 	for _, name := range []string{"Legacy fee with a code", "Legacy fee without a code"} {
 		s.Require().NoError(s.DBClient.BillingInvoiceLine.
 			UpdateOneID(linesByName[name].ID).
 			ClearInvoicingAppTaxCode().
 			Exec(ctx))
 	}
+
+	s.Require().NoError(s.DBClient.BillingInvoiceLine.
+		UpdateOneID(linesByName["Legacy fee with a code"].ID).
+		SetTaxConfig(billing.StoredLineTaxConfig{
+			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+			TaxCodeID: lo.ToPtr(legacyStoredTaxCode.ID),
+			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_30000000"},
+		}).
+		Exec(ctx))
 
 	// when: every mapping changes, or appears, after the invoices were billed
 	s.remapStripeTaxCode(ctx, stampedTaxCode, "txcd_20000000")

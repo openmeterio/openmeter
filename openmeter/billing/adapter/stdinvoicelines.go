@@ -21,7 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedlineamountdiscount"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/entitydiff"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -60,15 +59,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			return nil, fmt.Errorf("generating line diffs: %w", err)
 		}
 
-		// The tax_config snapshot needs the referenced Tax Code entities; load them once for
-		// the whole batch inside this transaction, deleted ones included.
-		taxCodes, err := tx.resolveTaxCodeSnapshots(ctx, input.Namespace, lo.Map(input.Lines, func(line *billing.StandardLine, _ int) *productcatalog.TaxCodeConfig {
-			return line.TaxConfig
-		}))
-		if err != nil {
-			return nil, fmt.Errorf("resolving line tax codes: %w", err)
-		}
-
 		if err := tx.upsertUsageBasedConfig(ctx, lineDiffs.Line); err != nil {
 			return nil, fmt.Errorf("upserting usage based line configs: %w", err)
 		}
@@ -78,11 +68,6 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 			Create: func(tx *db.Client, line *billing.StandardLine) (*db.BillingInvoiceLineCreate, error) {
 				if line.ID == "" {
 					line.ID = ulid.Make().String()
-				}
-
-				storedTaxConfig, err := billing.NewStoredStandardLineTaxConfig(line.TaxConfig, taxCodes)
-				if err != nil {
-					return nil, fmt.Errorf("building tax config snapshot [line_id=%s]: %w", line.ID, err)
 				}
 
 				create := tx.BillingInvoiceLine.Create().
@@ -125,7 +110,7 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 				}
 
 				if line.TaxConfig != nil {
-					create = create.SetNillableTaxConfig(storedTaxConfig).
+					create = create.
 						SetNillableTaxCodeID(lo.EmptyableToPtr(line.TaxConfig.TaxCodeID)).
 						SetNillableTaxBehavior(line.TaxConfig.Behavior)
 				}
@@ -148,19 +133,9 @@ func (a *adapter) UpsertInvoiceLines(ctx context.Context, inputIn billing.Upsert
 						sql.ResolveWith(func(u *sql.UpdateSet) {
 							u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 
-							// tax_config is the persisted history snapshot: keep the stored JSON
-							// unless the line's tax identity actually changed. Lines past draft
-							// cannot change tax_code_id/tax_behavior, so their legacy snapshot
-							// (which may carry tax_code/stripe the columns don't) stays
-							// byte-identical; the consistency CHECKs only compare the JSON with
-							// these two columns, so the kept JSON remains valid.
-							table := u.Table().C
-							u.Set(billinginvoiceline.FieldTaxConfig, sql.Expr(
-								"CASE WHEN EXCLUDED."+billinginvoiceline.FieldTaxCodeID+" IS DISTINCT FROM "+table(billinginvoiceline.FieldTaxCodeID)+
-									" OR EXCLUDED."+billinginvoiceline.FieldTaxBehavior+" IS DISTINCT FROM "+table(billinginvoiceline.FieldTaxBehavior)+
-									" THEN EXCLUDED."+billinginvoiceline.FieldTaxConfig+
-									" ELSE "+table(billinginvoiceline.FieldTaxConfig)+" END",
-							))
+							// tax_config is frozen legacy data: creates never set it, so
+							// without this the conflict would overwrite the stored JSON with NULL.
+							u.SetIgnore(billinginvoiceline.FieldTaxConfig)
 						})).
 					UpdateQuantity().
 					UpdateChildUniqueReferenceID().
