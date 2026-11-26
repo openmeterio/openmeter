@@ -16,6 +16,7 @@ type Repository interface {
 }
 
 type ChannelRepository interface {
+	RefreshChannelEventTypeFilters(ctx context.Context, input RefreshChannelEventTypeFiltersInput) error
 	ListChannels(ctx context.Context, params ListChannelsInput) (pagination.Result[Channel], error)
 	CreateChannel(ctx context.Context, params CreateChannelInput) (*Channel, error)
 	DeleteChannel(ctx context.Context, params DeleteChannelInput) error
@@ -24,6 +25,7 @@ type ChannelRepository interface {
 }
 
 type RuleRepository interface {
+	GetRuleForUpdate(ctx context.Context, params GetRuleInput) (*Rule, error)
 	ListRules(ctx context.Context, params ListRulesInput) (pagination.Result[Rule], error)
 	CreateRule(ctx context.Context, params CreateRuleInput) (*Rule, error)
 	DeleteRule(ctx context.Context, params DeleteRuleInput) error

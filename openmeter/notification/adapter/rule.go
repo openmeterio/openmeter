@@ -202,11 +202,24 @@ func (a *adapter) DeleteRule(ctx context.Context, params notification.DeleteRule
 }
 
 func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
+	return a.getRule(ctx, params, false)
+}
+
+// GetRuleForUpdate serializes changes to a Rule before reading its previous Channel assignments.
+func (a *adapter) GetRuleForUpdate(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
+	return a.getRule(ctx, params, true)
+}
+
+func (a *adapter) getRule(ctx context.Context, params notification.GetRuleInput, forUpdate bool) (*notification.Rule, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Rule, error) {
 		query := a.db.NotificationRule.Query().
 			Where(ruledb.ID(params.ID)).
 			Where(ruledb.Namespace(params.Namespace)).
 			WithChannels(EagerLoadNonDeletedChannels(clock.Now()))
+
+		if forUpdate {
+			query.ForUpdate()
+		}
 
 		ruleRow, err := query.First(ctx)
 		if err != nil {

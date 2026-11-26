@@ -344,3 +344,25 @@ var (
 )
 
 type DeleteChannelInput = GetChannelInput
+
+// RefreshChannelEventTypeFiltersInput identifies the Channels affected by a V1 Rule assignment change.
+type RefreshChannelEventTypeFiltersInput struct {
+	Namespace  string
+	ChannelIDs []string
+}
+
+func (i RefreshChannelEventTypeFiltersInput) Validate() error {
+	var errs []error
+	if i.Namespace == "" {
+		errs = append(errs, errors.New("namespace is required"))
+	}
+
+	for _, id := range i.ChannelIDs {
+		if id == "" {
+			errs = append(errs, errors.New("channel ID is required"))
+			break
+		}
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
+}

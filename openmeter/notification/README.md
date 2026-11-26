@@ -48,12 +48,17 @@ with `url` and optional `custom_headers` and `signing_secret`. Reads preserve
 the stored config and signing secret. Malformed configs propagate errors
 through Channel, Rule, and Event reads.
 
-The nullable `event_type_filter` column is reserved for V4 routing. Current
-operations leave it unset on creation and preserve it on updates; Rule
-assignments remain authoritative. There are no dual writes. Backfilling and
-activating the filter, including catch-all behavior, belong to Phase 2.
-The future V4 adapter must enforce unique filter entries, and the Phase 2
-backfill must produce distinct values. No uniqueness validation is active yet.
+V1 routes by Rule assignment. New Channels start with an empty
+`event_type_filter`. Rule creation, reassignment, and soft deletion refresh each
+affected Channel's filter in the same transaction. It contains the sorted,
+distinct canonical Event types of its non-deleted Rules, including disabled
+Rules. Removing the last assignment leaves an empty filter and preserves the
+Channel's enabled state. Ordinary Channel updates preserve the filter.
+
+Deploy this writer everywhere before backfilling historical Channels. Before
+activating V4 routing, review and disable enabled legacy Channels with no
+assignments: V4 interprets an empty filter as catch-all. Svix continues to use
+Rule IDs until the routing cutover.
 
 Channel `provider_data` is nullable JSONB reserved for V4 provider-owned data,
 separate from metadata and annotations. Current operations leave it unset on

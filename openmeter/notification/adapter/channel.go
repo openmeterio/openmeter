@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
+
+	"entgo.io/ent/dialect/sql"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	channeldb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationchannel"
+	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	v4 "github.com/openmeterio/openmeter/openmeter/notification/v4"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -103,6 +107,7 @@ func (a *adapter) CreateChannel(ctx context.Context, params notification.CreateC
 		query := a.db.NotificationChannel.Create().
 			SetType(params.Type).
 			SetName(params.Name).
+			SetEventTypeFilter([]string{}).
 			SetNamespace(params.Namespace).
 			SetDisabled(params.Disabled).
 			SetConfig(config).
@@ -360,4 +365,55 @@ func toDBChannelTypeFilter(input *filter.FilterString) (*filter.FilterString, er
 	}
 
 	return mapped, nil
+}
+
+// RefreshChannelEventTypeFilters runs inside the Rule mutation transaction while V1 assignments own routing.
+func (a *adapter) RefreshChannelEventTypeFilters(ctx context.Context, input notification.RefreshChannelEventTypeFiltersInput) error {
+	if err := input.Validate(); err != nil {
+		return err
+	}
+
+	if len(input.ChannelIDs) == 0 {
+		return nil
+	}
+
+	return entutils.TransactingRepoWithNoValue(ctx, a, func(ctx context.Context, a *adapter) error {
+		// Lock in a consistent order. NO KEY UPDATE allows other writers to insert
+		// assignment edges, whose foreign keys take KEY SHARE on the Channel.
+		// Ent loads Rules in a second query with a fresh snapshot after any lock wait.
+		channels, err := a.db.NotificationChannel.Query().
+			Where(channeldb.Namespace(input.Namespace), channeldb.IDIn(input.ChannelIDs...), channeldb.DeletedAtIsNil()).
+			Order(channeldb.ByID()).
+			ForUpdate(func(opts *sql.LockOptions) { opts.Strength = sql.LockNoKeyUpdate }).
+			WithRules(func(q *entdb.NotificationRuleQuery) {
+				q.Where(ruledb.Namespace(input.Namespace), ruledb.DeletedAtIsNil()).Select(ruledb.FieldID, ruledb.FieldType)
+			}).
+			All(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to read assigned rule types: %w", err)
+		}
+
+		for _, channel := range channels {
+			types := make([]string, 0, len(channel.Edges.Rules))
+			for _, rule := range channel.Edges.Rules {
+				types = append(types, toDBEventType(notification.EventType(rule.Type)))
+			}
+
+			slices.Sort(types)
+			types = slices.Compact(types)
+			if channel.EventTypeFilter != nil && slices.Equal(channel.EventTypeFilter, types) {
+				continue
+			}
+
+			// A Rule assignment changes the projection, not the Channel's user configuration.
+			if err := a.db.NotificationChannel.UpdateOne(channel).
+				SetEventTypeFilter(types).
+				SetUpdatedAt(channel.UpdatedAt).
+				Exec(ctx); err != nil {
+				return fmt.Errorf("failed to refresh channel event type filter [channel.id=%s]: %w", channel.ID, err)
+			}
+		}
+
+		return nil
+	})
 }

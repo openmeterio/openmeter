@@ -991,7 +991,7 @@ func TestChannelEventTypeFilterPreservation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// given: legacy creation leaves the future routing filter unset
+			// given: new Channels have no assignments; older Channels may still have a NULL filter
 			channel := createChannel(t, env, ulid.Make().String(), clock.Now(), nil)
 
 			var stored sql.NullString
@@ -1000,15 +1000,17 @@ func TestChannelEventTypeFilterPreservation(t *testing.T) {
 			).Scan(&stored)
 			require.NoError(t, err)
 
-			assert.False(t, stored.Valid)
+			require.True(t, stored.Valid)
+			require.JSONEq(t, "[]", stored.String)
 
-			// Seed future data directly; current service inputs do not own this field.
-			if tt.filter != nil {
-				_, err := env.db.NotificationChannel.UpdateOneID(channel.ID).
-					SetEventTypeFilter(tt.filter).
-					Save(t.Context())
-				require.NoError(t, err)
+			update := env.db.NotificationChannel.UpdateOneID(channel.ID)
+			if tt.filter == nil {
+				update.ClearEventTypeFilter()
+			} else {
+				update.SetEventTypeFilter(tt.filter)
 			}
+
+			require.NoError(t, update.Exec(t.Context()))
 
 			// when: existing adapter code updates the channel's desired state
 			config := channel.Config

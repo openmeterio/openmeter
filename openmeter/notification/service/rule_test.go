@@ -1,9 +1,12 @@
 package service_test
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
@@ -16,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -552,4 +556,162 @@ func TestRuleFeatureIDResolution(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRuleChannelEventTypeFilters(t *testing.T) {
+	env := newServiceTestEnv(t)
+	ctx := t.Context()
+	ns := ulid.Make().String()
+	first := seedChannel(t, env, ns, clock.Now(), "first")
+	second := seedChannel(t, env, ns, clock.Now(), "second")
+
+	createRule := func(eventType notification.EventType, disabled bool) *notification.Rule {
+		t.Helper()
+
+		rule, err := env.service.CreateRule(ctx, notification.CreateRuleInput{
+			NamespacedModel: models.NamespacedModel{Namespace: ns},
+			Name:            "rule",
+			Type:            eventType,
+			Config: notification.RuleConfig{
+				RuleConfigMeta: notification.RuleConfigMeta{Type: eventType},
+				Invoice:        &notification.InvoiceRuleConfig{},
+			},
+			Channels: []string{first.ID},
+			Disabled: disabled,
+		})
+		require.NoError(t, err)
+
+		return rule
+	}
+
+	assertFilter := func(t *testing.T, channel notification.Channel, expected ...string) {
+		t.Helper()
+
+		row, err := env.db.NotificationChannel.Get(ctx, channel.ID)
+		require.NoError(t, err)
+
+		require.NotNil(t, row.EventTypeFilter)
+		require.Equal(t, append([]string{}, expected...), row.EventTypeFilter)
+		require.Equal(t, channel.Disabled, row.Disabled)
+		require.True(t, row.UpdatedAt.Equal(channel.UpdatedAt))
+	}
+
+	// Given overlapping assignments, even a disabled Rule contributes its Event type.
+	updated := createRule(notification.EventTypeInvoiceUpdated, false)
+	moved := createRule(notification.EventTypeInvoiceCreated, false)
+	remaining := createRule(notification.EventTypeInvoiceCreated, true)
+
+	const createdType = "v1.billing.invoice.created"
+	const updatedType = "v1.billing.invoice.updated"
+	assertFilter(t, first, createdType, updatedType)
+
+	// When moving one Rule, both Channels reflect the remaining assignments.
+	_, err := env.service.UpdateRule(ctx, notification.UpdateRuleInput{
+		NamespacedID: moved.NamespacedID,
+		Name:         moved.Name,
+		Type:         moved.Type,
+		Config:       moved.Config,
+		Channels:     []string{second.ID},
+	})
+	require.NoError(t, err)
+
+	assertFilter(t, first, createdType, updatedType)
+	assertFilter(t, second, createdType)
+
+	rollback := errors.New("rollback requested")
+	err = transaction.RunWithNoValue(ctx, env.adapter, func(ctx context.Context) error {
+		if err := env.service.DeleteRule(ctx, notification.DeleteRuleInput(remaining.NamespacedID)); err != nil {
+			return err
+		}
+
+		return rollback
+	})
+	require.ErrorIs(t, err, rollback)
+
+	assertFilter(t, first, createdType, updatedType)
+
+	// Then soft-deleting the last Rule of each type removes only that subscription.
+	for _, tc := range []struct {
+		name    string
+		rule    *notification.Rule
+		channel notification.Channel
+		want    []string
+	}{
+		{
+			name:    "last created rule on first channel",
+			rule:    remaining,
+			channel: first,
+			want:    []string{updatedType},
+		},
+		{
+			name:    "first channel becomes unassigned",
+			rule:    updated,
+			channel: first,
+		},
+		{
+			name:    "second channel becomes unassigned",
+			rule:    moved,
+			channel: second,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, env.service.DeleteRule(ctx, notification.DeleteRuleInput(tc.rule.NamespacedID)))
+
+			assertFilter(t, tc.channel, tc.want...)
+		})
+	}
+}
+
+func TestConcurrentRuleChannelEventTypeFilters(t *testing.T) {
+	env := newServiceTestEnv(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+
+	ns := ulid.Make().String()
+	channel := seedChannel(t, env, ns, clock.Now(), "shared")
+	create := func(ctx context.Context, eventType notification.EventType) error {
+		_, err := env.service.CreateRule(ctx, notification.CreateRuleInput{
+			NamespacedModel: models.NamespacedModel{Namespace: ns},
+			Name:            "rule",
+			Type:            eventType,
+			Config: notification.RuleConfig{
+				RuleConfigMeta: notification.RuleConfigMeta{Type: eventType},
+				Invoice:        &notification.InvoiceRuleConfig{},
+			},
+			Channels: []string{channel.ID},
+		})
+
+		return err
+	}
+
+	// Given a writer holding an uncommitted assignment, start a second Rule on the same Channel.
+	result := make(chan error, 1)
+	err := transaction.RunWithNoValue(ctx, env.adapter, func(txCtx context.Context) error {
+		if err := create(txCtx, notification.EventTypeInvoiceUpdated); err != nil {
+			return err
+		}
+
+		go func() { result <- create(ctx, notification.EventTypeInvoiceCreated) }()
+
+		// Wait for the second projection to reach its Channel row lock before committing.
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			var waiting bool
+			err := env.sqlDB.QueryRowContext(ctx, `SELECT EXISTS (
+				SELECT 1 FROM pg_stat_activity WHERE datname = current_database()
+				AND wait_event_type = 'Lock' AND query LIKE '%FOR NO KEY UPDATE%'
+			)`).Scan(&waiting)
+			require.NoError(c, err)
+			require.True(c, waiting)
+		}, 5*time.Second, 20*time.Millisecond)
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, <-result)
+
+	// Then the second writer sees the first committed Rule when rebuilding the filter.
+	row, err := env.db.NotificationChannel.Get(ctx, channel.ID)
+	require.NoError(t, err)
+
+	require.Equal(t, []string{"v1.billing.invoice.created", "v1.billing.invoice.updated"}, row.EventTypeFilter)
 }

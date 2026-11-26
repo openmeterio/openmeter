@@ -136,6 +136,13 @@ func (s Service) CreateRule(ctx context.Context, params notification.CreateRuleI
 			}
 		}
 
+		if err := s.adapter.RefreshChannelEventTypeFilters(ctx, notification.RefreshChannelEventTypeFiltersInput{
+			Namespace:  params.Namespace,
+			ChannelIDs: params.Channels,
+		}); err != nil {
+			return nil, err
+		}
+
 		return rule, nil
 	}
 
@@ -148,7 +155,7 @@ func (s Service) DeleteRule(ctx context.Context, params notification.DeleteRuleI
 	}
 
 	fn := func(ctx context.Context) error {
-		rule, err := s.adapter.GetRule(ctx, params)
+		rule, err := s.adapter.GetRuleForUpdate(ctx, params)
 		if err != nil {
 			return fmt.Errorf("failed to get rule: %w", err)
 		}
@@ -171,7 +178,14 @@ func (s Service) DeleteRule(ctx context.Context, params notification.DeleteRuleI
 			}
 		}
 
-		return s.adapter.DeleteRule(ctx, params)
+		if err := s.adapter.DeleteRule(ctx, params); err != nil {
+			return err
+		}
+
+		return s.adapter.RefreshChannelEventTypeFilters(ctx, notification.RefreshChannelEventTypeFiltersInput{
+			Namespace:  params.Namespace,
+			ChannelIDs: lo.Map(rule.Channels, func(c notification.Channel, _ int) string { return c.ID }),
+		})
 	}
 
 	return transaction.RunWithNoValue(ctx, s.adapter, fn)
@@ -197,7 +211,7 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 			"namespace", params.Namespace,
 		)
 
-		rule, err := s.adapter.GetRule(ctx, notification.GetRuleInput{
+		rule, err := s.adapter.GetRuleForUpdate(ctx, notification.GetRuleInput{
 			ID:        params.ID,
 			Namespace: params.Namespace,
 		})
@@ -260,9 +274,15 @@ func (s Service) UpdateRule(ctx context.Context, params notification.UpdateRuleI
 				return nil, err
 			}
 
-			// Another writer may also have committed since GetRule.
-			if updated == nil || updated.Revision <= rule.Revision {
+			if updated == nil || updated.Revision != rule.Revision+1 {
 				return nil, fmt.Errorf("failed to advance rule revision [namespace=%s rule.id=%s]", params.Namespace, params.ID)
+			}
+
+			if err := s.adapter.RefreshChannelEventTypeFilters(ctx, notification.RefreshChannelEventTypeFiltersInput{
+				Namespace:  params.Namespace,
+				ChannelIDs: channelIDsDiff.All(),
+			}); err != nil {
+				return nil, err
 			}
 
 			return updated, nil

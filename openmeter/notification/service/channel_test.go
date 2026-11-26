@@ -2,6 +2,7 @@ package service_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -38,6 +39,7 @@ import (
 // handler) and then listed through the real Service, matching the pattern documented
 // on channelTestEnv in openmeter/notification/adapter/channel_test.go.
 type serviceTestEnv struct {
+	sqlDB    *sql.DB
 	db       *entdb.Client
 	adapter  notification.Repository
 	service  notification.Service
@@ -86,7 +88,7 @@ func newServiceTestEnv(t *testing.T) *serviceTestEnv {
 	})
 	require.NoError(t, err, "constructing notification service must not fail")
 
-	return &serviceTestEnv{db: dbClient, adapter: adapter, service: svc, features: featureConnector}
+	return &serviceTestEnv{sqlDB: testdb.PGDriver.DB(), db: dbClient, adapter: adapter, service: svc, features: featureConnector}
 }
 
 // Rule assignment is synchronous but external delivery is irrelevant to these DB tests.
