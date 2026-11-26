@@ -80,7 +80,7 @@ func (s *LineTaxConfigTestSuite) storedLine(lineID string) *db.BillingInvoiceLin
 	return row
 }
 
-// storedTaxConfigJSON returns the persisted tax_config snapshot of a line as JSON.
+// storedTaxConfigJSON returns the legacy tax_config JSON stored on a line.
 func (s *LineTaxConfigTestSuite) storedTaxConfigJSON(lineID string) string {
 	s.T().Helper()
 

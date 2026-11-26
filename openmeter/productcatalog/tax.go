@@ -139,8 +139,9 @@ func (s StripeTaxConfig) Clone() StripeTaxConfig {
 // TaxCodeConfig is the internal tax reference: a Tax Code ID plus an optional behavior.
 //
 // The omitempty on TaxCodeID matters: an empty-ID config must serialize as {}, not
-// {"tax_code_id": ""} — the DB CHECK constraint compares the JSON against the column with
-// IS NOT DISTINCT FROM, and legacy TaxConfig readers decode this document.
+// {"tax_code_id": ""} — the CHECK constraints on rate cards and subscription items compare the
+// JSON against the column with IS NOT DISTINCT FROM, and legacy TaxConfig readers decode this
+// document.
 type TaxCodeConfig struct {
 	Behavior  *TaxBehavior `json:"behavior,omitempty"`
 	TaxCodeID string       `json:"tax_code_id,omitempty"`
@@ -238,7 +239,7 @@ func TaxCodeConfigFrom(cfg *TaxConfig) TaxCodeConfig {
 
 // FromDBTaxColumns reads tax settings from the tax_code_id and tax_behavior columns only. The legacy
 // tax_config JSON may still hold a Stripe code on old rows, but those rows were backfilled with a
-// tax_code_id (a CHECK constraint keeps it that way), so the columns are the source of truth.
+// tax_code_id, so the columns are the source of truth.
 func FromDBTaxColumns(taxCodeID *string, behavior *TaxBehavior) *TaxCodeConfig {
 	if taxCodeID == nil && behavior == nil {
 		return nil
