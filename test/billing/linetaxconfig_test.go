@@ -187,7 +187,7 @@ func (s *LineTaxConfigTestSuite) TestNewLinesAreCreatedWithoutTaxConfig() {
 // Tax Code would render.
 func (s *LineTaxConfigTestSuite) TestStoredTaxConfigKeptOnLinePastDraftUpsert() {
 	ctx := s.T().Context()
-	namespace := s.GetUniqueNamespace("ns-line-tax-history-guard")
+	namespace := s.GetUniqueNamespace("ns-line-tax-legacy-kept-on-upsert")
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
 	// given: an invoice waiting in draft.syncing on a custom invoicing app with sync hooks

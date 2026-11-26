@@ -326,8 +326,8 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 					sql.ResolveWith(func(u *sql.UpdateSet) {
 						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 
-						// tax_config is frozen legacy data: creates never set it, so without
-						// this the conflict would overwrite the stored JSON with NULL.
+						// tax_config is frozen legacy data: keep it out of the conflict
+						// update so an upsert never changes or clears the stored JSON.
 						u.SetIgnore(billinginvoiceline.FieldTaxConfig)
 					})).
 				UpdateChildUniqueReferenceID().
