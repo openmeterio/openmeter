@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -103,35 +104,58 @@ func NewObserver(config ObserverConfig) (*Observer, error) {
 // MarkReadOnly marks ctx as read-only for the given operation. Every marked
 // request is counted, so an operation that never writes can be told apart from
 // one that is never called.
-func (o *Observer) MarkReadOnly(ctx context.Context, operation string) context.Context {
+//
+// The returned function reports, once the request has run, the first write it
+// attempted that was rejected. Code can ignore the rejection and carry on, like a
+// balance read that skips its snapshot when it cannot lock, so the request has to
+// be failed from the outside.
+func (o *Observer) MarkReadOnly(ctx context.Context, operation string) (context.Context, func() error) {
 	o.requestCount.Add(ctx, 1, metric.WithAttributes(attrKeyOperation.String(operation)))
 
-	// WithWriteObserver only fails without an observer.
-	ctx, _ = transaction.WithWriteObserver(ctx, operationObserver{observer: o, operation: operation})
+	request := &requestObserver{observer: o, operation: operation}
 
-	return ctx
+	// WithWriteObserver only fails without an observer.
+	ctx, _ = transaction.WithWriteObserver(ctx, request)
+
+	return ctx, request.rejectedWrite
 }
 
-type operationObserver struct {
+// requestObserver observes the writes of a single request.
+type requestObserver struct {
 	observer  *Observer
 	operation string
+
+	// rejected is the first write of the request that was rejected.
+	rejected atomic.Pointer[error]
 }
 
-var _ transaction.WriteObserver = operationObserver{}
+var _ transaction.WriteObserver = (*requestObserver)(nil)
 
-func (o operationObserver) ObserveWrite(ctx context.Context, attempt transaction.WriteAttempt) error {
+func (o *requestObserver) ObserveWrite(ctx context.Context, attempt transaction.WriteAttempt) error {
 	o.observer.observe(ctx, o.operation, attempt)
 
-	if o.observer.rejectWrites {
-		return fmt.Errorf("%w: %s by %q (target %q, operation %q)",
-			ErrWriteRejected, attempt.Kind, o.operation, attempt.Target, attempt.Operation)
+	if !o.observer.rejectWrites {
+		return nil
+	}
+
+	err := fmt.Errorf("%w: %s by %q (target %q, operation %q)",
+		ErrWriteRejected, attempt.Kind, o.operation, attempt.Target, attempt.Operation)
+
+	o.rejected.CompareAndSwap(nil, &err)
+
+	return err
+}
+
+func (o *requestObserver) RejectsWrites() bool {
+	return o.observer.rejectWrites
+}
+
+func (o *requestObserver) rejectedWrite() error {
+	if err := o.rejected.Load(); err != nil {
+		return *err
 	}
 
 	return nil
-}
-
-func (o operationObserver) RejectsWrites() bool {
-	return o.observer.rejectWrites
 }
 
 func (o *Observer) observe(ctx context.Context, operation string, attempt transaction.WriteAttempt) {
@@ -156,9 +180,7 @@ func (o *Observer) observe(ctx context.Context, operation string, attempt transa
 		return
 	}
 
-	// The caller may ignore a rejection and carry on, like a balance read that
-	// skips its snapshot when it cannot lock. Then this log is the only trace of
-	// it, so it is an error.
+	// A rejected write fails the request, so it is an error.
 	level := slog.LevelWarn
 	if o.rejectWrites {
 		level = slog.LevelError

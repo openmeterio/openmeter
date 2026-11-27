@@ -67,6 +67,10 @@ func WriteObserverInterceptor(entType string) ent.Interceptor {
 //
 // It only covers statements that run inside a transaction: unreported SQL on the
 // pooled client still goes through.
+//
+// Only HijackTx applies it, which is how transaction.Run starts every transaction.
+// The generated Client.Tx and Client.BeginTx do not: nothing outside the generated
+// code calls them, and a transaction started that way would not be READ ONLY.
 func TxOptionsForContext(ctx context.Context, opts *sql.TxOptions) *sql.TxOptions {
 	if !transaction.RejectsWrites(ctx) {
 		return opts

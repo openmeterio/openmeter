@@ -29,8 +29,8 @@ func TestObserver(t *testing.T) {
 	require.NoError(t, err)
 
 	// given two read-only requests of one operation and one of another that never writes
-	first := observer.MarkReadOnly(t.Context(), "get-entitlement-value")
-	second := observer.MarkReadOnly(t.Context(), "get-entitlement-value")
+	first, firstRejectedWrite := observer.MarkReadOnly(t.Context(), "get-entitlement-value")
+	second, _ := observer.MarkReadOnly(t.Context(), "get-entitlement-value")
 	observer.MarkReadOnly(t.Context(), "list-customers")
 
 	snapshotCreate := transaction.WriteAttempt{Kind: transaction.WriteKindMutation, Target: "BalanceSnapshot", Operation: "OpCreate"}
@@ -40,6 +40,7 @@ func TestObserver(t *testing.T) {
 	require.NoError(t, transaction.ReportWrite(second, snapshotCreate))
 	require.NoError(t, transaction.ReportWrite(first, transaction.WriteAttempt{Kind: transaction.WriteKindAdvisoryLock, Target: "customer:01A"}))
 	require.NoError(t, transaction.ReportWrite(second, transaction.WriteAttempt{Kind: transaction.WriteKindAdvisoryLock, Target: "customer:01B"}))
+	require.NoError(t, firstRejectedWrite(), "an observed write is not a rejected one")
 
 	// then every request and write is counted, with lock keys kept out of the labels
 	var metrics metricdata.ResourceMetrics
@@ -127,13 +128,14 @@ func TestObserverRejectsWrites(t *testing.T) {
 	attempt := transaction.WriteAttempt{Kind: transaction.WriteKindMutation, Target: "BalanceSnapshot", Operation: "OpCreate"}
 
 	// given a request marked by an observing observer and one marked by a rejecting observer
-	observed := newObserver(false).MarkReadOnly(t.Context(), "get-entitlement-value")
-	rejected := newObserver(true).MarkReadOnly(t.Context(), "get-entitlement-value")
+	observed, _ := newObserver(false).MarkReadOnly(t.Context(), "get-entitlement-value")
+	rejected, rejectedWrite := newObserver(true).MarkReadOnly(t.Context(), "get-entitlement-value")
+	require.NoError(t, rejectedWrite(), "nothing is rejected before the request writes")
 
-	// when both attempt a write, and the rejected one ignores the error and tries again
+	// when both attempt a write, and the rejected one ignores the error and locks a row next
 	observedErr := transaction.ReportWrite(observed, attempt)
 	rejectedErr := transaction.ReportWrite(rejected, attempt)
-	require.Error(t, transaction.ReportWrite(rejected, attempt))
+	require.Error(t, transaction.ReportWrite(rejected, transaction.WriteAttempt{Kind: transaction.WriteKindRowLock, Target: "Entitlement"}))
 
 	// then only the rejecting one fails it, and says which request wrote what
 	require.NoError(t, observedErr)
@@ -143,8 +145,11 @@ func TestObserverRejectsWrites(t *testing.T) {
 	require.ErrorContains(t, rejectedErr, `mutation by "get-entitlement-value" (target "BalanceSnapshot", operation "OpCreate")`)
 	require.True(t, transaction.RejectsWrites(rejected), "transactions of the request are opened READ ONLY")
 
-	// and the rejected write is logged as an error once, since the caller may ignore it
-	require.Equal(t, 1, bytes.Count(logs.Bytes(), []byte(`"level":"ERROR","msg":"read-only request attempted a database write"`)), logs.String())
+	// and the request can still be failed with its first rejected write, however it handled the error
+	require.Equal(t, rejectedErr, rejectedWrite())
+
+	// and both rejected writes are logged as errors
+	require.Equal(t, 2, bytes.Count(logs.Bytes(), []byte(`"level":"ERROR","msg":"read-only request attempted a database write"`)), logs.String())
 }
 
 func TestObserverConfigValidation(t *testing.T) {
