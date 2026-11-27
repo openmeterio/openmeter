@@ -141,8 +141,10 @@ var _ meta.ChargeAccessor = (*Charge)(nil)
 type Charge struct {
 	ChargeBase
 
-	Realizations RealizationRuns `json:"realizations"`
-	Expands      Expands         `json:"expands"`
+	RevenueRecognitions []RecognizedRevenue `json:"revenueRecognitions"`
+
+	Realizations []CommunicatedUsage `json:"realizations"`
+	Expands      Expands             `json:"expands"`
 }
 
 type Charges []Charge

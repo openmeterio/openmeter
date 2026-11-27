@@ -302,16 +302,75 @@ func (r RealizationRunBase) Validate() error {
 }
 
 type RealizationRun struct {
-	RealizationRunBase
+	ID RealizationRunID
+	models.ManagedModel
+}
 
-	// Realizations
-	CreditsAllocated              creditrealization.Realizations `json:"creditsAllocated"`
+type CommonCrap struct { // a.k.a meta
+	FeatureID string `json:"featureId"`
+}
+
+type CommunicatedUsage struct {
+	CommonCrap
+	// TBD
 	FiatOverageCreditRealizations creditrealization.Realizations `json:"fiatOverageCreditRealizations"`
-	InvoiceUsage                  *invoicedusage.AccruedUsage    `json:"invoicedUsage"`
-	Payment                       *payment.Invoiced              `json:"payment"`
+
+	Payment *payment.Invoiced `json:"payment"`
+
+	// TBD: credits only maybe union type
+	LineID    *string `json:"lineId,omitempty"`
+	InvoiceID *string `json:"invoiceId,omitempty"`
+
+	Type string
+
+	// ServicePeriodTo is the end of the service period for the realization run.
+	ServicePeriodTo          time.Time `json:"servicePeriodTo"` // goes to common btw
+	PriorCommunicatedUsageID *models.CommunicatedUsageID
+
+	IncludesRecognizedRevenueFrom []models.RecognizedRevenueID // ref recognized revenue
+
+	// Totals includes credit allocations and excludes taxes.
+	Totals totals.DeltaTotals `json:"totals"`
 	// DetailedLines excludes taxes. Credit-then-invoice runs include credit
 	// allocations, while credits-only runs retain their gross rated details.
 	DetailedLines mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
+
+	// helpers
+
+	NoFiatTransactionRequired bool `json:"noFiatTransactionRequired"`
+	// Immutable means the backing invoice crossed the external issuance boundary.
+	Immutable bool `json:"immutable"`
+	// FiatOverageCreditAllocationCompleted distinguishes a successful
+	// zero-allocation result from pending allocation.
+	FiatOverageCreditAllocationCompleted bool `json:"fiatOverageCreditAllocationCompleted"`
+	// DetailedLinesIncludeCreditAllocations describes if credit allocation is applied to the detailed lines.
+	// Credits-only: always false
+	// Credit-then-invoice:
+	// - true, for all runs (even when 0 credits were allocated)
+	// - legacy runs have false, as previously we didn't store credit allocations on detailed lines
+	DetailedLinesIncludeCreditAllocations bool `json:"detailedLinesIncludeCreditAllocations"`
+}
+
+type RecognizedRevenue struct {
+	CommonCrap
+	// Realizations
+	CreditsAllocated creditrealization.Realizations `json:"creditsAllocated"`
+
+	InvoiceUsage *invoicedusage.AccruedUsage `json:"invoicedUsage"`
+
+	// DetailedLines excludes taxes. Credit-then-invoice runs include credit
+	// allocations, while credits-only runs retain their gross rated details.
+	DetailedLines     mo.Option[DetailedLines] `json:"detailedLines,omitzero"`
+	RecognizedRevenue totals.DeltaTotals       `json:"totals"` // maybe ommit (as delta rating needs the detailed liens)
+
+	ServicePeriodTo          time.Time `json:"servicePeriodTo"`
+	PriorRecognizedRevenueID *models.RecognizedRevenueID
+
+	StoredAtLT time.Time `json:"storedAtLT"`
+	// MeteredQuantity is the metered quantity for time IN [intent.servicePeriod.from, servicePeriodTo) capped by stored_at < StoredAtLT.
+	// Warning: this raw value can be negative. Rating clamps negative cumulative
+	// quantities to zero before deriving billable usage.
+	MeteredQuantity alpacadecimal.Decimal `json:"meteredQuantity"`
 }
 
 func (r RealizationRun) Validate() error {
