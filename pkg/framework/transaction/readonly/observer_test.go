@@ -81,20 +81,23 @@ func TestObserver(t *testing.T) {
 
 	// and each distinct write is logged once, however often it repeats
 	type logLine struct {
-		Message     string `json:"msg"`
-		Operation   string `json:"operation"`
-		WriteKind   string `json:"write_kind"`
-		WriteTarget string `json:"write_target"`
-		Caller      string `json:"caller"`
+		Message     string   `json:"msg"`
+		Operation   string   `json:"operation"`
+		WriteKind   string   `json:"write_kind"`
+		WriteTarget string   `json:"write_target"`
+		Stack       []string `json:"stack"`
 	}
 
 	var logged []logLine
 	for _, line := range bytes.Split(bytes.TrimSpace(logs.Bytes()), []byte("\n")) {
 		var entry logLine
 		require.NoError(t, json.Unmarshal(line, &entry))
-		require.NotEmpty(t, entry.Caller)
 
-		entry.Caller = ""
+		// the stack starts at the code that reported the write, which is this test
+		require.NotEmpty(t, entry.Stack)
+		require.Contains(t, entry.Stack[0], "readonly_test.TestObserver:")
+
+		entry.Stack = nil
 		logged = append(logged, entry)
 	}
 
@@ -140,8 +143,8 @@ func TestObserverRejectsWrites(t *testing.T) {
 	require.ErrorContains(t, rejectedErr, `mutation by "get-entitlement-value" (target "BalanceSnapshot", operation "OpCreate")`)
 	require.True(t, transaction.RejectsWrites(rejected), "transactions of the request are opened READ ONLY")
 
-	// and every rejection is logged as an error, since the caller may ignore it
-	require.Equal(t, 2, bytes.Count(logs.Bytes(), []byte(`"level":"ERROR","msg":"read-only request attempted a database write"`)), logs.String())
+	// and the rejected write is logged as an error once, since the caller may ignore it
+	require.Equal(t, 1, bytes.Count(logs.Bytes(), []byte(`"level":"ERROR","msg":"read-only request attempted a database write"`)), logs.String())
 }
 
 func TestObserverConfigValidation(t *testing.T) {

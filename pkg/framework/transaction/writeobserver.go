@@ -55,8 +55,8 @@ func WithWriteObserver(ctx context.Context, observer WriteObserver) (context.Con
 }
 
 // RejectsWrites reports whether ctx has a write observer that rejects every
-// write. Transactions started with such a context are opened READ ONLY, so the
-// database also refuses the writes that nothing reports.
+// write. Transactions started with such a context are opened READ ONLY, so
+// inside them the database also refuses the writes that nothing reports.
 func RejectsWrites(ctx context.Context) bool {
 	observer, ok := ctx.Value(writeObserverContextKey{}).(WriteObserver)
 
