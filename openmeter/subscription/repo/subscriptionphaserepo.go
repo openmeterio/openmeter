@@ -3,12 +3,8 @@ package repo
 import (
 	"context"
 	"fmt"
-	"time"
-
-	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/subscription"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -28,30 +24,6 @@ func NewSubscriptionPhaseRepo(db *db.Client) *subscriptionPhaseRepo {
 	}
 }
 
-type subscriptionReadScope struct {
-	namespace string
-	at        time.Time
-}
-
-// Subscriptions expanded together share a namespace and cutoff. Group their IDs so
-// the item query can look up all matching phases with a single EXISTS.
-func groupSubscriptionReads(inputs []subscription.GetForSubscriptionAtInput) map[subscriptionReadScope][]string {
-	return lo.GroupByMap(inputs, func(input subscription.GetForSubscriptionAtInput) (subscriptionReadScope, string) {
-		return subscriptionReadScope{namespace: input.Namespace, at: input.At.UTC()}, input.SubscriptionID
-	})
-}
-
-func (scope subscriptionReadScope) phaseFilter(subscriptionIDs []string) predicate.SubscriptionPhase {
-	return dbsubscriptionphase.And(
-		dbsubscriptionphase.SubscriptionIDIn(subscriptionIDs...),
-		dbsubscriptionphase.Namespace(scope.namespace),
-		dbsubscriptionphase.Or(
-			dbsubscriptionphase.DeletedAtIsNil(),
-			dbsubscriptionphase.DeletedAtGT(scope.at),
-		),
-	)
-}
-
 func (r *subscriptionPhaseRepo) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionPhase, error) {
 	return r.GetForSubscriptionsAt(ctx, []subscription.GetForSubscriptionAtInput{input})
 }
@@ -63,11 +35,7 @@ func (r *subscriptionPhaseRepo) GetForSubscriptionsAt(ctx context.Context, input
 		}
 
 		phases, err := repo.db.SubscriptionPhase.Query().
-			Where(
-				dbsubscriptionphase.Or(
-					lo.MapToSlice(groupSubscriptionReads(input), subscriptionReadScope.phaseFilter)...,
-				),
-			).
+			Where(groupSubscriptionReads(input).phaseFilter()).
 			All(ctx)
 		if err != nil {
 			return nil, err

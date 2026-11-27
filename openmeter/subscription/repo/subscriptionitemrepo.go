@@ -9,7 +9,6 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	dbsubscription "github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
 	dbsubscriptionitem "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	dbsubscriptionphase "github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
@@ -58,18 +57,6 @@ func validateCurrencyReferenceForPersistence(namespace string, reference currenc
 	return nil
 }
 
-func (scope subscriptionReadScope) itemFilter(subscriptionIDs []string) predicate.SubscriptionItem {
-	return dbsubscriptionitem.And(
-		// Scope items explicitly so PostgreSQL can use the (namespace, phase_id, key) index.
-		dbsubscriptionitem.Namespace(scope.namespace),
-		dbsubscriptionitem.HasPhaseWith(scope.phaseFilter(subscriptionIDs)),
-		dbsubscriptionitem.Or(
-			dbsubscriptionitem.DeletedAtIsNil(),
-			dbsubscriptionitem.DeletedAtGT(scope.at),
-		),
-	)
-}
-
 func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionItem, error) {
 	return r.GetForSubscriptionsAt(ctx, []subscription.GetForSubscriptionAtInput{input})
 }
@@ -81,9 +68,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 		}
 
 		items, err := repo.db.SubscriptionItem.Query().
-			Where(dbsubscriptionitem.Or(
-				lo.MapToSlice(groupSubscriptionReads(input), subscriptionReadScope.itemFilter)...,
-			)).
+			Where(groupSubscriptionReads(input).itemFilter()).
 			WithPhase().
 			WithCustomCurrency().
 			All(ctx)
