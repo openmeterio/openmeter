@@ -6488,12 +6488,10 @@ func init() {
 	AddonRateCardsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	AddonRateCardsTable.Annotation = &entsql.Annotation{}
 	AddonRateCardsTable.Annotation.Checks = map[string]string{
-		"addon_rate_card_currency_code_length":     "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
-		"addon_rate_card_currency_has_price":       "price IS NOT NULL OR currency IS NULL",
-		"addon_rate_card_currency_reference":       "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
-		"addon_rate_card_feature_reference":        "(feature_key IS NULL AND feature_id IS NULL) OR (feature_key IS NOT NULL AND feature_key <> '' AND feature_id IS NOT NULL AND feature_id <> '')",
-		"addon_rate_card_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
-		"addon_rate_card_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
+		"addon_rate_card_currency_code_length": "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
+		"addon_rate_card_currency_has_price":   "price IS NOT NULL OR currency IS NULL",
+		"addon_rate_card_currency_reference":   "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
+		"addon_rate_card_feature_reference":    "(feature_key IS NULL AND feature_id IS NULL) OR (feature_key IS NOT NULL AND feature_key <> '' AND feature_id IS NOT NULL AND feature_id <> '')",
 	}
 	AppCustomInvoicingsTable.ForeignKeys[0].RefTable = AppsTable
 	AppCustomInvoicingCustomersTable.ForeignKeys[0].RefTable = AppCustomInvoicingsTable
@@ -6555,11 +6553,6 @@ func init() {
 	}
 	BillingStandardInvoiceDetailedLineAmountDiscountsTable.ForeignKeys[0].RefTable = BillingStandardInvoiceDetailedLinesTable
 	BillingWorkflowConfigsTable.ForeignKeys[0].RefTable = TaxCodesTable
-	BillingWorkflowConfigsTable.Annotation = &entsql.Annotation{}
-	BillingWorkflowConfigsTable.Annotation.Checks = map[string]string{
-		"billing_workflow_config_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM invoice_default_tax_settings ->> 'behavior'",
-		"billing_workflow_config_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM invoice_default_tax_settings ->> 'tax_code_id') AND (NULLIF(btrim(invoice_default_tax_settings -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
-	}
 	ChargesTable.ForeignKeys[0].RefTable = ChargeCreditPurchasesTable
 	ChargesTable.ForeignKeys[1].RefTable = ChargeFlatFeesTable
 	ChargesTable.ForeignKeys[2].RefTable = ChargeUsageBasedTable
@@ -6736,12 +6729,10 @@ func init() {
 	PlanRateCardsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	PlanRateCardsTable.Annotation = &entsql.Annotation{}
 	PlanRateCardsTable.Annotation.Checks = map[string]string{
-		"plan_rate_card_currency_code_length":     "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
-		"plan_rate_card_currency_has_price":       "price IS NOT NULL OR currency IS NULL",
-		"plan_rate_card_currency_reference":       "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
-		"plan_rate_card_feature_reference":        "(feature_key IS NULL AND feature_id IS NULL) OR (feature_key IS NOT NULL AND feature_key <> '' AND feature_id IS NOT NULL AND feature_id <> '')",
-		"plan_rate_card_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
-		"plan_rate_card_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
+		"plan_rate_card_currency_code_length": "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
+		"plan_rate_card_currency_has_price":   "price IS NOT NULL OR currency IS NULL",
+		"plan_rate_card_currency_reference":   "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
+		"plan_rate_card_feature_reference":    "(feature_key IS NULL AND feature_id IS NULL) OR (feature_key IS NOT NULL AND feature_key <> '' AND feature_id IS NOT NULL AND feature_id <> '')",
 	}
 	RteDemandLocksTable.ForeignKeys[0].RefTable = RteDemandsTable
 	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
@@ -6758,11 +6749,9 @@ func init() {
 	SubscriptionItemsTable.ForeignKeys[3].RefTable = TaxCodesTable
 	SubscriptionItemsTable.Annotation = &entsql.Annotation{}
 	SubscriptionItemsTable.Annotation.Checks = map[string]string{
-		"subscription_item_currency_code_length":     "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
-		"subscription_item_currency_has_price":       "((price IS NULL) AND (currency IS NULL) AND (custom_currency_id IS NULL)) OR ((price IS NOT NULL) AND (currency IS NOT NULL))",
-		"subscription_item_currency_reference":       "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
-		"subscription_item_tax_behavior_consistency": "tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'",
-		"subscription_item_tax_code_consistency":     "(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)",
+		"subscription_item_currency_code_length": "currency IS NULL OR char_length(currency) BETWEEN 3 AND 24",
+		"subscription_item_currency_has_price":   "((price IS NULL) AND (currency IS NULL) AND (custom_currency_id IS NULL)) OR ((price IS NOT NULL) AND (currency IS NOT NULL))",
+		"subscription_item_currency_reference":   "(currency IS NULL AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) = 3 AND custom_currency_id IS NULL) OR (currency IS NOT NULL AND char_length(currency) > 3 AND custom_currency_id IS NOT NULL)",
 	}
 	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	SubscriptionSyncStatesV2Table.ForeignKeys[0].RefTable = SubscriptionsTable

@@ -41,8 +41,8 @@ func (RateCard) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
-		// TODO: Remove the legacy tax_config JSON field after all rate-card read and
-		// write paths use tax_code_id and tax_behavior as the sole representation.
+		// Nothing writes or reads this legacy JSON anymore: tax_code_id and tax_behavior are the
+		// only representation. The column is dropped in a later release.
 		field.String("tax_config").
 			GoType(&productcatalog.TaxConfig{}).
 			ValueScanner(TaxConfigValueScanner).
@@ -50,7 +50,8 @@ func (RateCard) Fields() []ent.Field {
 				dialect.Postgres: "jsonb",
 			}).
 			Optional().
-			Nillable(),
+			Nillable().
+			Deprecated("legacy JSON, replaced by tax_code_id and tax_behavior; the column is dropped in a later release"),
 		field.String("billing_cadence").
 			GoType(datetime.ISODurationString("")).
 			Optional().

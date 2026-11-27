@@ -55,6 +55,8 @@ type PlanRateCard struct {
 	// EntitlementTemplate holds the value of the "entitlement_template" field.
 	EntitlementTemplate *productcatalog.EntitlementTemplate `json:"entitlement_template,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
+	//
+	// Deprecated: legacy JSON, replaced by tax_code_id and tax_behavior; the column is dropped in a later release
 	TaxConfig *productcatalog.TaxConfig `json:"tax_config,omitempty"`
 	// BillingCadence holds the value of the "billing_cadence" field.
 	BillingCadence *datetime.ISODurationString `json:"billing_cadence,omitempty"`

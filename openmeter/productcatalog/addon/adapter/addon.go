@@ -265,10 +265,6 @@ func rateCardBulkCreate(c *entdb.AddonRateCardClient, rateCards productcatalog.R
 			SetNillableCustomCurrencyID(rateCardEntity.CustomCurrencyID).
 			SetDiscounts(rateCardEntity.Discounts)
 
-		if rateCardEntity.TaxConfig != nil {
-			q.SetTaxConfig(rateCardEntity.TaxConfig)
-		}
-
 		q.SetNillableTaxCodeID(rateCardEntity.TaxCodeID)
 		q.SetNillableTaxBehavior(rateCardEntity.TaxBehavior)
 

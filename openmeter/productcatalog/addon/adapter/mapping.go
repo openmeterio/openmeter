@@ -482,13 +482,9 @@ func asAddonRateCardRow(r productcatalog.RateCard) (entdb.AddonRateCard, error) 
 		return ratecard, fmt.Errorf("invalid ratecard [key=%s]: invalid type: %T", r.Key(), r)
 	}
 
-	// The legacy tax_config JSON is still written as a copy of the columns: DB checks require it to
-	// agree with tax_code_id/tax_behavior, and binaries from before Tax Code IDs still read it. It
-	// never carries a Stripe code anymore and goes away in a later cleanup.
 	if meta.TaxConfig != nil {
 		ratecard.TaxCodeID = lo.EmptyableToPtr(meta.TaxConfig.TaxCodeID)
 		ratecard.TaxBehavior = meta.TaxConfig.Behavior
-		ratecard.TaxConfig = lo.ToPtr(meta.TaxConfig.ToTaxConfig())
 	}
 
 	return ratecard, nil

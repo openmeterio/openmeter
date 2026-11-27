@@ -105,12 +105,6 @@ func TestFromAddonRateCardRowHydratesFeatureReference(t *testing.T) {
 func TestRateCardRowsReadTaxFromColumns(t *testing.T) {
 	const taxCodeID = "01JTAXC0DE0000000000000000"
 
-	// Old rows may still hold a Stripe code in the legacy JSON; only the columns count.
-	legacyJSON := &productcatalog.TaxConfig{
-		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		TaxCodeID: lo.ToPtr(taxCodeID),
-	}
-
 	tests := []struct {
 		name        string
 		taxCodeID   *string
@@ -132,7 +126,6 @@ func TestRateCardRowsReadTaxFromColumns(t *testing.T) {
 				Key:         "rate-card",
 				Name:        "Rate card",
 				Type:        productcatalog.FlatFeeRateCardType,
-				TaxConfig:   legacyJSON,
 				TaxCodeID:   tt.taxCodeID,
 				TaxBehavior: tt.taxBehavior,
 			})
@@ -143,7 +136,6 @@ func TestRateCardRowsReadTaxFromColumns(t *testing.T) {
 				Key:         "rate-card",
 				Name:        "Rate card",
 				Type:        productcatalog.FlatFeeRateCardType,
-				TaxConfig:   legacyJSON,
 				TaxCodeID:   tt.taxCodeID,
 				TaxBehavior: tt.taxBehavior,
 			})
@@ -153,7 +145,7 @@ func TestRateCardRowsReadTaxFromColumns(t *testing.T) {
 	}
 }
 
-func TestAsAddonRateCardRowWritesTaxColumnsAndLegacyCopy(t *testing.T) {
+func TestAsAddonRateCardRowWritesTaxColumnsOnly(t *testing.T) {
 	const taxCodeID = "01JTAXC0DE0000000000000000"
 
 	tests := []struct {
@@ -177,11 +169,8 @@ func TestAsAddonRateCardRowWritesTaxColumnsAndLegacyCopy(t *testing.T) {
 
 			require.Equal(t, lo.EmptyableToPtr(tt.cfg.TaxCodeID), row.TaxCodeID)
 			require.Equal(t, tt.cfg.Behavior, row.TaxBehavior)
-			// The DB checks compare the JSON with the columns, so they must agree exactly.
-			require.Equal(t, &productcatalog.TaxConfig{
-				TaxCodeID: lo.EmptyableToPtr(tt.cfg.TaxCodeID),
-				Behavior:  tt.cfg.Behavior,
-			}, row.TaxConfig)
+			// The legacy JSON is no longer written.
+			require.Nil(t, row.TaxConfig)
 		})
 	}
 

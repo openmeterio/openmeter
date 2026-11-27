@@ -192,11 +192,7 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			cmd.SetEntitlementTemplate(input.RateCard.AsMeta().EntitlementTemplate)
 		}
 
-		// The legacy tax_config JSON is still written as a copy of the columns: DB checks require it to
-		// agree with tax_code_id/tax_behavior, and binaries from before Tax Code IDs still read it. It
-		// never carries a Stripe code anymore and goes away in a later cleanup.
 		if taxConfig := input.RateCard.AsMeta().TaxConfig; taxConfig != nil {
-			cmd.SetTaxConfig(lo.ToPtr(taxConfig.ToTaxConfig()))
 			cmd.SetNillableTaxCodeID(lo.EmptyableToPtr(taxConfig.TaxCodeID))
 			cmd.SetNillableTaxBehavior(taxConfig.Behavior)
 		}
