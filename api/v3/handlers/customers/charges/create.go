@@ -11,13 +11,19 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/request"
 	billingcharges "github.com/openmeterio/openmeter/openmeter/billing/charges"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type (
-	CreateCustomerChargesRequest  = billingcharges.CreateCustomerChargeInput
+	// CreateCustomerChargesRequest carries the deprecated stripe.code separately: it is
+	// resolved to a Tax Code ID right before the create.
+	CreateCustomerChargesRequest struct {
+		Input         billingcharges.CreateCustomerChargeInput
+		StripeTaxCode string
+	}
 	CreateCustomerChargesResponse = apiv3models.BillingCharge
 	CreateCustomerChargesParams   struct {
 		CustomerID apiv3models.ULID
@@ -49,7 +55,10 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
-			var input billingcharges.CreateCustomerChargeInput
+			var (
+				input        billingcharges.CreateCustomerChargeInput
+				apiTaxConfig *apiv3models.BillingTaxConfig
+			)
 			switch discriminator {
 			case string(apiv3models.BillingChargeFlatFeeTypeFlatFee):
 				flatFee, err := body.AsCreateChargeFlatFeeRequest()
@@ -62,6 +71,8 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 						},
 					})
 				}
+
+				apiTaxConfig = flatFee.TaxConfig
 
 				input, err = fromAPICreateChargeFlatFeeRequest(ns, param.CustomerID, flatFee)
 				if err != nil {
@@ -97,6 +108,8 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 					})
 				}
 
+				apiTaxConfig = usageBasedFee.TaxConfig
+
 				input, err = fromAPICreateChargeUsageBasedRequest(ns, param.CustomerID, usageBasedFee)
 				if err != nil {
 					return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
@@ -119,6 +132,19 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
+			taxConfig, err := fromAPIBillingTaxConfig(apiTaxConfig)
+			if err != nil {
+				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
+					{
+						Field:  "tax_config",
+						Reason: err.Error(),
+						Source: apierrors.InvalidParamSourceBody,
+					},
+				})
+			}
+
+			input.TaxConfig = taxConfig.TaxConfig
+
 			if err := input.Validate(); err != nil {
 				return CreateCustomerChargesRequest{}, apierrors.NewBadRequestError(ctx, err, apierrors.InvalidParameters{
 					{
@@ -129,10 +155,40 @@ func (h *handler) CreateCustomerCharge() CreateCustomerChargesHandler {
 				})
 			}
 
-			return input, nil
+			return CreateCustomerChargesRequest{
+				Input:         input,
+				StripeTaxCode: taxConfig.StripeCode,
+			}, nil
 		},
 		func(ctx context.Context, request CreateCustomerChargesRequest) (CreateCustomerChargesResponse, error) {
-			charge, err := h.service.CreateCustomerCharge(ctx, request)
+			input := request.Input
+
+			// The Tax Code is resolved in its own short transaction and the create runs after it
+			// commits. The charges service commits the charge, then invoices and advances it in
+			// separate transactions (so the created charge survives a failed advance or an
+			// invoicing app sync); wrapping the create in the resolver transaction would fold
+			// all of that into one. The cost is that a create that fails after resolving can leave
+			// a Tax Code behind, which is harmless: the next request with the same code reuses it.
+			if request.StripeTaxCode != "" {
+				err := h.taxCodeResolver.WithResolver(ctx, func(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver) error {
+					tc, err := resolver.ResolveOrBackfillTaxCode(ctx, productcatalog.ResolveOrBackfillTaxCodeInput{
+						Namespace:  input.Namespace,
+						StripeCode: request.StripeTaxCode,
+					})
+					if err != nil {
+						return fmt.Errorf("resolving stripe tax code %s: %w", request.StripeTaxCode, err)
+					}
+
+					input.TaxConfig.TaxCodeID = tc.ID
+
+					return nil
+				})
+				if err != nil {
+					return CreateCustomerChargesResponse{}, err
+				}
+			}
+
+			charge, err := h.service.CreateCustomerCharge(ctx, input)
 			if err != nil {
 				return CreateCustomerChargesResponse{}, err
 			}

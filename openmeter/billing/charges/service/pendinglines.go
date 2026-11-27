@@ -38,12 +38,6 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 	}
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*charges.CreatePendingInvoiceLinesResult, error) {
-		for i := range input.Lines {
-			if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Customer.Namespace, input.Lines[i].TaxConfig, productcatalog.AllowDeletedTaxCodeByID()); err != nil {
-				return nil, fmt.Errorf("resolving line.%d tax config: %w", i, err)
-			}
-		}
-
 		intents, err := mapPendingInvoiceLinesToChargeIntents(input)
 		if err != nil {
 			return nil, billing.ValidationError{Err: err}
@@ -120,6 +114,12 @@ func validateChargePendingInvoiceLinesInput(input charges.CreatePendingInvoiceLi
 
 		if line.Subscription != nil {
 			errs = append(errs, fmt.Errorf("line.%d: subscription is not allowed for charge-backed pending line creation", idx))
+		}
+
+		// Charges only keep the Tax Code ID; the v1 handler resolves stripe.code before calling us.
+		// Reject instead of silently dropping a code that was never resolved.
+		if cfg := line.TaxConfig; cfg != nil && cfg.Stripe != nil && cfg.Stripe.Code != "" && lo.FromPtr(cfg.TaxCodeID) == "" {
+			errs = append(errs, fmt.Errorf("line.%d: tax config stripe code must be resolved to a tax code id", idx))
 		}
 	}
 

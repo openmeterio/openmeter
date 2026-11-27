@@ -14,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/api/v3/filters"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billingcommon"
 	"github.com/openmeterio/openmeter/api/v3/handlers/billinginvoices"
-	"github.com/openmeterio/openmeter/api/v3/handlers/billingprofiles"
 	"github.com/openmeterio/openmeter/api/v3/handlers/customers"
 	"github.com/openmeterio/openmeter/api/v3/handlers/features"
 	"github.com/openmeterio/openmeter/api/v3/handlers/plans"
@@ -932,13 +931,57 @@ func fromAPIChargesExpands(ctx context.Context, expand *[]apiv3models.BillingCha
 	return meta.ExpandNone.With(expands...), nil
 }
 
+// billingTaxConfigFromAPIResult is a v3 charge tax config read without lookups.
+type billingTaxConfigFromAPIResult struct {
+	// TaxConfig holds the Tax Code reference the charge stores and the tax behavior.
+	TaxConfig productcatalog.TaxCodeConfig
+	// StripeCode is the deprecated stripe.code that still has to be resolved to a Tax Code. It is
+	// empty when tax_code (or the deprecated tax_code_id) is set, because the ID wins, and when
+	// no Stripe code was sent.
+	StripeCode string
+}
+
+// fromAPIBillingTaxConfig reads a v3 charge tax config without lookups.
+//
+// stripe.code is format-checked even when the ID wins: the API always rejected malformed codes.
+func fromAPIBillingTaxConfig(in *apiv3models.BillingTaxConfig) (billingTaxConfigFromAPIResult, error) {
+	if in == nil {
+		return billingTaxConfigFromAPIResult{}, nil
+	}
+
+	stripeCode := lo.FromPtr(in.Stripe).Code
+	if err := (&productcatalog.StripeTaxConfig{Code: stripeCode}).Validate(); err != nil {
+		return billingTaxConfigFromAPIResult{}, models.ErrorWithFieldPrefix(
+			models.NewFieldSelectorGroup(models.NewFieldSelector("stripe"), models.NewFieldSelector("code")),
+			err,
+		)
+	}
+
+	out := productcatalog.TaxCodeConfig{
+		Behavior: (*productcatalog.TaxBehavior)(in.Behavior),
+	}
+
+	switch {
+	case in.TaxCode != nil:
+		out.TaxCodeID = in.TaxCode.Id
+	case in.TaxCodeId != nil:
+		out.TaxCodeID = *in.TaxCodeId
+	}
+
+	// An explicit empty ID was always rejected; don't let it fall through to the Stripe code.
+	if (in.TaxCode != nil || in.TaxCodeId != nil) && out.TaxCodeID == "" {
+		return billingTaxConfigFromAPIResult{}, models.NewGenericValidationError(errors.New("tax code id must not be empty"))
+	}
+
+	if out.TaxCodeID != "" {
+		stripeCode = ""
+	}
+
+	return billingTaxConfigFromAPIResult{TaxConfig: out, StripeCode: stripeCode}, nil
+}
+
 func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee apiv3models.CreateChargeFlatFeeRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
-
-	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(flatFee.TaxConfig)
-	if err != nil {
-		return zero, fmt.Errorf("invalid tax config: %w", err)
-	}
 
 	if flatFee.AmountBeforeProration.Currency != flatFee.Currency {
 		return zero, models.NewGenericValidationError(errors.New("currency mismatch, amount_before_proration.currency should match currency field"))
@@ -990,7 +1033,6 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(flatFee.Currency),
 		CostBasis:         costBasis,
-		TaxConfig:         lo.FromPtr(taxConfig),
 		UniqueReferenceID: flatFee.UniqueReferenceId,
 		FlatFee: &billingcharges.CreateCustomerChargeFlatFeeInput{
 			IntentMutableFields: flatfee.IntentMutableFields{
@@ -1016,11 +1058,6 @@ func fromAPICreateChargeFlatFeeRequest(namespace, customerID string, flatFee api
 
 func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBasedFee apiv3models.CreateChargeUsageBasedRequest) (billingcharges.CreateCustomerChargeInput, error) {
 	var zero billingcharges.CreateCustomerChargeInput
-
-	taxConfig, err := billingprofiles.FromAPIBillingTaxConfigFull(usageBasedFee.TaxConfig)
-	if err != nil {
-		return zero, fmt.Errorf("invalid tax config: %w", err)
-	}
 
 	var metadata models.Metadata
 	if usageBasedFee.Labels != nil {
@@ -1072,7 +1109,6 @@ func fromAPICreateChargeUsageBasedRequest(namespace, customerID string, usageBas
 		CustomerID:        customerID,
 		CurrencyCode:      currencyx.Code(usageBasedFee.Currency),
 		CostBasis:         costBasis,
-		TaxConfig:         lo.FromPtr(taxConfig),
 		UniqueReferenceID: usageBasedFee.UniqueReferenceId,
 		UsageBased: &billingcharges.CreateCustomerChargeUsageBasedInput{
 			IntentMutableFields: usagebased.IntentMutableFields{

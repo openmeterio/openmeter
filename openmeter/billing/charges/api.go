@@ -78,7 +78,7 @@ type CreateCustomerChargeInput struct {
 	CustomerID        string
 	CurrencyCode      currencyx.Code
 	CostBasis         *costbasis.Intent
-	TaxConfig         productcatalog.TaxConfig
+	TaxConfig         productcatalog.TaxCodeConfig
 	UniqueReferenceID *string
 
 	FlatFee    *CreateCustomerChargeFlatFeeInput

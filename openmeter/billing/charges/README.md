@@ -83,9 +83,12 @@ including a missing default profile, abort creation.
 Existing charges retain the selected identity when profile or organization defaults
 change. Explicit tax behavior remains preserved independently of code selection.
 Credit purchases use the organization credit-grant default when no code is supplied.
-Customer charge creation resolves legacy Stripe codes before selecting defaults.
-The API `tax_code.id` reference takes precedence over deprecated `tax_code_id`
-and `stripe.code`.
+The charges service only accepts Tax Code IDs. API handlers turn a deprecated
+`stripe.code` into a Tax Code ID first, in its own short transaction before the
+create, so the create keeps its own transaction boundaries. A create that fails
+after the resolution may leave the Tax Code behind; that is harmless, the next
+request with the same code reuses it. The API `tax_code.id` reference takes
+precedence over deprecated `tax_code_id` and `stripe.code`.
 
 ## Intent layers
 

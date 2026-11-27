@@ -90,8 +90,8 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotTaxCodeIntoLinesOnAdvance() {
 	s.Equal(productcatalog.InclusiveTaxBehavior, *lines[0].TaxConfig.Behavior)
 }
 
-// D2: A line's own Stripe code takes precedence over the profile DefaultTaxConfig.
-func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
+// D2: A line's own Tax Code takes precedence over the profile DefaultTaxConfig.
+func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnTaxCodeTakesPrecedence() {
 	ctx := context.Background()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -103,6 +103,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 	cust := s.CreateTestCustomer(ns, "test")
 	s.SetupAccounts(ns, cust.ID)
 	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	lineTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), ns, app.AppTypeStripe, "txcd_20000000")
 
 	now := time.Now().Truncate(time.Microsecond).UTC()
 
@@ -121,7 +122,7 @@ func (s *TaxCodeDualWriteTestSuite) TestSnapshotLineOwnCodeTakesPrecedence() {
 					InvoiceAt:     now,
 					ManagedBy:     billing.ManuallyManagedLine,
 					TaxConfig: &productcatalog.TaxConfig{
-						Stripe: &productcatalog.StripeTaxConfig{Code: "txcd_20000000"},
+						TaxCodeID: lo.ToPtr(lineTaxCode.ID),
 					},
 					Price: lo.FromPtr(productcatalog.NewPriceFrom(productcatalog.FlatPrice{
 						Amount:      alpacadecimal.NewFromFloat(100),
