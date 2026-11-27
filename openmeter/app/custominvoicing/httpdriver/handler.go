@@ -60,7 +60,11 @@ func New(
 }
 
 func (h *handler) toAPIInvoice(ctx context.Context, invoice billing.StandardInvoice) (apiv1models.Invoice, error) {
-	taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, h.taxCodeResolver, invoice.Namespace, invoice.Workflow.Config)
+	taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, h.taxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:     invoice.Namespace,
+		Workflows:     []billing.WorkflowConfig{invoice.Workflow.Config},
+		StandardLines: invoice.Lines.OrEmpty(),
+	})
 	if err != nil {
 		return apiv1models.Invoice{}, err
 	}

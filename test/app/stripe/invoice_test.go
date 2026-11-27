@@ -23,6 +23,7 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	appstripeservice "github.com/openmeterio/openmeter/openmeter/app/stripe/service"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges"
 	chargestestutils "github.com/openmeterio/openmeter/openmeter/billing/charges/testutils"
 	creditgrant "github.com/openmeterio/openmeter/openmeter/billing/creditgrant"
@@ -1460,7 +1461,16 @@ func (s *StripeInvoiceTestSuite) TestDeletedAppFailsAdvancementButAllowsInvoiceD
 		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Tax.GetID())
 		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Invoicing.GetID())
 		s.Equal(stripeApp.GetID(), refetched.Workflow.Apps.Payment.GetID())
-		_, err = billinghttpdriver.MapStandardInvoiceToAPI(refetched, nil)
+		// The invoice's lines may reference Tax Codes by ID; resolve them the way the handler
+		// would, so the mapping doesn't rely on the lines happening to have no tax code.
+		taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, s.TaxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+			Namespace:     refetched.Namespace,
+			Workflows:     []billing.WorkflowConfig{refetched.Workflow.Config},
+			StandardLines: refetched.Lines.OrEmpty(),
+		})
+		s.Require().NoError(err)
+
+		_, err = billinghttpdriver.MapStandardInvoiceToAPI(refetched, taxCodes)
 		s.Require().NoError(err)
 	})
 

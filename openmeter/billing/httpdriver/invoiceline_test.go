@@ -118,7 +118,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateOverwritesTaxConfig(t *tes
 			Behavior:  &taxBehavior,
 			TaxCodeId: &taxCodeID,
 		},
-	})
+	}, &productcatalog.TaxConfig{Behavior: &productCatalogTaxBehavior, TaxCodeID: &taxCodeID})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Equal(t, taxCodeID, *mergedLine.TaxConfig.TaxCodeID)
@@ -151,7 +151,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateLeavesProviderDefaultOmiss
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}))
+	}), &productcatalog.TaxConfig{Behavior: &productCatalogTaxBehavior})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Nil(t, mergedLine.TaxConfig.TaxCodeID)
@@ -184,7 +184,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDoesNotPreserveExplicitTax
 			Behavior: &taxBehavior,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}))
+	}), &productcatalog.TaxConfig{Behavior: &productCatalogTaxBehavior})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Nil(t, mergedLine.TaxConfig.TaxCodeID)
@@ -219,7 +219,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdateDropsResolvedTaxCodeWhenTa
 			TaxCodeId: &newTaxCodeID,
 		}
 		update.TaxConfig = update.RateCard.TaxConfig
-	}))
+	}), &productcatalog.TaxConfig{Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior), TaxCodeID: &newTaxCodeID})
 	require.NoError(t, err)
 	require.NotNil(t, mergedLine.TaxConfig)
 	require.Nil(t, mergedLine.TaxConfig.TaxCode)
@@ -243,7 +243,7 @@ func TestMergeStandardLineFromInvoiceLineReplaceUpdatePreservesDiscountCorrelati
 				CorrelationId: lo.ToPtr("client-supplied-correlation-id"),
 			},
 		}
-	}))
+	}), nil)
 	require.NoError(t, err)
 	require.Equal(t, models.NewPercentage(20), mergedLine.RateCardDiscounts.Percentage.Percentage)
 	require.Equal(t, "existing-percentage", mergedLine.RateCardDiscounts.Percentage.CorrelationID)
@@ -257,7 +257,7 @@ func TestMergeGatheringLineFromInvoiceLineReplaceUpdateAcceptsRateCardOnlyPrice(
 		update.Price = nil
 		update.FeatureKey = nil
 		update.TaxConfig = nil
-	}))
+	}), nil)
 	require.NoError(t, err)
 	require.True(t, gatheringLinePrice(t, mergedLine).Equal(productCatalogPriceForTest(t, "2")))
 	require.Equal(t, line.FeatureKey, mergedLine.FeatureKey)
@@ -282,7 +282,7 @@ func TestMergeStandardInvoiceLinesFromAPITombstonesOmittedLines(t *testing.T) {
 		invoiceLineReplaceUpdateForMergeTest(t, period, keptLine.UsageBased.FeatureKey, "1", func(update *apiv1models.InvoiceLineReplaceUpdate) {
 			update.Id = lo.ToPtr(keptLine.ID)
 		}),
-	})
+	}, []*productcatalog.TaxConfig{nil})
 	require.NoError(t, err)
 
 	lines := mergedLines.OrEmpty()
@@ -381,7 +381,7 @@ func apiPriceForMergeTest(t *testing.T, amount string) apiv1models.RateCardUsage
 	price := apiv1models.RateCardUsageBasedPrice{}
 	require.NoError(t, price.FromUnitPriceWithCommitments(apiv1models.UnitPriceWithCommitments{
 		Amount: amount,
-	}))
+	}), nil)
 
 	return price
 }

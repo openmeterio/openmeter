@@ -16,8 +16,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// ToAPIStandardInvoice maps a standard invoice. taxCodes must hold the invoice's default Tax Code
-// (see ResolveWorkflowTaxCodes) for its stripe.code to show.
+// ToAPIStandardInvoice maps a standard invoice. taxCodes must hold the invoice's default Tax
+// Code and every Tax Code its lines' tax configs reference (see ResolveInvoiceTaxCodes) for
+// their stripe.code to show.
 func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	var apps *apiv1models.BillingProfileAppsOrReference
 	var err error
@@ -109,7 +110,7 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*
 	}
 
 	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (apiv1models.InvoiceLine, error) {
-		mappedLine, err := mapInvoiceLineToAPI(line)
+		mappedLine, err := mapInvoiceLineToAPI(line, taxCodes)
 		if err != nil {
 			return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
 		}
@@ -128,7 +129,8 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*
 }
 
 // ToAPIEventInvoice maps an invoice event to the v1 invoice shape notifications carry. The event
-// has no Stripe code for the invoice default; taxCodes (see ResolveWorkflowTaxCodes) supplies it.
+// has no Stripe code for the invoice default; taxCodes (see ResolveInvoiceTaxCodes) supplies it
+// and the lines' stripe.code.
 func ToAPIEventInvoice(event billing.EventStandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	// Only the apps captured in the event belong in the notification snapshot.
 	event.Invoice.Workflow.Apps = nil

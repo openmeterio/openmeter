@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcataloghttp "github.com/openmeterio/openmeter/openmeter/productcatalog/http"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -16,8 +17,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
-// MapGatheringInvoiceToAPI maps a gathering invoice, showing the profile's workflow. taxCodes must
-// hold the profile's default Tax Code (see ResolveWorkflowTaxCodes) for stripe.code to show.
+// MapGatheringInvoiceToAPI maps a gathering invoice, showing the profile's workflow. taxCodes
+// must hold the profile's default Tax Code and every Tax Code the lines' tax configs reference
+// (see ResolveInvoiceTaxCodes) for their stripe.code to show.
 func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *customer.Customer, profile billing.Profile, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
 	var err error
 
@@ -75,7 +77,7 @@ func MapGatheringInvoiceToAPI(invoice billing.GatheringInvoice, customer *custom
 	}
 
 	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line billing.GatheringLine) (apiv1models.InvoiceLine, error) {
-		mappedLine, err := mapGatheringInvoiceLineToAPI(line)
+		mappedLine, err := mapGatheringInvoiceLineToAPI(line, taxCodes)
 		if err != nil {
 			return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
 		}
@@ -104,10 +106,15 @@ func mapServicePeriodToAPI(p timeutil.ClosedPeriod) *apiv1models.Period {
 	}
 }
 
-func mapGatheringInvoiceLineToAPI(line billing.GatheringLine) (apiv1models.InvoiceLine, error) {
+func mapGatheringInvoiceLineToAPI(line billing.GatheringLine, taxCodes productcatalog.TaxCodesByID) (apiv1models.InvoiceLine, error) {
 	price, err := productcataloghttp.FromRateCardUsageBasedPrice(line.Price)
 	if err != nil {
 		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map price: %w", err)
+	}
+
+	lineTaxConfig, err := billingconvert.ToAPITaxConfig(taxCodes, line.TaxConfig)
+	if err != nil {
+		return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map tax config: %w", err)
 	}
 
 	invoiceLine := apiv1models.InvoiceLine{
@@ -136,14 +143,14 @@ func mapGatheringInvoiceLineToAPI(line billing.GatheringLine) (apiv1models.Invoi
 			To:   line.ServicePeriod.To,
 		},
 
-		TaxConfig: billingconvert.ToAPITaxConfig(line.TaxConfig),
+		TaxConfig: lineTaxConfig,
 
 		FeatureKey: lo.EmptyableToPtr(line.FeatureKey),
 
 		Price: lo.ToPtr(price),
 
 		RateCard: &apiv1models.InvoiceUsageBasedRateCard{
-			TaxConfig:  billingconvert.ToAPITaxConfig(line.TaxConfig),
+			TaxConfig:  lineTaxConfig,
 			Price:      lo.ToPtr(price),
 			FeatureKey: lo.EmptyableToPtr(line.FeatureKey),
 		},

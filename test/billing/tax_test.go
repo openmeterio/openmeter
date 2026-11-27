@@ -222,8 +222,12 @@ func (s *InvoicingTaxTestSuite) TestInvoiceDefaultTaxCodeFrozenOnStripeRemap() {
 		s.Require().NoError(err)
 		s.Equal(wantDefault, reread.Workflow.Config.Invoicing.DefaultTaxConfig)
 
-		// v1 shows the tax code's current mapping for the default.
-		taxCodes, err := billingconvert.ResolveWorkflowTaxCodes(ctx, s.TaxCodeResolver, namespace, reread.Workflow.Config)
+		// v1 shows the tax code's current mapping for the default and the lines.
+		taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, s.TaxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+			Namespace:     namespace,
+			Workflows:     []billing.WorkflowConfig{reread.Workflow.Config},
+			StandardLines: reread.Lines.OrEmpty(),
+		})
 		s.Require().NoError(err)
 
 		apiInvoice, err := billinghttpdriver.MapStandardInvoiceToAPI(reread, taxCodes)
@@ -235,6 +239,95 @@ func (s *InvoicingTaxTestSuite) TestInvoiceDefaultTaxCodeFrozenOnStripeRemap() {
 			TaxCodeId: lo.ToPtr(taxCode.ID),
 		}, apiInvoice.Workflow.Workflow.Invoicing.DefaultTaxConfig)
 	})
+}
+
+// A line's stored stripe.code is an input echo, not the source of truth: v1 output renders the
+// Stripe code of the Tax Code the line's TaxCodeID references at read time, so a Tax Code that
+// was remapped after the invoice was created shows the current mapping.
+func (s *InvoicingTaxTestSuite) TestInvoiceLineRendersCurrentTaxCodeMapping() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("ns-tax-line-remap")
+
+	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
+	cust := s.CreateTestCustomer(namespace, "test")
+	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
+	taxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+
+	// given: a draft invoice whose line references the tax code with its original mapping
+	invoice := s.generateDraftInvoiceWithTaxCodeID(ctx, cust, taxCode.ID)
+
+	// when: the tax code is remapped to another Stripe code
+	_, err := s.TaxCodeEnv.Service.UpdateTaxCode(ctx, taxcode.UpdateTaxCodeInput{
+		NamespacedID: taxCode.NamespacedID,
+		Name:         taxCode.Name,
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_50000000"},
+		},
+		// The test drives the update directly, not through the API, so the immutability
+		// guard doesn't apply.
+		AllowAppMappingOverride: true,
+	})
+	s.Require().NoError(err)
+
+	// then: the line renders the current mapping, not the stored one
+	reread, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+
+	taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, s.TaxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:     namespace,
+		Workflows:     []billing.WorkflowConfig{reread.Workflow.Config},
+		StandardLines: reread.Lines.OrEmpty(),
+	})
+	s.Require().NoError(err)
+
+	apiInvoice, err := billinghttpdriver.MapStandardInvoiceToAPI(reread, taxCodes)
+	s.Require().NoError(err)
+	s.Require().NotNil(apiInvoice.Lines)
+	s.Require().Len(*apiInvoice.Lines, 1)
+	s.Require().NotNil((*apiInvoice.Lines)[0].TaxConfig)
+	s.Equal(&apiv1models.TaxConfig{
+		Behavior:  lo.ToPtr(apiv1models.TaxBehaviorExclusive),
+		Stripe:    &apiv1models.StripeTaxConfig{Code: "txcd_50000000"},
+		TaxCodeId: lo.ToPtr(taxCode.ID),
+	}, (*apiInvoice.Lines)[0].TaxConfig)
+}
+
+// generateDraftInvoiceWithTaxCodeID creates a draft invoice whose lines explicitly reference
+// the given Tax Code ID.
+func (s *InvoicingTaxTestSuite) generateDraftInvoiceWithTaxCodeID(ctx context.Context, cust *customer.Customer, taxCodeID string) billing.StandardInvoice {
+	invoice := s.generateDraftInvoice(ctx, cust)
+
+	// Stamping the line's tax config through the calculator leaves the inherited default in
+	// place; give the line its own reference so the read side resolves it as a line ID.
+	updated, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceSystem,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			lines, err := invoice.Lines.MapWithErr(func(line *billing.StandardLine) (*billing.StandardLine, error) {
+				line.TaxConfig = &billing.TaxConfig{
+					TaxConfig: productcatalog.TaxConfig{
+						Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+						TaxCodeID: lo.ToPtr(taxCodeID),
+					},
+				}
+
+				return line, nil
+			})
+			if err != nil {
+				return err
+			}
+
+			invoice.Lines = lines
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+
+	return updated
 }
 
 // A deleted profile default is inherited by the invoices created from it. Calculation stamps the
