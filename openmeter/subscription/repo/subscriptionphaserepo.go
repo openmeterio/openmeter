@@ -3,6 +3,9 @@ package repo
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
@@ -11,7 +14,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type subscriptionPhaseRepo struct {
@@ -26,39 +28,32 @@ func NewSubscriptionPhaseRepo(db *db.Client) *subscriptionPhaseRepo {
 	}
 }
 
-func getPhaseForSubscriptionAtFilter(input subscription.GetForSubscriptionAtInput) predicate.SubscriptionPhase {
+type subscriptionReadScope struct {
+	namespace string
+	at        time.Time
+}
+
+// Subscriptions expanded together share a namespace and cutoff. Group their IDs so
+// the item query can look up all matching phases with a single EXISTS.
+func groupSubscriptionReads(inputs []subscription.GetForSubscriptionAtInput) map[subscriptionReadScope][]string {
+	return lo.GroupByMap(inputs, func(input subscription.GetForSubscriptionAtInput) (subscriptionReadScope, string) {
+		return subscriptionReadScope{namespace: input.Namespace, at: input.At.UTC()}, input.SubscriptionID
+	})
+}
+
+func (scope subscriptionReadScope) phaseFilter(subscriptionIDs []string) predicate.SubscriptionPhase {
 	return dbsubscriptionphase.And(
-		dbsubscriptionphase.SubscriptionID(input.SubscriptionID),
-		dbsubscriptionphase.Namespace(input.Namespace),
+		dbsubscriptionphase.SubscriptionIDIn(subscriptionIDs...),
+		dbsubscriptionphase.Namespace(scope.namespace),
 		dbsubscriptionphase.Or(
 			dbsubscriptionphase.DeletedAtIsNil(),
-			dbsubscriptionphase.DeletedAtGT(input.At),
+			dbsubscriptionphase.DeletedAtGT(scope.at),
 		),
 	)
 }
 
 func (r *subscriptionPhaseRepo) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionPhase, error) {
-	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionPhaseRepo) ([]subscription.SubscriptionPhase, error) {
-		phases, err := repo.db.SubscriptionPhase.Query().
-			Where(getPhaseForSubscriptionAtFilter(input)).
-			All(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		var result []subscription.SubscriptionPhase
-
-		for _, phase := range phases {
-			r, err := MapDBSubscripitonPhase(phase)
-			if err != nil {
-				return nil, err
-			}
-
-			result = append(result, r)
-		}
-
-		return result, nil
-	})
+	return r.GetForSubscriptionsAt(ctx, []subscription.GetForSubscriptionAtInput{input})
 }
 
 func (r *subscriptionPhaseRepo) GetForSubscriptionsAt(ctx context.Context, input []subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionPhase, error) {
@@ -70,7 +65,7 @@ func (r *subscriptionPhaseRepo) GetForSubscriptionsAt(ctx context.Context, input
 		phases, err := repo.db.SubscriptionPhase.Query().
 			Where(
 				dbsubscriptionphase.Or(
-					slicesx.Map(input, getPhaseForSubscriptionAtFilter)...,
+					lo.MapToSlice(groupSubscriptionReads(input), subscriptionReadScope.phaseFilter)...,
 				),
 			).
 			All(ctx)

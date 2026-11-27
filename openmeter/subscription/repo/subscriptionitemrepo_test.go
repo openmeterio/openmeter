@@ -20,7 +20,7 @@ import (
 )
 
 func TestSubscriptionItemGetForSubscriptionAt(t *testing.T) {
-	// given: two namespace-scoped item chains, with item and phase deletion at the same boundary
+	// given: subscriptions across two namespaces, with item and phase deletion at the same boundary
 	at := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
 	before := at.Add(-time.Hour)
 	clock.FreezeTime(before)
@@ -35,7 +35,7 @@ func TestSubscriptionItemGetForSubscriptionAt(t *testing.T) {
 	var lookups []subscription.GetForSubscriptionAtInput
 	var items []subscription.SubscriptionItem
 
-	for _, namespace := range []string{"alpha", "beta"} {
+	for _, namespace := range []string{"alpha", "beta", "alpha"} {
 		customer, err := dbDeps.DBClient.Customer.Create().
 			SetNamespace(namespace).
 			SetName("Customer").
@@ -83,7 +83,9 @@ func TestSubscriptionItemGetForSubscriptionAt(t *testing.T) {
 	}
 
 	require.NoError(t, dbDeps.DBClient.SubscriptionItem.UpdateOneID(items[0].ID).SetDeletedAt(at).Exec(t.Context()))
-	require.NoError(t, dbDeps.DBClient.SubscriptionPhase.UpdateOneID(items[1].PhaseId).SetDeletedAt(at).Exec(t.Context()))
+	for _, item := range items[1:] {
+		require.NoError(t, dbDeps.DBClient.SubscriptionPhase.UpdateOneID(item.PhaseId).SetDeletedAt(at).Exec(t.Context()))
+	}
 
 	// The foreign key alone permits a mismatched namespace; reads must exclude it.
 	_, err := dbDeps.DBClient.SubscriptionItem.Create().
@@ -112,14 +114,36 @@ func TestSubscriptionItemGetForSubscriptionAt(t *testing.T) {
 	t.Run("mixed namespace batch retains each cutoff", func(t *testing.T) {
 		// when: one namespace is read at deletion and the other before it
 		// then: only the latter's item is returned, whichever namespace it belongs to
-		for i := range lookups {
-			inputs := append([]subscription.GetForSubscriptionAtInput(nil), lookups...)
+		for i := range lookups[:2] {
+			inputs := append([]subscription.GetForSubscriptionAtInput(nil), lookups[:2]...)
 			inputs[i].At = at
 			loaded, err := itemRepo.GetForSubscriptionsAt(t.Context(), inputs)
 			require.NoError(t, err)
 			require.Len(t, loaded, 1)
 			require.Equal(t, items[1-i].NamespacedID, loaded[0].NamespacedID)
 		}
+	})
+
+	t.Run("batch within a namespace", func(t *testing.T) {
+		// Given two subscriptions in alpha and a duplicate lookup for the first.
+		inputs := []subscription.GetForSubscriptionAtInput{lookups[0], lookups[2], lookups[0]}
+		loaded, err := itemRepo.GetForSubscriptionsAt(t.Context(), inputs)
+		require.NoError(t, err)
+		require.Len(t, loaded, 2)
+		require.ElementsMatch(t, []string{items[0].ID, items[2].ID}, []string{loaded[0].ID, loaded[1].ID})
+
+		// When only the second subscription is read at its phase deletion boundary,
+		// then the first subscription's earlier cutoff must not bring that phase back.
+		inputs[1].At = at
+		loaded, err = itemRepo.GetForSubscriptionsAt(t.Context(), inputs)
+		require.NoError(t, err)
+		require.Len(t, loaded, 1)
+		require.Equal(t, items[0].ID, loaded[0].ID)
+
+		phases, err := phaseRepo.GetForSubscriptionsAt(t.Context(), inputs)
+		require.NoError(t, err)
+		require.Len(t, phases, 1)
+		require.Equal(t, items[0].PhaseId, phases[0].ID)
 	})
 
 	t.Run("item and phase deletion are exclusive at the boundary", func(t *testing.T) {

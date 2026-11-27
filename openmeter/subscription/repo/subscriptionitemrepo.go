@@ -18,7 +18,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type subscriptionItemRepo struct {
@@ -59,42 +58,20 @@ func validateCurrencyReferenceForPersistence(namespace string, reference currenc
 	return nil
 }
 
-func getItemForSubscriptionAtFilter(input subscription.GetForSubscriptionAtInput) predicate.SubscriptionItem {
+func (scope subscriptionReadScope) itemFilter(subscriptionIDs []string) predicate.SubscriptionItem {
 	return dbsubscriptionitem.And(
 		// Scope items explicitly so PostgreSQL can use the (namespace, phase_id, key) index.
-		dbsubscriptionitem.Namespace(input.Namespace),
-		dbsubscriptionitem.HasPhaseWith(getPhaseForSubscriptionAtFilter(input)),
+		dbsubscriptionitem.Namespace(scope.namespace),
+		dbsubscriptionitem.HasPhaseWith(scope.phaseFilter(subscriptionIDs)),
 		dbsubscriptionitem.Or(
 			dbsubscriptionitem.DeletedAtIsNil(),
-			dbsubscriptionitem.DeletedAtGT(input.At),
+			dbsubscriptionitem.DeletedAtGT(scope.at),
 		),
 	)
 }
 
 func (r *subscriptionItemRepo) GetForSubscriptionAt(ctx context.Context, input subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionItem, error) {
-	return entutils.TransactingRepo(ctx, r, func(ctx context.Context, repo *subscriptionItemRepo) ([]subscription.SubscriptionItem, error) {
-		items, err := repo.db.SubscriptionItem.Query().
-			Where(getItemForSubscriptionAtFilter(input)).
-			WithPhase().
-			WithCustomCurrency().
-			All(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		var result []subscription.SubscriptionItem
-
-		for _, item := range items {
-			r, err := MapDBSubscriptionItem(item)
-			if err != nil {
-				return nil, err
-			}
-
-			result = append(result, r)
-		}
-
-		return result, nil
-	})
+	return r.GetForSubscriptionsAt(ctx, []subscription.GetForSubscriptionAtInput{input})
 }
 
 func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input []subscription.GetForSubscriptionAtInput) ([]subscription.SubscriptionItem, error) {
@@ -105,7 +82,7 @@ func (r *subscriptionItemRepo) GetForSubscriptionsAt(ctx context.Context, input 
 
 		items, err := repo.db.SubscriptionItem.Query().
 			Where(dbsubscriptionitem.Or(
-				slicesx.Map(input, getItemForSubscriptionAtFilter)...,
+				lo.MapToSlice(groupSubscriptionReads(input), subscriptionReadScope.itemFilter)...,
 			)).
 			WithPhase().
 			WithCustomCurrency().
