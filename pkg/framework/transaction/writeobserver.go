@@ -30,36 +30,37 @@ type WriteAttempt struct {
 	Operation string
 }
 
-// ReadOnlyObserver is told about every write attempted inside a read-only scope.
-// Returning an error rejects the write.
-type ReadOnlyObserver interface {
+// WriteObserver is told about every database write attempted with the context it
+// is attached to. Returning an error rejects the write.
+type WriteObserver interface {
 	ObserveWrite(ctx context.Context, attempt WriteAttempt) error
 }
 
-type readOnlyContextKey struct{}
+type writeObserverContextKey struct{}
 
-// WithReadOnly marks ctx as a scope that is expected to only read, so it could
-// be served by a read replica. Writes are still executed: the observer decides
-// whether they are only recorded or rejected.
-func WithReadOnly(ctx context.Context, observer ReadOnlyObserver) (context.Context, error) {
+// WithWriteObserver attaches observer to ctx, so it is told about every database
+// write attempted with that context. Use it for work that is expected to only
+// read, such as a request that could be served by a read replica. Writes are
+// still executed: the observer decides whether they are only recorded or rejected.
+func WithWriteObserver(ctx context.Context, observer WriteObserver) (context.Context, error) {
 	if observer == nil {
-		return ctx, errors.New("read-only observer is required")
+		return ctx, errors.New("write observer is required")
 	}
 
-	return context.WithValue(ctx, readOnlyContextKey{}, observer), nil
+	return context.WithValue(ctx, writeObserverContextKey{}, observer), nil
 }
 
-func IsReadOnly(ctx context.Context) bool {
-	_, ok := ctx.Value(readOnlyContextKey{}).(ReadOnlyObserver)
+func HasWriteObserver(ctx context.Context) bool {
+	_, ok := ctx.Value(writeObserverContextKey{}).(WriteObserver)
 
 	return ok
 }
 
 // ReportWrite must be called before any database write that Ent hooks cannot
-// see, such as raw SQL or advisory locks. It does nothing outside a read-only
-// scope.
+// see, such as raw SQL or advisory locks. It does nothing when ctx has no write
+// observer.
 func ReportWrite(ctx context.Context, attempt WriteAttempt) error {
-	observer, ok := ctx.Value(readOnlyContextKey{}).(ReadOnlyObserver)
+	observer, ok := ctx.Value(writeObserverContextKey{}).(WriteObserver)
 	if !ok {
 		return nil
 	}

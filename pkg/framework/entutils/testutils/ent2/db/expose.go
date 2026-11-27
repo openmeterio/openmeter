@@ -85,8 +85,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 	}
 
 	// Hooks registered on the originating client are not carried over (see RawEntConfig),
-	// so the read-only detection has to be installed again.
-	config.installReadOnlyDetection()
+	// so the write observers have to be installed again.
+	config.installWriteObservers()
 
 	return &Tx{
 		ctx:    ctx,
@@ -97,12 +97,12 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 	}
 }
 
-// installReadOnlyDetection makes every client report the writes it attempts inside a
-// read-only scope (see transaction.WithReadOnly). It runs for every client the package
-// can build, so no caller has to remember to register it.
-func (c *config) installReadOnlyDetection() {
-	c.hooks.Example2 = append(c.hooks.Example2, entutils.ReadOnlyHook)
-	c.inters.Example2 = append(c.inters.Example2, entutils.ReadOnlyInterceptor)
+// installWriteObservers makes every client report the writes it attempts to the write
+// observer of the context (see transaction.WithWriteObserver). It runs for every client
+// the package can build, so no caller has to remember to register it.
+func (c *config) installWriteObservers() {
+	c.hooks.Example2 = append(c.hooks.Example2, entutils.WriteObserverHook)
+	c.inters.Example2 = append(c.inters.Example2, entutils.WriteObserverInterceptor)
 }
 
 // LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).

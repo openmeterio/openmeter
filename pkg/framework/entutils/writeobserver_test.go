@@ -16,12 +16,12 @@ import (
 	transactiontestutils "github.com/openmeterio/openmeter/pkg/framework/transaction/testutils"
 )
 
-func TestReadOnlyDetection(t *testing.T) {
+func TestWriteObserverDetection(t *testing.T) {
 	database := testutils.InitPostgresDB(t, testutils.PostgresDBStateEmpty)
 	t.Cleanup(func() { database.Close(t) })
 
 	// Neither the pooled client nor the transactional ones register anything:
-	// the generated code installs the detection on every client it builds.
+	// the generated code installs the write observers on every client it builds.
 	client := db1.NewClient(db1.Driver(database.EntDriver.Driver()))
 	require.NoError(t, client.Schema.Create(t.Context()))
 
@@ -146,9 +146,9 @@ func TestReadOnlyDetection(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("pooled client", func(t *testing.T) {
-				// given a read-only scope
-				recorder := &transactiontestutils.ReadOnlyRecorder{}
-				ctx, err := transaction.WithReadOnly(t.Context(), recorder)
+				// given a context with a write observer
+				recorder := &transactiontestutils.WriteRecorder{}
+				ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
 				require.NoError(t, err)
 
 				// when the statements run outside a transaction
@@ -159,9 +159,9 @@ func TestReadOnlyDetection(t *testing.T) {
 			})
 
 			t.Run("transaction", func(t *testing.T) {
-				// given a read-only scope
-				recorder := &transactiontestutils.ReadOnlyRecorder{}
-				ctx, err := transaction.WithReadOnly(t.Context(), recorder)
+				// given a context with a write observer
+				recorder := &transactiontestutils.WriteRecorder{}
+				ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
 				require.NoError(t, err)
 
 				// when the statements run through a transactional client
@@ -181,9 +181,9 @@ func TestReadOnlyDetection(t *testing.T) {
 	}
 
 	t.Run("a rejecting observer stops the write before it reaches the database", func(t *testing.T) {
-		// given a read-only scope whose observer rejects writes
-		rejected := errors.New("read-only scope")
-		ctx, err := transaction.WithReadOnly(t.Context(), &transactiontestutils.ReadOnlyRecorder{Reject: rejected})
+		// given a context whose observer rejects writes
+		rejected := errors.New("writes are not allowed")
+		ctx, err := transaction.WithWriteObserver(t.Context(), &transactiontestutils.WriteRecorder{Reject: rejected})
 		require.NoError(t, err)
 
 		id := ulid.Make().String()
@@ -201,7 +201,7 @@ func TestReadOnlyDetection(t *testing.T) {
 		require.False(t, exists)
 	})
 
-	t.Run("writes outside a read-only scope are untouched", func(t *testing.T) {
+	t.Run("writes without an observer are untouched", func(t *testing.T) {
 		id := ulid.Make().String()
 
 		require.NoError(t, client.Example1.Create().SetID(id).SetExampleValue1("v").Exec(t.Context()))

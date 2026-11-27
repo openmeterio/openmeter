@@ -13,23 +13,23 @@ import (
 )
 
 // Downstream binaries build the OpenMeter client with entdb.NewClient on their own
-// driver, so the detection must not depend on how or where the client is constructed.
-func TestGeneratedClientReportsWritesInReadOnlyScope(t *testing.T) {
+// driver, so the reporting must not depend on how or where the client is constructed.
+func TestGeneratedClientReportsWrites(t *testing.T) {
 	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
 	t.Cleanup(func() { testDB.Close(t) })
 
-	// given a client built directly from the generated constructor, in a read-only scope
+	// given a client built directly from the generated constructor, and a context with a write observer
 	client := entdb.NewClient(entdb.Driver(testDB.EntDriver.Driver()))
 
-	recorder := &transactiontestutils.ReadOnlyRecorder{}
-	ctx, err := transaction.WithReadOnly(t.Context(), recorder)
+	recorder := &transactiontestutils.WriteRecorder{}
+	ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
 	require.NoError(t, err)
 
 	// when it mutates and locks rows outside a transaction
-	_, err = client.Feature.Delete().Where(dbfeature.Namespace("read-only-test")).Exec(ctx)
+	_, err = client.Feature.Delete().Where(dbfeature.Namespace("write-observer-test")).Exec(ctx)
 	require.NoError(t, err)
 
-	_, err = client.Feature.Query().Where(dbfeature.Namespace("read-only-test")).ForUpdate().All(ctx)
+	_, err = client.Feature.Query().Where(dbfeature.Namespace("write-observer-test")).ForUpdate().All(ctx)
 	require.NoError(t, err)
 
 	// then both are reported

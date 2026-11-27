@@ -88,8 +88,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
     }
 
     // Hooks registered on the originating client are not carried over (see RawEntConfig),
-    // so the read-only detection has to be installed again.
-    config.installReadOnlyDetection()
+    // so the write observers have to be installed again.
+    config.installWriteObservers()
 
     return &Tx{
 		ctx:         ctx,
@@ -101,19 +101,19 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 	}
 }
 
-// installReadOnlyDetection makes every client report the writes it attempts inside a
-// read-only scope (see transaction.WithReadOnly). It runs for every client the package
-// can build, so no caller has to remember to register it.
-func (c *config) installReadOnlyDetection() {
+// installWriteObservers makes every client report the writes it attempts to the write
+// observer of the context (see transaction.WithWriteObserver). It runs for every client
+// the package can build, so no caller has to remember to register it.
+func (c *config) installWriteObservers() {
     {{- range $n := $.MutableNodes }}
-        c.hooks.{{ $n.Name }} = append(c.hooks.{{ $n.Name }}, entutils.ReadOnlyHook)
+        c.hooks.{{ $n.Name }} = append(c.hooks.{{ $n.Name }}, entutils.WriteObserverHook)
     {{- end }}
     {{- range $n := $.Nodes }}
-        c.inters.{{ $n.Name }} = append(c.inters.{{ $n.Name }}, entutils.ReadOnlyInterceptor)
+        c.inters.{{ $n.Name }} = append(c.inters.{{ $n.Name }}, entutils.WriteObserverInterceptor)
     {{- end }}
 }
 
-{{/* Expose row locking so entutils.ReadOnlyInterceptor can tell locking reads from plain ones */}}
+{{/* Expose row locking so entutils.WriteObserverInterceptor can tell locking reads from plain ones */}}
 {{ if $.FeatureEnabled "sql/lock" }}
 {{ range $n := $.Nodes }}
     {{ $receiver := $n.Receiver }}
@@ -127,7 +127,7 @@ func (c *config) installReadOnlyDetection() {
 
 {{ end }}
 
-{{/* Runs inside newConfig, so every client built with NewClient gets the detection */}}
-{{ define "config/init/fields/readonlydetection" }}
-    cfg.installReadOnlyDetection()
+{{/* Runs inside newConfig, so every client built with NewClient reports its writes */}}
+{{ define "config/init/fields/writeobservers" }}
+    cfg.installWriteObservers()
 {{ end }}

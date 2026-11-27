@@ -8,10 +8,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
-var _ transaction.ReadOnlyObserver = (*ReadOnlyRecorder)(nil)
+var _ transaction.WriteObserver = (*WriteRecorder)(nil)
 
-// ReadOnlyRecorder collects the writes attempted inside a read-only scope.
-type ReadOnlyRecorder struct {
+// WriteRecorder collects the writes attempted with the context it is attached to.
+type WriteRecorder struct {
 	// Reject, when set, is returned for every write so the caller sees it fail.
 	Reject error
 
@@ -19,7 +19,7 @@ type ReadOnlyRecorder struct {
 	attempts []transaction.WriteAttempt
 }
 
-func (r *ReadOnlyRecorder) ObserveWrite(_ context.Context, attempt transaction.WriteAttempt) error {
+func (r *WriteRecorder) ObserveWrite(_ context.Context, attempt transaction.WriteAttempt) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -28,7 +28,7 @@ func (r *ReadOnlyRecorder) ObserveWrite(_ context.Context, attempt transaction.W
 	return r.Reject
 }
 
-func (r *ReadOnlyRecorder) Attempts() []transaction.WriteAttempt {
+func (r *WriteRecorder) Attempts() []transaction.WriteAttempt {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

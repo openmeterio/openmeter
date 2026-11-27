@@ -84,8 +84,8 @@ func TestLockerLockForTx(t *testing.T) {
 		}))
 	}))
 
-	t.Run("Should report the lock in a read-only scope", withDBClient(func(t *testing.T, client *db.Client) {
-		// given a read-only scope
+	t.Run("Should report the lock to the write observer", withDBClient(func(t *testing.T, client *db.Client) {
+		// given a context with a write observer
 		txCreator := &creator{db: client}
 
 		locker, err := lockr.NewLocker(&lockr.LockerConfig{
@@ -93,8 +93,8 @@ func TestLockerLockForTx(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		recorder := &transactiontestutils.ReadOnlyRecorder{}
-		ctx, err := transaction.WithReadOnly(t.Context(), recorder)
+		recorder := &transactiontestutils.WriteRecorder{}
+		ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
 		require.NoError(t, err)
 
 		key, err := lockr.NewKey("test", "scope")
