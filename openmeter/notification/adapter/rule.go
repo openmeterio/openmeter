@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -13,6 +14,7 @@ import (
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -202,11 +204,24 @@ func (a *adapter) DeleteRule(ctx context.Context, params notification.DeleteRule
 }
 
 func (a *adapter) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
+	return a.getRule(ctx, params, false)
+}
+
+// GetRuleForUpdate serializes changes to a Rule before reading its previous Channel assignments.
+func (a *adapter) GetRuleForUpdate(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
+	return a.getRule(ctx, params, true)
+}
+
+func (a *adapter) getRule(ctx context.Context, params notification.GetRuleInput, forUpdate bool) (*notification.Rule, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Rule, error) {
 		query := a.db.NotificationRule.Query().
 			Where(ruledb.ID(params.ID)).
 			Where(ruledb.Namespace(params.Namespace)).
 			WithChannels(EagerLoadNonDeletedChannels(clock.Now()))
+
+		if forUpdate {
+			query.ForUpdate()
+		}
 
 		ruleRow, err := query.First(ctx)
 		if err != nil {
@@ -242,6 +257,7 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 		query := a.db.NotificationRule.UpdateOneID(params.ID).
 			Where(ruledb.Namespace(params.Namespace)).
 			SetDisabled(params.Disabled).
+			AddRevision(1).
 			SetConfig(config).
 			SetName(params.Name).
 			SetAnnotations(params.Annotations).
@@ -284,6 +300,45 @@ func (a *adapter) UpdateRule(ctx context.Context, params notification.UpdateRule
 	return entutils.TransactingRepo(ctx, a, fn)
 }
 
+type ruleFeatureFilter struct {
+	Features ruleFeatures `json:"features,omitempty"`
+}
+
+type ruleFeatures []string
+
+// String lists predate Feature references and can still contain historical keys.
+func (f *ruleFeatures) UnmarshalJSON(data []byte) error {
+	var values []string
+	if err := json.Unmarshal(data, &values); err == nil {
+		*f = values
+
+		return nil
+	}
+
+	var refs []feature.FeatureReference
+	if err := json.Unmarshal(data, &refs); err != nil {
+		return fmt.Errorf("invalid rule feature filter: expected a list of strings or feature references: %w", err)
+	}
+
+	ids := make([]string, len(refs))
+	for i, ref := range refs {
+		if ref.ID == nil || *ref.ID == "" {
+			return fmt.Errorf("invalid rule feature reference at index %d: missing id", i)
+		}
+
+		ids[i] = *ref.ID
+	}
+
+	*f = ids
+
+	return nil
+}
+
+type balanceThresholdConfig struct {
+	ruleFeatureFilter
+	Thresholds []notification.BalanceThreshold `json:"thresholds"`
+}
+
 // fromDBRuleConfig uses the row's type for unwrapped configs. Decoding does not
 // revalidate historical rule conditions; validation belongs to the write path.
 func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (notification.RuleConfig, error) {
@@ -295,9 +350,21 @@ func fromDBRuleConfig(eventType notification.EventType, data json.RawMessage) (n
 
 	switch eventType {
 	case notification.EventTypeBalanceThreshold:
-		config.BalanceThreshold, err = fromDBRuleConfigPayload[notification.BalanceThresholdRuleConfig](eventType, data)
+		var balance *balanceThresholdConfig
+		balance, err = fromDBRuleConfigPayload[balanceThresholdConfig](eventType, data)
+		if err == nil {
+			normalizeThresholdTypes(balance.Thresholds)
+			config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{
+				Features:   balance.Features,
+				Thresholds: balance.Thresholds,
+			}
+		}
 	case notification.EventTypeEntitlementReset:
-		config.EntitlementReset, err = fromDBRuleConfigPayload[notification.EntitlementResetRuleConfig](eventType, data)
+		var reset *ruleFeatureFilter
+		reset, err = fromDBRuleConfigPayload[ruleFeatureFilter](eventType, data)
+		if err == nil {
+			config.EntitlementReset = &notification.EntitlementResetRuleConfig{Features: reset.Features}
+		}
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
 		config.Invoice, err = fromDBRuleConfigPayload[notification.InvoiceRuleConfig](eventType, data)
 	default:
@@ -362,7 +429,12 @@ func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
 
 	switch config.Type {
 	case notification.EventTypeBalanceThreshold:
-		data = config.BalanceThreshold
+		if config.BalanceThreshold != nil {
+			balance := *config.BalanceThreshold
+			balance.Thresholds = slices.Clone(balance.Thresholds)
+			normalizeThresholdTypes(balance.Thresholds)
+			data = balance
+		}
 	case notification.EventTypeEntitlementReset:
 		data = config.EntitlementReset
 	case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
@@ -377,4 +449,10 @@ func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
 	}
 
 	return encoded, nil
+}
+
+func normalizeThresholdTypes(thresholds []notification.BalanceThreshold) {
+	for i, threshold := range thresholds {
+		thresholds[i] = notification.CanonicalBalanceThreshold(threshold)
+	}
 }

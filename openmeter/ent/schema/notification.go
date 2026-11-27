@@ -123,6 +123,12 @@ func (NotificationRule) Mixin() []ent.Mixin {
 
 func (NotificationRule) Fields() []ent.Field {
 	return []ent.Field{
+		field.Int("revision").
+			Min(1).
+			Max(math.MaxInt32).
+			Default(1).
+			SchemaType(map[string]string{dialect.Postgres: "integer"}).
+			Comment("Rule revision for V4, incremented by all Rule update writers; existing Rules start at 1."),
 		field.String("type").
 			Immutable().
 			Comment("The event type emitted by the Rule."),

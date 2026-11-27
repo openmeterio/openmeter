@@ -5151,6 +5151,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "annotations", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "revision", Type: field.TypeInt, Default: 1, SchemaType: map[string]string{"postgres": "integer"}},
 		{Name: "type", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "disabled", Type: field.TypeBool, Nullable: true, Default: false},
@@ -5190,7 +5191,7 @@ var (
 			{
 				Name:    "notificationrule_namespace_type",
 				Unique:  false,
-				Columns: []*schema.Column{NotificationRulesColumns[1], NotificationRulesColumns[7]},
+				Columns: []*schema.Column{NotificationRulesColumns[1], NotificationRulesColumns[8]},
 			},
 		},
 	}

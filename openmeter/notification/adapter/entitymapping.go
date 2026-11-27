@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/internal/eventpayload"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/sortx"
@@ -90,6 +91,7 @@ func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
 				return &deletedAt
 			}(),
 		},
+		Revision: e.Revision,
 		Type:     eventType,
 		Name:     e.Name,
 		Disabled: e.Disabled,
@@ -102,7 +104,7 @@ func RuleFromDBEntity(e db.NotificationRule) (*notification.Rule, error) {
 }
 
 func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
-	payload, err := eventPayloadFromJSON(e.Payload)
+	payload, err := eventPayloadFromJSON(e.Payload, fromDBEventType(e.Type))
 	if err != nil {
 		return nil, err
 	}
@@ -148,10 +150,20 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 	}, nil
 }
 
-func eventPayloadFromJSON(data []byte) (notification.EventPayload, error) {
+func eventPayloadFromJSON(data []byte, eventType notification.EventType) (notification.EventPayload, error) {
 	var meta notification.EventPayloadMeta
 	if err := json.Unmarshal(data, &meta); err != nil {
 		return notification.EventPayload{}, fmt.Errorf("failed to deserialize notification event payload meta: %w", err)
+	}
+
+	// A bare Invoice has its own "type" discriminator (standard/credit_note).
+	// Only Notification's discriminator identifies the old storage envelope.
+	if meta.Type.Validate() != nil {
+		return eventpayload.FromDBRawMessage(data, eventType)
+	}
+
+	if meta.Type != eventType {
+		return notification.EventPayload{}, fmt.Errorf("invalid notification event payload type: got %s, expected %s", meta.Type, eventType)
 	}
 
 	switch meta.Type {

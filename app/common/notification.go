@@ -105,10 +105,16 @@ func NewNotificationService(
 	webhook notificationwebhook.Handler,
 	featureConnector feature.FeatureConnector,
 ) (notification.Service, error) {
+	featureResolver, err := NewFeatureResolver(featureConnector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification feature resolver: %w", err)
+	}
+
 	notificationService, err := notificationservice.New(notificationservice.Config{
 		Adapter:          adapter,
 		Webhook:          webhook,
 		FeatureConnector: featureConnector,
+		FeatureResolver:  featureResolver,
 		Logger:           logger.With(slog.String("subsystem", "notification")),
 	})
 	if err != nil {

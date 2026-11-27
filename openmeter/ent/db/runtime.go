@@ -2909,16 +2909,36 @@ func init() {
 	notificationrule.DefaultUpdatedAt = notificationruleDescUpdatedAt.Default.(func() time.Time)
 	// notificationrule.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	notificationrule.UpdateDefaultUpdatedAt = notificationruleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationruleDescRevision is the schema descriptor for revision field.
+	notificationruleDescRevision := notificationruleFields[0].Descriptor()
+	// notificationrule.DefaultRevision holds the default value on creation for the revision field.
+	notificationrule.DefaultRevision = notificationruleDescRevision.Default.(int)
+	// notificationrule.RevisionValidator is a validator for the "revision" field. It is called by the builders before save.
+	notificationrule.RevisionValidator = func() func(int) error {
+		validators := notificationruleDescRevision.Validators
+		fns := [...]func(int) error{
+			validators[0].(func(int) error),
+			validators[1].(func(int) error),
+		}
+		return func(revision int) error {
+			for _, fn := range fns {
+				if err := fn(revision); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// notificationruleDescName is the schema descriptor for name field.
-	notificationruleDescName := notificationruleFields[1].Descriptor()
+	notificationruleDescName := notificationruleFields[2].Descriptor()
 	// notificationrule.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	notificationrule.NameValidator = notificationruleDescName.Validators[0].(func(string) error)
 	// notificationruleDescDisabled is the schema descriptor for disabled field.
-	notificationruleDescDisabled := notificationruleFields[2].Descriptor()
+	notificationruleDescDisabled := notificationruleFields[3].Descriptor()
 	// notificationrule.DefaultDisabled holds the default value on creation for the disabled field.
 	notificationrule.DefaultDisabled = notificationruleDescDisabled.Default.(bool)
 	// notificationruleDescConfig is the schema descriptor for config field.
-	notificationruleDescConfig := notificationruleFields[3].Descriptor()
+	notificationruleDescConfig := notificationruleFields[4].Descriptor()
 	notificationrule.ValueScanner.Config = notificationruleDescConfig.ValueScanner.(field.TypeValueScanner[jsontext.Value])
 	// notificationruleDescID is the schema descriptor for id field.
 	notificationruleDescID := notificationruleMixinFields0[0].Descriptor()

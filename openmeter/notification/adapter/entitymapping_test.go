@@ -28,7 +28,7 @@ func TestEventPayloadFromJSON_V1Invoice(t *testing.T) {
 	data, err := json.Marshal(original)
 	require.NoError(t, err)
 
-	payload, err := eventPayloadFromJSON(data)
+	payload, err := eventPayloadFromJSON(data, original.Type)
 	require.NoError(t, err)
 
 	require.NotNil(t, payload.Invoice)
@@ -41,7 +41,7 @@ func TestEventPayloadFromJSON_UnsupportedVersion(t *testing.T) {
 		[]byte(`{"type":"invoice.created"}`),              // missing version → 0
 		[]byte(`{"type":"invoice.created","version":99}`), // unknown future version
 	} {
-		_, err := eventPayloadFromJSON(data)
+		_, err := eventPayloadFromJSON(data, notification.EventTypeInvoiceCreated)
 		require.ErrorContains(t, err, "unsupported")
 	}
 }
@@ -57,7 +57,7 @@ func TestEventPayloadFromJSON_NonInvoiceType(t *testing.T) {
 	data, err := json.Marshal(original)
 	require.NoError(t, err)
 
-	payload, err := eventPayloadFromJSON(data)
+	payload, err := eventPayloadFromJSON(data, original.Type)
 	require.NoError(t, err)
 
 	assert.NotNil(t, payload.BalanceThreshold)
@@ -100,4 +100,63 @@ func TestEventPayloadV1JSONShape(t *testing.T) {
 	// Must NOT have an extra nesting level (e.g. invoice.Invoice or invoice.invoice)
 	assert.NotContains(t, invoiceRaw, "Invoice", "invoice object must not have an extra \"Invoice\" wrapper")
 	assert.NotContains(t, invoiceRaw, "invoice", "invoice object must not have an extra \"invoice\" wrapper")
+}
+
+func TestEventPayloadFromJSONInvalidStorage(t *testing.T) {
+	cases := []struct {
+		name      string
+		payload   string
+		eventType notification.EventType
+		want      string
+	}{
+		{
+			name:      "null",
+			payload:   `null`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "missing id",
+		},
+		{
+			name:      "malformed JSON",
+			payload:   `{`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "deserialize",
+		},
+		{
+			name:      "mismatched type",
+			payload:   `{"type":"invoice.updated","version":1}`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "payload type",
+		},
+		{
+			name:      "missing threshold",
+			payload:   `{"entitlement":{},"feature":{},"subject":{},"value":{}}`,
+			eventType: notification.EventTypeBalanceThreshold,
+			want:      "missing threshold",
+		},
+		{
+			name:      "unknown event type",
+			payload:   `{"id":"invoice"}`,
+			eventType: "unknown",
+			want:      "event type",
+		},
+		{
+			name:      "wrong field type",
+			payload:   `{"id":42}`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "cannot unmarshal",
+		},
+		{
+			name:      "colliding fields",
+			payload:   `{"id":"invoice","createdAt":null,"created_at":null}`,
+			eventType: notification.EventTypeInvoiceCreated,
+			want:      "duplicate mapped field",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := eventPayloadFromJSON([]byte(tc.payload), tc.eventType)
+			require.ErrorContains(t, err, tc.want)
+		})
+	}
 }

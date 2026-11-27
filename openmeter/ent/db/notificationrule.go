@@ -32,6 +32,8 @@ type NotificationRule struct {
 	Annotations models.Annotations `json:"annotations,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
+	// Rule revision for V4, incremented by all Rule update writers; existing Rules start at 1.
+	Revision int `json:"revision,omitempty"`
 	// The event type emitted by the Rule.
 	Type string `json:"type,omitempty"`
 	// The name of the rule
@@ -84,6 +86,8 @@ func (*NotificationRule) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case notificationrule.FieldDisabled:
 			values[i] = new(sql.NullBool)
+		case notificationrule.FieldRevision:
+			values[i] = new(sql.NullInt64)
 		case notificationrule.FieldID, notificationrule.FieldNamespace, notificationrule.FieldType, notificationrule.FieldName:
 			values[i] = new(sql.NullString)
 		case notificationrule.FieldCreatedAt, notificationrule.FieldUpdatedAt, notificationrule.FieldDeletedAt:
@@ -151,6 +155,12 @@ func (_m *NotificationRule) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Metadata); err != nil {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
+			}
+		case notificationrule.FieldRevision:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field revision", values[i])
+			} else if value.Valid {
+				_m.Revision = int(value.Int64)
 			}
 		case notificationrule.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -241,6 +251,9 @@ func (_m *NotificationRule) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
+	builder.WriteString(", ")
+	builder.WriteString("revision=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Revision))
 	builder.WriteString(", ")
 	builder.WriteString("type=")
 	builder.WriteString(_m.Type)

@@ -894,14 +894,21 @@ func Test_BalanceEventDedupHash(t *testing.T) {
 
 type eventListRecorder struct {
 	notification.Service
-	event  notification.Event
-	inputs []notification.ListEventsInput
+	event   notification.Event
+	inputs  []notification.ListEventsInput
+	created []notification.CreateEventInput
 }
 
 func (r *eventListRecorder) ListEvents(_ context.Context, in notification.ListEventsInput) (notification.ListEventsResult, error) {
 	r.inputs = append(r.inputs, in)
 
 	return notification.ListEventsResult{Items: []notification.Event{r.event}, TotalCount: 1}, nil
+}
+
+func (r *eventListRecorder) CreateEvent(_ context.Context, input notification.CreateEventInput) (*notification.Event, error) {
+	r.created = append(r.created, input)
+
+	return &notification.Event{Payload: input.Payload}, nil
 }
 
 func TestEntitlementSnapshotEventLookups(t *testing.T) {
@@ -947,6 +954,7 @@ func TestEntitlementSnapshotEventLookups(t *testing.T) {
 		want := wantInput
 		want.DeduplicationHashes = []string{hash.V1(), hash.V2()}
 		require.Equal(t, []notification.ListEventsInput{want}, recorder.inputs)
+		require.Empty(t, recorder.created)
 	})
 
 	t.Run("reset skips creation when any Event exists in the namespace and period", func(t *testing.T) {
@@ -955,5 +963,118 @@ func TestEntitlementSnapshotEventLookups(t *testing.T) {
 		require.NoError(t, handler.handleResetRule(t.Context(), event, notification.Rule{}))
 
 		require.Equal(t, []notification.ListEventsInput{wantInput}, recorder.inputs)
+		require.Empty(t, recorder.created)
 	})
+}
+
+func TestBalanceThresholdComparison(t *testing.T) {
+	tests := []struct {
+		name       string
+		previous   notification.BalanceThreshold
+		current    notification.BalanceThreshold
+		wantCreate bool
+	}{
+		{
+			name:     "legacy number matches canonical usage value",
+			previous: newNumberThreshold(50),
+			current:  newUsageValueThreshold(50),
+		},
+		{
+			name:     "canonical usage value matches legacy number",
+			previous: newUsageValueThreshold(50),
+			current:  newNumberThreshold(50),
+		},
+		{
+			name:     "legacy percent matches canonical usage percentage",
+			previous: newPercentThreshold(50),
+			current:  newUsagePercentageThreshold(50),
+		},
+		{
+			name:     "canonical usage percentage matches legacy percent",
+			previous: newUsagePercentageThreshold(50),
+			current:  newPercentThreshold(50),
+		},
+		{
+			name:     "canonical threshold remains unchanged",
+			previous: newUsageValueThreshold(50),
+			current:  newUsageValueThreshold(50),
+		},
+		{
+			name:     "balance threshold remains unchanged",
+			previous: newBalanceValueThreshold(500),
+			current:  newBalanceValueThreshold(500),
+		},
+		{
+			name:       "changed value creates an event",
+			previous:   newNumberThreshold(50),
+			current:    newUsageValueThreshold(100),
+			wantCreate: true,
+		},
+		{
+			name:       "changed type creates an event",
+			previous:   newNumberThreshold(50),
+			current:    newUsagePercentageThreshold(50),
+			wantCreate: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given an active threshold and a historical Event in the same usage period.
+			start := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+			period := timeutil.ClosedPeriod{From: start, To: start.AddDate(0, 1, 0)}
+			usagePeriod := entitlement.NewUsagePeriodFromRecurrence(timeutil.Recurrence{
+				Anchor: start, Interval: timeutil.RecurrencePeriodMonth,
+			})
+			snapshotEvent := snapshot.SnapshotEvent{
+				Namespace: models.NamespaceID{ID: "namespace"},
+				Entitlement: entitlement.Entitlement{
+					GenericProperties: entitlement.GenericProperties{
+						EntitlementType:           entitlement.EntitlementTypeMetered,
+						UsagePeriod:               &usagePeriod,
+						CurrentUsagePeriod:        &period,
+						OriginalUsagePeriodAnchor: &start,
+					},
+					MeasureUsageFrom: &start,
+					IsSoftLimit:      new(false),
+					LastReset:        &start,
+				},
+				Value: &snapshot.EntitlementValue{
+					Balance:                   new(400.0),
+					Usage:                     new(600.0),
+					TotalAvailableGrantAmount: new(1000.0),
+				},
+			}
+			var rule notification.Rule
+			rule.ID = "rule"
+			rule.Config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{
+				Thresholds: []notification.BalanceThreshold{tt.current},
+			}
+			var previous notification.Event
+			previous.Payload.Type = notification.EventTypeBalanceThreshold
+			previous.Payload.BalanceThreshold = &notification.BalanceThresholdPayload{
+				EntitlementValuePayloadBase: notification.EntitlementValuePayloadBase{
+					Value: apiv1models.EntitlementValue(*snapshotEvent.Value),
+				},
+				Threshold: tt.previous,
+			}
+			recorder := &eventListRecorder{event: previous}
+			handler := EntitlementSnapshotHandler{Notification: recorder}
+
+			// When comparing the next snapshot with the historical threshold.
+			require.NoError(t, handler.handleRule(t.Context(), snapshotEvent, rule))
+
+			// Then only a genuine threshold change produces an Event.
+			if tt.wantCreate {
+				require.Len(t, recorder.created, 1)
+
+				require.Equal(t, tt.current, recorder.created[0].Payload.BalanceThreshold.Threshold)
+			} else {
+				require.Empty(t, recorder.created)
+			}
+
+			require.Equal(t, tt.previous, previous.Payload.BalanceThreshold.Threshold)
+			require.Equal(t, tt.current, rule.Config.BalanceThreshold.Thresholds[0])
+		})
+	}
 }

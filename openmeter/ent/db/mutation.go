@@ -111394,6 +111394,8 @@ type NotificationRuleMutation struct {
 	deleted_at      *time.Time
 	annotations     *models.Annotations
 	metadata        *map[string]string
+	revision        *int
+	addrevision     *int
 	_type           *string
 	name            *string
 	disabled        *bool
@@ -111769,6 +111771,62 @@ func (m *NotificationRuleMutation) ResetMetadata() {
 	delete(m.clearedFields, notificationrule.FieldMetadata)
 }
 
+// SetRevision sets the "revision" field.
+func (m *NotificationRuleMutation) SetRevision(i int) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *NotificationRuleMutation) Revision() (r int, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the NotificationRule entity.
+// If the NotificationRule object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationRuleMutation) OldRevision(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *NotificationRuleMutation) AddRevision(i int) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *NotificationRuleMutation) AddedRevision() (r int, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *NotificationRuleMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
 // SetType sets the "type" field.
 func (m *NotificationRuleMutation) SetType(s string) {
 	m._type = &s
@@ -112068,7 +112126,7 @@ func (m *NotificationRuleMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationRuleMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.namespace != nil {
 		fields = append(fields, notificationrule.FieldNamespace)
 	}
@@ -112086,6 +112144,9 @@ func (m *NotificationRuleMutation) Fields() []string {
 	}
 	if m.metadata != nil {
 		fields = append(fields, notificationrule.FieldMetadata)
+	}
+	if m.revision != nil {
+		fields = append(fields, notificationrule.FieldRevision)
 	}
 	if m._type != nil {
 		fields = append(fields, notificationrule.FieldType)
@@ -112119,6 +112180,8 @@ func (m *NotificationRuleMutation) Field(name string) (ent.Value, bool) {
 		return m.Annotations()
 	case notificationrule.FieldMetadata:
 		return m.Metadata()
+	case notificationrule.FieldRevision:
+		return m.Revision()
 	case notificationrule.FieldType:
 		return m.GetType()
 	case notificationrule.FieldName:
@@ -112148,6 +112211,8 @@ func (m *NotificationRuleMutation) OldField(ctx context.Context, name string) (e
 		return m.OldAnnotations(ctx)
 	case notificationrule.FieldMetadata:
 		return m.OldMetadata(ctx)
+	case notificationrule.FieldRevision:
+		return m.OldRevision(ctx)
 	case notificationrule.FieldType:
 		return m.OldType(ctx)
 	case notificationrule.FieldName:
@@ -112207,6 +112272,13 @@ func (m *NotificationRuleMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetMetadata(v)
 		return nil
+	case notificationrule.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
 	case notificationrule.FieldType:
 		v, ok := value.(string)
 		if !ok {
@@ -112242,13 +112314,21 @@ func (m *NotificationRuleMutation) SetField(name string, value ent.Value) error 
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *NotificationRuleMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addrevision != nil {
+		fields = append(fields, notificationrule.FieldRevision)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *NotificationRuleMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case notificationrule.FieldRevision:
+		return m.AddedRevision()
+	}
 	return nil, false
 }
 
@@ -112257,6 +112337,13 @@ func (m *NotificationRuleMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *NotificationRuleMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case notificationrule.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
 	}
 	return fmt.Errorf("unknown NotificationRule numeric field %s", name)
 }
@@ -112328,6 +112415,9 @@ func (m *NotificationRuleMutation) ResetField(name string) error {
 		return nil
 	case notificationrule.FieldMetadata:
 		m.ResetMetadata()
+		return nil
+	case notificationrule.FieldRevision:
+		m.ResetRevision()
 		return nil
 	case notificationrule.FieldType:
 		m.ResetType()

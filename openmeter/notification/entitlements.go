@@ -70,6 +70,19 @@ type (
 	BalanceThreshold = apiv1models.NotificationRuleBalanceThresholdValue
 )
 
+// CanonicalBalanceThreshold returns a copy with legacy usage types normalized.
+// Use it for comparisons without rewriting historical Event snapshots.
+func CanonicalBalanceThreshold(threshold BalanceThreshold) BalanceThreshold {
+	switch threshold.Type {
+	case BalanceThresholdTypeNumber:
+		threshold.Type = BalanceThresholdTypeUsageValue
+	case BalanceThresholdTypePercent:
+		threshold.Type = BalanceThresholdTypeUsagePercentage
+	}
+
+	return threshold
+}
+
 var (
 	_ models.Validator                                   = (*BalanceThresholdRuleConfig)(nil)
 	_ models.CustomValidator[BalanceThresholdRuleConfig] = (*BalanceThresholdRuleConfig)(nil)

@@ -21,6 +21,8 @@ type Rule struct {
 	models.Annotations
 	models.Metadata
 
+	// Revision counts committed updates, starting at one on creation.
+	Revision int `json:"-"`
 	// Type of the notification Rule (e.g. entitlements.balance.threshold)
 	Type EventType `json:"type"`
 	// Name of is the user provided name of the Rule.

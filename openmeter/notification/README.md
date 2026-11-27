@@ -48,12 +48,17 @@ with `url` and optional `custom_headers` and `signing_secret`. Reads preserve
 the stored config and signing secret. Malformed configs propagate errors
 through Channel, Rule, and Event reads.
 
-The nullable `event_type_filter` column is reserved for V4 routing. Current
-operations leave it unset on creation and preserve it on updates; Rule
-assignments remain authoritative. There are no dual writes. Backfilling and
-activating the filter, including catch-all behavior, belong to Phase 2.
-The future V4 adapter must enforce unique filter entries, and the Phase 2
-backfill must produce distinct values. No uniqueness validation is active yet.
+V1 routes by Rule assignment. New Channels start with an empty
+`event_type_filter`. Rule creation, reassignment, and soft deletion refresh each
+affected Channel's filter in the same transaction. It contains the sorted,
+distinct canonical Event types of its non-deleted Rules, including disabled
+Rules. Removing the last assignment leaves an empty filter and preserves the
+Channel's enabled state. Ordinary Channel updates preserve the filter.
+
+Deploy this writer everywhere before backfilling historical Channels. Before
+activating V4 routing, review and disable enabled legacy Channels with no
+assignments: V4 interprets an empty filter as catch-all. Svix continues to use
+Rule IDs until the routing cutover.
 
 Channel `provider_data` is nullable JSONB reserved for V4 provider-owned data,
 separate from metadata and annotations. Current operations leave it unset on
@@ -104,6 +109,24 @@ object directly. Rule and config types must match, except that the two invoice
 types share the same config contract. Invoice configs are `{}`. The beta.237 reader accepts both
 representations during rollout and rollback. Decode errors propagate through
 Rule reads and nested Event reads.
+
+Rule create/update uses the product-catalog `FeatureResolver` to resolve feature
+IDs or keys to active, same-namespace feature IDs before persistence. ID/key
+aliases for the same feature collapse to one ID, keeping first-occurrence order. Missing references fail the write.
+The V1 adapter accepts strings and V4 `{"id":"…"}` objects in stored feature
+lists for balance-threshold and entitlement-reset Rules. Reads preserve the stored JSON.
+Caller-owned configuration is not modified. V1 responses keep their existing
+`FeatureMeta` shape and populate `id` with the stored ID. Existing Rules can contain historical keys until
+a later release backfills them. Deploy this writer on all replicas and drain
+older writers before upgrading to that release.
+
+V1 accepts `NUMBER` and `PERCENT` in balance-threshold Rules. Create and
+update store `usage_value` and `usage_percentage`, respectively. Reads return
+those same spellings, including for Rules written before the backfill.
+Historical Event payloads retain the threshold recorded when the Event fired.
+
+Rule revisions start at 1, including for existing Rules. Each committed Rule update
+increments the revision atomically. Soft deletion preserves the last revision.
 
 ## Event storage compatibility
 
@@ -213,7 +236,8 @@ entitlements with a complete balance and usage snapshot. Within each threshold
 kind, the most advanced active threshold is selected. Deduplication is scoped
 to the rule, entitlement, feature, usage period, measurement start, and
 threshold kind. It suppresses repeated snapshots at the same active threshold,
-not events from another rule.
+not events from another rule. Legacy and canonical threshold names compare as
+equivalent types without changing historical Event payloads.
 
 This deduplication belongs to the balance-threshold handler; `CreateEvent` has
 no generic source-event idempotency contract. Its hashes are persisted with the
@@ -234,9 +258,14 @@ means.
 - Invoice payloads are eagerly converted from the billing event to the v1 API
   `Invoice` model (`api/models`) before persistence. The notification package does not persist
   the internal billing aggregate.
-- Current invoice payloads use persisted payload version `1`. Invoice reads
-  reject unsupported versions. Entitlement payloads remain unversioned, so
-  payload-version changes must account for existing rows by event type.
+- Readers accept both the legacy typed envelope and the bare, snake_case payload
+  defined by the versioned Event type. They reconstruct the V1 payload from the
+  stored snapshot; Event ID and creation time come from the Event row. User-owned
+  map keys and numeric precision are preserved. Reads never rewrite payloads.
+- Writers still store the legacy envelope. Its invoice version must be `1`;
+  unsupported envelope versions are rejected. Deploy the dual-reader release to
+  every API and worker before introducing bare-payload writers. Deploy those
+  writers everywhere and drain old writes before the separate backfill release.
 
 Adding or changing an event type is therefore a persistence and external
 contract change, not only a new consumer branch. The domain type, rule and
