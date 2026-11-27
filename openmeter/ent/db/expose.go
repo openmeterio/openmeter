@@ -84,6 +84,10 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		inters: &inters{},
 	}
 
+	// Hooks registered on the originating client are not carried over (see RawEntConfig),
+	// so the read-only detection has to be installed again.
+	config.installReadOnlyDetection()
+
 	return &Tx{
 		ctx:    ctx,
 		config: config,
@@ -277,4 +281,761 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		UsageReset: NewUsageResetClient(config),
 	}
+}
+
+// installReadOnlyDetection makes every client report the writes it attempts inside a
+// read-only scope (see transaction.WithReadOnly). It runs for every client the package
+// can build, so no caller has to remember to register it.
+func (c *config) installReadOnlyDetection() {
+	c.hooks.Addon = append(c.hooks.Addon, entutils.ReadOnlyHook)
+	c.hooks.AddonRateCard = append(c.hooks.AddonRateCard, entutils.ReadOnlyHook)
+	c.hooks.App = append(c.hooks.App, entutils.ReadOnlyHook)
+	c.hooks.AppCustomInvoicing = append(c.hooks.AppCustomInvoicing, entutils.ReadOnlyHook)
+	c.hooks.AppCustomInvoicingCustomer = append(c.hooks.AppCustomInvoicingCustomer, entutils.ReadOnlyHook)
+	c.hooks.AppCustomer = append(c.hooks.AppCustomer, entutils.ReadOnlyHook)
+	c.hooks.AppStripe = append(c.hooks.AppStripe, entutils.ReadOnlyHook)
+	c.hooks.AppStripeCustomer = append(c.hooks.AppStripeCustomer, entutils.ReadOnlyHook)
+	c.hooks.AppStripeInvoiceGeneration = append(c.hooks.AppStripeInvoiceGeneration, entutils.ReadOnlyHook)
+	c.hooks.BalanceSnapshot = append(c.hooks.BalanceSnapshot, entutils.ReadOnlyHook)
+	c.hooks.BillingCustomerLock = append(c.hooks.BillingCustomerLock, entutils.ReadOnlyHook)
+	c.hooks.BillingCustomerOverride = append(c.hooks.BillingCustomerOverride, entutils.ReadOnlyHook)
+	c.hooks.BillingGatheringInvoiceLine = append(c.hooks.BillingGatheringInvoiceLine, entutils.ReadOnlyHook)
+	c.hooks.BillingInvoice = append(c.hooks.BillingInvoice, entutils.ReadOnlyHook)
+	c.hooks.BillingInvoiceLine = append(c.hooks.BillingInvoiceLine, entutils.ReadOnlyHook)
+	c.hooks.BillingInvoiceLineUsageDiscount = append(c.hooks.BillingInvoiceLineUsageDiscount, entutils.ReadOnlyHook)
+	c.hooks.BillingInvoiceSplitLineGroup = append(c.hooks.BillingInvoiceSplitLineGroup, entutils.ReadOnlyHook)
+	c.hooks.BillingInvoiceUsageBasedLineConfig = append(c.hooks.BillingInvoiceUsageBasedLineConfig, entutils.ReadOnlyHook)
+	c.hooks.BillingInvoiceValidationIssue = append(c.hooks.BillingInvoiceValidationIssue, entutils.ReadOnlyHook)
+	c.hooks.BillingInvoiceWriteSchemaLevel = append(c.hooks.BillingInvoiceWriteSchemaLevel, entutils.ReadOnlyHook)
+	c.hooks.BillingProfile = append(c.hooks.BillingProfile, entutils.ReadOnlyHook)
+	c.hooks.BillingSequenceNumbers = append(c.hooks.BillingSequenceNumbers, entutils.ReadOnlyHook)
+	c.hooks.BillingStandardInvoiceDetailedLine = append(c.hooks.BillingStandardInvoiceDetailedLine, entutils.ReadOnlyHook)
+	c.hooks.BillingStandardInvoiceDetailedLineAmountDiscount = append(c.hooks.BillingStandardInvoiceDetailedLineAmountDiscount, entutils.ReadOnlyHook)
+	c.hooks.BillingWorkflowConfig = append(c.hooks.BillingWorkflowConfig, entutils.ReadOnlyHook)
+	c.hooks.Charge = append(c.hooks.Charge, entutils.ReadOnlyHook)
+	c.hooks.ChargeCreditPurchase = append(c.hooks.ChargeCreditPurchase, entutils.ReadOnlyHook)
+	c.hooks.ChargeCreditPurchaseCostBasis = append(c.hooks.ChargeCreditPurchaseCostBasis, entutils.ReadOnlyHook)
+	c.hooks.ChargeCreditPurchaseCreditGrant = append(c.hooks.ChargeCreditPurchaseCreditGrant, entutils.ReadOnlyHook)
+	c.hooks.ChargeCreditPurchaseExternalPayment = append(c.hooks.ChargeCreditPurchaseExternalPayment, entutils.ReadOnlyHook)
+	c.hooks.ChargeCreditPurchaseInvoicedPayment = append(c.hooks.ChargeCreditPurchaseInvoicedPayment, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFee = append(c.hooks.ChargeFlatFee, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeCostBasis = append(c.hooks.ChargeFlatFeeCostBasis, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeOverride = append(c.hooks.ChargeFlatFeeOverride, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeRun = append(c.hooks.ChargeFlatFeeRun, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeRunCreditAllocations = append(c.hooks.ChargeFlatFeeRunCreditAllocations, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeRunDetailedLine = append(c.hooks.ChargeFlatFeeRunDetailedLine, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeRunInvoicedUsage = append(c.hooks.ChargeFlatFeeRunInvoicedUsage, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeRunOverageCreditAllocations = append(c.hooks.ChargeFlatFeeRunOverageCreditAllocations, entutils.ReadOnlyHook)
+	c.hooks.ChargeFlatFeeRunPayment = append(c.hooks.ChargeFlatFeeRunPayment, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBased = append(c.hooks.ChargeUsageBased, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedCostBasis = append(c.hooks.ChargeUsageBasedCostBasis, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedOverride = append(c.hooks.ChargeUsageBasedOverride, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedRunCreditAllocations = append(c.hooks.ChargeUsageBasedRunCreditAllocations, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedRunDetailedLine = append(c.hooks.ChargeUsageBasedRunDetailedLine, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedRunInvoicedUsage = append(c.hooks.ChargeUsageBasedRunInvoicedUsage, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedRunOverageCreditAllocations = append(c.hooks.ChargeUsageBasedRunOverageCreditAllocations, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedRunPayment = append(c.hooks.ChargeUsageBasedRunPayment, entutils.ReadOnlyHook)
+	c.hooks.ChargeUsageBasedRuns = append(c.hooks.ChargeUsageBasedRuns, entutils.ReadOnlyHook)
+	c.hooks.CreditRealizationLineage = append(c.hooks.CreditRealizationLineage, entutils.ReadOnlyHook)
+	c.hooks.CreditRealizationLineageSegment = append(c.hooks.CreditRealizationLineageSegment, entutils.ReadOnlyHook)
+	c.hooks.CurrencyCostBasis = append(c.hooks.CurrencyCostBasis, entutils.ReadOnlyHook)
+	c.hooks.CustomCurrency = append(c.hooks.CustomCurrency, entutils.ReadOnlyHook)
+	c.hooks.Customer = append(c.hooks.Customer, entutils.ReadOnlyHook)
+	c.hooks.CustomerSubjects = append(c.hooks.CustomerSubjects, entutils.ReadOnlyHook)
+	c.hooks.Entitlement = append(c.hooks.Entitlement, entutils.ReadOnlyHook)
+	c.hooks.EventOutbox = append(c.hooks.EventOutbox, entutils.ReadOnlyHook)
+	c.hooks.Feature = append(c.hooks.Feature, entutils.ReadOnlyHook)
+	c.hooks.Grant = append(c.hooks.Grant, entutils.ReadOnlyHook)
+	c.hooks.LLMCostPrice = append(c.hooks.LLMCostPrice, entutils.ReadOnlyHook)
+	c.hooks.LedgerAccount = append(c.hooks.LedgerAccount, entutils.ReadOnlyHook)
+	c.hooks.LedgerBreakageRecord = append(c.hooks.LedgerBreakageRecord, entutils.ReadOnlyHook)
+	c.hooks.LedgerCreditVoidRecord = append(c.hooks.LedgerCreditVoidRecord, entutils.ReadOnlyHook)
+	c.hooks.LedgerCustomerAccount = append(c.hooks.LedgerCustomerAccount, entutils.ReadOnlyHook)
+	c.hooks.LedgerEntry = append(c.hooks.LedgerEntry, entutils.ReadOnlyHook)
+	c.hooks.LedgerSubAccount = append(c.hooks.LedgerSubAccount, entutils.ReadOnlyHook)
+	c.hooks.LedgerSubAccountRoute = append(c.hooks.LedgerSubAccountRoute, entutils.ReadOnlyHook)
+	c.hooks.LedgerTransaction = append(c.hooks.LedgerTransaction, entutils.ReadOnlyHook)
+	c.hooks.LedgerTransactionGroup = append(c.hooks.LedgerTransactionGroup, entutils.ReadOnlyHook)
+	c.hooks.Meter = append(c.hooks.Meter, entutils.ReadOnlyHook)
+	c.hooks.NotificationChannel = append(c.hooks.NotificationChannel, entutils.ReadOnlyHook)
+	c.hooks.NotificationEvent = append(c.hooks.NotificationEvent, entutils.ReadOnlyHook)
+	c.hooks.NotificationEventDeliveryStatus = append(c.hooks.NotificationEventDeliveryStatus, entutils.ReadOnlyHook)
+	c.hooks.NotificationRule = append(c.hooks.NotificationRule, entutils.ReadOnlyHook)
+	c.hooks.OrganizationDefaultTaxCodes = append(c.hooks.OrganizationDefaultTaxCodes, entutils.ReadOnlyHook)
+	c.hooks.Plan = append(c.hooks.Plan, entutils.ReadOnlyHook)
+	c.hooks.PlanAddon = append(c.hooks.PlanAddon, entutils.ReadOnlyHook)
+	c.hooks.PlanPhase = append(c.hooks.PlanPhase, entutils.ReadOnlyHook)
+	c.hooks.PlanRateCard = append(c.hooks.PlanRateCard, entutils.ReadOnlyHook)
+	c.hooks.RTECreditBalance = append(c.hooks.RTECreditBalance, entutils.ReadOnlyHook)
+	c.hooks.RTEDemand = append(c.hooks.RTEDemand, entutils.ReadOnlyHook)
+	c.hooks.RTEDemandLock = append(c.hooks.RTEDemandLock, entutils.ReadOnlyHook)
+	c.hooks.RTEMeteredEntitlementBalance = append(c.hooks.RTEMeteredEntitlementBalance, entutils.ReadOnlyHook)
+	c.hooks.Subject = append(c.hooks.Subject, entutils.ReadOnlyHook)
+	c.hooks.Subscription = append(c.hooks.Subscription, entutils.ReadOnlyHook)
+	c.hooks.SubscriptionAddon = append(c.hooks.SubscriptionAddon, entutils.ReadOnlyHook)
+	c.hooks.SubscriptionAddonQuantity = append(c.hooks.SubscriptionAddonQuantity, entutils.ReadOnlyHook)
+	c.hooks.SubscriptionCostBasisPin = append(c.hooks.SubscriptionCostBasisPin, entutils.ReadOnlyHook)
+	c.hooks.SubscriptionItem = append(c.hooks.SubscriptionItem, entutils.ReadOnlyHook)
+	c.hooks.SubscriptionPhase = append(c.hooks.SubscriptionPhase, entutils.ReadOnlyHook)
+	c.hooks.SubscriptionSyncState = append(c.hooks.SubscriptionSyncState, entutils.ReadOnlyHook)
+	c.hooks.TaxCode = append(c.hooks.TaxCode, entutils.ReadOnlyHook)
+	c.hooks.UsageReset = append(c.hooks.UsageReset, entutils.ReadOnlyHook)
+	c.inters.Addon = append(c.inters.Addon, entutils.ReadOnlyInterceptor)
+	c.inters.AddonRateCard = append(c.inters.AddonRateCard, entutils.ReadOnlyInterceptor)
+	c.inters.App = append(c.inters.App, entutils.ReadOnlyInterceptor)
+	c.inters.AppCustomInvoicing = append(c.inters.AppCustomInvoicing, entutils.ReadOnlyInterceptor)
+	c.inters.AppCustomInvoicingCustomer = append(c.inters.AppCustomInvoicingCustomer, entutils.ReadOnlyInterceptor)
+	c.inters.AppCustomer = append(c.inters.AppCustomer, entutils.ReadOnlyInterceptor)
+	c.inters.AppStripe = append(c.inters.AppStripe, entutils.ReadOnlyInterceptor)
+	c.inters.AppStripeCustomer = append(c.inters.AppStripeCustomer, entutils.ReadOnlyInterceptor)
+	c.inters.AppStripeInvoiceGeneration = append(c.inters.AppStripeInvoiceGeneration, entutils.ReadOnlyInterceptor)
+	c.inters.BalanceSnapshot = append(c.inters.BalanceSnapshot, entutils.ReadOnlyInterceptor)
+	c.inters.BillingCustomerLock = append(c.inters.BillingCustomerLock, entutils.ReadOnlyInterceptor)
+	c.inters.BillingCustomerOverride = append(c.inters.BillingCustomerOverride, entutils.ReadOnlyInterceptor)
+	c.inters.BillingGatheringInvoiceLine = append(c.inters.BillingGatheringInvoiceLine, entutils.ReadOnlyInterceptor)
+	c.inters.BillingInvoice = append(c.inters.BillingInvoice, entutils.ReadOnlyInterceptor)
+	c.inters.BillingInvoiceLine = append(c.inters.BillingInvoiceLine, entutils.ReadOnlyInterceptor)
+	c.inters.BillingInvoiceLineUsageDiscount = append(c.inters.BillingInvoiceLineUsageDiscount, entutils.ReadOnlyInterceptor)
+	c.inters.BillingInvoiceSplitLineGroup = append(c.inters.BillingInvoiceSplitLineGroup, entutils.ReadOnlyInterceptor)
+	c.inters.BillingInvoiceUsageBasedLineConfig = append(c.inters.BillingInvoiceUsageBasedLineConfig, entutils.ReadOnlyInterceptor)
+	c.inters.BillingInvoiceValidationIssue = append(c.inters.BillingInvoiceValidationIssue, entutils.ReadOnlyInterceptor)
+	c.inters.BillingInvoiceWriteSchemaLevel = append(c.inters.BillingInvoiceWriteSchemaLevel, entutils.ReadOnlyInterceptor)
+	c.inters.BillingProfile = append(c.inters.BillingProfile, entutils.ReadOnlyInterceptor)
+	c.inters.BillingSequenceNumbers = append(c.inters.BillingSequenceNumbers, entutils.ReadOnlyInterceptor)
+	c.inters.BillingStandardInvoiceDetailedLine = append(c.inters.BillingStandardInvoiceDetailedLine, entutils.ReadOnlyInterceptor)
+	c.inters.BillingStandardInvoiceDetailedLineAmountDiscount = append(c.inters.BillingStandardInvoiceDetailedLineAmountDiscount, entutils.ReadOnlyInterceptor)
+	c.inters.BillingWorkflowConfig = append(c.inters.BillingWorkflowConfig, entutils.ReadOnlyInterceptor)
+	c.inters.Charge = append(c.inters.Charge, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeCreditPurchase = append(c.inters.ChargeCreditPurchase, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeCreditPurchaseCostBasis = append(c.inters.ChargeCreditPurchaseCostBasis, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeCreditPurchaseCreditGrant = append(c.inters.ChargeCreditPurchaseCreditGrant, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeCreditPurchaseExternalPayment = append(c.inters.ChargeCreditPurchaseExternalPayment, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeCreditPurchaseInvoicedPayment = append(c.inters.ChargeCreditPurchaseInvoicedPayment, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFee = append(c.inters.ChargeFlatFee, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeCostBasis = append(c.inters.ChargeFlatFeeCostBasis, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeOverride = append(c.inters.ChargeFlatFeeOverride, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeRun = append(c.inters.ChargeFlatFeeRun, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeRunCreditAllocations = append(c.inters.ChargeFlatFeeRunCreditAllocations, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeRunDetailedLine = append(c.inters.ChargeFlatFeeRunDetailedLine, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeRunInvoicedUsage = append(c.inters.ChargeFlatFeeRunInvoicedUsage, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeRunOverageCreditAllocations = append(c.inters.ChargeFlatFeeRunOverageCreditAllocations, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeFlatFeeRunPayment = append(c.inters.ChargeFlatFeeRunPayment, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBased = append(c.inters.ChargeUsageBased, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedCostBasis = append(c.inters.ChargeUsageBasedCostBasis, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedOverride = append(c.inters.ChargeUsageBasedOverride, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedRunCreditAllocations = append(c.inters.ChargeUsageBasedRunCreditAllocations, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedRunDetailedLine = append(c.inters.ChargeUsageBasedRunDetailedLine, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedRunInvoicedUsage = append(c.inters.ChargeUsageBasedRunInvoicedUsage, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedRunOverageCreditAllocations = append(c.inters.ChargeUsageBasedRunOverageCreditAllocations, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedRunPayment = append(c.inters.ChargeUsageBasedRunPayment, entutils.ReadOnlyInterceptor)
+	c.inters.ChargeUsageBasedRuns = append(c.inters.ChargeUsageBasedRuns, entutils.ReadOnlyInterceptor)
+	c.inters.ChargesSearchV1 = append(c.inters.ChargesSearchV1, entutils.ReadOnlyInterceptor)
+	c.inters.CreditRealizationLineage = append(c.inters.CreditRealizationLineage, entutils.ReadOnlyInterceptor)
+	c.inters.CreditRealizationLineageSegment = append(c.inters.CreditRealizationLineageSegment, entutils.ReadOnlyInterceptor)
+	c.inters.CurrencyCostBasis = append(c.inters.CurrencyCostBasis, entutils.ReadOnlyInterceptor)
+	c.inters.CustomCurrency = append(c.inters.CustomCurrency, entutils.ReadOnlyInterceptor)
+	c.inters.Customer = append(c.inters.Customer, entutils.ReadOnlyInterceptor)
+	c.inters.CustomerSubjects = append(c.inters.CustomerSubjects, entutils.ReadOnlyInterceptor)
+	c.inters.Entitlement = append(c.inters.Entitlement, entutils.ReadOnlyInterceptor)
+	c.inters.EventOutbox = append(c.inters.EventOutbox, entutils.ReadOnlyInterceptor)
+	c.inters.Feature = append(c.inters.Feature, entutils.ReadOnlyInterceptor)
+	c.inters.Grant = append(c.inters.Grant, entutils.ReadOnlyInterceptor)
+	c.inters.LLMCostPrice = append(c.inters.LLMCostPrice, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerAccount = append(c.inters.LedgerAccount, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerBreakageRecord = append(c.inters.LedgerBreakageRecord, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerCreditVoidRecord = append(c.inters.LedgerCreditVoidRecord, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerCustomerAccount = append(c.inters.LedgerCustomerAccount, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerEntry = append(c.inters.LedgerEntry, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerSubAccount = append(c.inters.LedgerSubAccount, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerSubAccountRoute = append(c.inters.LedgerSubAccountRoute, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerTransaction = append(c.inters.LedgerTransaction, entutils.ReadOnlyInterceptor)
+	c.inters.LedgerTransactionGroup = append(c.inters.LedgerTransactionGroup, entutils.ReadOnlyInterceptor)
+	c.inters.Meter = append(c.inters.Meter, entutils.ReadOnlyInterceptor)
+	c.inters.NotificationChannel = append(c.inters.NotificationChannel, entutils.ReadOnlyInterceptor)
+	c.inters.NotificationEvent = append(c.inters.NotificationEvent, entutils.ReadOnlyInterceptor)
+	c.inters.NotificationEventDeliveryStatus = append(c.inters.NotificationEventDeliveryStatus, entutils.ReadOnlyInterceptor)
+	c.inters.NotificationRule = append(c.inters.NotificationRule, entutils.ReadOnlyInterceptor)
+	c.inters.OrganizationDefaultTaxCodes = append(c.inters.OrganizationDefaultTaxCodes, entutils.ReadOnlyInterceptor)
+	c.inters.Plan = append(c.inters.Plan, entutils.ReadOnlyInterceptor)
+	c.inters.PlanAddon = append(c.inters.PlanAddon, entutils.ReadOnlyInterceptor)
+	c.inters.PlanPhase = append(c.inters.PlanPhase, entutils.ReadOnlyInterceptor)
+	c.inters.PlanRateCard = append(c.inters.PlanRateCard, entutils.ReadOnlyInterceptor)
+	c.inters.RTECreditBalance = append(c.inters.RTECreditBalance, entutils.ReadOnlyInterceptor)
+	c.inters.RTEDemand = append(c.inters.RTEDemand, entutils.ReadOnlyInterceptor)
+	c.inters.RTEDemandLock = append(c.inters.RTEDemandLock, entutils.ReadOnlyInterceptor)
+	c.inters.RTEMeteredEntitlementBalance = append(c.inters.RTEMeteredEntitlementBalance, entutils.ReadOnlyInterceptor)
+	c.inters.Subject = append(c.inters.Subject, entutils.ReadOnlyInterceptor)
+	c.inters.Subscription = append(c.inters.Subscription, entutils.ReadOnlyInterceptor)
+	c.inters.SubscriptionAddon = append(c.inters.SubscriptionAddon, entutils.ReadOnlyInterceptor)
+	c.inters.SubscriptionAddonQuantity = append(c.inters.SubscriptionAddonQuantity, entutils.ReadOnlyInterceptor)
+	c.inters.SubscriptionCostBasisPin = append(c.inters.SubscriptionCostBasisPin, entutils.ReadOnlyInterceptor)
+	c.inters.SubscriptionItem = append(c.inters.SubscriptionItem, entutils.ReadOnlyInterceptor)
+	c.inters.SubscriptionPhase = append(c.inters.SubscriptionPhase, entutils.ReadOnlyInterceptor)
+	c.inters.SubscriptionSyncState = append(c.inters.SubscriptionSyncState, entutils.ReadOnlyInterceptor)
+	c.inters.TaxCode = append(c.inters.TaxCode, entutils.ReadOnlyInterceptor)
+	c.inters.UsageReset = append(c.inters.UsageReset, entutils.ReadOnlyInterceptor)
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AddonQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AddonRateCardQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AppQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AppCustomInvoicingQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AppCustomInvoicingCustomerQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AppCustomerQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AppStripeQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AppStripeCustomerQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *AppStripeInvoiceGenerationQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BalanceSnapshotQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingCustomerLockQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingCustomerOverrideQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingGatheringInvoiceLineQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingInvoiceQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingInvoiceLineQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingInvoiceLineUsageDiscountQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingInvoiceSplitLineGroupQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingInvoiceUsageBasedLineConfigQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingInvoiceValidationIssueQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingInvoiceWriteSchemaLevelQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingProfileQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingSequenceNumbersQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingStandardInvoiceDetailedLineQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingStandardInvoiceDetailedLineAmountDiscountQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *BillingWorkflowConfigQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeCreditPurchaseQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeCreditPurchaseCostBasisQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeCreditPurchaseCreditGrantQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeCreditPurchaseExternalPaymentQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeCreditPurchaseInvoicedPaymentQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeCostBasisQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeOverrideQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeRunQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeRunCreditAllocationsQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeRunDetailedLineQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeRunInvoicedUsageQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeRunOverageCreditAllocationsQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeFlatFeeRunPaymentQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedCostBasisQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedOverrideQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedRunCreditAllocationsQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedRunDetailedLineQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedRunInvoicedUsageQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedRunOverageCreditAllocationsQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedRunPaymentQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargeUsageBasedRunsQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *ChargesSearchV1Query) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *CreditRealizationLineageQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *CreditRealizationLineageSegmentQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *CurrencyCostBasisQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *CustomCurrencyQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *CustomerQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *CustomerSubjectsQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *EntitlementQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *EventOutboxQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *FeatureQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *GrantQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LLMCostPriceQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerAccountQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerBreakageRecordQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerCreditVoidRecordQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerCustomerAccountQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerEntryQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerSubAccountQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerSubAccountRouteQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerTransactionQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *LedgerTransactionGroupQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *MeterQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *NotificationChannelQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *NotificationEventQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *NotificationEventDeliveryStatusQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *NotificationRuleQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *OrganizationDefaultTaxCodesQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *PlanQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *PlanAddonQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *PlanPhaseQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *PlanRateCardQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *RTECreditBalanceQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *RTEDemandQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *RTEDemandLockQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *RTEMeteredEntitlementBalanceQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubjectQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubscriptionQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubscriptionAddonQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubscriptionAddonQuantityQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubscriptionCostBasisPinQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubscriptionItemQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubscriptionPhaseQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *SubscriptionSyncStateQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *TaxCodeQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *UsageResetQuery) LocksRows() bool {
+	return len(_m.modifiers) > 0
 }

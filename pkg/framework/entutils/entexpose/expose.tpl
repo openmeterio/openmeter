@@ -87,6 +87,10 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
         inters: &inters{},
     }
 
+    // Hooks registered on the originating client are not carried over (see RawEntConfig),
+    // so the read-only detection has to be installed again.
+    config.installReadOnlyDetection()
+
     return &Tx{
 		ctx:         ctx,
 		config:      config,
@@ -97,5 +101,33 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 	}
 }
 
+// installReadOnlyDetection makes every client report the writes it attempts inside a
+// read-only scope (see transaction.WithReadOnly). It runs for every client the package
+// can build, so no caller has to remember to register it.
+func (c *config) installReadOnlyDetection() {
+    {{- range $n := $.MutableNodes }}
+        c.hooks.{{ $n.Name }} = append(c.hooks.{{ $n.Name }}, entutils.ReadOnlyHook)
+    {{- end }}
+    {{- range $n := $.Nodes }}
+        c.inters.{{ $n.Name }} = append(c.inters.{{ $n.Name }}, entutils.ReadOnlyInterceptor)
+    {{- end }}
+}
 
+{{/* Expose row locking so entutils.ReadOnlyInterceptor can tell locking reads from plain ones */}}
+{{ if $.FeatureEnabled "sql/lock" }}
+{{ range $n := $.Nodes }}
+    {{ $receiver := $n.Receiver }}
+    // LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+    // Lock clauses are the only selector modifiers the builders accept.
+    func ({{ $receiver }} *{{ $n.QueryName }}) LocksRows() bool {
+        return len({{ $receiver }}.modifiers) > 0
+    }
+{{ end }}
+{{ end }}
+
+{{ end }}
+
+{{/* Runs inside newConfig, so every client built with NewClient gets the detection */}}
+{{ define "config/init/fields/readonlydetection" }}
+    cfg.installReadOnlyDetection()
 {{ end }}

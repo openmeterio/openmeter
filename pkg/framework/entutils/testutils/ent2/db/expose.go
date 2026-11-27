@@ -84,6 +84,10 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		inters: &inters{},
 	}
 
+	// Hooks registered on the originating client are not carried over (see RawEntConfig),
+	// so the read-only detection has to be installed again.
+	config.installReadOnlyDetection()
+
 	return &Tx{
 		ctx:    ctx,
 		config: config,
@@ -91,4 +95,18 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Example2: NewExample2Client(config),
 	}
+}
+
+// installReadOnlyDetection makes every client report the writes it attempts inside a
+// read-only scope (see transaction.WithReadOnly). It runs for every client the package
+// can build, so no caller has to remember to register it.
+func (c *config) installReadOnlyDetection() {
+	c.hooks.Example2 = append(c.hooks.Example2, entutils.ReadOnlyHook)
+	c.inters.Example2 = append(c.inters.Example2, entutils.ReadOnlyInterceptor)
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *Example2Query) LocksRows() bool {
+	return len(_m.modifiers) > 0
 }

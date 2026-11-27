@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/lockr"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	transactiontestutils "github.com/openmeterio/openmeter/pkg/framework/transaction/testutils"
 )
 
 // Lets set up a dummy tx creator
@@ -81,6 +82,33 @@ func TestLockerLockForTx(t *testing.T) {
 
 			return nil
 		}))
+	}))
+
+	t.Run("Should report the lock in a read-only scope", withDBClient(func(t *testing.T, client *db.Client) {
+		// given a read-only scope
+		txCreator := &creator{db: client}
+
+		locker, err := lockr.NewLocker(&lockr.LockerConfig{
+			Logger: testutils.NewLogger(t),
+		})
+		require.NoError(t, err)
+
+		recorder := &transactiontestutils.ReadOnlyRecorder{}
+		ctx, err := transaction.WithReadOnly(t.Context(), recorder)
+		require.NoError(t, err)
+
+		key, err := lockr.NewKey("test", "scope")
+		require.NoError(t, err)
+
+		// when the lock is taken
+		require.NoError(t, transaction.RunWithNoValue(ctx, txCreator, func(ctx context.Context) error {
+			return locker.LockForTX(ctx, key)
+		}))
+
+		// then it is reported: a read replica would grant it without protecting anything
+		require.Equal(t, []transaction.WriteAttempt{
+			{Kind: transaction.WriteKindAdvisoryLock, Target: key.String()},
+		}, recorder.Attempts())
 	}))
 
 	t.Run("Should be able to acquire same lock twice if in same transaction", withDBClient(func(t *testing.T, client *db.Client) {
