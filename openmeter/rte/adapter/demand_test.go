@@ -26,6 +26,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	transactiontestutils "github.com/openmeterio/openmeter/pkg/framework/transaction/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -123,6 +124,37 @@ func TestDemandRegistrationCanonicalizesAndRepairsStoredKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, repaired.DirtyVersion, clean.DirtyVersion)
 	require.Equal(t, clean.DirtyVersion, clean.CompletedVersion)
+}
+
+func TestDemandRawSQLWritesAreReported(t *testing.T) {
+	// Given a key with an active tracking period, and a context with a write observer.
+	f := newDemandFixture(t)
+	pull := rte.EnsureFreshInput{Target: f.target, PullTTL: time.Hour}
+	_, err := f.repository.EnsurePull(t.Context(), pull)
+	require.NoError(t, err)
+
+	recorder := &transactiontestutils.WriteRecorder{}
+	ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
+	require.NoError(t, err)
+
+	// When the tracking period is renewed and the key is invalidated, both with hand-written SQL.
+	_, err = f.repository.EnsurePull(ctx, pull)
+	require.NoError(t, err)
+
+	_, err = f.repository.Invalidate(ctx, rte.InvalidateInput{
+		Selectors: []rte.DemandSelector{{
+			Namespace: f.key.CustomerID.Namespace,
+			Kind:      f.target.Kind,
+			Targets:   []rte.CalculationTarget{f.target},
+		}},
+	})
+	require.NoError(t, err)
+
+	// Then both writes are reported even though the Ent hooks cannot see them.
+	require.Equal(t, []transaction.WriteAttempt{
+		{Kind: transaction.WriteKindRawSQL, Target: "rte_demands"},
+		{Kind: transaction.WriteKindRawSQL, Target: "rte_demands"},
+	}, recorder.Attempts())
 }
 
 func TestDemandInvalidationCoalescesRepeatedDeliveries(t *testing.T) {
