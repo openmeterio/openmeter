@@ -41,6 +41,13 @@ server:
     #   unstable — validate only routes marked x-unstable: true in the spec
     #   all      — validate every v3 route (highest overhead)
     mode: "all"
+  readOnlyRequests:
+    # mode selects whether GET requests are treated as read-only database work.
+    # This prepares serving them from a read replica; every request still runs on the primary.
+    #   off     — no request is marked as read-only
+    #   observe — GET requests are marked, and the database writes they attempt are reported
+    #             through metrics and warnings without failing the request (default)
+    mode: "observe"
   clientIPMiddleware:
     # source defines how to obtain the client IP address.
     source: "remote-address" # "remote-address" | "header" | "x-forwarded-for"

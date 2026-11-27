@@ -195,7 +195,7 @@ func (h *handler) ListCustomerSubscriptions() ListCustomerSubscriptionsHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListCustomerSubscriptionsResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.Options,
-			httptransport.WithOperationName("getSubscription"),
+			httptransport.WithOperationName("listCustomerSubscriptions"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)

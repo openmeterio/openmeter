@@ -264,6 +264,8 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementValue"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
@@ -546,7 +548,7 @@ func (h *entitlementHandler) GetEntitlementById() GetEntitlementByIdHandler {
 		commonhttp.JSONResponseEncoder[GetEntitlementByIdHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("getEntitlement"),
+			httptransport.WithOperationName("getEntitlementById"),
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)

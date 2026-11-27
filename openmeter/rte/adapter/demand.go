@@ -133,6 +133,16 @@ func (r *demandRepository) ensure(ctx context.Context, input ensureDemandInput) 
 				at:       pullRenewalTime{now: now},
 				until:    pullRenewalTime{now: now, offset: input.PullTTL},
 			}).SQL()
+
+			// The renewal is hand-written SQL, so the Ent hooks cannot see it.
+			err := transaction.ReportWrite(ctx, transaction.WriteAttempt{
+				Kind:   transaction.WriteKindRawSQL,
+				Target: demanddb.Table,
+			})
+			if err != nil {
+				return false, err
+			}
+
 			rows, err := a.db.QueryContext(ctx, query, args...)
 			if err != nil {
 				return false, err
@@ -256,6 +266,15 @@ func (r *demandRepository) Invalidate(ctx context.Context, input rte.InvalidateI
 
 	return entutils.TransactingRepo(ctx, r.adapter, func(ctx context.Context, a *adapter) (int64, error) {
 		query, args, err := (invalidateDemandQuery{input: input, at: clock.Now()}).SQL()
+		if err != nil {
+			return 0, err
+		}
+
+		// The invalidation is hand-written SQL, so the Ent hooks cannot see it.
+		err = transaction.ReportWrite(ctx, transaction.WriteAttempt{
+			Kind:   transaction.WriteKindRawSQL,
+			Target: demanddb.Table,
+		})
 		if err != nil {
 			return 0, err
 		}

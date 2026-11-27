@@ -67,6 +67,7 @@ func (h *debugHandler) GetMetrics() GetMetricsHandler {
 		commonhttp.PlainTextResponseEncoder[string],
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("getDebugMetrics"),
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {
 				if models.IsGenericValidationError(err) {
 					commonhttp.NewHTTPError(

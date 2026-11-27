@@ -392,6 +392,19 @@ creating Ent schemas and generating migrations.
 When implementing API handlers for the service, follow the `api` skill for
 handler implementation patterns, wiring into the server, and type conversion.
 
+### Read-only GET requests
+
+GET and HEAD operations run inside a read-only scope (`transaction.WithWriteObserver`),
+so they can later be served from a read replica. In the `observe` mode
+(`server.readOnlyRequests.mode`) a write made by such a request is still executed,
+and reported through the `openmeter.database.read_only.writes` metric and a warning.
+
+- Ent mutations, `ForUpdate` / `ForShare` and `lockr` advisory locks are detected
+  automatically.
+- Hand-written SQL that writes must call `transaction.ReportWrite` first.
+- A GET that has to write, or must not read stale data, opts out with
+  `httptransport.WithPrimaryDatabase()` and a comment saying why.
+
 ## Dependency Injection Wiring
 
 Services are wired together using [Wire](https://github.com/google/wire) for dependency injection.

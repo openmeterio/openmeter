@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/sequence"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 func (a *adapter) NextSequenceNumber(ctx context.Context, input sequence.NextSequenceNumberInput) (alpacadecimal.Decimal, error) {
@@ -49,6 +50,15 @@ func (a *adapter) NextSequenceNumber(ctx context.Context, input sequence.NextSeq
 		query, args, err := insert.QueryErr()
 		if err != nil {
 			return alpacadecimal.Zero, fmt.Errorf("failed to build sequence allocation query: %w", err)
+		}
+
+		// The upsert is hand-written SQL, so the Ent hooks cannot see it.
+		err = transaction.ReportWrite(ctx, transaction.WriteAttempt{
+			Kind:   transaction.WriteKindRawSQL,
+			Target: billingsequencenumbers.Table,
+		})
+		if err != nil {
+			return alpacadecimal.Zero, err
 		}
 
 		rows, err := tx.db.QueryContext(ctx, query, args...)

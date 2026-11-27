@@ -74,6 +74,8 @@ func (h *handler) GetCustomerEntitlementHistory() GetCustomerEntitlementHistoryH
 			h.options,
 			httptransport.WithOperationName("get-customer-entitlement-history"),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 		)...,
 	)
 }

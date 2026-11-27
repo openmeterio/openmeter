@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	transactiontestutils "github.com/openmeterio/openmeter/pkg/framework/transaction/testutils"
 )
 
 func TestCustomerPrefix(t *testing.T) {
@@ -117,6 +118,28 @@ func (s *SequenceServiceSuite) TestAllocationAfterCallerRollback() {
 			s.Equal(tt.wantNext, next)
 		})
 	}
+}
+
+func (s *SequenceServiceSuite) TestAllocationIsReportedInReadOnlyScope() {
+	// given:
+	// - a read-only scope
+	recorder := &transactiontestutils.WriteRecorder{}
+	ctx, err := transaction.WithWriteObserver(s.T().Context(), recorder)
+	s.Require().NoError(err)
+
+	// when:
+	// - a sequence number is allocated, which is a hand-written upsert
+	_, err = s.adapter.NextSequenceNumber(ctx, sequence.NextSequenceNumberInput{
+		Namespace: ulid.Make().String(),
+		Scope:     "invoices/gathering",
+	})
+	s.Require().NoError(err)
+
+	// then:
+	// - the write is reported even though the Ent hooks cannot see it
+	s.Require().Equal([]transaction.WriteAttempt{
+		{Kind: transaction.WriteKindRawSQL, Target: "billing_sequence_numbers"},
+	}, recorder.Attempts())
 }
 
 func (s *SequenceServiceSuite) TestAllocationAfterCallerCommit() {

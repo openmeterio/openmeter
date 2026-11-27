@@ -22,7 +22,38 @@ type ServerConfig struct {
 
 	ResponseValidation ResponseValidationConfig
 
+	ReadOnlyRequests ReadOnlyRequestsConfig
+
 	ClientIPMiddleware ClientIPMiddlewareConfig
+}
+
+// ReadOnlyRequestsConfig controls how GET requests are treated as read-only database work.
+// It prepares serving them from a read replica: every request still runs on the primary.
+type ReadOnlyRequestsConfig struct {
+	Mode ReadOnlyRequestsMode
+}
+
+type ReadOnlyRequestsMode string
+
+const (
+	// ReadOnlyRequestsModeOff does not mark any request as read-only.
+	ReadOnlyRequestsModeOff ReadOnlyRequestsMode = "off"
+	// ReadOnlyRequestsModeObserve marks GET requests as read-only and reports the database
+	// writes they attempt through metrics and logs, without failing them. This is the default.
+	ReadOnlyRequestsModeObserve ReadOnlyRequestsMode = "observe"
+)
+
+func (m ReadOnlyRequestsMode) Enabled() bool {
+	return m != "" && m != ReadOnlyRequestsModeOff
+}
+
+func (m ReadOnlyRequestsMode) Validate() error {
+	switch m {
+	case "", ReadOnlyRequestsModeOff, ReadOnlyRequestsModeObserve:
+		return nil
+	default:
+		return errors.New("invalid read-only requests mode (allowed: off, observe)")
+	}
 }
 
 // ResponseValidationConfig controls optional post-response OpenAPI validation on the v3 API.
@@ -153,6 +184,10 @@ func (c ServerConfig) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if err := c.ReadOnlyRequests.Mode.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
 	if err := c.ClientIPMiddleware.Validate(); err != nil {
 		errs = append(errs, err)
 	}
@@ -170,6 +205,8 @@ func ConfigureServer(v *viper.Viper, prefixes ...string) {
 	v.SetDefault(prefixer("idleTimeout"), 120*time.Second)
 
 	v.SetDefault(prefixer("responseValidation.mode"), string(ResponseValidationModeOff))
+
+	v.SetDefault(prefixer("readOnlyRequests.mode"), string(ReadOnlyRequestsModeObserve))
 
 	v.SetDefault(prefixer("clientIPMiddleware.source"), ClientIPSourceRemoteAddr)
 	v.SetDefault(prefixer("clientIPMiddleware.header"), "")

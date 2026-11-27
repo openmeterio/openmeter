@@ -324,6 +324,8 @@ func (h *entitlementHandler) GetCustomerEntitlementHistory() GetCustomerEntitlem
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomerEntitlementHistoryV2"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)

@@ -14,6 +14,7 @@ func (h *handler[Request, Response]) apply(options []HandlerOption) {
 	h.errorHandler = opts.resolveErrorHandler()
 	h.operationNameFunc = opts.operationNameFunc
 	h.errorEncoders = opts.errorEncoders
+	h.primaryDatabase = opts.primaryDatabase
 }
 
 type HandlerOption interface {
@@ -52,12 +53,23 @@ func WithOperationNameFunc(fn func(ctx context.Context) string) HandlerOption {
 	})
 }
 
+// WithPrimaryDatabase keeps a GET or HEAD operation out of the read-only scope.
+// Use it when the operation writes (lazily saved snapshots, get-or-create), or when
+// it must not be served from a read replica because callers read it right after a write.
+func WithPrimaryDatabase() HandlerOption {
+	return optionFunc(func(o *handlerOptions) {
+		o.primaryDatabase = true
+	})
+}
+
 type handlerOptions struct {
 	errorHandler ErrorHandler
 	// errorEncoder is responible for outputting the resulting error
 	errorEncoders []encoder.ErrorEncoder
 
 	operationNameFunc func(ctx context.Context) string
+
+	primaryDatabase bool
 }
 
 func (h *handlerOptions) apply(options []HandlerOption) {
