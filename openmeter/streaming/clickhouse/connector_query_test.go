@@ -62,6 +62,7 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 	from := now.Add(-time.Hour)
 	to := now
 	eventTime := now.Add(-time.Minute)
+	beforeFrom := from.Add(-time.Minute)
 	subject := "test-subject"
 	eventType := "test-event"
 
@@ -96,6 +97,36 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			Source:     "test-source",
 			Subject:    subject,
 			Data:       `{"value": null,"name": null}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
+		{
+			// Neither the value nor the name property is present: every
+			// aggregation must ignore this event except COUNT.
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       eventTime.Add(-time.Second),
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"other": 1}`,
+			IngestedAt: now,
+			StoredAt:   now,
+		},
+		{
+			// The name property is present but empty: UNIQUE_COUNT must count
+			// it as a distinct value. It is stored before `from`, so the
+			// [from, to] cases only see the missing name above (a missing name
+			// and an empty name both read as '' through JSON_VALUE, so keeping
+			// them in the same window would hide a missing name being counted).
+			// The [beforeFrom, to] cases cover it.
+			Namespace:  namespace,
+			ID:         ulid.Make().String(),
+			Time:       beforeFrom,
+			Type:       eventType,
+			Source:     "test-source",
+			Subject:    subject,
+			Data:       `{"name": ""}`,
 			IngestedAt: now,
 			StoredAt:   now,
 		},
@@ -147,14 +178,14 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			enableDecimalPrecision: false,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(3)),
+			wantValue:              lo.ToPtr(float64(4)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationCount,
 			enableDecimalPrecision: true,
 			from:                   from,
 			to:                     to,
-			wantValue:              lo.ToPtr(float64(3)),
+			wantValue:              lo.ToPtr(float64(4)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationCount,
@@ -267,6 +298,7 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			wantValue:              nil,
 		},
 		{
+			// "1" and "a": the event without a name is not counted.
 			meterAggregation:       meter.MeterAggregationUniqueCount,
 			valueProperty:          lo.ToPtr("$.name"),
 			enableDecimalPrecision: false,
@@ -281,6 +313,23 @@ func (s *ConnectorTestSuite) TestConnectorQueryMeter() {
 			from:                   from,
 			to:                     to,
 			wantValue:              lo.ToPtr(float64(2)),
+		},
+		{
+			// "1", "a" and the present empty name.
+			meterAggregation:       meter.MeterAggregationUniqueCount,
+			valueProperty:          lo.ToPtr("$.name"),
+			enableDecimalPrecision: false,
+			from:                   beforeFrom,
+			to:                     to,
+			wantValue:              lo.ToPtr(float64(3)),
+		},
+		{
+			meterAggregation:       meter.MeterAggregationUniqueCount,
+			valueProperty:          lo.ToPtr("$.name"),
+			enableDecimalPrecision: true,
+			from:                   beforeFrom,
+			to:                     to,
+			wantValue:              lo.ToPtr(float64(3)),
 		},
 		{
 			meterAggregation:       meter.MeterAggregationUniqueCount,
