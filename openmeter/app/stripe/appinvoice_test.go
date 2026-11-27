@@ -7,11 +7,13 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v80/form"
 
 	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/currencyx"
 )
 
 func TestWouldStandardInvoiceBeEmpty(t *testing.T) {
@@ -127,4 +129,84 @@ func TestApplyTaxSettingsToInvoiceItem(t *testing.T) {
 		require.Nil(t, params.TaxCode)
 		require.Nil(t, params.TaxBehavior)
 	})
+}
+
+type invoiceItemKind string
+
+const (
+	invoiceItemKindLine     invoiceItemKind = "line"
+	invoiceItemKindDiscount invoiceItemKind = "discount"
+	invoiceItemKindCredit   invoiceItemKind = "credit"
+)
+
+// addAndUpdateParams returns the Stripe add and update params the sync builds for one kind of invoice item.
+func addAndUpdateParams(t *testing.T, kind invoiceItemKind, billedTaxCode string) (*stripe.InvoiceItemParams, *stripe.InvoiceItemParams) {
+	t.Helper()
+
+	calculator, err := NewStripeCalculator(currencyx.FiatCode("USD"))
+	require.NoError(t, err)
+
+	line := billing.DetailedLineWithResolvedTaxConfig{
+		DetailedLine:  billing.DetailedLine{},
+		BilledTaxCode: billedTaxCode,
+	}
+	stripeLine := &stripe.InvoiceLineItem{ID: "il_1"}
+
+	switch kind {
+	case invoiceItemKindDiscount:
+		discount := billing.AmountLineDiscountManaged{}
+
+		return getDiscountStripeAddInvoiceItemParams(calculator, line, discount, "cus_1"),
+			getDiscountStripeUpdateInvoiceItemParams(calculator, line, discount, stripeLine).InvoiceItemParams
+	case invoiceItemKindCredit:
+		credit := billing.CreditApplied{CreditRealizationID: "cr_1"}
+
+		return getCreditStripeAddInvoiceItemParams(calculator, line, credit, "cus_1"),
+			getCreditStripeUpdateInvoiceItemParams(calculator, line, credit, stripeLine).InvoiceItemParams
+	default:
+		return getStripeAddInvoiceItemParams(line, calculator, "cus_1"),
+			getStripeUpdateInvoiceItemParams(calculator, line, stripeLine).InvoiceItemParams
+	}
+}
+
+// Stripe keeps the old tax_code of an invoice item when an update leaves the field out, so an
+// update has to send an empty value to drop a code the item was synced with before.
+func TestUpdateInvoiceItemParamsClearAnEmptyTaxCode(t *testing.T) {
+	for _, kind := range []invoiceItemKind{invoiceItemKindLine, invoiceItemKindDiscount, invoiceItemKindCredit} {
+		t.Run(string(kind)+" with an empty billed code clears the code on update only", func(t *testing.T) {
+			// given: an item whose billed tax code is empty
+			// when: the add and update params are built
+			add, update := addAndUpdateParams(t, kind, "")
+
+			// then: the add leaves the code out, the update sets it to an empty value
+			require.Nil(t, add.TaxCode)
+			require.NotNil(t, update.TaxCode)
+			require.Equal(t, "", *update.TaxCode)
+
+			// then: the update goes out as an empty tax_code form field
+			values := &form.Values{}
+			form.AppendTo(values, update)
+			require.Equal(t, []string{""}, values.Get("tax_code"))
+
+			// then: the add does not send tax_code at all
+			addValues := &form.Values{}
+			form.AppendTo(addValues, add)
+			require.Empty(t, addValues.Get("tax_code"))
+		})
+
+		t.Run(string(kind)+" with a billed code sends it on add and update", func(t *testing.T) {
+			// given: an item with a billed tax code
+			// when: the add and update params are built
+			add, update := addAndUpdateParams(t, kind, "txcd_10000000")
+
+			// then: both carry the code
+			require.Equal(t, "txcd_10000000", lo.FromPtr(add.TaxCode))
+			require.Equal(t, "txcd_10000000", lo.FromPtr(update.TaxCode))
+
+			// then: the update sends it on the wire
+			values := &form.Values{}
+			form.AppendTo(values, update)
+			require.Equal(t, []string{"txcd_10000000"}, values.Get("tax_code"))
+		})
+	}
 }

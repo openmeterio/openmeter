@@ -976,6 +976,8 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 					End:   &line.Period.End,
 				},
 				Metadata: line.Metadata,
+				// Updates clear the tax code of lines without one
+				TaxCode: lo.ToPtr(""),
 			}
 
 			switch line.Description {
@@ -1943,6 +1945,96 @@ func (s *StripeInvoiceTestSuite) TestDraftResyncSendsCurrentTaxCodeMapping() {
 	s.Require().Len(s.lastUpdatedInvoiceLines, 1)
 	s.Equal("il_1", s.lastUpdatedInvoiceLines[0].ID)
 	s.Equal("txcd_20000000", lo.FromPtr(s.lastUpdatedInvoiceLines[0].TaxCode))
+}
+
+// Stripe keeps the old tax code of an invoice item when an update leaves it out. When a draft
+// line moves to a Tax Code without a Stripe mapping, the re-sync has to clear the code the item
+// was created with, so Stripe falls back to its own default.
+func (s *StripeInvoiceTestSuite) TestDraftResyncClearsTaxCodeWhenTheBilledCodeBecomesEmpty() {
+	ctx := s.T().Context()
+	namespace := s.GetUniqueNamespace("stripe-taxcode-clear")
+	period := timeutil.ClosedPeriod{
+		From: lo.Must(time.Parse(time.RFC3339, "2024-09-02T12:13:14Z")),
+		To:   lo.Must(time.Parse(time.RFC3339, "2024-09-03T12:13:14Z")),
+	}
+
+	clock.FreezeTime(period.To.Add(time.Minute))
+	defer clock.UnFreeze()
+
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), namespace)
+	mappedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
+	providerDefault := s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
+
+	cust := s.CreateTestCustomer(namespace, "test")
+	stripeApp, err := s.Fixture.setupApp(ctx, namespace)
+	s.Require().NoError(err)
+	_, err = s.Fixture.setupAppCustomerData(ctx, stripeApp, cust)
+	s.Require().NoError(err)
+
+	s.ProvisionBillingProfile(ctx, namespace, stripeApp.GetID(), billingtest.WithManualApproval())
+
+	s.StripeAppClient.
+		On("GetCustomer", defaultStripeCustomerID).
+		Return(stripeclient.StripeCustomer{
+			StripeCustomerID: defaultStripeCustomerID,
+			DefaultPaymentMethod: &stripeclient.StripePaymentMethod{
+				ID: "pm_taxcode_test",
+				BillingAddress: &models.Address{
+					Country: lo.ToPtr(models.CountryCode("US")),
+				},
+			},
+		}, nil)
+
+	// given: a draft whose line references a Tax Code mapped to a Stripe code, synced to Stripe
+	s.stubDraftSyncUpsert("in_taxcode_clear")
+	defer s.StripeAppClient.Restore()
+
+	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxCodeConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: mappedTaxCode.ID,
+	}, "Cleared tax fee")
+
+	s.Equal("in_taxcode_clear", invoice.ExternalIDs.Invoicing)
+	s.assertSentTaxCode("txcd_10000000")
+
+	// when: the draft line moves to the provider default Tax Code, which has no Stripe mapping
+	s.stubLineResync("in_taxcode_clear")
+
+	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(i *billing.StandardInvoice) error {
+			for _, line := range i.Lines.OrEmpty() {
+				line.TaxConfig = &productcatalog.TaxCodeConfig{
+					Behavior:  line.TaxConfig.Behavior,
+					TaxCodeID: providerDefault.ID,
+				}
+			}
+
+			return nil
+		},
+	})
+	s.Require().NoError(err)
+
+	// then: the line is stamped as "provider default"
+	refetched, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoice.GetInvoiceID(),
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(refetched.Lines.OrEmpty(), 1)
+	s.Require().NotNil(refetched.Lines.OrEmpty()[0].InvoicingAppTaxCode)
+	s.Equal("", *refetched.Lines.OrEmpty()[0].InvoicingAppTaxCode)
+
+	// then: the existing Stripe line is updated, not removed and added again
+	s.StripeAppClient.AssertNotCalled(s.T(), "AddInvoiceLines", mock.Anything)
+	s.StripeAppClient.AssertNotCalled(s.T(), "RemoveInvoiceLines", mock.Anything)
+
+	// then: the update sends an empty tax code, which clears the one Stripe still has
+	s.Require().Len(s.lastUpdatedInvoiceLines, 1)
+	s.Equal("il_1", s.lastUpdatedInvoiceLines[0].ID)
+	s.Require().NotNil(s.lastUpdatedInvoiceLines[0].TaxCode)
+	s.Equal("", *s.lastUpdatedInvoiceLines[0].TaxCode)
 }
 
 // An issued invoice keeps the tax code it was billed with: the line was stamped when the draft

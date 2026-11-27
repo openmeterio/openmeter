@@ -587,7 +587,7 @@ func getDiscountStripeUpdateInvoiceItemParams(
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: getDiscountStripeInvoiceItemParams(calculator, line, discount),
+		InvoiceItemParams: clearUnsetTaxCodeOnUpdate(getDiscountStripeInvoiceItemParams(calculator, line, discount)),
 	}
 }
 
@@ -626,7 +626,7 @@ func getCreditStripeUpdateInvoiceItemParams(
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: getCreditStripeInvoiceItemParams(calculator, line, credit),
+		InvoiceItemParams: clearUnsetTaxCodeOnUpdate(getCreditStripeInvoiceItemParams(calculator, line, credit)),
 	}
 }
 
@@ -659,7 +659,8 @@ func getCreditStripeAddInvoiceItemParams(calculator StripeCalculator, line billi
 // applyTaxSettingsToInvoiceItem sets the tax settings on the Stripe line item. The tax behavior
 // comes from the line's resolved tax config. The Stripe tax code is the one the parent line was
 // stamped with, so a re-sync sends what the last draft calculation froze, never a live lookup.
-// An empty code leaves it unset, so Stripe applies its own default.
+// An empty code is left unset here, which is right for creates: Stripe applies its own default.
+// The update builders clear it explicitly with clearUnsetTaxCodeOnUpdate.
 func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line billing.DetailedLineWithResolvedTaxConfig) *stripe.InvoiceItemParams {
 	if line.TaxConfig != nil && line.TaxConfig.Behavior != nil {
 		add.TaxBehavior = getStripeTaxBehavior(line.TaxConfig.Behavior)
@@ -672,6 +673,17 @@ func applyTaxSettingsToInvoiceItem(add *stripe.InvoiceItemParams, line billing.D
 	return add
 }
 
+// clearUnsetTaxCodeOnUpdate makes an update clear the tax code when none is set. Updates have to
+// clear a code the item had before: Stripe keeps the old tax_code when the field is left out,
+// while an empty value removes it so the preset tax code applies.
+func clearUnsetTaxCodeOnUpdate(params *stripe.InvoiceItemParams) *stripe.InvoiceItemParams {
+	if params.TaxCode == nil {
+		params.TaxCode = stripe.String("")
+	}
+
+	return params
+}
+
 // getStripeUpdateInvoiceItemParams returns the Stripe update line params
 func getStripeUpdateInvoiceItemParams(
 	calculator StripeCalculator,
@@ -680,7 +692,7 @@ func getStripeUpdateInvoiceItemParams(
 ) *stripeclient.StripeInvoiceItemWithID {
 	return &stripeclient.StripeInvoiceItemWithID{
 		ID:                stripeLine.ID,
-		InvoiceItemParams: getStripeInvoiceItemParams(line, calculator),
+		InvoiceItemParams: clearUnsetTaxCodeOnUpdate(getStripeInvoiceItemParams(line, calculator)),
 	}
 }
 
