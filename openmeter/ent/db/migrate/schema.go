@@ -1386,6 +1386,183 @@ var (
 			},
 		},
 	}
+	// BillingPeriodicRealizationChargeStatesColumns holds the columns for the "billing_periodic_realization_charge_states" table.
+	BillingPeriodicRealizationChargeStatesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "done", "failed", "skipped"}},
+		{Name: "realized_through", Type: field.TypeTime, Nullable: true},
+		{Name: "target_run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "charge_id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingPeriodicRealizationChargeStatesTable holds the schema information for the "billing_periodic_realization_charge_states" table.
+	BillingPeriodicRealizationChargeStatesTable = &schema.Table{
+		Name:       "billing_periodic_realization_charge_states",
+		Columns:    BillingPeriodicRealizationChargeStatesColumns,
+		PrimaryKey: []*schema.Column{BillingPeriodicRealizationChargeStatesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_periodic_charge_state_run_fk",
+				Columns:    []*schema.Column{BillingPeriodicRealizationChargeStatesColumns[8]},
+				RefColumns: []*schema.Column{BillingPeriodicRealizationRunsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "billing_periodic_charge_state_charge_fk",
+				Columns:    []*schema.Column{BillingPeriodicRealizationChargeStatesColumns[9]},
+				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingperiodicrealizationchargestate_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingPeriodicRealizationChargeStatesColumns[0]},
+			},
+			{
+				Name:    "billingperiodicrealizationchargestate_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingPeriodicRealizationChargeStatesColumns[1]},
+			},
+			{
+				Name:    "billing_periodic_charge_state_run_work",
+				Unique:  false,
+				Columns: []*schema.Column{BillingPeriodicRealizationChargeStatesColumns[1], BillingPeriodicRealizationChargeStatesColumns[8], BillingPeriodicRealizationChargeStatesColumns[6], BillingPeriodicRealizationChargeStatesColumns[5]},
+			},
+		},
+	}
+	// BillingPeriodicRealizationRunsColumns holds the columns for the "billing_periodic_realization_runs" table.
+	BillingPeriodicRealizationRunsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "period_to", Type: field.TypeTime},
+		{Name: "realize_after", Type: field.TypeTime},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"scheduled", "running", "completed", "completed_with_errors", "failed"}},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "finished_at", Type: field.TypeTime, Nullable: true},
+		{Name: "charges_total", Type: field.TypeInt, Nullable: true},
+		{Name: "charges_done", Type: field.TypeInt, Nullable: true},
+		{Name: "charges_failed", Type: field.TypeInt, Nullable: true},
+		{Name: "charges_skipped", Type: field.TypeInt, Nullable: true},
+		{Name: "previous_run_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingPeriodicRealizationRunsTable holds the schema information for the "billing_periodic_realization_runs" table.
+	BillingPeriodicRealizationRunsTable = &schema.Table{
+		Name:       "billing_periodic_realization_runs",
+		Columns:    BillingPeriodicRealizationRunsColumns,
+		PrimaryKey: []*schema.Column{BillingPeriodicRealizationRunsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_periodic_realization_run_previous_fk",
+				Columns:    []*schema.Column{BillingPeriodicRealizationRunsColumns[14]},
+				RefColumns: []*schema.Column{BillingPeriodicRealizationRunsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingperiodicrealizationrun_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunsColumns[0]},
+			},
+			{
+				Name:    "billingperiodicrealizationrun_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunsColumns[1]},
+			},
+			{
+				Name:    "billingperiodicrealizationrun_namespace_period_to",
+				Unique:  true,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunsColumns[1], BillingPeriodicRealizationRunsColumns[5]},
+			},
+			{
+				Name:    "billing_periodic_realization_runs_due",
+				Unique:  false,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunsColumns[6]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "status = 'scheduled' AND deleted_at IS NULL",
+				},
+			},
+			{
+				Name:    "billing_periodic_realization_runs_one_running",
+				Unique:  true,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunsColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "status = 'running'",
+				},
+			},
+			{
+				Name:    "billing_periodic_realization_runs_one_first",
+				Unique:  true,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunsColumns[1]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "previous_run_id IS NULL",
+				},
+			},
+		},
+	}
+	// BillingPeriodicRealizationRunErrorsColumns holds the columns for the "billing_periodic_realization_run_errors" table.
+	BillingPeriodicRealizationRunErrorsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "code", Type: field.TypeString},
+		{Name: "reason", Type: field.TypeString, Size: 2147483647},
+		{Name: "run_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "charge_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// BillingPeriodicRealizationRunErrorsTable holds the schema information for the "billing_periodic_realization_run_errors" table.
+	BillingPeriodicRealizationRunErrorsTable = &schema.Table{
+		Name:       "billing_periodic_realization_run_errors",
+		Columns:    BillingPeriodicRealizationRunErrorsColumns,
+		PrimaryKey: []*schema.Column{BillingPeriodicRealizationRunErrorsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_periodic_run_error_run_fk",
+				Columns:    []*schema.Column{BillingPeriodicRealizationRunErrorsColumns[7]},
+				RefColumns: []*schema.Column{BillingPeriodicRealizationRunsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "billing_periodic_run_error_charge_fk",
+				Columns:    []*schema.Column{BillingPeriodicRealizationRunErrorsColumns[8]},
+				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingperiodicrealizationrunerror_id",
+				Unique:  true,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunErrorsColumns[0]},
+			},
+			{
+				Name:    "billingperiodicrealizationrunerror_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunErrorsColumns[1]},
+			},
+			{
+				Name:    "billingperiodicrealizationrunerror_namespace_run_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunErrorsColumns[1], BillingPeriodicRealizationRunErrorsColumns[7]},
+			},
+			{
+				Name:    "billingperiodicrealizationrunerror_charge_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingPeriodicRealizationRunErrorsColumns[8]},
+			},
+		},
+	}
 	// BillingProfilesColumns holds the columns for the "billing_profiles" table.
 	BillingProfilesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3549,6 +3726,7 @@ var (
 		{Name: "fiat_overage_credit_allocation_completed", Type: field.TypeBool, Default: false},
 		{Name: "invoice_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "line_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "periodic_realization_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "charge_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "prior_run_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -3572,20 +3750,26 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
+				Symbol:     "charge_ub_run_periodic_realization_run_fk",
 				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[26]},
+				RefColumns: []*schema.Column{BillingPeriodicRealizationRunsColumns[0]},
+				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "charge_usage_based_runs_charge_usage_based_runs",
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[27]},
 				RefColumns: []*schema.Column{ChargeUsageBasedColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "charge_ub_run_prior_run",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[27]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[28]},
 				RefColumns: []*schema.Column{ChargeUsageBasedRunsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "charge_usage_based_runs_features_usage_based_runs",
-				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[28]},
+				Columns:    []*schema.Column{ChargeUsageBasedRunsColumns[29]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -3604,7 +3788,12 @@ var (
 			{
 				Name:    "chargeusagebasedruns_namespace_charge_id",
 				Unique:  false,
-				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[26]},
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[1], ChargeUsageBasedRunsColumns[27]},
+			},
+			{
+				Name:    "charge_ub_run_periodic_realization_run_id",
+				Unique:  false,
+				Columns: []*schema.Column{ChargeUsageBasedRunsColumns[26]},
 			},
 		},
 	}
@@ -6396,6 +6585,9 @@ var (
 		BillingInvoiceUsageBasedLineConfigsTable,
 		BillingInvoiceValidationIssuesTable,
 		BillingInvoiceWriteSchemaLevelsTable,
+		BillingPeriodicRealizationChargeStatesTable,
+		BillingPeriodicRealizationRunsTable,
+		BillingPeriodicRealizationRunErrorsTable,
 		BillingProfilesTable,
 		BillingSequenceNumbersTable,
 		BillingStandardInvoiceDetailedLinesTable,
@@ -6547,6 +6739,15 @@ func init() {
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[2].RefTable = SubscriptionItemsTable
 	BillingInvoiceSplitLineGroupsTable.ForeignKeys[3].RefTable = SubscriptionPhasesTable
 	BillingInvoiceValidationIssuesTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingPeriodicRealizationChargeStatesTable.ForeignKeys[0].RefTable = BillingPeriodicRealizationRunsTable
+	BillingPeriodicRealizationChargeStatesTable.ForeignKeys[1].RefTable = ChargeUsageBasedTable
+	BillingPeriodicRealizationRunsTable.ForeignKeys[0].RefTable = BillingPeriodicRealizationRunsTable
+	BillingPeriodicRealizationRunsTable.Annotation = &entsql.Annotation{}
+	BillingPeriodicRealizationRunsTable.Annotation.Checks = map[string]string{
+		"billing_periodic_realization_run_realize_after": "realize_after >= period_to",
+	}
+	BillingPeriodicRealizationRunErrorsTable.ForeignKeys[0].RefTable = BillingPeriodicRealizationRunsTable
+	BillingPeriodicRealizationRunErrorsTable.ForeignKeys[1].RefTable = ChargeUsageBasedTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[1].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[2].RefTable = AppsTable
@@ -6689,9 +6890,10 @@ func init() {
 	ChargeUsageBasedRunPaymentsTable.ForeignKeys[0].RefTable = ChargeUsageBasedRunsTable
 	ChargeUsageBasedRunsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	ChargeUsageBasedRunsTable.ForeignKeys[1].RefTable = BillingInvoiceLinesTable
-	ChargeUsageBasedRunsTable.ForeignKeys[2].RefTable = ChargeUsageBasedTable
-	ChargeUsageBasedRunsTable.ForeignKeys[3].RefTable = ChargeUsageBasedRunsTable
-	ChargeUsageBasedRunsTable.ForeignKeys[4].RefTable = FeaturesTable
+	ChargeUsageBasedRunsTable.ForeignKeys[2].RefTable = BillingPeriodicRealizationRunsTable
+	ChargeUsageBasedRunsTable.ForeignKeys[3].RefTable = ChargeUsageBasedTable
+	ChargeUsageBasedRunsTable.ForeignKeys[4].RefTable = ChargeUsageBasedRunsTable
+	ChargeUsageBasedRunsTable.ForeignKeys[5].RefTable = FeaturesTable
 	CreditRealizationLineagesTable.ForeignKeys[0].RefTable = ChargesTable
 	CreditRealizationLineageSegmentsTable.ForeignKeys[0].RefTable = CreditRealizationLineagesTable
 	CurrencyCostBasesTable.ForeignKeys[0].RefTable = CustomCurrenciesTable

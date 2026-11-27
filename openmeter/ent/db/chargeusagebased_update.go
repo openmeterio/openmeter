@@ -15,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/meta"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrunerror"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedoverride"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
@@ -501,6 +503,40 @@ func (_u *ChargeUsageBasedUpdate) SetIntentOverride(v *ChargeUsageBasedOverride)
 	return _u.SetIntentOverrideID(v.ID)
 }
 
+// SetPeriodicRealizationStateID sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity by ID.
+func (_u *ChargeUsageBasedUpdate) SetPeriodicRealizationStateID(id string) *ChargeUsageBasedUpdate {
+	_u.mutation.SetPeriodicRealizationStateID(id)
+	return _u
+}
+
+// SetNillablePeriodicRealizationStateID sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdate) SetNillablePeriodicRealizationStateID(id *string) *ChargeUsageBasedUpdate {
+	if id != nil {
+		_u = _u.SetPeriodicRealizationStateID(*id)
+	}
+	return _u
+}
+
+// SetPeriodicRealizationState sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity.
+func (_u *ChargeUsageBasedUpdate) SetPeriodicRealizationState(v *BillingPeriodicRealizationChargeState) *ChargeUsageBasedUpdate {
+	return _u.SetPeriodicRealizationStateID(v.ID)
+}
+
+// AddPeriodicRealizationErrorIDs adds the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity by IDs.
+func (_u *ChargeUsageBasedUpdate) AddPeriodicRealizationErrorIDs(ids ...string) *ChargeUsageBasedUpdate {
+	_u.mutation.AddPeriodicRealizationErrorIDs(ids...)
+	return _u
+}
+
+// AddPeriodicRealizationErrors adds the "periodic_realization_errors" edges to the BillingPeriodicRealizationRunError entity.
+func (_u *ChargeUsageBasedUpdate) AddPeriodicRealizationErrors(v ...*BillingPeriodicRealizationRunError) *ChargeUsageBasedUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPeriodicRealizationErrorIDs(ids...)
+}
+
 // SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
 func (_u *ChargeUsageBasedUpdate) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeUsageBasedUpdate {
 	return _u.SetSubscriptionPhaseID(v.ID)
@@ -573,6 +609,33 @@ func (_u *ChargeUsageBasedUpdate) ClearCurrentRun() *ChargeUsageBasedUpdate {
 func (_u *ChargeUsageBasedUpdate) ClearIntentOverride() *ChargeUsageBasedUpdate {
 	_u.mutation.ClearIntentOverride()
 	return _u
+}
+
+// ClearPeriodicRealizationState clears the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity.
+func (_u *ChargeUsageBasedUpdate) ClearPeriodicRealizationState() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearPeriodicRealizationState()
+	return _u
+}
+
+// ClearPeriodicRealizationErrors clears all "periodic_realization_errors" edges to the BillingPeriodicRealizationRunError entity.
+func (_u *ChargeUsageBasedUpdate) ClearPeriodicRealizationErrors() *ChargeUsageBasedUpdate {
+	_u.mutation.ClearPeriodicRealizationErrors()
+	return _u
+}
+
+// RemovePeriodicRealizationErrorIDs removes the "periodic_realization_errors" edge to BillingPeriodicRealizationRunError entities by IDs.
+func (_u *ChargeUsageBasedUpdate) RemovePeriodicRealizationErrorIDs(ids ...string) *ChargeUsageBasedUpdate {
+	_u.mutation.RemovePeriodicRealizationErrorIDs(ids...)
+	return _u
+}
+
+// RemovePeriodicRealizationErrors removes "periodic_realization_errors" edges to BillingPeriodicRealizationRunError entities.
+func (_u *ChargeUsageBasedUpdate) RemovePeriodicRealizationErrors(v ...*BillingPeriodicRealizationRunError) *ChargeUsageBasedUpdate {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePeriodicRealizationErrorIDs(ids...)
 }
 
 // ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
@@ -950,6 +1013,80 @@ func (_u *ChargeUsageBasedUpdate) sqlSave(ctx context.Context) (_node int, err e
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PeriodicRealizationStateCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationStateTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationStateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationchargestate.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PeriodicRealizationStateIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationStateTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationStateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationchargestate.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PeriodicRealizationErrorsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationErrorsTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationErrorsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrunerror.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPeriodicRealizationErrorsIDs(); len(nodes) > 0 && !_u.mutation.PeriodicRealizationErrorsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationErrorsTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationErrorsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrunerror.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PeriodicRealizationErrorsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationErrorsTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationErrorsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrunerror.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1524,6 +1661,40 @@ func (_u *ChargeUsageBasedUpdateOne) SetIntentOverride(v *ChargeUsageBasedOverri
 	return _u.SetIntentOverrideID(v.ID)
 }
 
+// SetPeriodicRealizationStateID sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity by ID.
+func (_u *ChargeUsageBasedUpdateOne) SetPeriodicRealizationStateID(id string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.SetPeriodicRealizationStateID(id)
+	return _u
+}
+
+// SetNillablePeriodicRealizationStateID sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity by ID if the given value is not nil.
+func (_u *ChargeUsageBasedUpdateOne) SetNillablePeriodicRealizationStateID(id *string) *ChargeUsageBasedUpdateOne {
+	if id != nil {
+		_u = _u.SetPeriodicRealizationStateID(*id)
+	}
+	return _u
+}
+
+// SetPeriodicRealizationState sets the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity.
+func (_u *ChargeUsageBasedUpdateOne) SetPeriodicRealizationState(v *BillingPeriodicRealizationChargeState) *ChargeUsageBasedUpdateOne {
+	return _u.SetPeriodicRealizationStateID(v.ID)
+}
+
+// AddPeriodicRealizationErrorIDs adds the "periodic_realization_errors" edge to the BillingPeriodicRealizationRunError entity by IDs.
+func (_u *ChargeUsageBasedUpdateOne) AddPeriodicRealizationErrorIDs(ids ...string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.AddPeriodicRealizationErrorIDs(ids...)
+	return _u
+}
+
+// AddPeriodicRealizationErrors adds the "periodic_realization_errors" edges to the BillingPeriodicRealizationRunError entity.
+func (_u *ChargeUsageBasedUpdateOne) AddPeriodicRealizationErrors(v ...*BillingPeriodicRealizationRunError) *ChargeUsageBasedUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPeriodicRealizationErrorIDs(ids...)
+}
+
 // SetSubscriptionPhase sets the "subscription_phase" edge to the SubscriptionPhase entity.
 func (_u *ChargeUsageBasedUpdateOne) SetSubscriptionPhase(v *SubscriptionPhase) *ChargeUsageBasedUpdateOne {
 	return _u.SetSubscriptionPhaseID(v.ID)
@@ -1596,6 +1767,33 @@ func (_u *ChargeUsageBasedUpdateOne) ClearCurrentRun() *ChargeUsageBasedUpdateOn
 func (_u *ChargeUsageBasedUpdateOne) ClearIntentOverride() *ChargeUsageBasedUpdateOne {
 	_u.mutation.ClearIntentOverride()
 	return _u
+}
+
+// ClearPeriodicRealizationState clears the "periodic_realization_state" edge to the BillingPeriodicRealizationChargeState entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearPeriodicRealizationState() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearPeriodicRealizationState()
+	return _u
+}
+
+// ClearPeriodicRealizationErrors clears all "periodic_realization_errors" edges to the BillingPeriodicRealizationRunError entity.
+func (_u *ChargeUsageBasedUpdateOne) ClearPeriodicRealizationErrors() *ChargeUsageBasedUpdateOne {
+	_u.mutation.ClearPeriodicRealizationErrors()
+	return _u
+}
+
+// RemovePeriodicRealizationErrorIDs removes the "periodic_realization_errors" edge to BillingPeriodicRealizationRunError entities by IDs.
+func (_u *ChargeUsageBasedUpdateOne) RemovePeriodicRealizationErrorIDs(ids ...string) *ChargeUsageBasedUpdateOne {
+	_u.mutation.RemovePeriodicRealizationErrorIDs(ids...)
+	return _u
+}
+
+// RemovePeriodicRealizationErrors removes "periodic_realization_errors" edges to BillingPeriodicRealizationRunError entities.
+func (_u *ChargeUsageBasedUpdateOne) RemovePeriodicRealizationErrors(v ...*BillingPeriodicRealizationRunError) *ChargeUsageBasedUpdateOne {
+	ids := make([]string, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePeriodicRealizationErrorIDs(ids...)
 }
 
 // ClearSubscriptionPhase clears the "subscription_phase" edge to the SubscriptionPhase entity.
@@ -2003,6 +2201,80 @@ func (_u *ChargeUsageBasedUpdateOne) sqlSave(ctx context.Context) (_node *Charge
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(chargeusagebasedoverride.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PeriodicRealizationStateCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationStateTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationStateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationchargestate.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PeriodicRealizationStateIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationStateTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationStateColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationchargestate.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PeriodicRealizationErrorsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationErrorsTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationErrorsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrunerror.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPeriodicRealizationErrorsIDs(); len(nodes) > 0 && !_u.mutation.PeriodicRealizationErrorsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationErrorsTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationErrorsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrunerror.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PeriodicRealizationErrorsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   chargeusagebased.PeriodicRealizationErrorsTable,
+			Columns: []string{chargeusagebased.PeriodicRealizationErrorsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrunerror.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

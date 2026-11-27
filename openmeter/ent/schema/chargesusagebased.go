@@ -131,6 +131,13 @@ func (ChargeUsageBased) Edges() []ent.Edge {
 		edge.To("intent_override", ChargeUsageBasedOverride.Type).
 			Unique().
 			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("periodic_realization_state", BillingPeriodicRealizationChargeState.Type).
+			Unique().
+			StorageKey(edge.Symbol("billing_periodic_charge_state_charge_fk")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
+		edge.To("periodic_realization_errors", BillingPeriodicRealizationRunError.Type).
+			StorageKey(edge.Symbol("billing_periodic_run_error_charge_fk")).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 		edge.From("subscription", Subscription.Type).
 			Ref("charges_usage_based").
 			Field("subscription_id").
@@ -375,6 +382,16 @@ func (ChargeUsageBasedRuns) Fields() []ent.Field {
 			Nillable().
 			Immutable(),
 
+		// Set only on checkpoints created by periodic realization, naming the
+		// namespace run they were created for. Invoice and final runs leave it empty.
+		field.String("periodic_realization_run_id").
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}).
+			Optional().
+			Nillable().
+			Immutable(),
+
 		field.Bool("detailed_lines_present"),
 
 		field.Bool("detailed_lines_include_credit_allocations").
@@ -444,6 +461,11 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 			Field("prior_run_id").
 			Unique().
 			Immutable(),
+		edge.From("periodic_realization_run", BillingPeriodicRealizationRun.Type).
+			Ref("usage_based_runs").
+			Field("periodic_realization_run_id").
+			Unique().
+			Immutable(),
 		edge.To("credit_allocations", ChargeUsageBasedRunCreditAllocations.Type).
 			StorageKey(edge.Symbol("charge_ub_run_credit_alloc_run")).
 			Annotations(entsql.OnDelete(entsql.Cascade)),
@@ -467,6 +489,8 @@ func (ChargeUsageBasedRuns) Edges() []ent.Edge {
 func (ChargeUsageBasedRuns) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "charge_id"),
+		index.Fields("periodic_realization_run_id").
+			StorageKey("charge_ub_run_periodic_realization_run_id"),
 	}
 }
 

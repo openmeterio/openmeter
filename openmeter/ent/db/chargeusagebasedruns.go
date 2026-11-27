@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruninvoicedusage"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrunpayment"
@@ -65,6 +66,8 @@ type ChargeUsageBasedRuns struct {
 	SchemaLevel int `json:"schema_level,omitempty"`
 	// PriorRunID holds the value of the "prior_run_id" field.
 	PriorRunID *string `json:"prior_run_id,omitempty"`
+	// PeriodicRealizationRunID holds the value of the "periodic_realization_run_id" field.
+	PeriodicRealizationRunID *string `json:"periodic_realization_run_id,omitempty"`
 	// DetailedLinesPresent holds the value of the "detailed_lines_present" field.
 	DetailedLinesPresent bool `json:"detailed_lines_present,omitempty"`
 	// DetailedLinesIncludeCreditAllocations holds the value of the "detailed_lines_include_credit_allocations" field.
@@ -101,6 +104,8 @@ type ChargeUsageBasedRunsEdges struct {
 	NextRuns []*ChargeUsageBasedRuns `json:"next_runs,omitempty"`
 	// PriorRun holds the value of the prior_run edge.
 	PriorRun *ChargeUsageBasedRuns `json:"prior_run,omitempty"`
+	// PeriodicRealizationRun holds the value of the periodic_realization_run edge.
+	PeriodicRealizationRun *BillingPeriodicRealizationRun `json:"periodic_realization_run,omitempty"`
 	// CreditAllocations holds the value of the credit_allocations edge.
 	CreditAllocations []*ChargeUsageBasedRunCreditAllocations `json:"credit_allocations,omitempty"`
 	// FiatOverageCreditAllocations holds the value of the fiat_overage_credit_allocations edge.
@@ -115,7 +120,7 @@ type ChargeUsageBasedRunsEdges struct {
 	Payment *ChargeUsageBasedRunPayment `json:"payment,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [12]bool
+	loadedTypes [13]bool
 }
 
 // UsageBasedOrErr returns the UsageBased value or an error if the edge
@@ -182,10 +187,21 @@ func (e ChargeUsageBasedRunsEdges) PriorRunOrErr() (*ChargeUsageBasedRuns, error
 	return nil, &NotLoadedError{edge: "prior_run"}
 }
 
+// PeriodicRealizationRunOrErr returns the PeriodicRealizationRun value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ChargeUsageBasedRunsEdges) PeriodicRealizationRunOrErr() (*BillingPeriodicRealizationRun, error) {
+	if e.PeriodicRealizationRun != nil {
+		return e.PeriodicRealizationRun, nil
+	} else if e.loadedTypes[6] {
+		return nil, &NotFoundError{label: billingperiodicrealizationrun.Label}
+	}
+	return nil, &NotLoadedError{edge: "periodic_realization_run"}
+}
+
 // CreditAllocationsOrErr returns the CreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBasedRunCreditAllocations, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.CreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "credit_allocations"}
@@ -194,7 +210,7 @@ func (e ChargeUsageBasedRunsEdges) CreditAllocationsOrErr() ([]*ChargeUsageBased
 // FiatOverageCreditAllocationsOrErr returns the FiatOverageCreditAllocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) FiatOverageCreditAllocationsOrErr() ([]*ChargeUsageBasedRunOverageCreditAllocations, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[8] {
 		return e.FiatOverageCreditAllocations, nil
 	}
 	return nil, &NotLoadedError{edge: "fiat_overage_credit_allocations"}
@@ -203,7 +219,7 @@ func (e ChargeUsageBasedRunsEdges) FiatOverageCreditAllocationsOrErr() ([]*Charg
 // DetailedLinesOrErr returns the DetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
-	if e.loadedTypes[8] {
+	if e.loadedTypes[9] {
 		return e.DetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "detailed_lines"}
@@ -212,7 +228,7 @@ func (e ChargeUsageBasedRunsEdges) DetailedLinesOrErr() ([]*ChargeUsageBasedRunD
 // CorrectedDetailedLinesOrErr returns the CorrectedDetailedLines value or an error if the edge
 // was not loaded in eager-loading.
 func (e ChargeUsageBasedRunsEdges) CorrectedDetailedLinesOrErr() ([]*ChargeUsageBasedRunDetailedLine, error) {
-	if e.loadedTypes[9] {
+	if e.loadedTypes[10] {
 		return e.CorrectedDetailedLines, nil
 	}
 	return nil, &NotLoadedError{edge: "corrected_detailed_lines"}
@@ -223,7 +239,7 @@ func (e ChargeUsageBasedRunsEdges) CorrectedDetailedLinesOrErr() ([]*ChargeUsage
 func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInvoicedUsage, error) {
 	if e.InvoicedUsage != nil {
 		return e.InvoicedUsage, nil
-	} else if e.loadedTypes[10] {
+	} else if e.loadedTypes[11] {
 		return nil, &NotFoundError{label: chargeusagebasedruninvoicedusage.Label}
 	}
 	return nil, &NotLoadedError{edge: "invoiced_usage"}
@@ -234,7 +250,7 @@ func (e ChargeUsageBasedRunsEdges) InvoicedUsageOrErr() (*ChargeUsageBasedRunInv
 func (e ChargeUsageBasedRunsEdges) PaymentOrErr() (*ChargeUsageBasedRunPayment, error) {
 	if e.Payment != nil {
 		return e.Payment, nil
-	} else if e.loadedTypes[11] {
+	} else if e.loadedTypes[12] {
 		return nil, &NotFoundError{label: chargeusagebasedrunpayment.Label}
 	}
 	return nil, &NotLoadedError{edge: "payment"}
@@ -251,7 +267,7 @@ func (*ChargeUsageBasedRuns) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case chargeusagebasedruns.FieldSchemaLevel:
 			values[i] = new(sql.NullInt64)
-		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldInitialType, chargeusagebasedruns.FieldPriorRunID, chargeusagebasedruns.FieldLineID, chargeusagebasedruns.FieldInvoiceID:
+		case chargeusagebasedruns.FieldID, chargeusagebasedruns.FieldNamespace, chargeusagebasedruns.FieldChargeID, chargeusagebasedruns.FieldFeatureID, chargeusagebasedruns.FieldType, chargeusagebasedruns.FieldInitialType, chargeusagebasedruns.FieldPriorRunID, chargeusagebasedruns.FieldPeriodicRealizationRunID, chargeusagebasedruns.FieldLineID, chargeusagebasedruns.FieldInvoiceID:
 			values[i] = new(sql.NullString)
 		case chargeusagebasedruns.FieldCreatedAt, chargeusagebasedruns.FieldUpdatedAt, chargeusagebasedruns.FieldDeletedAt, chargeusagebasedruns.FieldStoredAtLt, chargeusagebasedruns.FieldServicePeriodTo:
 			values[i] = new(sql.NullTime)
@@ -398,6 +414,13 @@ func (_m *ChargeUsageBasedRuns) assignValues(columns []string, values []any) err
 				_m.PriorRunID = new(string)
 				*_m.PriorRunID = value.String
 			}
+		case chargeusagebasedruns.FieldPeriodicRealizationRunID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field periodic_realization_run_id", values[i])
+			} else if value.Valid {
+				_m.PeriodicRealizationRunID = new(string)
+				*_m.PeriodicRealizationRunID = value.String
+			}
 		case chargeusagebasedruns.FieldDetailedLinesPresent:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field detailed_lines_present", values[i])
@@ -489,6 +512,11 @@ func (_m *ChargeUsageBasedRuns) QueryNextRuns() *ChargeUsageBasedRunsQuery {
 // QueryPriorRun queries the "prior_run" edge of the ChargeUsageBasedRuns entity.
 func (_m *ChargeUsageBasedRuns) QueryPriorRun() *ChargeUsageBasedRunsQuery {
 	return NewChargeUsageBasedRunsClient(_m.config).QueryPriorRun(_m)
+}
+
+// QueryPeriodicRealizationRun queries the "periodic_realization_run" edge of the ChargeUsageBasedRuns entity.
+func (_m *ChargeUsageBasedRuns) QueryPeriodicRealizationRun() *BillingPeriodicRealizationRunQuery {
+	return NewChargeUsageBasedRunsClient(_m.config).QueryPeriodicRealizationRun(_m)
 }
 
 // QueryCreditAllocations queries the "credit_allocations" edge of the ChargeUsageBasedRuns entity.
@@ -605,6 +633,11 @@ func (_m *ChargeUsageBasedRuns) String() string {
 	builder.WriteString(", ")
 	if v := _m.PriorRunID; v != nil {
 		builder.WriteString("prior_run_id=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.PeriodicRealizationRunID; v != nil {
+		builder.WriteString("periodic_realization_run_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

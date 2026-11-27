@@ -33,6 +33,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicewriteschemalevel"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrunerror"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -191,6 +194,9 @@ func checkColumn(t, c string) error {
 			billinginvoiceusagebasedlineconfig.Table:               billinginvoiceusagebasedlineconfig.ValidColumn,
 			billinginvoicevalidationissue.Table:                    billinginvoicevalidationissue.ValidColumn,
 			billinginvoicewriteschemalevel.Table:                   billinginvoicewriteschemalevel.ValidColumn,
+			billingperiodicrealizationchargestate.Table:            billingperiodicrealizationchargestate.ValidColumn,
+			billingperiodicrealizationrun.Table:                    billingperiodicrealizationrun.ValidColumn,
+			billingperiodicrealizationrunerror.Table:               billingperiodicrealizationrunerror.ValidColumn,
 			billingprofile.Table:                                   billingprofile.ValidColumn,
 			billingsequencenumbers.Table:                           billingsequencenumbers.ValidColumn,
 			billingstandardinvoicedetailedline.Table:               billingstandardinvoicedetailedline.ValidColumn,

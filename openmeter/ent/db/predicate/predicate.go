@@ -154,6 +154,15 @@ type BillingInvoiceValidationIssue func(*sql.Selector)
 // BillingInvoiceWriteSchemaLevel is the predicate function for billinginvoicewriteschemalevel builders.
 type BillingInvoiceWriteSchemaLevel func(*sql.Selector)
 
+// BillingPeriodicRealizationChargeState is the predicate function for billingperiodicrealizationchargestate builders.
+type BillingPeriodicRealizationChargeState func(*sql.Selector)
+
+// BillingPeriodicRealizationRun is the predicate function for billingperiodicrealizationrun builders.
+type BillingPeriodicRealizationRun func(*sql.Selector)
+
+// BillingPeriodicRealizationRunError is the predicate function for billingperiodicrealizationrunerror builders.
+type BillingPeriodicRealizationRunError func(*sql.Selector)
+
 // BillingProfile is the predicate function for billingprofile builders.
 type BillingProfile func(*sql.Selector)
 

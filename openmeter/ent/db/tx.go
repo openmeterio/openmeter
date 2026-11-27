@@ -54,6 +54,12 @@ type Tx struct {
 	BillingInvoiceValidationIssue *BillingInvoiceValidationIssueClient
 	// BillingInvoiceWriteSchemaLevel is the client for interacting with the BillingInvoiceWriteSchemaLevel builders.
 	BillingInvoiceWriteSchemaLevel *BillingInvoiceWriteSchemaLevelClient
+	// BillingPeriodicRealizationChargeState is the client for interacting with the BillingPeriodicRealizationChargeState builders.
+	BillingPeriodicRealizationChargeState *BillingPeriodicRealizationChargeStateClient
+	// BillingPeriodicRealizationRun is the client for interacting with the BillingPeriodicRealizationRun builders.
+	BillingPeriodicRealizationRun *BillingPeriodicRealizationRunClient
+	// BillingPeriodicRealizationRunError is the client for interacting with the BillingPeriodicRealizationRunError builders.
+	BillingPeriodicRealizationRunError *BillingPeriodicRealizationRunErrorClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
 	// BillingSequenceNumbers is the client for interacting with the BillingSequenceNumbers builders.
@@ -353,6 +359,9 @@ func (tx *Tx) init() {
 	tx.BillingInvoiceUsageBasedLineConfig = NewBillingInvoiceUsageBasedLineConfigClient(tx.config)
 	tx.BillingInvoiceValidationIssue = NewBillingInvoiceValidationIssueClient(tx.config)
 	tx.BillingInvoiceWriteSchemaLevel = NewBillingInvoiceWriteSchemaLevelClient(tx.config)
+	tx.BillingPeriodicRealizationChargeState = NewBillingPeriodicRealizationChargeStateClient(tx.config)
+	tx.BillingPeriodicRealizationRun = NewBillingPeriodicRealizationRunClient(tx.config)
+	tx.BillingPeriodicRealizationRunError = NewBillingPeriodicRealizationRunErrorClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.BillingSequenceNumbers = NewBillingSequenceNumbersClient(tx.config)
 	tx.BillingStandardInvoiceDetailedLine = NewBillingStandardInvoiceDetailedLineClient(tx.config)

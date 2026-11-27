@@ -129,6 +129,12 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		BillingInvoiceWriteSchemaLevel: NewBillingInvoiceWriteSchemaLevelClient(config),
 
+		BillingPeriodicRealizationChargeState: NewBillingPeriodicRealizationChargeStateClient(config),
+
+		BillingPeriodicRealizationRun: NewBillingPeriodicRealizationRunClient(config),
+
+		BillingPeriodicRealizationRunError: NewBillingPeriodicRealizationRunErrorClient(config),
+
 		BillingProfile: NewBillingProfileClient(config),
 
 		BillingSequenceNumbers: NewBillingSequenceNumbersClient(config),

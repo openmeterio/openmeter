@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceline"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrun"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedruncreditallocations"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedrundetailedline"
@@ -194,6 +195,20 @@ func (_c *ChargeUsageBasedRunsCreate) SetNillablePriorRunID(v *string) *ChargeUs
 	return _c
 }
 
+// SetPeriodicRealizationRunID sets the "periodic_realization_run_id" field.
+func (_c *ChargeUsageBasedRunsCreate) SetPeriodicRealizationRunID(v string) *ChargeUsageBasedRunsCreate {
+	_c.mutation.SetPeriodicRealizationRunID(v)
+	return _c
+}
+
+// SetNillablePeriodicRealizationRunID sets the "periodic_realization_run_id" field if the given value is not nil.
+func (_c *ChargeUsageBasedRunsCreate) SetNillablePeriodicRealizationRunID(v *string) *ChargeUsageBasedRunsCreate {
+	if v != nil {
+		_c.SetPeriodicRealizationRunID(*v)
+	}
+	return _c
+}
+
 // SetDetailedLinesPresent sets the "detailed_lines_present" field.
 func (_c *ChargeUsageBasedRunsCreate) SetDetailedLinesPresent(v bool) *ChargeUsageBasedRunsCreate {
 	_c.mutation.SetDetailedLinesPresent(v)
@@ -368,6 +383,11 @@ func (_c *ChargeUsageBasedRunsCreate) AddNextRuns(v ...*ChargeUsageBasedRuns) *C
 // SetPriorRun sets the "prior_run" edge to the ChargeUsageBasedRuns entity.
 func (_c *ChargeUsageBasedRunsCreate) SetPriorRun(v *ChargeUsageBasedRuns) *ChargeUsageBasedRunsCreate {
 	return _c.SetPriorRunID(v.ID)
+}
+
+// SetPeriodicRealizationRun sets the "periodic_realization_run" edge to the BillingPeriodicRealizationRun entity.
+func (_c *ChargeUsageBasedRunsCreate) SetPeriodicRealizationRun(v *BillingPeriodicRealizationRun) *ChargeUsageBasedRunsCreate {
+	return _c.SetPeriodicRealizationRunID(v.ID)
 }
 
 // AddCreditAllocationIDs adds the "credit_allocations" edge to the ChargeUsageBasedRunCreditAllocations entity by IDs.
@@ -872,6 +892,23 @@ func (_c *ChargeUsageBasedRunsCreate) createSpec() (*ChargeUsageBasedRuns, *sqlg
 		_node.PriorRunID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := _c.mutation.PeriodicRealizationRunIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   chargeusagebasedruns.PeriodicRealizationRunTable,
+			Columns: []string{chargeusagebasedruns.PeriodicRealizationRunColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingperiodicrealizationrun.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.PeriodicRealizationRunID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	if nodes := _c.mutation.CreditAllocationsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -1315,6 +1352,9 @@ func (u *ChargeUsageBasedRunsUpsertOne) UpdateNewValues() *ChargeUsageBasedRunsU
 		}
 		if _, exists := u.create.mutation.PriorRunID(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldPriorRunID)
+		}
+		if _, exists := u.create.mutation.PeriodicRealizationRunID(); exists {
+			s.SetIgnore(chargeusagebasedruns.FieldPeriodicRealizationRunID)
 		}
 		if _, exists := u.create.mutation.InvoiceID(); exists {
 			s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)
@@ -1854,6 +1894,9 @@ func (u *ChargeUsageBasedRunsUpsertBulk) UpdateNewValues() *ChargeUsageBasedRuns
 			}
 			if _, exists := b.mutation.PriorRunID(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldPriorRunID)
+			}
+			if _, exists := b.mutation.PeriodicRealizationRunID(); exists {
+				s.SetIgnore(chargeusagebasedruns.FieldPeriodicRealizationRunID)
 			}
 			if _, exists := b.mutation.InvoiceID(); exists {
 				s.SetIgnore(chargeusagebasedruns.FieldInvoiceID)

@@ -13,6 +13,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrunerror"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/charge"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebased"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/chargeusagebasedcostbasis"
@@ -32,24 +34,26 @@ import (
 // ChargeUsageBasedQuery is the builder for querying ChargeUsageBased entities.
 type ChargeUsageBasedQuery struct {
 	config
-	ctx                   *QueryContext
-	order                 []chargeusagebased.OrderOption
-	inters                []Interceptor
-	predicates            []predicate.ChargeUsageBased
-	withRuns              *ChargeUsageBasedRunsQuery
-	withDetailedLines     *ChargeUsageBasedRunDetailedLineQuery
-	withCurrentRun        *ChargeUsageBasedRunsQuery
-	withCostBasis         *ChargeUsageBasedCostBasisQuery
-	withCharge            *ChargeQuery
-	withIntentOverride    *ChargeUsageBasedOverrideQuery
-	withSubscription      *SubscriptionQuery
-	withSubscriptionPhase *SubscriptionPhaseQuery
-	withSubscriptionItem  *SubscriptionItemQuery
-	withCustomer          *CustomerQuery
-	withFeature           *FeatureQuery
-	withTaxCode           *TaxCodeQuery
-	withCustomCurrency    *CustomCurrencyQuery
-	modifiers             []func(*sql.Selector)
+	ctx                           *QueryContext
+	order                         []chargeusagebased.OrderOption
+	inters                        []Interceptor
+	predicates                    []predicate.ChargeUsageBased
+	withRuns                      *ChargeUsageBasedRunsQuery
+	withDetailedLines             *ChargeUsageBasedRunDetailedLineQuery
+	withCurrentRun                *ChargeUsageBasedRunsQuery
+	withCostBasis                 *ChargeUsageBasedCostBasisQuery
+	withCharge                    *ChargeQuery
+	withIntentOverride            *ChargeUsageBasedOverrideQuery
+	withPeriodicRealizationState  *BillingPeriodicRealizationChargeStateQuery
+	withPeriodicRealizationErrors *BillingPeriodicRealizationRunErrorQuery
+	withSubscription              *SubscriptionQuery
+	withSubscriptionPhase         *SubscriptionPhaseQuery
+	withSubscriptionItem          *SubscriptionItemQuery
+	withCustomer                  *CustomerQuery
+	withFeature                   *FeatureQuery
+	withTaxCode                   *TaxCodeQuery
+	withCustomCurrency            *CustomCurrencyQuery
+	modifiers                     []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -211,6 +215,50 @@ func (_q *ChargeUsageBasedQuery) QueryIntentOverride() *ChargeUsageBasedOverride
 			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
 			sqlgraph.To(chargeusagebasedoverride.Table, chargeusagebasedoverride.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, chargeusagebased.IntentOverrideTable, chargeusagebased.IntentOverrideColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPeriodicRealizationState chains the current query on the "periodic_realization_state" edge.
+func (_q *ChargeUsageBasedQuery) QueryPeriodicRealizationState() *BillingPeriodicRealizationChargeStateQuery {
+	query := (&BillingPeriodicRealizationChargeStateClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
+			sqlgraph.To(billingperiodicrealizationchargestate.Table, billingperiodicrealizationchargestate.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, chargeusagebased.PeriodicRealizationStateTable, chargeusagebased.PeriodicRealizationStateColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPeriodicRealizationErrors chains the current query on the "periodic_realization_errors" edge.
+func (_q *ChargeUsageBasedQuery) QueryPeriodicRealizationErrors() *BillingPeriodicRealizationRunErrorQuery {
+	query := (&BillingPeriodicRealizationRunErrorClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(chargeusagebased.Table, chargeusagebased.FieldID, selector),
+			sqlgraph.To(billingperiodicrealizationrunerror.Table, billingperiodicrealizationrunerror.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, chargeusagebased.PeriodicRealizationErrorsTable, chargeusagebased.PeriodicRealizationErrorsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -559,24 +607,26 @@ func (_q *ChargeUsageBasedQuery) Clone() *ChargeUsageBasedQuery {
 		return nil
 	}
 	return &ChargeUsageBasedQuery{
-		config:                _q.config,
-		ctx:                   _q.ctx.Clone(),
-		order:                 append([]chargeusagebased.OrderOption{}, _q.order...),
-		inters:                append([]Interceptor{}, _q.inters...),
-		predicates:            append([]predicate.ChargeUsageBased{}, _q.predicates...),
-		withRuns:              _q.withRuns.Clone(),
-		withDetailedLines:     _q.withDetailedLines.Clone(),
-		withCurrentRun:        _q.withCurrentRun.Clone(),
-		withCostBasis:         _q.withCostBasis.Clone(),
-		withCharge:            _q.withCharge.Clone(),
-		withIntentOverride:    _q.withIntentOverride.Clone(),
-		withSubscription:      _q.withSubscription.Clone(),
-		withSubscriptionPhase: _q.withSubscriptionPhase.Clone(),
-		withSubscriptionItem:  _q.withSubscriptionItem.Clone(),
-		withCustomer:          _q.withCustomer.Clone(),
-		withFeature:           _q.withFeature.Clone(),
-		withTaxCode:           _q.withTaxCode.Clone(),
-		withCustomCurrency:    _q.withCustomCurrency.Clone(),
+		config:                        _q.config,
+		ctx:                           _q.ctx.Clone(),
+		order:                         append([]chargeusagebased.OrderOption{}, _q.order...),
+		inters:                        append([]Interceptor{}, _q.inters...),
+		predicates:                    append([]predicate.ChargeUsageBased{}, _q.predicates...),
+		withRuns:                      _q.withRuns.Clone(),
+		withDetailedLines:             _q.withDetailedLines.Clone(),
+		withCurrentRun:                _q.withCurrentRun.Clone(),
+		withCostBasis:                 _q.withCostBasis.Clone(),
+		withCharge:                    _q.withCharge.Clone(),
+		withIntentOverride:            _q.withIntentOverride.Clone(),
+		withPeriodicRealizationState:  _q.withPeriodicRealizationState.Clone(),
+		withPeriodicRealizationErrors: _q.withPeriodicRealizationErrors.Clone(),
+		withSubscription:              _q.withSubscription.Clone(),
+		withSubscriptionPhase:         _q.withSubscriptionPhase.Clone(),
+		withSubscriptionItem:          _q.withSubscriptionItem.Clone(),
+		withCustomer:                  _q.withCustomer.Clone(),
+		withFeature:                   _q.withFeature.Clone(),
+		withTaxCode:                   _q.withTaxCode.Clone(),
+		withCustomCurrency:            _q.withCustomCurrency.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -646,6 +696,28 @@ func (_q *ChargeUsageBasedQuery) WithIntentOverride(opts ...func(*ChargeUsageBas
 		opt(query)
 	}
 	_q.withIntentOverride = query
+	return _q
+}
+
+// WithPeriodicRealizationState tells the query-builder to eager-load the nodes that are connected to
+// the "periodic_realization_state" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedQuery) WithPeriodicRealizationState(opts ...func(*BillingPeriodicRealizationChargeStateQuery)) *ChargeUsageBasedQuery {
+	query := (&BillingPeriodicRealizationChargeStateClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPeriodicRealizationState = query
+	return _q
+}
+
+// WithPeriodicRealizationErrors tells the query-builder to eager-load the nodes that are connected to
+// the "periodic_realization_errors" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ChargeUsageBasedQuery) WithPeriodicRealizationErrors(opts ...func(*BillingPeriodicRealizationRunErrorQuery)) *ChargeUsageBasedQuery {
+	query := (&BillingPeriodicRealizationRunErrorClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPeriodicRealizationErrors = query
 	return _q
 }
 
@@ -804,13 +876,15 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	var (
 		nodes       = []*ChargeUsageBased{}
 		_spec       = _q.querySpec()
-		loadedTypes = [13]bool{
+		loadedTypes = [15]bool{
 			_q.withRuns != nil,
 			_q.withDetailedLines != nil,
 			_q.withCurrentRun != nil,
 			_q.withCostBasis != nil,
 			_q.withCharge != nil,
 			_q.withIntentOverride != nil,
+			_q.withPeriodicRealizationState != nil,
+			_q.withPeriodicRealizationErrors != nil,
 			_q.withSubscription != nil,
 			_q.withSubscriptionPhase != nil,
 			_q.withSubscriptionItem != nil,
@@ -878,6 +952,23 @@ func (_q *ChargeUsageBasedQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if query := _q.withIntentOverride; query != nil {
 		if err := _q.loadIntentOverride(ctx, query, nodes, nil,
 			func(n *ChargeUsageBased, e *ChargeUsageBasedOverride) { n.Edges.IntentOverride = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPeriodicRealizationState; query != nil {
+		if err := _q.loadPeriodicRealizationState(ctx, query, nodes, nil,
+			func(n *ChargeUsageBased, e *BillingPeriodicRealizationChargeState) {
+				n.Edges.PeriodicRealizationState = e
+			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPeriodicRealizationErrors; query != nil {
+		if err := _q.loadPeriodicRealizationErrors(ctx, query, nodes,
+			func(n *ChargeUsageBased) { n.Edges.PeriodicRealizationErrors = []*BillingPeriodicRealizationRunError{} },
+			func(n *ChargeUsageBased, e *BillingPeriodicRealizationRunError) {
+				n.Edges.PeriodicRealizationErrors = append(n.Edges.PeriodicRealizationErrors, e)
+			}); err != nil {
 			return nil, err
 		}
 	}
@@ -1102,6 +1193,66 @@ func (_q *ChargeUsageBasedQuery) loadIntentOverride(ctx context.Context, query *
 		node, ok := nodeids[fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedQuery) loadPeriodicRealizationState(ctx context.Context, query *BillingPeriodicRealizationChargeStateQuery, nodes []*ChargeUsageBased, init func(*ChargeUsageBased), assign func(*ChargeUsageBased, *BillingPeriodicRealizationChargeState)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeUsageBased)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingperiodicrealizationchargestate.FieldChargeID)
+	}
+	query.Where(predicate.BillingPeriodicRealizationChargeState(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeusagebased.PeriodicRealizationStateColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ChargeUsageBasedQuery) loadPeriodicRealizationErrors(ctx context.Context, query *BillingPeriodicRealizationRunErrorQuery, nodes []*ChargeUsageBased, init func(*ChargeUsageBased), assign func(*ChargeUsageBased, *BillingPeriodicRealizationRunError)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*ChargeUsageBased)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(billingperiodicrealizationrunerror.FieldChargeID)
+	}
+	query.Where(predicate.BillingPeriodicRealizationRunError(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(chargeusagebased.PeriodicRealizationErrorsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.ChargeID
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "charge_id" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "charge_id" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

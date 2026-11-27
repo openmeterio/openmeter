@@ -30,6 +30,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceusagebasedlineconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicevalidationissue"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoicewriteschemalevel"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationchargestate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrun"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingperiodicrealizationrunerror"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingsequencenumbers"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingstandardinvoicedetailedline"
@@ -861,6 +864,123 @@ func init() {
 	billinginvoicewriteschemalevelDescID := billinginvoicewriteschemalevelFields[0].Descriptor()
 	// billinginvoicewriteschemalevel.IDValidator is a validator for the "id" field. It is called by the builders before save.
 	billinginvoicewriteschemalevel.IDValidator = billinginvoicewriteschemalevelDescID.Validators[0].(func(string) error)
+	billingperiodicrealizationchargestateMixin := schema.BillingPeriodicRealizationChargeState{}.Mixin()
+	billingperiodicrealizationchargestateMixinFields0 := billingperiodicrealizationchargestateMixin[0].Fields()
+	_ = billingperiodicrealizationchargestateMixinFields0
+	billingperiodicrealizationchargestateMixinFields1 := billingperiodicrealizationchargestateMixin[1].Fields()
+	_ = billingperiodicrealizationchargestateMixinFields1
+	billingperiodicrealizationchargestateMixinFields2 := billingperiodicrealizationchargestateMixin[2].Fields()
+	_ = billingperiodicrealizationchargestateMixinFields2
+	billingperiodicrealizationchargestateFields := schema.BillingPeriodicRealizationChargeState{}.Fields()
+	_ = billingperiodicrealizationchargestateFields
+	// billingperiodicrealizationchargestateDescNamespace is the schema descriptor for namespace field.
+	billingperiodicrealizationchargestateDescNamespace := billingperiodicrealizationchargestateMixinFields1[0].Descriptor()
+	// billingperiodicrealizationchargestate.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingperiodicrealizationchargestate.NamespaceValidator = billingperiodicrealizationchargestateDescNamespace.Validators[0].(func(string) error)
+	// billingperiodicrealizationchargestateDescCreatedAt is the schema descriptor for created_at field.
+	billingperiodicrealizationchargestateDescCreatedAt := billingperiodicrealizationchargestateMixinFields2[0].Descriptor()
+	// billingperiodicrealizationchargestate.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingperiodicrealizationchargestate.DefaultCreatedAt = billingperiodicrealizationchargestateDescCreatedAt.Default.(func() time.Time)
+	// billingperiodicrealizationchargestateDescUpdatedAt is the schema descriptor for updated_at field.
+	billingperiodicrealizationchargestateDescUpdatedAt := billingperiodicrealizationchargestateMixinFields2[1].Descriptor()
+	// billingperiodicrealizationchargestate.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingperiodicrealizationchargestate.DefaultUpdatedAt = billingperiodicrealizationchargestateDescUpdatedAt.Default.(func() time.Time)
+	// billingperiodicrealizationchargestate.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingperiodicrealizationchargestate.UpdateDefaultUpdatedAt = billingperiodicrealizationchargestateDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingperiodicrealizationchargestateDescChargeID is the schema descriptor for charge_id field.
+	billingperiodicrealizationchargestateDescChargeID := billingperiodicrealizationchargestateFields[0].Descriptor()
+	// billingperiodicrealizationchargestate.ChargeIDValidator is a validator for the "charge_id" field. It is called by the builders before save.
+	billingperiodicrealizationchargestate.ChargeIDValidator = billingperiodicrealizationchargestateDescChargeID.Validators[0].(func(string) error)
+	// billingperiodicrealizationchargestateDescCustomerID is the schema descriptor for customer_id field.
+	billingperiodicrealizationchargestateDescCustomerID := billingperiodicrealizationchargestateFields[1].Descriptor()
+	// billingperiodicrealizationchargestate.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	billingperiodicrealizationchargestate.CustomerIDValidator = billingperiodicrealizationchargestateDescCustomerID.Validators[0].(func(string) error)
+	// billingperiodicrealizationchargestateDescTargetRunID is the schema descriptor for target_run_id field.
+	billingperiodicrealizationchargestateDescTargetRunID := billingperiodicrealizationchargestateFields[2].Descriptor()
+	// billingperiodicrealizationchargestate.TargetRunIDValidator is a validator for the "target_run_id" field. It is called by the builders before save.
+	billingperiodicrealizationchargestate.TargetRunIDValidator = billingperiodicrealizationchargestateDescTargetRunID.Validators[0].(func(string) error)
+	// billingperiodicrealizationchargestateDescID is the schema descriptor for id field.
+	billingperiodicrealizationchargestateDescID := billingperiodicrealizationchargestateMixinFields0[0].Descriptor()
+	// billingperiodicrealizationchargestate.DefaultID holds the default value on creation for the id field.
+	billingperiodicrealizationchargestate.DefaultID = billingperiodicrealizationchargestateDescID.Default.(func() string)
+	billingperiodicrealizationrunMixin := schema.BillingPeriodicRealizationRun{}.Mixin()
+	billingperiodicrealizationrunMixinFields0 := billingperiodicrealizationrunMixin[0].Fields()
+	_ = billingperiodicrealizationrunMixinFields0
+	billingperiodicrealizationrunMixinFields1 := billingperiodicrealizationrunMixin[1].Fields()
+	_ = billingperiodicrealizationrunMixinFields1
+	billingperiodicrealizationrunMixinFields2 := billingperiodicrealizationrunMixin[2].Fields()
+	_ = billingperiodicrealizationrunMixinFields2
+	billingperiodicrealizationrunFields := schema.BillingPeriodicRealizationRun{}.Fields()
+	_ = billingperiodicrealizationrunFields
+	// billingperiodicrealizationrunDescNamespace is the schema descriptor for namespace field.
+	billingperiodicrealizationrunDescNamespace := billingperiodicrealizationrunMixinFields1[0].Descriptor()
+	// billingperiodicrealizationrun.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingperiodicrealizationrun.NamespaceValidator = billingperiodicrealizationrunDescNamespace.Validators[0].(func(string) error)
+	// billingperiodicrealizationrunDescCreatedAt is the schema descriptor for created_at field.
+	billingperiodicrealizationrunDescCreatedAt := billingperiodicrealizationrunMixinFields2[0].Descriptor()
+	// billingperiodicrealizationrun.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingperiodicrealizationrun.DefaultCreatedAt = billingperiodicrealizationrunDescCreatedAt.Default.(func() time.Time)
+	// billingperiodicrealizationrunDescUpdatedAt is the schema descriptor for updated_at field.
+	billingperiodicrealizationrunDescUpdatedAt := billingperiodicrealizationrunMixinFields2[1].Descriptor()
+	// billingperiodicrealizationrun.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingperiodicrealizationrun.DefaultUpdatedAt = billingperiodicrealizationrunDescUpdatedAt.Default.(func() time.Time)
+	// billingperiodicrealizationrun.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingperiodicrealizationrun.UpdateDefaultUpdatedAt = billingperiodicrealizationrunDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingperiodicrealizationrunDescChargesTotal is the schema descriptor for charges_total field.
+	billingperiodicrealizationrunDescChargesTotal := billingperiodicrealizationrunFields[6].Descriptor()
+	// billingperiodicrealizationrun.ChargesTotalValidator is a validator for the "charges_total" field. It is called by the builders before save.
+	billingperiodicrealizationrun.ChargesTotalValidator = billingperiodicrealizationrunDescChargesTotal.Validators[0].(func(int) error)
+	// billingperiodicrealizationrunDescChargesDone is the schema descriptor for charges_done field.
+	billingperiodicrealizationrunDescChargesDone := billingperiodicrealizationrunFields[7].Descriptor()
+	// billingperiodicrealizationrun.ChargesDoneValidator is a validator for the "charges_done" field. It is called by the builders before save.
+	billingperiodicrealizationrun.ChargesDoneValidator = billingperiodicrealizationrunDescChargesDone.Validators[0].(func(int) error)
+	// billingperiodicrealizationrunDescChargesFailed is the schema descriptor for charges_failed field.
+	billingperiodicrealizationrunDescChargesFailed := billingperiodicrealizationrunFields[8].Descriptor()
+	// billingperiodicrealizationrun.ChargesFailedValidator is a validator for the "charges_failed" field. It is called by the builders before save.
+	billingperiodicrealizationrun.ChargesFailedValidator = billingperiodicrealizationrunDescChargesFailed.Validators[0].(func(int) error)
+	// billingperiodicrealizationrunDescChargesSkipped is the schema descriptor for charges_skipped field.
+	billingperiodicrealizationrunDescChargesSkipped := billingperiodicrealizationrunFields[9].Descriptor()
+	// billingperiodicrealizationrun.ChargesSkippedValidator is a validator for the "charges_skipped" field. It is called by the builders before save.
+	billingperiodicrealizationrun.ChargesSkippedValidator = billingperiodicrealizationrunDescChargesSkipped.Validators[0].(func(int) error)
+	// billingperiodicrealizationrunDescID is the schema descriptor for id field.
+	billingperiodicrealizationrunDescID := billingperiodicrealizationrunMixinFields0[0].Descriptor()
+	// billingperiodicrealizationrun.DefaultID holds the default value on creation for the id field.
+	billingperiodicrealizationrun.DefaultID = billingperiodicrealizationrunDescID.Default.(func() string)
+	billingperiodicrealizationrunerrorMixin := schema.BillingPeriodicRealizationRunError{}.Mixin()
+	billingperiodicrealizationrunerrorMixinFields0 := billingperiodicrealizationrunerrorMixin[0].Fields()
+	_ = billingperiodicrealizationrunerrorMixinFields0
+	billingperiodicrealizationrunerrorMixinFields1 := billingperiodicrealizationrunerrorMixin[1].Fields()
+	_ = billingperiodicrealizationrunerrorMixinFields1
+	billingperiodicrealizationrunerrorMixinFields2 := billingperiodicrealizationrunerrorMixin[2].Fields()
+	_ = billingperiodicrealizationrunerrorMixinFields2
+	billingperiodicrealizationrunerrorFields := schema.BillingPeriodicRealizationRunError{}.Fields()
+	_ = billingperiodicrealizationrunerrorFields
+	// billingperiodicrealizationrunerrorDescNamespace is the schema descriptor for namespace field.
+	billingperiodicrealizationrunerrorDescNamespace := billingperiodicrealizationrunerrorMixinFields1[0].Descriptor()
+	// billingperiodicrealizationrunerror.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	billingperiodicrealizationrunerror.NamespaceValidator = billingperiodicrealizationrunerrorDescNamespace.Validators[0].(func(string) error)
+	// billingperiodicrealizationrunerrorDescCreatedAt is the schema descriptor for created_at field.
+	billingperiodicrealizationrunerrorDescCreatedAt := billingperiodicrealizationrunerrorMixinFields2[0].Descriptor()
+	// billingperiodicrealizationrunerror.DefaultCreatedAt holds the default value on creation for the created_at field.
+	billingperiodicrealizationrunerror.DefaultCreatedAt = billingperiodicrealizationrunerrorDescCreatedAt.Default.(func() time.Time)
+	// billingperiodicrealizationrunerrorDescUpdatedAt is the schema descriptor for updated_at field.
+	billingperiodicrealizationrunerrorDescUpdatedAt := billingperiodicrealizationrunerrorMixinFields2[1].Descriptor()
+	// billingperiodicrealizationrunerror.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	billingperiodicrealizationrunerror.DefaultUpdatedAt = billingperiodicrealizationrunerrorDescUpdatedAt.Default.(func() time.Time)
+	// billingperiodicrealizationrunerror.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	billingperiodicrealizationrunerror.UpdateDefaultUpdatedAt = billingperiodicrealizationrunerrorDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// billingperiodicrealizationrunerrorDescCode is the schema descriptor for code field.
+	billingperiodicrealizationrunerrorDescCode := billingperiodicrealizationrunerrorFields[2].Descriptor()
+	// billingperiodicrealizationrunerror.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	billingperiodicrealizationrunerror.CodeValidator = billingperiodicrealizationrunerrorDescCode.Validators[0].(func(string) error)
+	// billingperiodicrealizationrunerrorDescReason is the schema descriptor for reason field.
+	billingperiodicrealizationrunerrorDescReason := billingperiodicrealizationrunerrorFields[3].Descriptor()
+	// billingperiodicrealizationrunerror.ReasonValidator is a validator for the "reason" field. It is called by the builders before save.
+	billingperiodicrealizationrunerror.ReasonValidator = billingperiodicrealizationrunerrorDescReason.Validators[0].(func(string) error)
+	// billingperiodicrealizationrunerrorDescID is the schema descriptor for id field.
+	billingperiodicrealizationrunerrorDescID := billingperiodicrealizationrunerrorMixinFields0[0].Descriptor()
+	// billingperiodicrealizationrunerror.DefaultID holds the default value on creation for the id field.
+	billingperiodicrealizationrunerror.DefaultID = billingperiodicrealizationrunerrorDescID.Default.(func() string)
 	billingprofileMixin := schema.BillingProfile{}.Mixin()
 	billingprofileMixinFields0 := billingprofileMixin[0].Fields()
 	_ = billingprofileMixinFields0
@@ -1856,23 +1976,23 @@ func init() {
 	// chargeusagebasedruns.DefaultSchemaLevel holds the default value on creation for the schema_level field.
 	chargeusagebasedruns.DefaultSchemaLevel = chargeusagebasedrunsDescSchemaLevel.Default.(int)
 	// chargeusagebasedrunsDescDetailedLinesIncludeCreditAllocations is the schema descriptor for detailed_lines_include_credit_allocations field.
-	chargeusagebasedrunsDescDetailedLinesIncludeCreditAllocations := chargeusagebasedrunsFields[9].Descriptor()
+	chargeusagebasedrunsDescDetailedLinesIncludeCreditAllocations := chargeusagebasedrunsFields[10].Descriptor()
 	// chargeusagebasedruns.DefaultDetailedLinesIncludeCreditAllocations holds the default value on creation for the detailed_lines_include_credit_allocations field.
 	chargeusagebasedruns.DefaultDetailedLinesIncludeCreditAllocations = chargeusagebasedrunsDescDetailedLinesIncludeCreditAllocations.Default.(bool)
 	// chargeusagebasedrunsDescLineID is the schema descriptor for line_id field.
-	chargeusagebasedrunsDescLineID := chargeusagebasedrunsFields[10].Descriptor()
+	chargeusagebasedrunsDescLineID := chargeusagebasedrunsFields[11].Descriptor()
 	// chargeusagebasedruns.LineIDValidator is a validator for the "line_id" field. It is called by the builders before save.
 	chargeusagebasedruns.LineIDValidator = chargeusagebasedrunsDescLineID.Validators[0].(func(string) error)
 	// chargeusagebasedrunsDescInvoiceID is the schema descriptor for invoice_id field.
-	chargeusagebasedrunsDescInvoiceID := chargeusagebasedrunsFields[11].Descriptor()
+	chargeusagebasedrunsDescInvoiceID := chargeusagebasedrunsFields[12].Descriptor()
 	// chargeusagebasedruns.InvoiceIDValidator is a validator for the "invoice_id" field. It is called by the builders before save.
 	chargeusagebasedruns.InvoiceIDValidator = chargeusagebasedrunsDescInvoiceID.Validators[0].(func(string) error)
 	// chargeusagebasedrunsDescImmutable is the schema descriptor for immutable field.
-	chargeusagebasedrunsDescImmutable := chargeusagebasedrunsFields[14].Descriptor()
+	chargeusagebasedrunsDescImmutable := chargeusagebasedrunsFields[15].Descriptor()
 	// chargeusagebasedruns.DefaultImmutable holds the default value on creation for the immutable field.
 	chargeusagebasedruns.DefaultImmutable = chargeusagebasedrunsDescImmutable.Default.(bool)
 	// chargeusagebasedrunsDescFiatOverageCreditAllocationCompleted is the schema descriptor for fiat_overage_credit_allocation_completed field.
-	chargeusagebasedrunsDescFiatOverageCreditAllocationCompleted := chargeusagebasedrunsFields[15].Descriptor()
+	chargeusagebasedrunsDescFiatOverageCreditAllocationCompleted := chargeusagebasedrunsFields[16].Descriptor()
 	// chargeusagebasedruns.DefaultFiatOverageCreditAllocationCompleted holds the default value on creation for the fiat_overage_credit_allocation_completed field.
 	chargeusagebasedruns.DefaultFiatOverageCreditAllocationCompleted = chargeusagebasedrunsDescFiatOverageCreditAllocationCompleted.Default.(bool)
 	// chargeusagebasedrunsDescID is the schema descriptor for id field.

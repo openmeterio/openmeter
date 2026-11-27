@@ -2066,6 +2066,146 @@ func (u *BillingInvoiceValidationIssueUpdateOne) SetOrClearAttributes(value *mod
 	return u.SetAttributes(*value)
 }
 
+func (u *BillingPeriodicRealizationChargeStateUpdate) SetOrClearDeletedAt(value *time.Time) *BillingPeriodicRealizationChargeStateUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationChargeStateUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingPeriodicRealizationChargeStateUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationChargeStateUpdate) SetOrClearRealizedThrough(value *time.Time) *BillingPeriodicRealizationChargeStateUpdate {
+	if value == nil {
+		return u.ClearRealizedThrough()
+	}
+	return u.SetRealizedThrough(*value)
+}
+
+func (u *BillingPeriodicRealizationChargeStateUpdateOne) SetOrClearRealizedThrough(value *time.Time) *BillingPeriodicRealizationChargeStateUpdateOne {
+	if value == nil {
+		return u.ClearRealizedThrough()
+	}
+	return u.SetRealizedThrough(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdate) SetOrClearDeletedAt(value *time.Time) *BillingPeriodicRealizationRunUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingPeriodicRealizationRunUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdate) SetOrClearStartedAt(value *time.Time) *BillingPeriodicRealizationRunUpdate {
+	if value == nil {
+		return u.ClearStartedAt()
+	}
+	return u.SetStartedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdateOne) SetOrClearStartedAt(value *time.Time) *BillingPeriodicRealizationRunUpdateOne {
+	if value == nil {
+		return u.ClearStartedAt()
+	}
+	return u.SetStartedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdate) SetOrClearFinishedAt(value *time.Time) *BillingPeriodicRealizationRunUpdate {
+	if value == nil {
+		return u.ClearFinishedAt()
+	}
+	return u.SetFinishedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdateOne) SetOrClearFinishedAt(value *time.Time) *BillingPeriodicRealizationRunUpdateOne {
+	if value == nil {
+		return u.ClearFinishedAt()
+	}
+	return u.SetFinishedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdate) SetOrClearChargesTotal(value *int) *BillingPeriodicRealizationRunUpdate {
+	if value == nil {
+		return u.ClearChargesTotal()
+	}
+	return u.SetChargesTotal(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdateOne) SetOrClearChargesTotal(value *int) *BillingPeriodicRealizationRunUpdateOne {
+	if value == nil {
+		return u.ClearChargesTotal()
+	}
+	return u.SetChargesTotal(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdate) SetOrClearChargesDone(value *int) *BillingPeriodicRealizationRunUpdate {
+	if value == nil {
+		return u.ClearChargesDone()
+	}
+	return u.SetChargesDone(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdateOne) SetOrClearChargesDone(value *int) *BillingPeriodicRealizationRunUpdateOne {
+	if value == nil {
+		return u.ClearChargesDone()
+	}
+	return u.SetChargesDone(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdate) SetOrClearChargesFailed(value *int) *BillingPeriodicRealizationRunUpdate {
+	if value == nil {
+		return u.ClearChargesFailed()
+	}
+	return u.SetChargesFailed(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdateOne) SetOrClearChargesFailed(value *int) *BillingPeriodicRealizationRunUpdateOne {
+	if value == nil {
+		return u.ClearChargesFailed()
+	}
+	return u.SetChargesFailed(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdate) SetOrClearChargesSkipped(value *int) *BillingPeriodicRealizationRunUpdate {
+	if value == nil {
+		return u.ClearChargesSkipped()
+	}
+	return u.SetChargesSkipped(*value)
+}
+
+func (u *BillingPeriodicRealizationRunUpdateOne) SetOrClearChargesSkipped(value *int) *BillingPeriodicRealizationRunUpdateOne {
+	if value == nil {
+		return u.ClearChargesSkipped()
+	}
+	return u.SetChargesSkipped(*value)
+}
+
+func (u *BillingPeriodicRealizationRunErrorUpdate) SetOrClearDeletedAt(value *time.Time) *BillingPeriodicRealizationRunErrorUpdate {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
+func (u *BillingPeriodicRealizationRunErrorUpdateOne) SetOrClearDeletedAt(value *time.Time) *BillingPeriodicRealizationRunErrorUpdateOne {
+	if value == nil {
+		return u.ClearDeletedAt()
+	}
+	return u.SetDeletedAt(*value)
+}
+
 func (u *BillingProfileUpdate) SetOrClearMetadata(value *map[string]string) *BillingProfileUpdate {
 	if value == nil {
 		return u.ClearMetadata()
