@@ -135,7 +135,9 @@ Ent exposes Event payloads as `json.RawMessage`. The adapter writes bare,
 snake_case snapshots defined by the versioned Event type. Readers accept both
 these snapshots and legacy typed envelopes, retaining the legacy invoice payload
 version checks. Payloads remain JSON objects in PostgreSQL, without an extra JSON
-string or base64 encoding. Reads do not rewrite historical payloads.
+string or base64 encoding. Reads do not rewrite historical payloads. Creation
+requires the Event and payload types to match before removing the payload
+discriminator, so a snapshot cannot be reinterpreted as a different Event type.
 
 The Event `rule_id` column is nullable in preparation for system Events. Current
 service and adapter creation paths still require an existing Rule and write its

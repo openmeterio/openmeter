@@ -651,3 +651,160 @@ func TestCreateEvent_InvalidType(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateEvent_PayloadTypeValidation(t *testing.T) {
+	env := newServiceTestEnv(t)
+	paths := []struct {
+		name   string
+		create func(context.Context, notification.CreateEventInput) (*notification.Event, error)
+	}{
+		{
+			name:   "service",
+			create: env.service.CreateEvent,
+		},
+		{
+			name:   "adapter",
+			create: env.adapter.CreateEvent,
+		},
+	}
+	tests := []struct {
+		name        string
+		eventType   notification.EventType
+		payloadType notification.EventType
+	}{
+		{
+			name:        "matching balance threshold",
+			eventType:   notification.EventTypeBalanceThreshold,
+			payloadType: notification.EventTypeBalanceThreshold,
+		},
+		{
+			name:        "matching entitlement reset",
+			eventType:   notification.EventTypeEntitlementReset,
+			payloadType: notification.EventTypeEntitlementReset,
+		},
+		{
+			name:        "matching invoice created",
+			eventType:   notification.EventTypeInvoiceCreated,
+			payloadType: notification.EventTypeInvoiceCreated,
+		},
+		{
+			name:        "matching invoice updated",
+			eventType:   notification.EventTypeInvoiceUpdated,
+			payloadType: notification.EventTypeInvoiceUpdated,
+		},
+		{
+			name:        "reset event with balance threshold payload",
+			eventType:   notification.EventTypeEntitlementReset,
+			payloadType: notification.EventTypeBalanceThreshold,
+		},
+		{
+			name:        "balance threshold event with reset payload",
+			eventType:   notification.EventTypeBalanceThreshold,
+			payloadType: notification.EventTypeEntitlementReset,
+		},
+		{
+			name:        "invoice created event with updated payload",
+			eventType:   notification.EventTypeInvoiceCreated,
+			payloadType: notification.EventTypeInvoiceUpdated,
+		},
+		{
+			name:        "invoice updated event with created payload",
+			eventType:   notification.EventTypeInvoiceUpdated,
+			payloadType: notification.EventTypeInvoiceCreated,
+		},
+	}
+
+	for _, path := range paths {
+		t.Run(path.name, func(t *testing.T) {
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					// given: a valid Rule and payload whose discriminator may differ from the Event type
+					namespace := ulid.Make().String()
+					channel := seedChannel(t, env, namespace, clock.Now(), "payload validation")
+					config := notification.RuleConfig{
+						RuleConfigMeta: notification.RuleConfigMeta{Type: tt.eventType},
+					}
+					switch tt.eventType {
+					case notification.EventTypeBalanceThreshold:
+						config.BalanceThreshold = &notification.BalanceThresholdRuleConfig{
+							Thresholds: []notification.BalanceThreshold{
+								{Type: notification.BalanceThresholdTypeUsagePercentage, Value: 50},
+							},
+						}
+					case notification.EventTypeEntitlementReset:
+						config.EntitlementReset = &notification.EntitlementResetRuleConfig{}
+					case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+						config.Invoice = &notification.InvoiceRuleConfig{}
+					}
+
+					rule, err := env.adapter.CreateRule(t.Context(), notification.CreateRuleInput{
+						NamespacedModel: models.NamespacedModel{Namespace: namespace},
+						Type:            tt.eventType,
+						Name:            "payload validation",
+						Channels:        []string{channel.ID},
+						Config:          config,
+					})
+					require.NoError(t, err)
+
+					payload := notification.EventPayload{
+						EventPayloadMeta: notification.EventPayloadMeta{
+							Type:    tt.payloadType,
+							Version: notification.EventPayloadVersionCurrent,
+						},
+					}
+					switch tt.payloadType {
+					case notification.EventTypeBalanceThreshold:
+						payload.BalanceThreshold = &notification.BalanceThresholdPayload{}
+					case notification.EventTypeEntitlementReset:
+						payload.EntitlementReset = &notification.EntitlementResetPayload{}
+					case notification.EventTypeInvoiceCreated, notification.EventTypeInvoiceUpdated:
+						payload.Invoice = &notification.InvoicePayload{}
+					}
+
+					require.NoError(t, payload.Validate())
+
+					// when: creating through either boundary before dropping the payload discriminator
+					created, err := path.create(t.Context(), notification.CreateEventInput{
+						NamespacedModel: models.NamespacedModel{Namespace: namespace},
+						Type:            tt.eventType,
+						RuleID:          rule.ID,
+						Payload:         payload,
+					})
+
+					// then: only matching types persist an Event and its delivery status
+					wantCount := 0
+					if tt.eventType == tt.payloadType {
+						require.NoError(t, err)
+						require.NotNil(t, created)
+
+						assert.Equal(t, tt.eventType, created.Type)
+
+						expectedJSON, err := json.Marshal(payload)
+						require.NoError(t, err)
+
+						actualJSON, err := json.Marshal(created.Payload)
+						require.NoError(t, err)
+
+						assert.JSONEq(t, string(expectedJSON), string(actualJSON))
+
+						wantCount = 1
+					} else {
+						require.ErrorContains(t, err, "invalid payload type")
+
+						assert.True(t, models.IsGenericValidationError(err))
+						assert.Nil(t, created)
+					}
+
+					eventCount, err := env.db.NotificationEvent.Query().Where(eventdb.Namespace(namespace)).Count(t.Context())
+					require.NoError(t, err)
+
+					statusCount, err := env.db.NotificationEventDeliveryStatus.Query().Where(statusdb.Namespace(namespace)).Count(t.Context())
+					require.NoError(t, err)
+
+					assert.Equal(t, wantCount, eventCount)
+					assert.Equal(t, wantCount, statusCount)
+				})
+			}
+		})
+	}
+}

@@ -197,6 +197,10 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 }
 
 func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
+	if err := params.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid create event input: %w", err)
+	}
+
 	fn := func(ctx context.Context, a *adapter) (*notification.Event, error) {
 		payloadJSON, err := eventpayload.ToDBRawMessage(params.Payload)
 		if err != nil {

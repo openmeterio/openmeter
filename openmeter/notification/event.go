@@ -292,6 +292,10 @@ func (i CreateEventInput) Validate() error {
 		errs = append(errs, err)
 	}
 
+	if i.Type != i.Payload.Type {
+		errs = append(errs, fmt.Errorf("invalid payload type: expected %q, got %q", i.Type, i.Payload.Type))
+	}
+
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
