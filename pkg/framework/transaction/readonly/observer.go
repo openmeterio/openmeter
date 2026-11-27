@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -28,9 +29,17 @@ const (
 	attrKeyWriteOperation = attribute.Key("write.operation")
 )
 
+// ErrWriteRejected is returned for a write attempted by a read-only request when
+// the observer rejects writes.
+var ErrWriteRejected = errors.New("read-only request attempted a database write")
+
 type ObserverConfig struct {
 	Logger *slog.Logger
 	Meter  metric.Meter
+
+	// RejectWrites fails the writes instead of only reporting them. It is meant
+	// for tests: a read-only request that writes then fails where it is introduced.
+	RejectWrites bool
 }
 
 var _ models.Validator = (*ObserverConfig)(nil)
@@ -49,12 +58,14 @@ func (c ObserverConfig) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// Observer records the writes attempted by read-only requests without stopping them.
+// Observer records the writes attempted by read-only requests. It only stops
+// them when it is configured to reject writes.
 type Observer struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	rejectWrites bool
 
-	requests metric.Int64Counter
-	writes   metric.Int64Counter
+	requestCount metric.Int64Counter
+	writeCount   metric.Int64Counter
 
 	// logged holds the writes that were already logged, so a hot path logs once
 	// per process instead of once per request.
@@ -66,7 +77,7 @@ func NewObserver(config ObserverConfig) (*Observer, error) {
 		return nil, fmt.Errorf("invalid read-only observer config: %w", err)
 	}
 
-	requests, err := config.Meter.Int64Counter(
+	requestCount, err := config.Meter.Int64Counter(
 		metricNameRequests,
 		metric.WithDescription("Requests that ran inside a read-only scope"),
 	)
@@ -74,7 +85,7 @@ func NewObserver(config ObserverConfig) (*Observer, error) {
 		return nil, fmt.Errorf("failed to create %s counter: %w", metricNameRequests, err)
 	}
 
-	writes, err := config.Meter.Int64Counter(
+	writeCount, err := config.Meter.Int64Counter(
 		metricNameWrites,
 		metric.WithDescription("Database writes attempted inside a read-only scope"),
 	)
@@ -83,31 +94,66 @@ func NewObserver(config ObserverConfig) (*Observer, error) {
 	}
 
 	return &Observer{
-		logger:   config.Logger,
-		requests: requests,
-		writes:   writes,
+		logger:       config.Logger,
+		rejectWrites: config.RejectWrites,
+		requestCount: requestCount,
+		writeCount:   writeCount,
 	}, nil
 }
 
 // MarkReadOnly marks ctx as read-only for the given operation. Every marked
 // request is counted, so an operation that never writes can be told apart from
 // one that is never called.
-func (o *Observer) MarkReadOnly(ctx context.Context, operation string) context.Context {
-	o.requests.Add(ctx, 1, metric.WithAttributes(attrKeyOperation.String(operation)))
+//
+// The returned function reports, once the request has run, the first write it
+// attempted that was rejected. Code can ignore the rejection and carry on, like a
+// balance read that skips its snapshot when it cannot lock, so the request has to
+// be failed from the outside.
+func (o *Observer) MarkReadOnly(ctx context.Context, operation string) (context.Context, func() error) {
+	o.requestCount.Add(ctx, 1, metric.WithAttributes(attrKeyOperation.String(operation)))
+
+	request := &requestObserver{observer: o, operation: operation}
 
 	// WithWriteObserver only fails without an observer.
-	ctx, _ = transaction.WithWriteObserver(ctx, operationObserver{observer: o, operation: operation})
+	ctx, _ = transaction.WithWriteObserver(ctx, request)
 
-	return ctx
+	return ctx, request.rejectedWrite
 }
 
-type operationObserver struct {
+// requestObserver observes the writes of a single request.
+type requestObserver struct {
 	observer  *Observer
 	operation string
+
+	// rejected is the first write of the request that was rejected.
+	rejected atomic.Pointer[error]
 }
 
-func (o operationObserver) ObserveWrite(ctx context.Context, attempt transaction.WriteAttempt) error {
+var _ transaction.WriteObserver = (*requestObserver)(nil)
+
+func (o *requestObserver) ObserveWrite(ctx context.Context, attempt transaction.WriteAttempt) error {
 	o.observer.observe(ctx, o.operation, attempt)
+
+	if !o.observer.rejectWrites {
+		return nil
+	}
+
+	err := fmt.Errorf("%w: %s by %q (target %q, operation %q)",
+		ErrWriteRejected, attempt.Kind, o.operation, attempt.Target, attempt.Operation)
+
+	o.rejected.CompareAndSwap(nil, &err)
+
+	return err
+}
+
+func (o *requestObserver) RejectsWrites() bool {
+	return o.observer.rejectWrites
+}
+
+func (o *requestObserver) rejectedWrite() error {
+	if err := o.rejected.Load(); err != nil {
+		return *err
+	}
 
 	return nil
 }
@@ -120,50 +166,63 @@ func (o *Observer) observe(ctx context.Context, operation string, attempt transa
 		target = ""
 	}
 
-	o.writes.Add(ctx, 1, metric.WithAttributes(
+	o.writeCount.Add(ctx, 1, metric.WithAttributes(
 		attrKeyOperation.String(operation),
 		attrKeyWriteKind.String(string(attempt.Kind)),
 		attrKeyWriteTarget.String(target),
 		attrKeyWriteOperation.String(attempt.Operation),
 	))
 
+	// Log each distinct write once per process: a hot path would otherwise flood
+	// the logs, and the metric already counts every attempt.
 	key := strings.Join([]string{operation, string(attempt.Kind), target, attempt.Operation}, "|")
 	if _, alreadyLogged := o.logged.LoadOrStore(key, struct{}{}); alreadyLogged {
 		return
 	}
 
-	o.logger.WarnContext(ctx, "read-only request wrote to the database",
+	// A rejected write fails the request, so it is an error.
+	level := slog.LevelWarn
+	if o.rejectWrites {
+		level = slog.LevelError
+	}
+
+	// Capture the stack only for the writes that are logged: walking it for every
+	// write of a hot path is too expensive.
+	if !o.logger.Enabled(ctx, level) {
+		return
+	}
+
+	o.logger.Log(ctx, level, "read-only request attempted a database write",
 		slog.String("operation", operation),
 		slog.String("write_kind", string(attempt.Kind)),
 		slog.String("write_target", attempt.Target),
 		slog.String("write_operation", attempt.Operation),
-		slog.String("caller", writeSite()),
+		slog.Bool("rejected", o.rejectWrites),
+		slog.Any("stack", writeStack()),
 	)
 }
 
-// writeSite returns the first caller outside of the database plumbing, which is
-// the adapter or service code that issued the write.
-func writeSite() string {
+// writeStack returns the call stack of the write, starting at the code that
+// reported it. The whole stack is kept because the nearest frames are usually a
+// shared adapter method, which does not tell which code path led to the write.
+func writeStack() []string {
+	// Skip runtime.Callers, writeStack, observe, ObserveWrite and transaction.ReportWrite.
 	pcs := make([]uintptr, 64)
-	frames := runtime.CallersFrames(pcs[:runtime.Callers(2, pcs)])
+
+	n := runtime.Callers(5, pcs)
+	if n == 0 {
+		return nil
+	}
+
+	frames := runtime.CallersFrames(pcs[:n])
+	stack := make([]string, 0, n)
 
 	for {
 		frame, more := frames.Next()
-
-		if !isDatabasePlumbing(frame.Function) {
-			return fmt.Sprintf("%s:%d", frame.Function, frame.Line)
-		}
+		stack = append(stack, fmt.Sprintf("%s:%d", frame.Function, frame.Line))
 
 		if !more {
-			return ""
+			return stack
 		}
 	}
-}
-
-func isDatabasePlumbing(function string) bool {
-	return strings.HasPrefix(function, "entgo.io/ent") ||
-		strings.Contains(function, "/pkg/framework/") ||
-		// generated Ent packages, including the ones of downstream modules
-		strings.Contains(function, "/ent/db.") ||
-		strings.Contains(function, "/ent/db/")
 }

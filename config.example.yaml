@@ -47,6 +47,8 @@ server:
     #   off     — no request is marked as read-only
     #   observe — GET requests are marked, and the database writes they attempt are reported
     #             through metrics and warnings without failing the request (default)
+    #   strict  — GET requests are marked, and the database writes they attempt fail;
+    #             meant for test environments
     mode: "observe"
   clientIPMiddleware:
     # source defines how to obtain the client IP address.

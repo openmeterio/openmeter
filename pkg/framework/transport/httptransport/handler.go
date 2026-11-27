@@ -41,7 +41,10 @@ func EnableOperationSpans(enabled bool) {
 
 // ReadOnlyMarker marks the context of a read-only request, see transaction.WithWriteObserver.
 // The operation name is empty for handlers that do not declare one.
-type ReadOnlyMarker func(ctx context.Context, operation string) context.Context
+//
+// The returned function is called after the operation succeeded. An error from it fails
+// the request: it is how a rejected write that the operation ignored still surfaces.
+type ReadOnlyMarker func(ctx context.Context, operation string) (context.Context, func() error)
 
 // readOnlyMarker is nil until SetReadOnlyMarker is called, which leaves
 // every request unmarked.
@@ -142,10 +145,12 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		}
 	}
 
+	var rejectedWrite func() error
+
 	// Marked before decoding, because decoders read from the database too.
 	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && !h.primaryDatabase {
 		if marker := readOnlyMarker.Load(); marker != nil {
-			ctx = (*marker)(ctx, operationName)
+			ctx, rejectedWrite = (*marker)(ctx, operationName)
 		}
 	}
 
@@ -165,6 +170,14 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		h.handleError(ctx, err, w, r)
 
 		return
+	}
+
+	if rejectedWrite != nil {
+		if err := rejectedWrite(); err != nil {
+			h.handleError(ctx, err, w, r)
+
+			return
+		}
 	}
 
 	if err := h.encodeResponse(ctx, w, r, response); err != nil {

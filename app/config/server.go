@@ -41,6 +41,10 @@ const (
 	// ReadOnlyRequestsModeObserve marks GET requests as read-only and reports the database
 	// writes they attempt through metrics and logs, without failing them. This is the default.
 	ReadOnlyRequestsModeObserve ReadOnlyRequestsMode = "observe"
+	// ReadOnlyRequestsModeStrict marks GET requests as read-only and fails the database
+	// writes they attempt. It is meant for test environments, so a GET that starts to
+	// write is caught before it reaches production.
+	ReadOnlyRequestsModeStrict ReadOnlyRequestsMode = "strict"
 )
 
 func (m ReadOnlyRequestsMode) Enabled() bool {
@@ -49,10 +53,10 @@ func (m ReadOnlyRequestsMode) Enabled() bool {
 
 func (m ReadOnlyRequestsMode) Validate() error {
 	switch m {
-	case "", ReadOnlyRequestsModeOff, ReadOnlyRequestsModeObserve:
+	case "", ReadOnlyRequestsModeOff, ReadOnlyRequestsModeObserve, ReadOnlyRequestsModeStrict:
 		return nil
 	default:
-		return errors.New("invalid read-only requests mode (allowed: off, observe)")
+		return errors.New("invalid read-only requests mode (allowed: off, observe, strict)")
 	}
 }
 

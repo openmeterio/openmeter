@@ -53,16 +53,18 @@ func NewPostAuthMiddlewares(
 type ReadOnlyRequests struct{}
 
 // NewReadOnlyRequests makes GET and HEAD requests report the database writes they
-// attempt, unless the config turns it off. The handlers are built in many places
-// with their own options, so the marker is installed process-wide.
+// attempt, and fail them in the strict mode, unless the config turns it off. The
+// handlers are built in many places with their own options, so the marker is
+// installed process-wide.
 func NewReadOnlyRequests(conf config.ReadOnlyRequestsConfig, logger *slog.Logger, meter metric.Meter) (ReadOnlyRequests, error) {
 	if !conf.Mode.Enabled() {
 		return ReadOnlyRequests{}, nil
 	}
 
 	observer, err := readonly.NewObserver(readonly.ObserverConfig{
-		Logger: logger,
-		Meter:  meter,
+		Logger:       logger,
+		Meter:        meter,
+		RejectWrites: conf.Mode == config.ReadOnlyRequestsModeStrict,
 	})
 	if err != nil {
 		return ReadOnlyRequests{}, fmt.Errorf("failed to create read-only request observer: %w", err)

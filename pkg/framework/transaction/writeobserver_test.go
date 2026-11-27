@@ -18,6 +18,7 @@ func TestWriteObserver(t *testing.T) {
 	}
 
 	t.Run("writes are not reported without an observer", func(t *testing.T) {
+		require.False(t, transaction.RejectsWrites(t.Context()))
 		require.NoError(t, transaction.ReportWrite(t.Context(), attempt))
 	})
 
@@ -27,6 +28,7 @@ func TestWriteObserver(t *testing.T) {
 		ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
 		require.NoError(t, err)
 
+		require.False(t, transaction.RejectsWrites(ctx))
 		require.NoError(t, transaction.ReportWrite(ctx, attempt))
 		require.Equal(t, []transaction.WriteAttempt{attempt}, recorder.Attempts())
 	})
@@ -37,6 +39,7 @@ func TestWriteObserver(t *testing.T) {
 		ctx, err := transaction.WithWriteObserver(t.Context(), &transactiontestutils.WriteRecorder{Reject: rejected})
 		require.NoError(t, err)
 
+		require.True(t, transaction.RejectsWrites(ctx))
 		require.ErrorIs(t, transaction.ReportWrite(ctx, attempt), rejected)
 	})
 

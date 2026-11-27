@@ -196,7 +196,7 @@ server:
   responseValidation:
     mode: "unstable" # "off" | "unstable" | "all"
   readOnlyRequests:
-    mode: "off" # "off" | "observe"
+    mode: "off" # "off" | "observe" | "strict"
   clientIPMiddleware:
     source: "x-forwarded-for" # "remote-address" | "header" | "x-forwarded-for"
     header: "X-Real-IP"

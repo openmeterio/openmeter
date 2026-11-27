@@ -28,6 +28,10 @@ func (r *WriteRecorder) ObserveWrite(_ context.Context, attempt transaction.Writ
 	return r.Reject
 }
 
+func (r *WriteRecorder) RejectsWrites() bool {
+	return r.Reject != nil
+}
+
 func (r *WriteRecorder) Attempts() []transaction.WriteAttempt {
 	r.mu.Lock()
 	defer r.mu.Unlock()
