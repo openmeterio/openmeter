@@ -2169,7 +2169,7 @@ func (s *StripeInvoiceTestSuite) TestDraftSyncSendsSoftDeletedTaxCodeMapping() {
 			},
 		}, nil)
 
-	// given: a pending line referencing the tax code, authored before the code gets deleted
+	// given: a pending line referencing the tax code, created before the code gets deleted
 	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 		Namespace:     namespace,
 		Period:        period,
@@ -2248,14 +2248,17 @@ func (s *StripeInvoiceTestSuite) TestProviderDefaultTaxCodeSendsNoTaxCode() {
 			},
 		}, nil)
 
+	// given: a line on the provider default Tax Code
 	s.stubDraftSyncUpsert("in_taxcode_provider_default")
 	defer s.StripeAppClient.Restore()
 
+	// when: the line is collected into a draft and synced to Stripe
 	invoice := s.syncDraftToStripe(ctx, cust, period, &productcatalog.TaxCodeConfig{
 		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
 		TaxCodeID: providerDefault.ID,
 	}, "Provider default tax fee")
 
+	// then: Stripe gets no tax code, only the tax behavior
 	s.assertSentTaxCode("")
 	s.assertSentTaxBehavior(string(stripe.PriceCurrencyOptionsTaxBehaviorInclusive))
 	s.Equal("in_taxcode_provider_default", invoice.ExternalIDs.Invoicing)
