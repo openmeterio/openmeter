@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -17,6 +16,7 @@ import (
 	ruledb "github.com/openmeterio/openmeter/openmeter/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/internal/eventpayload"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -197,8 +197,12 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 }
 
 func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
+	if err := params.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid create event input: %w", err)
+	}
+
 	fn := func(ctx context.Context, a *adapter) (*notification.Event, error) {
-		payloadJSON, err := json.Marshal(params.Payload)
+		payloadJSON, err := eventpayload.ToDBRawMessage(params.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
 		}

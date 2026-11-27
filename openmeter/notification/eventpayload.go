@@ -34,7 +34,8 @@ func (m EventPayloadMeta) Validate() error {
 }
 
 const (
-	// EventPayloadVersionCurrent is the version written for all new events.
+	// EventPayloadVersionCurrent identifies the V1 compatibility envelope.
+	// Canonical storage uses the version in the Event type instead.
 	EventPayloadVersionCurrent int = 1
 )
 
