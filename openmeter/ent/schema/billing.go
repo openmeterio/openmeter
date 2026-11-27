@@ -155,10 +155,11 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 			GoType(billing.EmptyInvoiceMode("")).
 			Default(string(billing.EmptyInvoiceModeCreate)),
 
-		// TODO: remove this legacy JSON field after all workflow-config read and write
-		// paths use the normalized tax columns as the sole representation.
+		// Nothing writes or reads this legacy JSON anymore: tax_code_id and tax_behavior are the
+		// only representation. The column is dropped in a later release.
 		field.JSON("invoice_default_tax_settings", productcatalog.TaxConfig{}).
-			Optional(),
+			Optional().
+			Deprecated("legacy JSON, replaced by tax_code_id and tax_behavior; the column is dropped in a later release"),
 
 		// Enable automatic tax calculation when tax is supported by the app.
 		field.Bool("tax_enabled").Default(true),
@@ -171,18 +172,6 @@ func (BillingWorkflowConfig) Fields() []ent.Field {
 func (BillingWorkflowConfig) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
-	}
-}
-
-func (BillingWorkflowConfig) Annotations() []schema.Annotation {
-	return []schema.Annotation{
-		entsql.Checks(map[string]string{
-			// invoice_default_tax_settings remains optional. These checks require
-			// null-safe equality with the normalized columns, and a nonblank Stripe
-			// code additionally requires a resolved tax code reference.
-			"billing_workflow_config_tax_code_consistency":     `(tax_code_id::text IS NOT DISTINCT FROM invoice_default_tax_settings ->> 'tax_code_id') AND (NULLIF(btrim(invoice_default_tax_settings -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)`,
-			"billing_workflow_config_tax_behavior_consistency": `tax_behavior IS NOT DISTINCT FROM invoice_default_tax_settings ->> 'behavior'`,
-		}),
 	}
 }
 

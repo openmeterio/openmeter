@@ -77,8 +77,7 @@ func (s *ProfileTestSuite) TestInvoiceCalculationRejectsCrossNamespaceDefaultTax
 	foreignTaxCode := s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), foreignNamespace)
 	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, `
 		UPDATE billing_workflow_configs
-		SET tax_code_id = $1::char(26),
-		    invoice_default_tax_settings = jsonb_build_object('tax_code_id', ($1::char(26))::text)
+		SET tax_code_id = $1::char(26)
 		WHERE id = $2
 	`, foreignTaxCode.ID, profileDB.WorkflowConfigID)
 	require.NoError(s.T(), err)

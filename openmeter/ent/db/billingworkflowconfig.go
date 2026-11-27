@@ -57,6 +57,8 @@ type BillingWorkflowConfig struct {
 	// EmptyInvoiceMode holds the value of the "empty_invoice_mode" field.
 	EmptyInvoiceMode billing.EmptyInvoiceMode `json:"empty_invoice_mode,omitempty"`
 	// InvoiceDefaultTaxSettings holds the value of the "invoice_default_tax_settings" field.
+	//
+	// Deprecated: Field "invoice_default_tax_settings" was marked as deprecated in the schema.
 	InvoiceDefaultTaxSettings productcatalog.TaxConfig `json:"invoice_default_tax_settings,omitempty"`
 	// TaxEnabled holds the value of the "tax_enabled" field.
 	TaxEnabled bool `json:"tax_enabled,omitempty"`

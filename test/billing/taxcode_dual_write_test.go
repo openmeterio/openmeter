@@ -250,13 +250,11 @@ func (s *TaxCodeDualWriteTestSuite) TestProfileUpdateToNilClearsBothColumns() {
 	s.NoError(err)
 	s.Nil(dbWC.TaxCodeID)
 	s.Nil(dbWC.TaxBehavior)
-	s.Empty(dbWC.InvoiceDefaultTaxSettings)
 }
 
-// A6: The adapter reads only the tax_code_id / tax_behavior columns and writes a minimal JSON
-// copy (tax_code_id + behavior, no Stripe code), so older binaries reading the JSON see the same
-// default and the CHECK constraints hold.
-func (s *TaxCodeDualWriteTestSuite) TestWorkflowConfigWritesMinimalJSONCopy() {
+// A6: The adapter reads and writes only the tax_code_id / tax_behavior columns; the legacy
+// invoice_default_tax_settings JSON stays NULL, on the profile and on the invoice's cloned config.
+func (s *TaxCodeDualWriteTestSuite) TestWorkflowConfigWritesOnlyTaxColumns() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("ns-taxcode-dw")
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
@@ -270,21 +268,16 @@ func (s *TaxCodeDualWriteTestSuite) TestWorkflowConfigWritesMinimalJSONCopy() {
 
 	dbWC, err := s.DBClient.BillingWorkflowConfig.Get(ctx, seeded.WorkflowConfigID)
 	s.Require().NoError(err)
-	s.Equal(productcatalog.TaxConfig{
-		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(tc.ID),
-	}, dbWC.InvoiceDefaultTaxSettings)
 	s.Equal(lo.ToPtr(tc.ID), dbWC.TaxCodeID)
 	s.Equal(lo.ToPtr(productcatalog.InclusiveTaxBehavior), dbWC.TaxBehavior)
+	s.requireLegacyDefaultTaxSettingsNull(seeded.WorkflowConfigID)
 
-	// Columns are the source of truth on read: a legacy Stripe code left in the JSON is ignored.
-	_, err = s.DBClient.BillingWorkflowConfig.UpdateOneID(seeded.WorkflowConfigID).
-		SetInvoiceDefaultTaxSettings(productcatalog.TaxConfig{
-			Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-			TaxCodeID: lo.ToPtr(tc.ID),
-			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_99999999"},
-		}).
-		Save(ctx)
+	// Columns are the source of truth on read: a legacy value left in the JSON is ignored.
+	_, err = s.TestDB.PGDriver.DB().ExecContext(ctx, `
+		UPDATE billing_workflow_configs
+		SET invoice_default_tax_settings = '{"stripe": {"code": "txcd_99999999"}}'::jsonb
+		WHERE id = $1
+	`, seeded.WorkflowConfigID)
 	s.Require().NoError(err)
 
 	readBack, err := s.BillingService.GetDefaultProfile(ctx, billing.GetDefaultProfileInput{Namespace: ns})
@@ -294,7 +287,7 @@ func (s *TaxCodeDualWriteTestSuite) TestWorkflowConfigWritesMinimalJSONCopy() {
 		TaxCodeID: tc.ID,
 	}, readBack.WorkflowConfig.Invoicing.DefaultTaxConfig)
 
-	// The invoice's cloned workflow config gets the same minimal copy.
+	// The invoice's cloned workflow config keeps the columns and leaves the JSON NULL too.
 	cust := s.CreateTestCustomer(ns, "test")
 	now := time.Now().Truncate(time.Microsecond).UTC()
 
@@ -328,10 +321,18 @@ func (s *TaxCodeDualWriteTestSuite) TestWorkflowConfigWritesMinimalJSONCopy() {
 		WithBillingWorkflowConfig().
 		Only(ctx)
 	s.Require().NoError(err)
-	s.Equal(productcatalog.TaxConfig{
-		Behavior:  lo.ToPtr(productcatalog.InclusiveTaxBehavior),
-		TaxCodeID: lo.ToPtr(tc.ID),
-	}, dbInvoice.Edges.BillingWorkflowConfig.InvoiceDefaultTaxSettings)
+	s.Equal(lo.ToPtr(tc.ID), dbInvoice.Edges.BillingWorkflowConfig.TaxCodeID)
+	s.Equal(lo.ToPtr(productcatalog.InclusiveTaxBehavior), dbInvoice.Edges.BillingWorkflowConfig.TaxBehavior)
+	s.requireLegacyDefaultTaxSettingsNull(dbInvoice.Edges.BillingWorkflowConfig.ID)
+}
+
+// requireLegacyDefaultTaxSettingsNull reads the column with raw SQL, as ent no longer selects it.
+func (s *TaxCodeDualWriteTestSuite) requireLegacyDefaultTaxSettingsNull(workflowConfigID string) {
+	var isNull bool
+	s.Require().NoError(s.TestDB.PGDriver.DB().QueryRowContext(s.T().Context(), `
+		SELECT invoice_default_tax_settings IS NULL FROM billing_workflow_configs WHERE id = $1
+	`, workflowConfigID).Scan(&isNull))
+	s.True(isNull)
 }
 
 // ── Group D: Invoice snapshotting (end-to-end) ────────────────────────────

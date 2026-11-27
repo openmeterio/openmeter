@@ -101,7 +101,6 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
 		SetEmptyInvoiceMode(input.Invoicing.EmptyInvoiceMode).
-		SetNillableInvoiceDefaultTaxSettings(defaultTaxSettingsJSONCopy(input.Invoicing.DefaultTaxConfig)).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
 
@@ -114,17 +113,6 @@ func (a *adapter) createWorkflowConfig(ctx context.Context, ns string, input bil
 	}
 
 	return cmd.Save(ctx)
-}
-
-// defaultTaxSettingsJSONCopy is what invoice_default_tax_settings gets while the column is being
-// retired: just the tax code ID and behavior, so the CHECK constraints against the tax_code_id and
-// tax_behavior columns hold and older binaries reading the JSON still see the same default.
-func defaultTaxSettingsJSONCopy(cfg *productcatalog.TaxCodeConfig) *productcatalog.TaxConfig {
-	if cfg == nil {
-		return nil
-	}
-
-	return lo.ToPtr(cfg.ToTaxConfig())
 }
 
 func (a *adapter) GetProfile(ctx context.Context, input billing.GetProfileInput) (*billing.AdapterGetProfileResponse, error) {
@@ -425,7 +413,6 @@ func (a *adapter) updateWorkflowConfig(ctx context.Context, ns string, id string
 		SetInvoiceProgressiveBilling(input.Invoicing.ProgressiveBilling).
 		SetSubscriptionEndProrationMode(input.Invoicing.SubscriptionEndProrationMode).
 		SetEmptyInvoiceMode(input.Invoicing.EmptyInvoiceMode).
-		SetOrClearInvoiceDefaultTaxSettings(defaultTaxSettingsJSONCopy(input.Invoicing.DefaultTaxConfig)).
 		SetTaxEnabled(input.Tax.Enabled).
 		SetTaxEnforced(input.Tax.Enforced)
 

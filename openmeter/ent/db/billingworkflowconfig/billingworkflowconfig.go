@@ -105,7 +105,6 @@ var Columns = []string{
 	FieldInvoiceProgressiveBilling,
 	FieldSubscriptionEndProrationMode,
 	FieldEmptyInvoiceMode,
-	FieldInvoiceDefaultTaxSettings,
 	FieldTaxEnabled,
 	FieldTaxEnforced,
 }
@@ -114,6 +113,11 @@ var Columns = []string{
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldInvoiceDefaultTaxSettings} {
+		if column == f {
 			return true
 		}
 	}

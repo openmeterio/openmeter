@@ -644,7 +644,7 @@ func TestPlanRateCardTaxColumns(t *testing.T) {
 		assert.Equalf(t, expected[rc.Key()], rc.AsMeta().TaxConfig, "rate card %s", rc.Key())
 	}
 
-	// then: the legacy JSON copy mirrors the columns and never carries a Stripe code
+	// then: the tax config is stored in the columns only
 	rows, err := env.Client.PlanRateCard.Query().
 		Where(planratecarddb.Namespace(namespace)).
 		All(t.Context())
@@ -654,17 +654,12 @@ func TestPlanRateCardTaxColumns(t *testing.T) {
 	for _, row := range rows {
 		cfg := expected[row.Key]
 		if cfg == nil {
-			assert.Nilf(t, row.TaxConfig, "rate card %s", row.Key)
 			assert.Nilf(t, row.TaxCodeID, "rate card %s", row.Key)
 			assert.Nilf(t, row.TaxBehavior, "rate card %s", row.Key)
 
 			continue
 		}
 
-		require.NotNilf(t, row.TaxConfig, "rate card %s", row.Key)
-		assert.Nilf(t, row.TaxConfig.Stripe, "rate card %s", row.Key)
-		assert.Equalf(t, lo.EmptyableToPtr(cfg.TaxCodeID), row.TaxConfig.TaxCodeID, "rate card %s", row.Key)
-		assert.Equalf(t, cfg.Behavior, row.TaxConfig.Behavior, "rate card %s", row.Key)
 		assert.Equalf(t, lo.EmptyableToPtr(cfg.TaxCodeID), row.TaxCodeID, "rate card %s", row.Key)
 		assert.Equalf(t, cfg.Behavior, row.TaxBehavior, "rate card %s", row.Key)
 	}
