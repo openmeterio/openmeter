@@ -425,6 +425,16 @@ type InvoiceWorkflow struct {
 	Config                 WorkflowConfig       `json:"config"`
 }
 
+// InvoicingAppType returns the type of the invoicing app, or "" when the apps are not
+// expanded. The billing service expands the apps of every invoice it hands out.
+func (w InvoiceWorkflow) InvoicingAppType() app.AppType {
+	if w.Apps == nil || w.Apps.Invoicing == nil {
+		return ""
+	}
+
+	return w.Apps.Invoicing.GetType()
+}
+
 type CreateWorkflowConfigInput struct {
 	WorkflowConfig
 }

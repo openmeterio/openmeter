@@ -802,7 +802,8 @@ func (s Service) SimulateInvoice(ctx context.Context, input billing.SimulateInvo
 				Namespace: input.Namespace,
 				ID:        *input.CustomerID,
 			},
-			Expand: billing.CustomerBillingProfileExpand{Customer: true},
+			// Apps are needed to stamp the invoicing app's tax codes, as on a real draft.
+			Expand: billing.CustomerBillingProfileExpand{Customer: true, Apps: true},
 		})
 		if err != nil {
 			return billing.StandardInvoice{}, fmt.Errorf("getting profile with customer override: %w", err)

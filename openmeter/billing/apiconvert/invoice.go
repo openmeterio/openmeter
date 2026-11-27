@@ -6,6 +6,7 @@ import (
 	"github.com/samber/lo"
 
 	apiv1models "github.com/openmeterio/openmeter/api/models"
+	"github.com/openmeterio/openmeter/openmeter/app"
 	appconvert "github.com/openmeterio/openmeter/openmeter/app/apiconvert"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
@@ -18,8 +19,11 @@ import (
 
 // ToAPIStandardInvoice maps a standard invoice. taxCodes must hold the invoice's default Tax
 // Code and every Tax Code its lines' tax configs reference (see ResolveInvoiceTaxCodes) for
-// their stripe.code to show.
-func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
+// their stripe.code to show. On Stripe invoices a line's stripe.code is the code it was billed
+// with instead; invoicingAppType tells which invoices those are ("" when unknown, which maps
+// like a non-Stripe invoice). Gathering invoices always map like that: their lines are never
+// stamped, so the preview shows the current mapping.
+func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode, invoicingAppType app.AppType) (apiv1models.Invoice, error) {
 	var apps *apiv1models.BillingProfileAppsOrReference
 	var err error
 	collectionAt := invoice.CollectionAt
@@ -109,8 +113,13 @@ func ToAPIStandardInvoice(invoice billing.StandardInvoice, taxCodes map[string]*
 		Workflow:               workflowConfig,
 	}
 
+	billedAppType := invoicingAppType
+	if invoice.Status == billing.StandardInvoiceStatusGathering {
+		billedAppType = ""
+	}
+
 	outLines, err := slicesx.MapWithErr(invoice.Lines.OrEmpty(), func(line *billing.StandardLine) (apiv1models.InvoiceLine, error) {
-		mappedLine, err := mapInvoiceLineToAPI(line, taxCodes)
+		mappedLine, err := mapInvoiceLineToAPI(line, taxCodes, billedAppType)
 		if err != nil {
 			return apiv1models.InvoiceLine{}, fmt.Errorf("failed to map billing line[%s] to API: %w", line.ID, err)
 		}
@@ -135,7 +144,7 @@ func ToAPIEventInvoice(event billing.EventStandardInvoice, taxCodes map[string]*
 	// Only the apps captured in the event belong in the notification snapshot.
 	event.Invoice.Workflow.Apps = nil
 
-	invoice, err := ToAPIStandardInvoice(event.Invoice, taxCodes)
+	invoice, err := ToAPIStandardInvoice(event.Invoice, taxCodes, event.Apps.Invoicing.Type)
 	if err != nil {
 		return apiv1models.Invoice{}, err
 	}

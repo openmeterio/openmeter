@@ -19,8 +19,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	customeradapter "github.com/openmeterio/openmeter/openmeter/customer/adapter"
 	customerservice "github.com/openmeterio/openmeter/openmeter/customer/service"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
-	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	apptest "github.com/openmeterio/openmeter/test/app"
@@ -164,13 +162,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create billing service: %w", err)
 	}
 
-	// Tax code resolver for the stripe app's invoicing lookups
-	taxCodeEnv := taxcodetestutils.NewTestEnvFromClient(t, entClient, logger)
-	taxCodeResolver, err := taxcoderesolver.New(taxCodeEnv.Service)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create tax code resolver: %w", err)
-	}
-
 	appUninstallValidator, err := billingappuninstall.NewValidator(billingService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create billing app uninstall validator: %w", err)
@@ -213,7 +204,6 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 		AppService:          appService,
 		SecretService:       secretService,
 		BillingService:      billingService,
-		TaxCodeResolver:     taxCodeResolver,
 		Logger:              logger,
 		Publisher:           publisher,
 		WebhookURLGenerator: webhookURLGenerator,

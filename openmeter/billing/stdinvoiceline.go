@@ -11,6 +11,7 @@ import (
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	billingfeaturemeter "github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
@@ -57,9 +58,24 @@ type StandardLineBase struct {
 
 	ChildUniqueReferenceID *string `json:"childUniqueReferenceID,omitempty"`
 
-	TaxConfig         *productcatalog.TaxCodeConfig `json:"taxOverrides,omitempty"`
-	RateCardDiscounts Discounts                     `json:"rateCardDiscounts,omitempty"`
-	CreditsApplied    CreditsApplied                `json:"creditsApplied,omitempty"`
+	TaxConfig *productcatalog.TaxCodeConfig `json:"taxOverrides,omitempty"`
+
+	// InvoicingAppTaxCode is the provider tax code the invoice's invoicing app bills
+	// this line with, frozen by draft calculation. It has three states: nil means the
+	// line was never stamped (rows from before the stamp existed), a pointer to ""
+	// means stamped without a mapping or Tax Code (the provider default applies), and
+	// anything else is the frozen code. Read it through BilledTaxCode.
+	InvoicingAppTaxCode *string `json:"invoicingAppTaxCode,omitempty"`
+
+	// LegacyStripeTaxCode is the stripe.code of the stored legacy tax_config JSON. It is
+	// read-only: BilledTaxCode falls back to it for unstamped Stripe lines, and the
+	// adapter never writes it back. It is not serialized: events carry the legacy code in
+	// their line taxOverrides and decoding fills it from there. The cleanup release removes
+	// it together with the legacy JSON.
+	LegacyStripeTaxCode string `json:"-"`
+
+	RateCardDiscounts Discounts      `json:"rateCardDiscounts,omitempty"`
+	CreditsApplied    CreditsApplied `json:"creditsApplied,omitempty"`
 
 	ExternalIDs  externalid.LineExternalIDs `json:"externalIDs,omitempty"`
 	Subscription *SubscriptionReference     `json:"subscription,omitempty"`
@@ -176,6 +192,10 @@ func (i StandardLineBase) Clone() StandardLineBase {
 		out.OverrideCollectionPeriodEnd = lo.ToPtr(*i.OverrideCollectionPeriodEnd)
 	}
 
+	if i.InvoicingAppTaxCode != nil {
+		out.InvoicingAppTaxCode = lo.ToPtr(*i.InvoicingAppTaxCode)
+	}
+
 	if len(i.CreditsApplied) > 0 {
 		out.CreditsApplied = i.CreditsApplied.Clone()
 	}
@@ -183,6 +203,23 @@ func (i StandardLineBase) Clone() StandardLineBase {
 	out.RateCardDiscounts = i.RateCardDiscounts.Clone()
 
 	return out
+}
+
+// BilledTaxCode returns the provider tax code this line is billed with. It is the
+// stamped code if there is one (an empty stamp means "use the provider default").
+// Lines that were never stamped fall back to the legacy stored Stripe code, but
+// only on Stripe invoices, and otherwise to "" (the provider default). Issued
+// lines never look at the live Tax Code.
+func (i StandardLineBase) BilledTaxCode(invoicingAppType app.AppType) string {
+	if i.InvoicingAppTaxCode != nil {
+		return *i.InvoicingAppTaxCode
+	}
+
+	if invoicingAppType == app.AppTypeStripe {
+		return i.LegacyStripeTaxCode
+	}
+
+	return ""
 }
 
 func (i StandardLineBase) GetCurrency() currencyx.FiatCode {
@@ -301,6 +338,10 @@ func (i standardInvoiceLineGenericWrapper) WithTargetState(target GenericInvoice
 	merged.InvoiceID = i.InvoiceID
 	merged.ExternalIDs = i.ExternalIDs
 	merged.DBState = i.DBState
+	// Targets are rebuilt from charge state and don't know the billed tax code. Keep
+	// the stored one: draft calculation restamps it before the next sync anyway.
+	merged.InvoicingAppTaxCode = i.InvoicingAppTaxCode
+	merged.LegacyStripeTaxCode = i.LegacyStripeTaxCode
 	merged.DetailedLines = i.DetailedLinesWithIDReuse(merged.DetailedLines)
 
 	return merged.AsGenericLine(), nil

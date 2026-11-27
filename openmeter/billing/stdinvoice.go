@@ -542,6 +542,10 @@ func (i *StandardInvoice) getLeafLines() DetailedLines {
 type DetailedLineWithResolvedTaxConfig struct {
 	DetailedLine
 	TaxConfig *productcatalog.TaxCodeConfig
+
+	// BilledTaxCode is the provider tax code of the parent standard line (see
+	// StandardLineBase.BilledTaxCode). Empty means the provider default applies.
+	BilledTaxCode string
 }
 
 // GetLeafLinesWithResolvedTaxConfig returns invoice leaf lines together with the effective tax
@@ -549,8 +553,9 @@ type DetailedLineWithResolvedTaxConfig struct {
 //
 // Calculation already merged the invoice default (TaxCodeID included) into every line
 // (SnapshotTaxConfigIntoLines), so merging it again only matters for lines that never went
-// through calculation. Invoicing apps look the tax code up by the merged config's TaxCodeID.
-func (i *StandardInvoice) GetLeafLinesWithResolvedTaxConfig() []DetailedLineWithResolvedTaxConfig {
+// through calculation. The provider tax code each leaf line is billed with is the one its
+// parent standard line carries for the given invoicing app type.
+func (i *StandardInvoice) GetLeafLinesWithResolvedTaxConfig(invoicingAppType app.AppType) []DetailedLineWithResolvedTaxConfig {
 	out := make([]DetailedLineWithResolvedTaxConfig, 0)
 
 	defaultTaxConfig := i.Workflow.Config.Invoicing.DefaultTaxConfig
@@ -561,6 +566,8 @@ func (i *StandardInvoice) GetLeafLinesWithResolvedTaxConfig() []DetailedLineWith
 			out = append(out, DetailedLineWithResolvedTaxConfig{
 				DetailedLine: line,
 				TaxConfig:    taxConfig,
+
+				BilledTaxCode: parentLine.BilledTaxCode(invoicingAppType),
 			})
 		}
 	}

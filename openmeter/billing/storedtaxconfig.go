@@ -11,10 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clone"
 )
 
-// StoredLineTaxConfig is the persisted line copy of a legacy tax config, kept only so invoice
-// history stays byte-identical for older readers and the tax_code_id/tax_behavior consistency
-// CHECK constraints hold. The domain never reads it: lines carry productcatalog.TaxCodeConfig,
-// and renderers rebuild stripe.code and tax_code from the referenced Tax Code on the fly.
+// StoredLineTaxConfig is the legacy tax config shape. It is the type of the frozen tax_config
+// column on invoice lines (never written for new lines; the adapter only reads the legacy
+// Stripe code from it) and the payload of the `taxOverrides` field in invoice events. Lines
+// carry productcatalog.TaxCodeConfig, and renderers rebuild stripe.code and tax_code from the
+// referenced Tax Code on the fly.
 type StoredLineTaxConfig struct {
 	Behavior  *productcatalog.TaxBehavior     `json:"behavior,omitempty"`
 	Stripe    *productcatalog.StripeTaxConfig `json:"stripe,omitempty"`
@@ -22,7 +23,7 @@ type StoredLineTaxConfig struct {
 	TaxCode   *taxcode.TaxCode                `json:"tax_code,omitempty"`
 }
 
-// The legacy JSON shape is kept for stored history and event consumers. Standard lines embed the
+// The legacy JSON shape is kept for old stored rows and event consumers. Standard lines embed the
 // referenced Tax Code; gathering lines never carried it.
 
 // NewStoredStandardLineTaxConfig builds the legacy tax config of a standard line, including the
@@ -48,7 +49,7 @@ type newStoredLineTaxConfigInput struct {
 	Config   *productcatalog.TaxCodeConfig
 	TaxCodes productcatalog.TaxCodesByID
 
-	// IncludeTaxCode embeds the full Tax Code entity in the stored JSON. Standard lines did in the
+	// IncludeTaxCode embeds the full Tax Code entity in the result. Standard lines did in the
 	// legacy shape; gathering lines didn't.
 	IncludeTaxCode bool
 }
@@ -58,14 +59,11 @@ func newStoredLineTaxConfig(in newStoredLineTaxConfigInput) (*StoredLineTaxConfi
 		return nil, nil
 	}
 
-	// Clone the behavior so the stored copy doesn't share its pointer with the line.
-	out := &StoredLineTaxConfig{Behavior: clone.CloneEnumPtr(in.Config.Behavior)}
+	out := newStoredLineTaxConfigWithoutTaxCode(in.Config)
 
 	if in.Config.TaxCodeID == "" {
 		return out, nil
 	}
-
-	out.TaxCodeID = lo.ToPtr(in.Config.TaxCodeID)
 
 	tc, ok := in.TaxCodes.Get(in.Config.TaxCodeID)
 	if !ok {
@@ -81,4 +79,21 @@ func newStoredLineTaxConfig(in newStoredLineTaxConfigInput) (*StoredLineTaxConfi
 	}
 
 	return out, nil
+}
+
+// newStoredLineTaxConfigWithoutTaxCode copies only the behavior and the Tax Code ID, so it needs
+// no Tax Code lookup.
+func newStoredLineTaxConfigWithoutTaxCode(cfg *productcatalog.TaxCodeConfig) *StoredLineTaxConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	// Clone the behavior so the copy doesn't share its pointer with the line.
+	out := &StoredLineTaxConfig{Behavior: clone.CloneEnumPtr(cfg.Behavior)}
+
+	if cfg.TaxCodeID != "" {
+		out.TaxCodeID = lo.ToPtr(cfg.TaxCodeID)
+	}
+
+	return out
 }

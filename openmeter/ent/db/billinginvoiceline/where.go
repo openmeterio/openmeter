@@ -185,6 +185,11 @@ func OverrideCollectionPeriodEnd(v time.Time) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldOverrideCollectionPeriodEnd, v))
 }
 
+// InvoicingAppTaxCode applies equality check predicate on the "invoicing_app_tax_code" field. It's identical to InvoicingAppTaxCodeEQ.
+func InvoicingAppTaxCode(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppTaxCode, v))
+}
+
 // Quantity applies equality check predicate on the "quantity" field. It's identical to QuantityEQ.
 func Quantity(v alpacadecimal.Decimal) predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldQuantity, v))
@@ -1527,6 +1532,81 @@ func OverrideCollectionPeriodEndIsNil() predicate.BillingInvoiceLine {
 // OverrideCollectionPeriodEndNotNil applies the NotNil predicate on the "override_collection_period_end" field.
 func OverrideCollectionPeriodEndNotNil() predicate.BillingInvoiceLine {
 	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldOverrideCollectionPeriodEnd))
+}
+
+// InvoicingAppTaxCodeEQ applies the EQ predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEQ(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeNEQ applies the NEQ predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeNEQ(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNEQ(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeIn applies the In predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIn(FieldInvoicingAppTaxCode, vs...))
+}
+
+// InvoicingAppTaxCodeNotIn applies the NotIn predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeNotIn(vs ...string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotIn(FieldInvoicingAppTaxCode, vs...))
+}
+
+// InvoicingAppTaxCodeGT applies the GT predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeGT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGT(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeGTE applies the GTE predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeGTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldGTE(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeLT applies the LT predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeLT(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLT(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeLTE applies the LTE predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeLTE(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldLTE(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeContains applies the Contains predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeContains(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContains(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeHasPrefix applies the HasPrefix predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeHasPrefix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasPrefix(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeHasSuffix applies the HasSuffix predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeHasSuffix(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldHasSuffix(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeIsNil applies the IsNil predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeIsNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldIsNull(FieldInvoicingAppTaxCode))
+}
+
+// InvoicingAppTaxCodeNotNil applies the NotNil predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeNotNil() predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldNotNull(FieldInvoicingAppTaxCode))
+}
+
+// InvoicingAppTaxCodeEqualFold applies the EqualFold predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeEqualFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldEqualFold(FieldInvoicingAppTaxCode, v))
+}
+
+// InvoicingAppTaxCodeContainsFold applies the ContainsFold predicate on the "invoicing_app_tax_code" field.
+func InvoicingAppTaxCodeContainsFold(v string) predicate.BillingInvoiceLine {
+	return predicate.BillingInvoiceLine(sql.FieldContainsFold(FieldInvoicingAppTaxCode, v))
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.

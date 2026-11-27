@@ -472,6 +472,13 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			Optional().
 			Nillable(),
 
+		// The provider tax code the invoice's invoicing app bills this line with.
+		// NULL means not stamped yet, '' means stamped without a mapping (provider
+		// default). Only standard lines are stamped; gathering lines leave it NULL.
+		field.String("invoicing_app_tax_code").
+			Optional().
+			Nillable(),
+
 		// TODO[dependency]: overrides (as soon as plan override entities are ready)
 
 		field.Enum("type").
@@ -553,18 +560,6 @@ func (BillingInvoiceLine) Fields() []ent.Field {
 			}).
 			Optional().
 			Nillable(),
-	}
-}
-
-func (BillingInvoiceLine) Annotations() []schema.Annotation {
-	return []schema.Annotation{
-		entsql.Checks(map[string]string{
-			// tax_config remains optional. These checks require null-safe equality with
-			// the normalized columns, and a nonblank Stripe code additionally requires a
-			// resolved tax code reference so the snapshot stays aligned with them.
-			"billing_invoice_line_tax_code_consistency":     `(tax_code_id::text IS NOT DISTINCT FROM tax_config ->> 'tax_code_id') AND (NULLIF(btrim(tax_config -> 'stripe' ->> 'code'), '') IS NULL OR tax_code_id IS NOT NULL)`,
-			"billing_invoice_line_tax_behavior_consistency": `tax_behavior IS NOT DISTINCT FROM tax_config ->> 'behavior'`,
-		}),
 	}
 }
 

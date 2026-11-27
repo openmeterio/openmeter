@@ -260,7 +260,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(stripeTaxCode.ID, *dbLine.TaxCodeID)
 	s.Require().NotNil(dbLine.TaxBehavior, "gathering line tax_behavior column must be populated")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior)
-	s.Equal(stripeTaxCode.ID, lo.FromPtr(dbLine.TaxConfig.TaxCodeID), "gathering line JSON tax_code_id must match the column")
+	s.Zero(dbLine.TaxConfig, "the legacy tax_config is not written for gathering lines")
 
 	// Let's create a partial invoice
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute))
@@ -294,7 +294,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
 	s.Len(ubpSplitLineDetailedLines, 1)
 
-	// Verify the normalized tax_code_id column is written in the DB (not just the JSONB).
+	// Verify the normalized tax_code_id column is written in the DB.
 	dbLine, err = s.DBClient.BillingInvoiceLine.Query().
 		Where(billinginvoicelinedb.ID(ubpSplitLine.GetID())).
 		Only(ctx)

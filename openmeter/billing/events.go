@@ -38,16 +38,16 @@ func (a InvoiceApps) Validate() error {
 	return errors.Join(errs...)
 }
 
-// EventStandardInvoice must be built with the event constructors, which load the lines' Tax
-// Codes. A payload decoded from JSON cannot be marshaled again, because the Tax Codes are not
-// part of it.
+// EventStandardInvoice is the invoice payload of the standard invoice events. The constructors
+// load the lines' Tax Codes once and keep the legacy per-line taxOverrides payload, so encoding
+// never needs a lookup and a decoded event encodes back to the same JSON.
 type EventStandardInvoice struct {
 	Invoice StandardInvoice `json:"invoice"`
 	Apps    InvoiceApps     `json:"apps,omitempty"`
 
-	// taxCodes are the Tax Codes referenced by the lines, used only to render the legacy
-	// taxOverrides payload. Unexported, so it is never serialized as a field.
-	taxCodes productcatalog.TaxCodesByID
+	// taxOverrides is the legacy taxOverrides payload of each line, by line ID. Lines missing
+	// from it encode only their Tax Code ID and behavior.
+	taxOverrides lineTaxOverrides
 }
 
 func (e EventStandardInvoice) Validate() error {
@@ -65,12 +65,12 @@ func (e EventStandardInvoice) Validate() error {
 }
 
 func NewEventStandardInvoice(invoice StandardInvoice, taxCodes productcatalog.TaxCodesByID) (EventStandardInvoice, error) {
-	configs := make([]*productcatalog.TaxCodeConfig, 0, len(invoice.Lines.OrEmpty()))
-	for _, line := range invoice.Lines.OrEmpty() {
-		configs = append(configs, line.TaxConfig)
-	}
-
-	if err := validateTaxCodesPresent(configs, taxCodes); err != nil {
+	taxOverrides, err := newStandardLineTaxOverrides(newStandardLineTaxOverridesInput{
+		Lines:            invoice.Lines.OrEmpty(),
+		TaxCodes:         taxCodes,
+		InvoicingAppType: invoice.Workflow.InvoicingAppType(),
+	})
+	if err != nil {
 		return EventStandardInvoice{}, err
 	}
 
@@ -106,9 +106,9 @@ func NewEventStandardInvoice(invoice StandardInvoice, taxCodes productcatalog.Ta
 	}
 
 	return EventStandardInvoice{
-		Invoice:  payload,
-		Apps:     apps,
-		taxCodes: taxCodes,
+		Invoice:      payload,
+		Apps:         apps,
+		taxOverrides: taxOverrides,
 	}, nil
 }
 

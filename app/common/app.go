@@ -21,7 +21,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/namespace"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -64,7 +63,6 @@ func NewAppStripeService(
 	secretService secret.Service,
 	webhookSecretService appstripe.WebhookSecretService,
 	billingRegistry BillingRegistry,
-	taxCodeResolver productcatalog.TaxCodeResolver,
 	publisher eventbus.Publisher,
 ) (appstripe.Service, error) {
 	appStripeAdapter, err := appstripeadapter.New(appstripeadapter.Config{
@@ -96,7 +94,6 @@ func NewAppStripeService(
 		AppService:                 appService,
 		SecretService:              secretService,
 		BillingService:             billingRegistry.Billing,
-		TaxCodeResolver:            taxCodeResolver,
 		Logger:                     logger,
 		DisableWebhookRegistration: appsConfig.Stripe.DisableWebhookRegistration,
 		Publisher:                  publisher,

@@ -989,9 +989,10 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 	s.Equal(tc.ID, capturedInput.Charge.Intent.GetTaxConfig().TaxCodeID)
 }
 
-// TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies the dual-write
-// invariant for flat-fee credit_then_invoice charges: after payment is settled, the standard
-// invoice line carries both TaxCodeID (FK) and Stripe.Code resolved from the TaxCode entity.
+// TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies that for
+// flat-fee credit_then_invoice charges, after payment is settled, the standard invoice line
+// still references the Tax Code and is stamped with that Tax Code's mapping for the profile's
+// invoicing app.
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-invoice-settled")
@@ -1003,11 +1004,15 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	)
 	cust := s.CreateTestCustomer(ns, "test-subject")
 
-	const stripeCode = "txcd_20000005"
+	const (
+		stripeCode          = "txcd_20000005"
+		customInvoicingCode = "custom-20000005"
+	)
 	tc := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
 		Key: "txcd-20000005",
 		AppMappings: taxcode.TaxCodeAppMappings{
 			{AppType: app.AppTypeStripe, TaxCode: stripeCode},
+			{AppType: app.AppTypeCustomInvoicing, TaxCode: customInvoicingCode},
 		},
 	})
 
@@ -1087,6 +1092,10 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 
 	s.Require().NotNil(line.TaxConfig, "standard invoice line must have TaxConfig")
 	s.Equal(tc.ID, line.TaxConfig.TaxCodeID)
+
+	// then: the charge-backed line goes through the same draft calculation, so it also carries the
+	// stamp of the custom invoicing app's mapping.
+	s.Equal(lo.ToPtr(customInvoicingCode), line.InvoicingAppTaxCode)
 }
 
 // TestTaxConfigInListCharges verifies that ListCharges returns charges with tax_config populated
@@ -1430,9 +1439,9 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 	s.Equal(tc.ID, gatheringLine.TaxConfig.TaxCodeID)
 }
 
-// TestUsageBasedInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies the dual-write
-// invariant for usage-based credit_then_invoice charges: after payment is settled, the standard
-// invoice line carries both TaxCodeID (FK) and Stripe.Code resolved from the TaxCode entity.
+// TestUsageBasedInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies that for
+// usage-based credit_then_invoice charges, after payment is settled, the standard invoice line
+// still references the Tax Code and keeps the tax behavior.
 // Mirrors TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice for the usage-based path.
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()

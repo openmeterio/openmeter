@@ -75,6 +75,8 @@ const (
 	FieldInvoiceAt = "invoice_at"
 	// FieldOverrideCollectionPeriodEnd holds the string denoting the override_collection_period_end field in the database.
 	FieldOverrideCollectionPeriodEnd = "override_collection_period_end"
+	// FieldInvoicingAppTaxCode holds the string denoting the invoicing_app_tax_code field in the database.
+	FieldInvoicingAppTaxCode = "invoicing_app_tax_code"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
 	// FieldStatus holds the string denoting the status field in the database.
@@ -294,6 +296,7 @@ var Columns = []string{
 	FieldParentLineID,
 	FieldInvoiceAt,
 	FieldOverrideCollectionPeriodEnd,
+	FieldInvoicingAppTaxCode,
 	FieldType,
 	FieldStatus,
 	FieldQuantity,
@@ -534,6 +537,11 @@ func ByInvoiceAt(opts ...sql.OrderTermOption) OrderOption {
 // ByOverrideCollectionPeriodEnd orders the results by the override_collection_period_end field.
 func ByOverrideCollectionPeriodEnd(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldOverrideCollectionPeriodEnd, opts...).ToFunc()
+}
+
+// ByInvoicingAppTaxCode orders the results by the invoicing_app_tax_code field.
+func ByInvoicingAppTaxCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingAppTaxCode, opts...).ToFunc()
 }
 
 // ByType orders the results by the type field.

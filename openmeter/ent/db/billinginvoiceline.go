@@ -92,6 +92,8 @@ type BillingInvoiceLine struct {
 	InvoiceAt time.Time `json:"invoice_at,omitempty"`
 	// OverrideCollectionPeriodEnd holds the value of the "override_collection_period_end" field.
 	OverrideCollectionPeriodEnd *time.Time `json:"override_collection_period_end,omitempty"`
+	// InvoicingAppTaxCode holds the value of the "invoicing_app_tax_code" field.
+	InvoicingAppTaxCode *string `json:"invoicing_app_tax_code,omitempty"`
 	// Type holds the value of the "type" field.
 	Type billing.InvoiceLineAdapterType `json:"type,omitempty"`
 	// Status holds the value of the "status" field.
@@ -369,7 +371,7 @@ func (*BillingInvoiceLine) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case billinginvoiceline.FieldAmount, billinginvoiceline.FieldTaxesTotal, billinginvoiceline.FieldTaxesInclusiveTotal, billinginvoiceline.FieldTaxesExclusiveTotal, billinginvoiceline.FieldChargesTotal, billinginvoiceline.FieldDiscountsTotal, billinginvoiceline.FieldCreditsTotal, billinginvoiceline.FieldTotal:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine:
+		case billinginvoiceline.FieldID, billinginvoiceline.FieldNamespace, billinginvoiceline.FieldName, billinginvoiceline.FieldDescription, billinginvoiceline.FieldCurrency, billinginvoiceline.FieldTaxCodeID, billinginvoiceline.FieldTaxBehavior, billinginvoiceline.FieldInvoicingAppExternalID, billinginvoiceline.FieldInvoiceID, billinginvoiceline.FieldManagedBy, billinginvoiceline.FieldParentLineID, billinginvoiceline.FieldInvoicingAppTaxCode, billinginvoiceline.FieldType, billinginvoiceline.FieldStatus, billinginvoiceline.FieldChildUniqueReferenceID, billinginvoiceline.FieldSubscriptionID, billinginvoiceline.FieldSubscriptionPhaseID, billinginvoiceline.FieldSubscriptionItemID, billinginvoiceline.FieldSplitLineGroupID, billinginvoiceline.FieldChargeID, billinginvoiceline.FieldEngine:
 			values[i] = new(sql.NullString)
 		case billinginvoiceline.FieldCreatedAt, billinginvoiceline.FieldUpdatedAt, billinginvoiceline.FieldDeletedAt, billinginvoiceline.FieldPeriodStart, billinginvoiceline.FieldPeriodEnd, billinginvoiceline.FieldInvoiceAt, billinginvoiceline.FieldOverrideCollectionPeriodEnd, billinginvoiceline.FieldSubscriptionBillingPeriodFrom, billinginvoiceline.FieldSubscriptionBillingPeriodTo:
 			values[i] = new(sql.NullTime)
@@ -580,6 +582,13 @@ func (_m *BillingInvoiceLine) assignValues(columns []string, values []any) error
 			} else if value.Valid {
 				_m.OverrideCollectionPeriodEnd = new(time.Time)
 				*_m.OverrideCollectionPeriodEnd = value.Time
+			}
+		case billinginvoiceline.FieldInvoicingAppTaxCode:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field invoicing_app_tax_code", values[i])
+			} else if value.Valid {
+				_m.InvoicingAppTaxCode = new(string)
+				*_m.InvoicingAppTaxCode = value.String
 			}
 		case billinginvoiceline.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -903,6 +912,11 @@ func (_m *BillingInvoiceLine) String() string {
 	if v := _m.OverrideCollectionPeriodEnd; v != nil {
 		builder.WriteString("override_collection_period_end=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := _m.InvoicingAppTaxCode; v != nil {
+		builder.WriteString("invoicing_app_tax_code=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("type=")

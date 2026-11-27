@@ -218,13 +218,6 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 		return err
 	}
 
-	taxCodes, err := a.resolveTaxCodeSnapshots(ctx, lines[0].Namespace, lo.Map(lines, func(line billing.GatheringLine, _ int) *productcatalog.TaxCodeConfig {
-		return line.TaxConfig
-	}))
-	if err != nil {
-		return fmt.Errorf("resolving line tax codes: %w", err)
-	}
-
 	err = upsertWithOptions(ctx, a.db, diff.Line, upsertInput[*billing.GatheringLine, *db.BillingInvoiceUsageBasedLineConfigCreate]{
 		Create: func(tx *db.Client, line *billing.GatheringLine) (*db.BillingInvoiceUsageBasedLineConfigCreate, error) {
 			if line.UBPConfigID == "" {
@@ -311,12 +304,7 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 			}
 
 			if line.TaxConfig != nil {
-				storedTaxConfig, err := billing.NewStoredGatheringLineTaxConfig(line.TaxConfig, taxCodes)
-				if err != nil {
-					return nil, fmt.Errorf("building tax config snapshot [line_id=%s]: %w", line.ID, err)
-				}
-
-				create = create.SetNillableTaxConfig(storedTaxConfig).
+				create = create.
 					SetNillableTaxCodeID(lo.EmptyableToPtr(line.TaxConfig.TaxCodeID)).
 					SetNillableTaxBehavior(line.TaxConfig.Behavior)
 			}
@@ -337,11 +325,12 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 					sql.ResolveWithNewValues(),
 					sql.ResolveWith(func(u *sql.UpdateSet) {
 						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
+
+						// tax_config is frozen legacy data: keep it out of the conflict
+						// update so an upsert never changes or clears the stored JSON.
+						u.SetIgnore(billinginvoiceline.FieldTaxConfig)
 					})).
 				UpdateChildUniqueReferenceID().
-				// Gathering invoices never leave draft, so the JSON snapshot always tracks the
-				// columns and needs no history guard.
-				UpdateTaxConfig().
 				UpdateTaxCodeID().
 				UpdateTaxBehavior().
 				UpdateDescription().

@@ -293,6 +293,20 @@ func (_c *BillingInvoiceLineCreate) SetNillableOverrideCollectionPeriodEnd(v *ti
 	return _c
 }
 
+// SetInvoicingAppTaxCode sets the "invoicing_app_tax_code" field.
+func (_c *BillingInvoiceLineCreate) SetInvoicingAppTaxCode(v string) *BillingInvoiceLineCreate {
+	_c.mutation.SetInvoicingAppTaxCode(v)
+	return _c
+}
+
+// SetNillableInvoicingAppTaxCode sets the "invoicing_app_tax_code" field if the given value is not nil.
+func (_c *BillingInvoiceLineCreate) SetNillableInvoicingAppTaxCode(v *string) *BillingInvoiceLineCreate {
+	if v != nil {
+		_c.SetInvoicingAppTaxCode(*v)
+	}
+	return _c
+}
+
 // SetType sets the "type" field.
 func (_c *BillingInvoiceLineCreate) SetType(v billing.InvoiceLineAdapterType) *BillingInvoiceLineCreate {
 	_c.mutation.SetType(v)
@@ -991,6 +1005,10 @@ func (_c *BillingInvoiceLineCreate) createSpec() (*BillingInvoiceLine, *sqlgraph
 	if value, ok := _c.mutation.OverrideCollectionPeriodEnd(); ok {
 		_spec.SetField(billinginvoiceline.FieldOverrideCollectionPeriodEnd, field.TypeTime, value)
 		_node.OverrideCollectionPeriodEnd = &value
+	}
+	if value, ok := _c.mutation.InvoicingAppTaxCode(); ok {
+		_spec.SetField(billinginvoiceline.FieldInvoicingAppTaxCode, field.TypeString, value)
+		_node.InvoicingAppTaxCode = &value
 	}
 	if value, ok := _c.mutation.GetType(); ok {
 		_spec.SetField(billinginvoiceline.FieldType, field.TypeEnum, value)
@@ -1745,6 +1763,24 @@ func (u *BillingInvoiceLineUpsert) ClearOverrideCollectionPeriodEnd() *BillingIn
 	return u
 }
 
+// SetInvoicingAppTaxCode sets the "invoicing_app_tax_code" field.
+func (u *BillingInvoiceLineUpsert) SetInvoicingAppTaxCode(v string) *BillingInvoiceLineUpsert {
+	u.Set(billinginvoiceline.FieldInvoicingAppTaxCode, v)
+	return u
+}
+
+// UpdateInvoicingAppTaxCode sets the "invoicing_app_tax_code" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsert) UpdateInvoicingAppTaxCode() *BillingInvoiceLineUpsert {
+	u.SetExcluded(billinginvoiceline.FieldInvoicingAppTaxCode)
+	return u
+}
+
+// ClearInvoicingAppTaxCode clears the value of the "invoicing_app_tax_code" field.
+func (u *BillingInvoiceLineUpsert) ClearInvoicingAppTaxCode() *BillingInvoiceLineUpsert {
+	u.SetNull(billinginvoiceline.FieldInvoicingAppTaxCode)
+	return u
+}
+
 // SetStatus sets the "status" field.
 func (u *BillingInvoiceLineUpsert) SetStatus(v billing.InvoiceLineStatus) *BillingInvoiceLineUpsert {
 	u.Set(billinginvoiceline.FieldStatus, v)
@@ -2444,6 +2480,27 @@ func (u *BillingInvoiceLineUpsertOne) UpdateOverrideCollectionPeriodEnd() *Billi
 func (u *BillingInvoiceLineUpsertOne) ClearOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsertOne {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearOverrideCollectionPeriodEnd()
+	})
+}
+
+// SetInvoicingAppTaxCode sets the "invoicing_app_tax_code" field.
+func (u *BillingInvoiceLineUpsertOne) SetInvoicingAppTaxCode(v string) *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetInvoicingAppTaxCode(v)
+	})
+}
+
+// UpdateInvoicingAppTaxCode sets the "invoicing_app_tax_code" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertOne) UpdateInvoicingAppTaxCode() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateInvoicingAppTaxCode()
+	})
+}
+
+// ClearInvoicingAppTaxCode clears the value of the "invoicing_app_tax_code" field.
+func (u *BillingInvoiceLineUpsertOne) ClearInvoicingAppTaxCode() *BillingInvoiceLineUpsertOne {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearInvoicingAppTaxCode()
 	})
 }
 
@@ -3353,6 +3410,27 @@ func (u *BillingInvoiceLineUpsertBulk) UpdateOverrideCollectionPeriodEnd() *Bill
 func (u *BillingInvoiceLineUpsertBulk) ClearOverrideCollectionPeriodEnd() *BillingInvoiceLineUpsertBulk {
 	return u.Update(func(s *BillingInvoiceLineUpsert) {
 		s.ClearOverrideCollectionPeriodEnd()
+	})
+}
+
+// SetInvoicingAppTaxCode sets the "invoicing_app_tax_code" field.
+func (u *BillingInvoiceLineUpsertBulk) SetInvoicingAppTaxCode(v string) *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.SetInvoicingAppTaxCode(v)
+	})
+}
+
+// UpdateInvoicingAppTaxCode sets the "invoicing_app_tax_code" field to the value that was provided on create.
+func (u *BillingInvoiceLineUpsertBulk) UpdateInvoicingAppTaxCode() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.UpdateInvoicingAppTaxCode()
+	})
+}
+
+// ClearInvoicingAppTaxCode clears the value of the "invoicing_app_tax_code" field.
+func (u *BillingInvoiceLineUpsertBulk) ClearInvoicingAppTaxCode() *BillingInvoiceLineUpsertBulk {
+	return u.Update(func(s *BillingInvoiceLineUpsert) {
+		s.ClearInvoicingAppTaxCode()
 	})
 }
 

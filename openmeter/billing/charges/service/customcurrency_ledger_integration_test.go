@@ -29,6 +29,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ledger/transactions"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
+	"github.com/openmeterio/openmeter/openmeter/taxcode"
+	taxcodetestutils "github.com/openmeterio/openmeter/openmeter/taxcode/testutils"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
@@ -81,6 +83,33 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) TestFlatFeeFinalizationBooksA
 	mockApp.AssertExpectations(s.T())
 }
 
+// The custom currency finalizing patch replaces the line the engine returns from
+// OnInvoiceFinalizing, and the replacement is what the invoicing app receives and what gets saved.
+// These tests fail if an engine ever rebuilds that line without the invoicing app tax code stamp.
+func (s *CustomCurrencyLedgerIntegrationTestSuite) TestFlatFeeFinalizationKeepsInvoicingAppTaxCode() {
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	// given: a draft 10 TOKENS flat-fee invoice whose line was stamped with the sandbox tax code
+	fixture := s.prepareFlatFeeCustomCurrencyLedgerFixture(createAt)
+	s.requireInvoicingAppTaxCodeStamp(fixture.Invoice)
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+	invoiceSync := &recordingInvoiceSync{}
+	mockApp.OnUpsertStandardInvoice(invoiceSync.Upsert)
+	mockApp.OnFinalizeStandardInvoice(nil)
+
+	// when: the invoice is approved and goes through line finalization and issuing sync
+	invoice, err := s.BillingService.ApproveInvoice(s.T().Context(), fixture.Invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+	// then: the app was sent the stamp and the issued line, read back and stored, still has it
+	s.requireInvoicingAppTaxCodeStamp(invoiceSync.Invoice)
+	s.requireIssuedInvoicingAppTaxCodeStamp(fixture.Invoice.GetInvoiceID())
+}
+
 func (s *CustomCurrencyLedgerIntegrationTestSuite) TestFlatFeeDeletionCorrectsCustomCurrencyOverage() {
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
 	clock.FreezeTime(createAt)
@@ -131,6 +160,30 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) TestUsageBasedFinalizationBoo
 	mockApp.AssertExpectations(s.T())
 }
 
+func (s *CustomCurrencyLedgerIntegrationTestSuite) TestUsageBasedFinalizationKeepsInvoicingAppTaxCode() {
+	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
+	clock.FreezeTime(createAt)
+	defer clock.UnFreeze()
+
+	// given: a draft 10 TOKENS usage invoice whose line was stamped with the sandbox tax code
+	fixture := s.prepareUsageBasedCustomCurrencyLedgerFixture(createAt)
+	s.requireInvoicingAppTaxCodeStamp(fixture.Invoice)
+	mockApp := s.SandboxApp.EnableMock(s.T())
+	defer s.SandboxApp.DisableMock()
+	invoiceSync := &recordingInvoiceSync{}
+	mockApp.OnUpsertStandardInvoice(invoiceSync.Upsert)
+	mockApp.OnFinalizeStandardInvoice(nil)
+
+	// when: the invoice is approved and goes through line finalization and issuing sync
+	invoice, err := s.BillingService.ApproveInvoice(s.T().Context(), fixture.Invoice.GetInvoiceID())
+	s.Require().NoError(err)
+	s.Equal(billing.StandardInvoiceStatusPaymentProcessingPending, invoice.Status)
+
+	// then: the app was sent the stamp and the issued line, read back and stored, still has it
+	s.requireInvoicingAppTaxCodeStamp(invoiceSync.Invoice)
+	s.requireIssuedInvoicingAppTaxCodeStamp(fixture.Invoice.GetInvoiceID())
+}
+
 func (s *CustomCurrencyLedgerIntegrationTestSuite) TestUsageBasedDeletionCorrectsCustomCurrencyOverage() {
 	createAt := datetime.MustParseTimeInLocation(s.T(), "2024-12-01T00:00:00Z", time.UTC).AsTime()
 	clock.FreezeTime(createAt)
@@ -167,6 +220,51 @@ type customCurrencyLedgerFixture struct {
 	FiatCreditRealization creditrealization.Realization
 }
 
+// customCurrencySandboxTaxCode is the provider code the fixtures map on their default tax code for
+// the sandbox invoicing app, so draft calculation stamps it on every line.
+const customCurrencySandboxTaxCode = "sandbox-custom-currency-code"
+
+var customCurrencySandboxTaxCodeMappings = taxcode.TaxCodeAppMappings{
+	{AppType: app.AppTypeSandbox, TaxCode: customCurrencySandboxTaxCode},
+}
+
+// recordingInvoiceSync keeps the last invoice the invoicing app was asked to sync.
+type recordingInvoiceSync struct {
+	Invoice billing.StandardInvoice
+}
+
+func (r *recordingInvoiceSync) Upsert(invoice billing.StandardInvoice) (*billing.UpsertStandardInvoiceResult, error) {
+	r.Invoice = invoice
+
+	return billing.NewUpsertStandardInvoiceResult(), nil
+}
+
+func (s *CustomCurrencyLedgerIntegrationTestSuite) requireInvoicingAppTaxCodeStamp(invoice billing.StandardInvoice) {
+	s.T().Helper()
+
+	lines := invoice.Lines.OrEmpty()
+	s.Require().Len(lines, 1)
+	s.Equal(customCurrencySandboxTaxCode, lo.FromPtr(lines[0].InvoicingAppTaxCode))
+}
+
+// requireIssuedInvoicingAppTaxCodeStamp checks the stamp both through the billing service and on
+// the stored line row.
+func (s *CustomCurrencyLedgerIntegrationTestSuite) requireIssuedInvoicingAppTaxCodeStamp(invoiceID billing.InvoiceID) {
+	s.T().Helper()
+	ctx := s.T().Context()
+
+	invoice, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
+		Invoice: invoiceID,
+		Expand:  billing.StandardInvoiceExpandAll,
+	})
+	s.Require().NoError(err)
+	s.requireInvoicingAppTaxCodeStamp(invoice)
+
+	row, err := s.DBClient.BillingInvoiceLine.Get(ctx, invoice.Lines.OrEmpty()[0].ID)
+	s.Require().NoError(err)
+	s.Equal(customCurrencySandboxTaxCode, lo.FromPtr(row.InvoicingAppTaxCode))
+}
+
 type failFirstInvoiceSync struct {
 	attempts int
 }
@@ -188,7 +286,9 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareFlatFeeCustomCurrencyL
 	s.T().Helper()
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-flatfee-real-ledger")
-	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns, taxcodetestutils.ProvisionDefaultTaxCodesInput{
+		InvoicingAppMappings: customCurrencySandboxTaxCodeMappings,
+	})
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID(), billingtest.WithManualApproval())
@@ -271,7 +371,9 @@ func (s *CustomCurrencyLedgerIntegrationTestSuite) prepareUsageBasedCustomCurren
 	s.T().Helper()
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-service-usage-based-real-ledger")
-	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+	defaults := s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns, taxcodetestutils.ProvisionDefaultTaxCodesInput{
+		InvoicingAppMappings: customCurrencySandboxTaxCodeMappings,
+	})
 	sandboxApp := s.InstallSandboxApp(s.T(), ns)
 	customer := s.CreateTestCustomer(ns, "customer-c1")
 	_ = s.ProvisionBillingProfile(

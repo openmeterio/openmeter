@@ -688,9 +688,8 @@ func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.Sta
 
 // requirePersistedLinesReferenceTaxCode checks the stored rows directly: lines returned by the
 // service are re-read through the adapter, which backfills the Tax Code entity from the
-// tax_code_id edge, so only the row shows what was persisted. The tax_config JSON snapshot only
-// carries the entity if a write happened after calculation stamped it, so the entity is asserted
-// only when present.
+// tax_code_id edge, so only the row shows what was persisted. The legacy tax_config JSON is
+// never written for new lines, so it must stay NULL.
 func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx context.Context, invoice billing.StandardInvoice, taxCodeID string) {
 	s.T().Helper()
 
@@ -701,12 +700,7 @@ func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx contex
 		s.Require().NoError(err)
 
 		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxCodeID)
-		s.Require().NotNil(dbLine.TaxConfig)
-		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxConfig.TaxCodeID)
-
-		if dbLine.TaxConfig.TaxCode != nil {
-			s.Equal(taxCodeID, dbLine.TaxConfig.TaxCode.ID)
-		}
+		s.Zero(dbLine.TaxConfig, "the legacy tax_config is not written")
 	}
 }
 
@@ -836,7 +830,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(createdTC.ID, *dbLine.TaxCodeID)
 	s.Require().NotNil(dbLine.TaxBehavior, "gathering line tax_behavior column must be populated")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior)
-	s.Equal(createdTC.ID, lo.FromPtr(dbLine.TaxConfig.TaxCodeID), "gathering line JSON tax_code_id must match the column")
+	s.Zero(dbLine.TaxConfig, "the legacy tax_config is not written for gathering lines")
 
 	// Let's create a partial invoice
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute))
@@ -865,7 +859,7 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	ubpSplitLineDetailedLines := ubpSplitLine.DetailedLines
 	s.Len(ubpSplitLineDetailedLines, 1)
 
-	// Verify the normalized tax_code_id column is written in the DB (not just the JSONB).
+	// Verify the normalized tax_code_id column is written in the DB.
 	dbLine, err = s.DBClient.BillingInvoiceLine.Query().
 		Where(billinginvoicelinedb.ID(ubpSplitLine.GetID())).
 		Only(ctx)

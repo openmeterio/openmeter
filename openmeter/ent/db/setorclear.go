@@ -1618,6 +1618,20 @@ func (u *BillingInvoiceLineUpdateOne) SetOrClearOverrideCollectionPeriodEnd(valu
 	return u.SetOverrideCollectionPeriodEnd(*value)
 }
 
+func (u *BillingInvoiceLineUpdate) SetOrClearInvoicingAppTaxCode(value *string) *BillingInvoiceLineUpdate {
+	if value == nil {
+		return u.ClearInvoicingAppTaxCode()
+	}
+	return u.SetInvoicingAppTaxCode(*value)
+}
+
+func (u *BillingInvoiceLineUpdateOne) SetOrClearInvoicingAppTaxCode(value *string) *BillingInvoiceLineUpdateOne {
+	if value == nil {
+		return u.ClearInvoicingAppTaxCode()
+	}
+	return u.SetInvoicingAppTaxCode(*value)
+}
+
 func (u *BillingInvoiceLineUpdate) SetOrClearQuantity(value *alpacadecimal.Decimal) *BillingInvoiceLineUpdate {
 	if value == nil {
 		return u.ClearQuantity()

@@ -3,6 +3,7 @@ package invoicecalc
 import (
 	"errors"
 
+	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -22,6 +23,7 @@ var InvoiceCalculations = invoiceCalculatorsByType{
 		WithNoDependencies(RecalculateTotals),
 		WithNoDependencies(CalculateStandardInvoiceServicePeriod),
 		SnapshotTaxConfigIntoLines,
+		StampInvoicingAppTaxCodes,
 	},
 	GatheringInvoice: []GatheringInvoiceCalculation{
 		WithNoGatheringDependencies(UpsertGatheringInvoiceDiscountCorrelationIDs),
@@ -54,6 +56,14 @@ type StandardInvoiceCalculatorDependencies struct {
 	// DefaultTaxConfig is the invoice default's tax config. The calculator merges it into every
 	// line so lines never have to look the default up themselves.
 	DefaultTaxConfig *productcatalog.TaxCodeConfig
+
+	// TaxCodes holds the invoice default's Tax Code and every line's Tax Code, soft-deleted ones
+	// included, so a line keeps the mapping of a Tax Code deleted after the line referenced it.
+	TaxCodes productcatalog.TaxCodesByID
+
+	// InvoicingAppType is the type of the invoice's invoicing app, whose provider tax codes get
+	// stamped on the lines.
+	InvoicingAppType app.AppType
 }
 
 type GatheringInvoiceCalculatorDependencies struct {

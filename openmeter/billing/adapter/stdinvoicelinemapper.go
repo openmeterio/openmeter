@@ -1,7 +1,6 @@
 package billingadapter
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -12,9 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
-	taxcodedb "github.com/openmeterio/openmeter/openmeter/ent/db/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	taxcodeadapter "github.com/openmeterio/openmeter/openmeter/taxcode/adapter"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -84,12 +81,19 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 
 			Currency: dbLine.Currency,
 
-			TaxConfig:         productcatalog.FromDBTaxColumns(dbLine.TaxCodeID, dbLine.TaxBehavior),
-			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
-			CreditsApplied:    creditsApplied,
-			Totals:            totals.FromDB(dbLine),
-			ExternalIDs:       externalid.MapLineExternalIDFromDB(dbLine),
+			TaxConfig:           productcatalog.FromDBTaxColumns(dbLine.TaxCodeID, dbLine.TaxBehavior),
+			InvoicingAppTaxCode: dbLine.InvoicingAppTaxCode,
+			RateCardDiscounts:   lo.FromPtr(dbLine.RatecardDiscounts),
+			CreditsApplied:      creditsApplied,
+			Totals:              totals.FromDB(dbLine),
+			ExternalIDs:         externalid.MapLineExternalIDFromDB(dbLine),
 		},
+	}
+
+	// Only the stripe code of the legacy JSON is needed, as the billed code of lines that were
+	// never stamped.
+	if dbLine.TaxConfig.Stripe != nil {
+		invoiceLine.LegacyStripeTaxCode = dbLine.TaxConfig.Stripe.Code
 	}
 
 	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
@@ -225,59 +229,4 @@ func (a *adapter) mapStandardInvoiceDetailedLineAmountDiscountFromDB(dbDiscount 
 			RoundingAmount:   lo.FromPtr(dbDiscount.RoundingAmount),
 		},
 	}, nil
-}
-
-// resolveTaxCodeSnapshots loads the Tax Codes the given lines reference, deleted ones
-// included, in one query. A referenced ID the namespace does not know is an error: the write
-// would otherwise persist a snapshot without its referenced entity.
-func (a *adapter) resolveTaxCodeSnapshots(ctx context.Context, namespace string, configs []*productcatalog.TaxCodeConfig) (productcatalog.TaxCodesByID, error) {
-	ids := make([]string, 0, len(configs))
-	seen := make(map[string]struct{}, len(configs))
-	for _, cfg := range configs {
-		if cfg == nil || cfg.TaxCodeID == "" {
-			continue
-		}
-
-		if _, ok := seen[cfg.TaxCodeID]; ok {
-			continue
-		}
-
-		seen[cfg.TaxCodeID] = struct{}{}
-		ids = append(ids, cfg.TaxCodeID)
-	}
-
-	if len(ids) == 0 {
-		return productcatalog.TaxCodesByID{}, nil
-	}
-
-	entities, err := a.db.TaxCode.Query().
-		Where(taxcodedb.Namespace(namespace)).
-		Where(taxcodedb.IDIn(ids...)).
-		All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("loading tax codes: %w", err)
-	}
-
-	out := make(productcatalog.TaxCodesByID, len(entities))
-	for _, entity := range entities {
-		mapped, err := taxcodeadapter.MapTaxCodeFromEntity(entity)
-		if err != nil {
-			return nil, fmt.Errorf("mapping tax code [tax_code_id=%s]: %w", entity.ID, err)
-		}
-
-		out[entity.ID] = &mapped
-	}
-
-	missing := make([]string, 0, len(ids))
-	for _, id := range ids {
-		if _, ok := out[id]; !ok {
-			missing = append(missing, id)
-		}
-	}
-
-	if len(missing) > 0 {
-		return nil, fmt.Errorf("tax codes not found: %v", missing)
-	}
-
-	return out, nil
 }

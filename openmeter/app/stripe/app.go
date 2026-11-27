@@ -9,7 +9,6 @@ import (
 	stripeclient "github.com/openmeterio/openmeter/openmeter/app/stripe/client"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	customerapp "github.com/openmeterio/openmeter/openmeter/customer/app"
-	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/secret"
 )
 
@@ -71,7 +70,6 @@ type appOperations struct {
 	StripeAppClientFactory stripeclient.StripeAppClientFactory `json:"-"`
 	StripeAppService       Service                             `json:"-"`
 	SecretService          secret.Service                      `json:"-"`
-	TaxCodeResolver        productcatalog.TaxCodeResolver      `json:"-"`
 }
 
 var _ Operations = (*appOperations)(nil)
@@ -113,10 +111,6 @@ func (a appOperations) Validate() error {
 		return errors.New("secret service is required")
 	}
 
-	if a.TaxCodeResolver == nil {
-		return errors.New("tax code resolver is required")
-	}
-
 	if a.Logger == nil {
 		return errors.New("logger is required")
 	}
@@ -139,7 +133,6 @@ type AppConfig struct {
 	StripeAppClientFactory stripeclient.StripeAppClientFactory
 	StripeAppService       Service
 	SecretService          secret.Service
-	TaxCodeResolver        productcatalog.TaxCodeResolver
 }
 
 func New(meta Meta, config AppConfig) (App, error) {
@@ -151,7 +144,6 @@ func New(meta Meta, config AppConfig) (App, error) {
 		StripeAppClientFactory: config.StripeAppClientFactory,
 		StripeAppService:       config.StripeAppService,
 		SecretService:          config.SecretService,
-		TaxCodeResolver:        config.TaxCodeResolver,
 	}
 
 	if err := implementation.Validate(); err != nil {

@@ -875,7 +875,7 @@ func (h *handler) mapStandardInvoiceWithTaxCodesToAPI(ctx context.Context, invoi
 // Code and every Tax Code its lines' tax configs reference (see ResolveInvoiceTaxCodes) for
 // their stripe.code to show.
 func MapStandardInvoiceToAPI(invoice billing.StandardInvoice, taxCodes map[string]*taxcode.TaxCode) (apiv1models.Invoice, error) {
-	return billingconvert.ToAPIStandardInvoice(invoice, taxCodes)
+	return billingconvert.ToAPIStandardInvoice(invoice, taxCodes, invoice.Workflow.InvoicingAppType())
 }
 
 // MapEventInvoiceToAPI maps an invoice event to the v1 invoice shape notifications carry. The event

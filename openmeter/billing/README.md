@@ -114,17 +114,22 @@ standard and split lines.
 
 ## Line tax config
 
-Line adapters read only the `tax_code_id` and `tax_behavior` columns. The
-`tax_config` JSON is a write-only legacy copy, kept for older readers and for the
-CHECK constraints that compare it with those two columns.
+Line adapters read the `tax_code_id` and `tax_behavior` columns, plus
+`invoicing_app_tax_code`: the provider tax code the invoice's invoicing app bills
+a standard line with (`NULL` = not stamped yet, `''` = stamped with no mapping).
+The standard line mapper also copies the legacy `stripe.code` out of `tax_config`
+into `LegacyStripeTaxCode`, which `BilledTaxCode` uses only for unstamped lines
+on Stripe invoices. Gathering rows never get the stamp and keep the
+column `NULL`.
 
-The standard line upsert keeps the stored JSON unless the line's Tax Code ID or
-behavior changed, so lines past draft keep their stored copy byte-identical.
+The `tax_config` JSON column is frozen legacy data. New lines are created
+without it (`NULL`), and upserts never modify it on existing rows, even when the
+Tax Code ID or behavior changes. It is read only for the legacy Stripe code of
+unstamped lines. There are no CHECK constraints between it and the columns
+any more. The column is dropped in a later release, once those reads are gone.
+
 Events rebuild the legacy `taxOverrides` from the referenced Tax Codes at publish
 time.
-
-The JSON copy goes away once a per-line snapshot of the billed provider tax code
-replaces it and the legacy JSON columns are dropped.
 
 ## Time has distinct meanings
 

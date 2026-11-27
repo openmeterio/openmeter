@@ -21097,6 +21097,7 @@ type BillingInvoiceLineMutation struct {
 	managed_by                                            *billing.InvoiceLineManagedBy
 	invoice_at                                            *time.Time
 	override_collection_period_end                        *time.Time
+	invoicing_app_tax_code                                *string
 	_type                                                 *billing.InvoiceLineAdapterType
 	status                                                *billing.InvoiceLineStatus
 	quantity                                              *alpacadecimal.Decimal
@@ -22393,6 +22394,55 @@ func (m *BillingInvoiceLineMutation) OverrideCollectionPeriodEndCleared() bool {
 func (m *BillingInvoiceLineMutation) ResetOverrideCollectionPeriodEnd() {
 	m.override_collection_period_end = nil
 	delete(m.clearedFields, billinginvoiceline.FieldOverrideCollectionPeriodEnd)
+}
+
+// SetInvoicingAppTaxCode sets the "invoicing_app_tax_code" field.
+func (m *BillingInvoiceLineMutation) SetInvoicingAppTaxCode(s string) {
+	m.invoicing_app_tax_code = &s
+}
+
+// InvoicingAppTaxCode returns the value of the "invoicing_app_tax_code" field in the mutation.
+func (m *BillingInvoiceLineMutation) InvoicingAppTaxCode() (r string, exists bool) {
+	v := m.invoicing_app_tax_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInvoicingAppTaxCode returns the old "invoicing_app_tax_code" field's value of the BillingInvoiceLine entity.
+// If the BillingInvoiceLine object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BillingInvoiceLineMutation) OldInvoicingAppTaxCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInvoicingAppTaxCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInvoicingAppTaxCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInvoicingAppTaxCode: %w", err)
+	}
+	return oldValue.InvoicingAppTaxCode, nil
+}
+
+// ClearInvoicingAppTaxCode clears the value of the "invoicing_app_tax_code" field.
+func (m *BillingInvoiceLineMutation) ClearInvoicingAppTaxCode() {
+	m.invoicing_app_tax_code = nil
+	m.clearedFields[billinginvoiceline.FieldInvoicingAppTaxCode] = struct{}{}
+}
+
+// InvoicingAppTaxCodeCleared returns if the "invoicing_app_tax_code" field was cleared in this mutation.
+func (m *BillingInvoiceLineMutation) InvoicingAppTaxCodeCleared() bool {
+	_, ok := m.clearedFields[billinginvoiceline.FieldInvoicingAppTaxCode]
+	return ok
+}
+
+// ResetInvoicingAppTaxCode resets all changes to the "invoicing_app_tax_code" field.
+func (m *BillingInvoiceLineMutation) ResetInvoicingAppTaxCode() {
+	m.invoicing_app_tax_code = nil
+	delete(m.clearedFields, billinginvoiceline.FieldInvoicingAppTaxCode)
 }
 
 // SetType sets the "type" field.
@@ -23770,7 +23820,7 @@ func (m *BillingInvoiceLineMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *BillingInvoiceLineMutation) Fields() []string {
-	fields := make([]string, 0, 42)
+	fields := make([]string, 0, 43)
 	if m.annotations != nil {
 		fields = append(fields, billinginvoiceline.FieldAnnotations)
 	}
@@ -23854,6 +23904,9 @@ func (m *BillingInvoiceLineMutation) Fields() []string {
 	}
 	if m.override_collection_period_end != nil {
 		fields = append(fields, billinginvoiceline.FieldOverrideCollectionPeriodEnd)
+	}
+	if m.invoicing_app_tax_code != nil {
+		fields = append(fields, billinginvoiceline.FieldInvoicingAppTaxCode)
 	}
 	if m._type != nil {
 		fields = append(fields, billinginvoiceline.FieldType)
@@ -23961,6 +24014,8 @@ func (m *BillingInvoiceLineMutation) Field(name string) (ent.Value, bool) {
 		return m.InvoiceAt()
 	case billinginvoiceline.FieldOverrideCollectionPeriodEnd:
 		return m.OverrideCollectionPeriodEnd()
+	case billinginvoiceline.FieldInvoicingAppTaxCode:
+		return m.InvoicingAppTaxCode()
 	case billinginvoiceline.FieldType:
 		return m.GetType()
 	case billinginvoiceline.FieldStatus:
@@ -24054,6 +24109,8 @@ func (m *BillingInvoiceLineMutation) OldField(ctx context.Context, name string) 
 		return m.OldInvoiceAt(ctx)
 	case billinginvoiceline.FieldOverrideCollectionPeriodEnd:
 		return m.OldOverrideCollectionPeriodEnd(ctx)
+	case billinginvoiceline.FieldInvoicingAppTaxCode:
+		return m.OldInvoicingAppTaxCode(ctx)
 	case billinginvoiceline.FieldType:
 		return m.OldType(ctx)
 	case billinginvoiceline.FieldStatus:
@@ -24287,6 +24344,13 @@ func (m *BillingInvoiceLineMutation) SetField(name string, value ent.Value) erro
 		}
 		m.SetOverrideCollectionPeriodEnd(v)
 		return nil
+	case billinginvoiceline.FieldInvoicingAppTaxCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInvoicingAppTaxCode(v)
+		return nil
 	case billinginvoiceline.FieldType:
 		v, ok := value.(billing.InvoiceLineAdapterType)
 		if !ok {
@@ -24445,6 +24509,9 @@ func (m *BillingInvoiceLineMutation) ClearedFields() []string {
 	if m.FieldCleared(billinginvoiceline.FieldOverrideCollectionPeriodEnd) {
 		fields = append(fields, billinginvoiceline.FieldOverrideCollectionPeriodEnd)
 	}
+	if m.FieldCleared(billinginvoiceline.FieldInvoicingAppTaxCode) {
+		fields = append(fields, billinginvoiceline.FieldInvoicingAppTaxCode)
+	}
 	if m.FieldCleared(billinginvoiceline.FieldQuantity) {
 		fields = append(fields, billinginvoiceline.FieldQuantity)
 	}
@@ -24521,6 +24588,9 @@ func (m *BillingInvoiceLineMutation) ClearField(name string) error {
 		return nil
 	case billinginvoiceline.FieldOverrideCollectionPeriodEnd:
 		m.ClearOverrideCollectionPeriodEnd()
+		return nil
+	case billinginvoiceline.FieldInvoicingAppTaxCode:
+		m.ClearInvoicingAppTaxCode()
 		return nil
 	case billinginvoiceline.FieldQuantity:
 		m.ClearQuantity()
@@ -24646,6 +24716,9 @@ func (m *BillingInvoiceLineMutation) ResetField(name string) error {
 		return nil
 	case billinginvoiceline.FieldOverrideCollectionPeriodEnd:
 		m.ResetOverrideCollectionPeriodEnd()
+		return nil
+	case billinginvoiceline.FieldInvoicingAppTaxCode:
+		m.ResetInvoicingAppTaxCode()
 		return nil
 	case billinginvoiceline.FieldType:
 		m.ResetType()
