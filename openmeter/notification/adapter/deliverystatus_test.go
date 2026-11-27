@@ -867,12 +867,13 @@ func TestDeliveryStatusDispatchGenerationPreservation(t *testing.T) {
 
 					assert.Equal(t, 1, stored.DispatchGeneration)
 
-					// Simulate an old binary that omits the new column from its INSERT.
+					// Simulate an old binary creating a delivery for another destination.
+					otherChannel := seedChannel(t, env, namespace)
 					var sqlDefault int
 					err = env.sqlDB.QueryRowContext(t.Context(),
 						`INSERT INTO notification_event_delivery_status (id, namespace, event_id, channel_id, created_at, updated_at)
 						VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING dispatch_generation`,
-						ulid.Make().String(), namespace, event.ID, channel.ID,
+						ulid.Make().String(), namespace, event.ID, otherChannel.ID,
 					).Scan(&sqlDefault)
 					require.NoError(t, err)
 
@@ -946,13 +947,14 @@ func TestDeliveryStatusDispatchGenerationValidation(t *testing.T) {
 
 			id := event.DeliveryStatus[0].ID
 			createdID := ulid.Make().String()
+			otherChannel := seedChannel(t, env, namespace)
 
 			// when: Ent create, single update and bulk update receive the candidate value
 			_, createErr := env.db.NotificationEventDeliveryStatus.Create().
 				SetID(createdID).
 				SetNamespace(namespace).
 				SetEventID(event.ID).
-				SetChannelID(channel.ID).
+				SetChannelID(otherChannel.ID).
 				SetDispatchGeneration(tt.generation).
 				Save(t.Context())
 

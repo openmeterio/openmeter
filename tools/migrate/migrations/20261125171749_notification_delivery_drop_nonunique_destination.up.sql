@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY "notificationeventdeliverystatus_namespace_event_id_channel_id";

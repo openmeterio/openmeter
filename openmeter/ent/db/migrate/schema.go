@@ -5126,8 +5126,8 @@ var (
 				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[0]},
 			},
 			{
-				Name:    "notificationeventdeliverystatus_namespace_event_id_channel_id",
-				Unique:  false,
+				Name:    "notification_delivery_destination_unique",
+				Unique:  true,
 				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[5], NotificationEventDeliveryStatusColumns[6]},
 			},
 			{
