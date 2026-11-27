@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -88,6 +89,12 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 			expected:   `{"features":[{"id":"` + featureA + `"}]}`,
 			reuse:      true,
 			deleteHour: new(3),
+		},
+		{
+			name:      "key resolves to pinned ID despite another feature using that ID as a key",
+			config:    `{"features":["a"]}`,
+			expected:  `{"features":[{"id":"` + featureA + `"}]}`,
+			collision: true,
 		},
 		{
 			name:      "object ID stays pinned when another feature uses the ID as a key",
@@ -360,8 +367,8 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 						require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT config::text FROM notification_rules WHERE id=$1`, targetID).Scan(&actual))
 						require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT config::text FROM notification_rules WHERE id=$1`, precedingID).Scan(&preceding))
 
-						require.JSONEq(t, before, actual)
-						require.JSONEq(t, `{"features":["b"]}`, preceding)
+						require.Equal(t, decodeJSONWithNumbers(t, before), decodeJSONWithNumbers(t, actual))
+						require.Equal(t, decodeJSONWithNumbers(t, `{"features":["b"]}`), decodeJSONWithNumbers(t, preceding))
 
 						return
 					}
@@ -380,20 +387,41 @@ func TestNotificationRuleFeatureIDsMigration(t *testing.T) {
 					expectedBytes, err := json.Marshal(expectedJSON)
 					require.NoError(t, err)
 
-					require.JSONEq(t, string(expectedBytes), actual)
-					require.JSONEq(t, attributes, afterAttributes)
+					require.Equal(t, decodeJSONWithNumbers(t, string(expectedBytes)), decodeJSONWithNumbers(t, actual))
+					require.Equal(t, decodeJSONWithNumbers(t, attributes), decodeJSONWithNumbers(t, afterAttributes))
 
-					for _, direction := range []string{"up", "down"} {
+					for _, direction := range []string{"up", "down", "up"} {
 						_, err = tx.ExecContext(t.Context(), scripts[direction])
 						require.NoError(t, err)
 
 						var repeated string
 						require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT config::text FROM notification_rules WHERE id=$1`, targetID).Scan(&repeated))
 
-						require.JSONEq(t, actual, repeated)
+						require.Equal(t, decodeJSONWithNumbers(t, actual), decodeJSONWithNumbers(t, repeated))
+
+						// Resolved ID objects must not become ambiguous on a later preflight.
+						rows, err := tx.QueryContext(t.Context(), string(preflight))
+						require.NoError(t, err)
+
+						require.False(t, rows.Next())
+						require.NoError(t, rows.Err())
+						require.NoError(t, rows.Close())
 					}
 				})
 			}
 		})
 	}
+}
+
+// decodeJSONWithNumbers preserves exact JSON numbers when comparing migrated documents.
+func decodeJSONWithNumbers(t *testing.T, data string) any {
+	t.Helper()
+
+	decoder := json.NewDecoder(strings.NewReader(data))
+	decoder.UseNumber()
+
+	var decoded any
+	require.NoError(t, decoder.Decode(&decoded))
+
+	return decoded
 }
