@@ -12,6 +12,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 
 	balanceworkerevents "github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker/events"
 	ingestevents "github.com/openmeterio/openmeter/openmeter/sink/flushhandler/ingestnotification/events"
@@ -141,6 +143,14 @@ func New(opts Options) (Publisher, error) {
 			default:
 				return opts.TopicMapping.SystemEventsTopic, nil
 			}
+		},
+
+		// The trace context travels in the message metadata: the Kafka marshaler maps metadata to
+		// headers and the outbox stores it with the row, so a consumer can continue the trace.
+		OnPublish: func(params cqrs.OnEventSendParams) error {
+			otel.GetTextMapPropagator().Inject(params.Message.Context(), propagation.MapCarrier(params.Message.Metadata))
+
+			return nil
 		},
 
 		Marshaler: marshaler,

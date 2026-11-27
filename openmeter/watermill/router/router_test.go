@@ -13,8 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/app/config"
 )
@@ -370,6 +374,110 @@ func TestDefaultRouterCloseDuringDelivery(t *testing.T) {
 			}
 
 			require.Zero(t, dlq.calls)
+		})
+	}
+}
+
+func TestDefaultRouterTraceContext(t *testing.T) {
+	previousPropagator := otel.GetTextMapPropagator()
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	t.Cleanup(func() { otel.SetTextMapPropagator(previousPropagator) })
+
+	publisherSpanContext := trace.NewSpanContext(trace.SpanContextConfig{
+		TraceID:    trace.TraceID{0x01},
+		SpanID:     trace.SpanID{0x02},
+		TraceFlags: trace.FlagsSampled,
+	})
+
+	tcs := []struct {
+		Name      string
+		Publisher trace.SpanContext
+	}{
+		{Name: "message with a trace context continues the publisher's trace", Publisher: publisherSpanContext},
+		{Name: "message without a trace context starts a new trace"},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.Name, func(t *testing.T) {
+			inMemoryPubSub := gochannel.NewGoChannel(
+				gochannel.Config{OutputChannelBuffer: 10},
+				watermill.NewSlogLogger(slog.Default()),
+			)
+			t.Cleanup(func() { require.NoError(t, inMemoryPubSub.Close()) })
+
+			recorder := tracetest.NewSpanRecorder()
+
+			router, err := NewDefaultRouter(Options{
+				Subscriber:  inMemoryPubSub,
+				Publisher:   inMemoryPubSub,
+				Logger:      slog.Default(),
+				MetricMeter: sdkmetric.NewMeterProvider().Meter("router_test"),
+				Tracer:      sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder)).Tracer("router_test"),
+				Config: config.ConsumerConfiguration{
+					ConsumerGroupName: "test-group",
+					DLQ:               config.DLQConfiguration{Topic: "test-dlq"},
+					Retry: config.RetryConfiguration{
+						InitialInterval: 100 * time.Millisecond,
+						MaxInterval:     100 * time.Millisecond,
+					},
+				},
+			})
+			require.NoError(t, err)
+
+			const topicName = "testTopic"
+
+			handlerSpanContexts := make(chan trace.SpanContext, 1)
+
+			router.AddConsumerHandler("test", topicName, inMemoryPubSub, func(msg *message.Message) error {
+				handlerSpanContexts <- trace.SpanContextFromContext(msg.Context())
+
+				return nil
+			})
+
+			go func() {
+				_ = router.Run(t.Context())
+			}()
+
+			<-router.Running()
+			t.Cleanup(func() { _ = router.Close() })
+
+			msg := message.NewMessage(watermill.NewUUID(), []byte("testPayload"))
+			otel.GetTextMapPropagator().Inject(
+				trace.ContextWithSpanContext(t.Context(), tc.Publisher),
+				propagation.MapCarrier(msg.Metadata),
+			)
+
+			require.NoError(t, inMemoryPubSub.Publish(topicName, msg))
+
+			var handlerSpanContext trace.SpanContext
+			select {
+			case handlerSpanContext = <-handlerSpanContexts:
+			case <-time.After(10 * time.Second):
+				require.FailNow(t, "timed out waiting for the handler")
+			}
+
+			var routerSpan sdktrace.ReadOnlySpan
+			require.Eventually(t, func() bool {
+				for _, span := range recorder.Ended() {
+					if span.Name() == "watermill.router.full_message_processing" {
+						routerSpan = span
+
+						return true
+					}
+				}
+
+				return false
+			}, 10*time.Second, 10*time.Millisecond)
+
+			require.Equal(t, routerSpan.SpanContext().TraceID(), handlerSpanContext.TraceID())
+
+			if tc.Publisher.IsValid() {
+				require.Equal(t, tc.Publisher.TraceID(), routerSpan.SpanContext().TraceID())
+				require.Equal(t, tc.Publisher.SpanID(), routerSpan.Parent().SpanID())
+				require.True(t, routerSpan.Parent().IsRemote())
+			} else {
+				require.False(t, routerSpan.Parent().IsValid())
+			}
 		})
 	}
 }
