@@ -283,197 +283,216 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 	}
 }
 
+// The write observers are built once and shared by every client: a transactional client
+// is created for each repository call, so building them per client would allocate for
+// every entity on every call.
+//
+// Sharing is safe because each slice is full: a client that registers its own hooks or
+// interceptors appends into a new array and leaves these untouched.
+var (
+	writeObserverHooks = hooks{
+		Addon:                              []Hook{entutils.WriteObserverHook},
+		AddonRateCard:                      []Hook{entutils.WriteObserverHook},
+		App:                                []Hook{entutils.WriteObserverHook},
+		AppCustomInvoicing:                 []Hook{entutils.WriteObserverHook},
+		AppCustomInvoicingCustomer:         []Hook{entutils.WriteObserverHook},
+		AppCustomer:                        []Hook{entutils.WriteObserverHook},
+		AppStripe:                          []Hook{entutils.WriteObserverHook},
+		AppStripeCustomer:                  []Hook{entutils.WriteObserverHook},
+		AppStripeInvoiceGeneration:         []Hook{entutils.WriteObserverHook},
+		BalanceSnapshot:                    []Hook{entutils.WriteObserverHook},
+		BillingCustomerLock:                []Hook{entutils.WriteObserverHook},
+		BillingCustomerOverride:            []Hook{entutils.WriteObserverHook},
+		BillingGatheringInvoiceLine:        []Hook{entutils.WriteObserverHook},
+		BillingInvoice:                     []Hook{entutils.WriteObserverHook},
+		BillingInvoiceLine:                 []Hook{entutils.WriteObserverHook},
+		BillingInvoiceLineUsageDiscount:    []Hook{entutils.WriteObserverHook},
+		BillingInvoiceSplitLineGroup:       []Hook{entutils.WriteObserverHook},
+		BillingInvoiceUsageBasedLineConfig: []Hook{entutils.WriteObserverHook},
+		BillingInvoiceValidationIssue:      []Hook{entutils.WriteObserverHook},
+		BillingInvoiceWriteSchemaLevel:     []Hook{entutils.WriteObserverHook},
+		BillingProfile:                     []Hook{entutils.WriteObserverHook},
+		BillingSequenceNumbers:             []Hook{entutils.WriteObserverHook},
+		BillingStandardInvoiceDetailedLine: []Hook{entutils.WriteObserverHook},
+		BillingStandardInvoiceDetailedLineAmountDiscount: []Hook{entutils.WriteObserverHook},
+		BillingWorkflowConfig:                            []Hook{entutils.WriteObserverHook},
+		Charge:                                           []Hook{entutils.WriteObserverHook},
+		ChargeCreditPurchase:                             []Hook{entutils.WriteObserverHook},
+		ChargeCreditPurchaseCostBasis:                    []Hook{entutils.WriteObserverHook},
+		ChargeCreditPurchaseCreditGrant:                  []Hook{entutils.WriteObserverHook},
+		ChargeCreditPurchaseExternalPayment:              []Hook{entutils.WriteObserverHook},
+		ChargeCreditPurchaseInvoicedPayment:              []Hook{entutils.WriteObserverHook},
+		ChargeFlatFee:                                    []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeCostBasis:                           []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeOverride:                            []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeRun:                                 []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeRunCreditAllocations:                []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeRunDetailedLine:                     []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeRunInvoicedUsage:                    []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeRunOverageCreditAllocations:         []Hook{entutils.WriteObserverHook},
+		ChargeFlatFeeRunPayment:                          []Hook{entutils.WriteObserverHook},
+		ChargeUsageBased:                                 []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedCostBasis:                        []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedOverride:                         []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedRunCreditAllocations:             []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedRunDetailedLine:                  []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedRunInvoicedUsage:                 []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedRunOverageCreditAllocations:      []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedRunPayment:                       []Hook{entutils.WriteObserverHook},
+		ChargeUsageBasedRuns:                             []Hook{entutils.WriteObserverHook},
+		CreditRealizationLineage:                         []Hook{entutils.WriteObserverHook},
+		CreditRealizationLineageSegment:                  []Hook{entutils.WriteObserverHook},
+		CurrencyCostBasis:                                []Hook{entutils.WriteObserverHook},
+		CustomCurrency:                                   []Hook{entutils.WriteObserverHook},
+		Customer:                                         []Hook{entutils.WriteObserverHook},
+		CustomerSubjects:                                 []Hook{entutils.WriteObserverHook},
+		Entitlement:                                      []Hook{entutils.WriteObserverHook},
+		EventOutbox:                                      []Hook{entutils.WriteObserverHook},
+		Feature:                                          []Hook{entutils.WriteObserverHook},
+		Grant:                                            []Hook{entutils.WriteObserverHook},
+		LLMCostPrice:                                     []Hook{entutils.WriteObserverHook},
+		LedgerAccount:                                    []Hook{entutils.WriteObserverHook},
+		LedgerBreakageRecord:                             []Hook{entutils.WriteObserverHook},
+		LedgerCreditVoidRecord:                           []Hook{entutils.WriteObserverHook},
+		LedgerCustomerAccount:                            []Hook{entutils.WriteObserverHook},
+		LedgerEntry:                                      []Hook{entutils.WriteObserverHook},
+		LedgerSubAccount:                                 []Hook{entutils.WriteObserverHook},
+		LedgerSubAccountRoute:                            []Hook{entutils.WriteObserverHook},
+		LedgerTransaction:                                []Hook{entutils.WriteObserverHook},
+		LedgerTransactionGroup:                           []Hook{entutils.WriteObserverHook},
+		Meter:                                            []Hook{entutils.WriteObserverHook},
+		NotificationChannel:                              []Hook{entutils.WriteObserverHook},
+		NotificationEvent:                                []Hook{entutils.WriteObserverHook},
+		NotificationEventDeliveryStatus:                  []Hook{entutils.WriteObserverHook},
+		NotificationRule:                                 []Hook{entutils.WriteObserverHook},
+		OrganizationDefaultTaxCodes:                      []Hook{entutils.WriteObserverHook},
+		Plan:                                             []Hook{entutils.WriteObserverHook},
+		PlanAddon:                                        []Hook{entutils.WriteObserverHook},
+		PlanPhase:                                        []Hook{entutils.WriteObserverHook},
+		PlanRateCard:                                     []Hook{entutils.WriteObserverHook},
+		RTECreditBalance:                                 []Hook{entutils.WriteObserverHook},
+		RTEDemand:                                        []Hook{entutils.WriteObserverHook},
+		RTEDemandLock:                                    []Hook{entutils.WriteObserverHook},
+		RTEMeteredEntitlementBalance:                     []Hook{entutils.WriteObserverHook},
+		Subject:                                          []Hook{entutils.WriteObserverHook},
+		Subscription:                                     []Hook{entutils.WriteObserverHook},
+		SubscriptionAddon:                                []Hook{entutils.WriteObserverHook},
+		SubscriptionAddonQuantity:                        []Hook{entutils.WriteObserverHook},
+		SubscriptionCostBasisPin:                         []Hook{entutils.WriteObserverHook},
+		SubscriptionItem:                                 []Hook{entutils.WriteObserverHook},
+		SubscriptionPhase:                                []Hook{entutils.WriteObserverHook},
+		SubscriptionSyncState:                            []Hook{entutils.WriteObserverHook},
+		TaxCode:                                          []Hook{entutils.WriteObserverHook},
+		UsageReset:                                       []Hook{entutils.WriteObserverHook},
+	}
+
+	writeObserverInters = inters{
+		Addon:                              []Interceptor{entutils.WriteObserverInterceptor(TypeAddon)},
+		AddonRateCard:                      []Interceptor{entutils.WriteObserverInterceptor(TypeAddonRateCard)},
+		App:                                []Interceptor{entutils.WriteObserverInterceptor(TypeApp)},
+		AppCustomInvoicing:                 []Interceptor{entutils.WriteObserverInterceptor(TypeAppCustomInvoicing)},
+		AppCustomInvoicingCustomer:         []Interceptor{entutils.WriteObserverInterceptor(TypeAppCustomInvoicingCustomer)},
+		AppCustomer:                        []Interceptor{entutils.WriteObserverInterceptor(TypeAppCustomer)},
+		AppStripe:                          []Interceptor{entutils.WriteObserverInterceptor(TypeAppStripe)},
+		AppStripeCustomer:                  []Interceptor{entutils.WriteObserverInterceptor(TypeAppStripeCustomer)},
+		AppStripeInvoiceGeneration:         []Interceptor{entutils.WriteObserverInterceptor(TypeAppStripeInvoiceGeneration)},
+		BalanceSnapshot:                    []Interceptor{entutils.WriteObserverInterceptor(TypeBalanceSnapshot)},
+		BillingCustomerLock:                []Interceptor{entutils.WriteObserverInterceptor(TypeBillingCustomerLock)},
+		BillingCustomerOverride:            []Interceptor{entutils.WriteObserverInterceptor(TypeBillingCustomerOverride)},
+		BillingGatheringInvoiceLine:        []Interceptor{entutils.WriteObserverInterceptor(TypeBillingGatheringInvoiceLine)},
+		BillingInvoice:                     []Interceptor{entutils.WriteObserverInterceptor(TypeBillingInvoice)},
+		BillingInvoiceLine:                 []Interceptor{entutils.WriteObserverInterceptor(TypeBillingInvoiceLine)},
+		BillingInvoiceLineUsageDiscount:    []Interceptor{entutils.WriteObserverInterceptor(TypeBillingInvoiceLineUsageDiscount)},
+		BillingInvoiceSplitLineGroup:       []Interceptor{entutils.WriteObserverInterceptor(TypeBillingInvoiceSplitLineGroup)},
+		BillingInvoiceUsageBasedLineConfig: []Interceptor{entutils.WriteObserverInterceptor(TypeBillingInvoiceUsageBasedLineConfig)},
+		BillingInvoiceValidationIssue:      []Interceptor{entutils.WriteObserverInterceptor(TypeBillingInvoiceValidationIssue)},
+		BillingInvoiceWriteSchemaLevel:     []Interceptor{entutils.WriteObserverInterceptor(TypeBillingInvoiceWriteSchemaLevel)},
+		BillingProfile:                     []Interceptor{entutils.WriteObserverInterceptor(TypeBillingProfile)},
+		BillingSequenceNumbers:             []Interceptor{entutils.WriteObserverInterceptor(TypeBillingSequenceNumbers)},
+		BillingStandardInvoiceDetailedLine: []Interceptor{entutils.WriteObserverInterceptor(TypeBillingStandardInvoiceDetailedLine)},
+		BillingStandardInvoiceDetailedLineAmountDiscount: []Interceptor{entutils.WriteObserverInterceptor(TypeBillingStandardInvoiceDetailedLineAmountDiscount)},
+		BillingWorkflowConfig:                            []Interceptor{entutils.WriteObserverInterceptor(TypeBillingWorkflowConfig)},
+		Charge:                                           []Interceptor{entutils.WriteObserverInterceptor(TypeCharge)},
+		ChargeCreditPurchase:                             []Interceptor{entutils.WriteObserverInterceptor(TypeChargeCreditPurchase)},
+		ChargeCreditPurchaseCostBasis:                    []Interceptor{entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseCostBasis)},
+		ChargeCreditPurchaseCreditGrant:                  []Interceptor{entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseCreditGrant)},
+		ChargeCreditPurchaseExternalPayment:              []Interceptor{entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseExternalPayment)},
+		ChargeCreditPurchaseInvoicedPayment:              []Interceptor{entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseInvoicedPayment)},
+		ChargeFlatFee:                                    []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFee)},
+		ChargeFlatFeeCostBasis:                           []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeCostBasis)},
+		ChargeFlatFeeOverride:                            []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeOverride)},
+		ChargeFlatFeeRun:                                 []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeRun)},
+		ChargeFlatFeeRunCreditAllocations:                []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunCreditAllocations)},
+		ChargeFlatFeeRunDetailedLine:                     []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunDetailedLine)},
+		ChargeFlatFeeRunInvoicedUsage:                    []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunInvoicedUsage)},
+		ChargeFlatFeeRunOverageCreditAllocations:         []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunOverageCreditAllocations)},
+		ChargeFlatFeeRunPayment:                          []Interceptor{entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunPayment)},
+		ChargeUsageBased:                                 []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBased)},
+		ChargeUsageBasedCostBasis:                        []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedCostBasis)},
+		ChargeUsageBasedOverride:                         []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedOverride)},
+		ChargeUsageBasedRunCreditAllocations:             []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunCreditAllocations)},
+		ChargeUsageBasedRunDetailedLine:                  []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunDetailedLine)},
+		ChargeUsageBasedRunInvoicedUsage:                 []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunInvoicedUsage)},
+		ChargeUsageBasedRunOverageCreditAllocations:      []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunOverageCreditAllocations)},
+		ChargeUsageBasedRunPayment:                       []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunPayment)},
+		ChargeUsageBasedRuns:                             []Interceptor{entutils.WriteObserverInterceptor(TypeChargeUsageBasedRuns)},
+		ChargesSearchV1:                                  []Interceptor{entutils.WriteObserverInterceptor(TypeChargesSearchV1)},
+		CreditRealizationLineage:                         []Interceptor{entutils.WriteObserverInterceptor(TypeCreditRealizationLineage)},
+		CreditRealizationLineageSegment:                  []Interceptor{entutils.WriteObserverInterceptor(TypeCreditRealizationLineageSegment)},
+		CurrencyCostBasis:                                []Interceptor{entutils.WriteObserverInterceptor(TypeCurrencyCostBasis)},
+		CustomCurrency:                                   []Interceptor{entutils.WriteObserverInterceptor(TypeCustomCurrency)},
+		Customer:                                         []Interceptor{entutils.WriteObserverInterceptor(TypeCustomer)},
+		CustomerSubjects:                                 []Interceptor{entutils.WriteObserverInterceptor(TypeCustomerSubjects)},
+		Entitlement:                                      []Interceptor{entutils.WriteObserverInterceptor(TypeEntitlement)},
+		EventOutbox:                                      []Interceptor{entutils.WriteObserverInterceptor(TypeEventOutbox)},
+		Feature:                                          []Interceptor{entutils.WriteObserverInterceptor(TypeFeature)},
+		Grant:                                            []Interceptor{entutils.WriteObserverInterceptor(TypeGrant)},
+		LLMCostPrice:                                     []Interceptor{entutils.WriteObserverInterceptor(TypeLLMCostPrice)},
+		LedgerAccount:                                    []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerAccount)},
+		LedgerBreakageRecord:                             []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerBreakageRecord)},
+		LedgerCreditVoidRecord:                           []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerCreditVoidRecord)},
+		LedgerCustomerAccount:                            []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerCustomerAccount)},
+		LedgerEntry:                                      []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerEntry)},
+		LedgerSubAccount:                                 []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerSubAccount)},
+		LedgerSubAccountRoute:                            []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerSubAccountRoute)},
+		LedgerTransaction:                                []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerTransaction)},
+		LedgerTransactionGroup:                           []Interceptor{entutils.WriteObserverInterceptor(TypeLedgerTransactionGroup)},
+		Meter:                                            []Interceptor{entutils.WriteObserverInterceptor(TypeMeter)},
+		NotificationChannel:                              []Interceptor{entutils.WriteObserverInterceptor(TypeNotificationChannel)},
+		NotificationEvent:                                []Interceptor{entutils.WriteObserverInterceptor(TypeNotificationEvent)},
+		NotificationEventDeliveryStatus:                  []Interceptor{entutils.WriteObserverInterceptor(TypeNotificationEventDeliveryStatus)},
+		NotificationRule:                                 []Interceptor{entutils.WriteObserverInterceptor(TypeNotificationRule)},
+		OrganizationDefaultTaxCodes:                      []Interceptor{entutils.WriteObserverInterceptor(TypeOrganizationDefaultTaxCodes)},
+		Plan:                                             []Interceptor{entutils.WriteObserverInterceptor(TypePlan)},
+		PlanAddon:                                        []Interceptor{entutils.WriteObserverInterceptor(TypePlanAddon)},
+		PlanPhase:                                        []Interceptor{entutils.WriteObserverInterceptor(TypePlanPhase)},
+		PlanRateCard:                                     []Interceptor{entutils.WriteObserverInterceptor(TypePlanRateCard)},
+		RTECreditBalance:                                 []Interceptor{entutils.WriteObserverInterceptor(TypeRTECreditBalance)},
+		RTEDemand:                                        []Interceptor{entutils.WriteObserverInterceptor(TypeRTEDemand)},
+		RTEDemandLock:                                    []Interceptor{entutils.WriteObserverInterceptor(TypeRTEDemandLock)},
+		RTEMeteredEntitlementBalance:                     []Interceptor{entutils.WriteObserverInterceptor(TypeRTEMeteredEntitlementBalance)},
+		Subject:                                          []Interceptor{entutils.WriteObserverInterceptor(TypeSubject)},
+		Subscription:                                     []Interceptor{entutils.WriteObserverInterceptor(TypeSubscription)},
+		SubscriptionAddon:                                []Interceptor{entutils.WriteObserverInterceptor(TypeSubscriptionAddon)},
+		SubscriptionAddonQuantity:                        []Interceptor{entutils.WriteObserverInterceptor(TypeSubscriptionAddonQuantity)},
+		SubscriptionCostBasisPin:                         []Interceptor{entutils.WriteObserverInterceptor(TypeSubscriptionCostBasisPin)},
+		SubscriptionItem:                                 []Interceptor{entutils.WriteObserverInterceptor(TypeSubscriptionItem)},
+		SubscriptionPhase:                                []Interceptor{entutils.WriteObserverInterceptor(TypeSubscriptionPhase)},
+		SubscriptionSyncState:                            []Interceptor{entutils.WriteObserverInterceptor(TypeSubscriptionSyncState)},
+		TaxCode:                                          []Interceptor{entutils.WriteObserverInterceptor(TypeTaxCode)},
+		UsageReset:                                       []Interceptor{entutils.WriteObserverInterceptor(TypeUsageReset)},
+	}
+)
+
 // installWriteObservers makes every client report the writes it attempts to the write
 // observer of the context (see transaction.WithWriteObserver). It runs for every client
 // the package can build, so no caller has to remember to register it.
+//
+// It replaces the hooks and interceptors of the config, so it must run before any other
+// is registered.
 func (c *config) installWriteObservers() {
-	c.hooks.Addon = append(c.hooks.Addon, entutils.WriteObserverHook)
-	c.hooks.AddonRateCard = append(c.hooks.AddonRateCard, entutils.WriteObserverHook)
-	c.hooks.App = append(c.hooks.App, entutils.WriteObserverHook)
-	c.hooks.AppCustomInvoicing = append(c.hooks.AppCustomInvoicing, entutils.WriteObserverHook)
-	c.hooks.AppCustomInvoicingCustomer = append(c.hooks.AppCustomInvoicingCustomer, entutils.WriteObserverHook)
-	c.hooks.AppCustomer = append(c.hooks.AppCustomer, entutils.WriteObserverHook)
-	c.hooks.AppStripe = append(c.hooks.AppStripe, entutils.WriteObserverHook)
-	c.hooks.AppStripeCustomer = append(c.hooks.AppStripeCustomer, entutils.WriteObserverHook)
-	c.hooks.AppStripeInvoiceGeneration = append(c.hooks.AppStripeInvoiceGeneration, entutils.WriteObserverHook)
-	c.hooks.BalanceSnapshot = append(c.hooks.BalanceSnapshot, entutils.WriteObserverHook)
-	c.hooks.BillingCustomerLock = append(c.hooks.BillingCustomerLock, entutils.WriteObserverHook)
-	c.hooks.BillingCustomerOverride = append(c.hooks.BillingCustomerOverride, entutils.WriteObserverHook)
-	c.hooks.BillingGatheringInvoiceLine = append(c.hooks.BillingGatheringInvoiceLine, entutils.WriteObserverHook)
-	c.hooks.BillingInvoice = append(c.hooks.BillingInvoice, entutils.WriteObserverHook)
-	c.hooks.BillingInvoiceLine = append(c.hooks.BillingInvoiceLine, entutils.WriteObserverHook)
-	c.hooks.BillingInvoiceLineUsageDiscount = append(c.hooks.BillingInvoiceLineUsageDiscount, entutils.WriteObserverHook)
-	c.hooks.BillingInvoiceSplitLineGroup = append(c.hooks.BillingInvoiceSplitLineGroup, entutils.WriteObserverHook)
-	c.hooks.BillingInvoiceUsageBasedLineConfig = append(c.hooks.BillingInvoiceUsageBasedLineConfig, entutils.WriteObserverHook)
-	c.hooks.BillingInvoiceValidationIssue = append(c.hooks.BillingInvoiceValidationIssue, entutils.WriteObserverHook)
-	c.hooks.BillingInvoiceWriteSchemaLevel = append(c.hooks.BillingInvoiceWriteSchemaLevel, entutils.WriteObserverHook)
-	c.hooks.BillingProfile = append(c.hooks.BillingProfile, entutils.WriteObserverHook)
-	c.hooks.BillingSequenceNumbers = append(c.hooks.BillingSequenceNumbers, entutils.WriteObserverHook)
-	c.hooks.BillingStandardInvoiceDetailedLine = append(c.hooks.BillingStandardInvoiceDetailedLine, entutils.WriteObserverHook)
-	c.hooks.BillingStandardInvoiceDetailedLineAmountDiscount = append(c.hooks.BillingStandardInvoiceDetailedLineAmountDiscount, entutils.WriteObserverHook)
-	c.hooks.BillingWorkflowConfig = append(c.hooks.BillingWorkflowConfig, entutils.WriteObserverHook)
-	c.hooks.Charge = append(c.hooks.Charge, entutils.WriteObserverHook)
-	c.hooks.ChargeCreditPurchase = append(c.hooks.ChargeCreditPurchase, entutils.WriteObserverHook)
-	c.hooks.ChargeCreditPurchaseCostBasis = append(c.hooks.ChargeCreditPurchaseCostBasis, entutils.WriteObserverHook)
-	c.hooks.ChargeCreditPurchaseCreditGrant = append(c.hooks.ChargeCreditPurchaseCreditGrant, entutils.WriteObserverHook)
-	c.hooks.ChargeCreditPurchaseExternalPayment = append(c.hooks.ChargeCreditPurchaseExternalPayment, entutils.WriteObserverHook)
-	c.hooks.ChargeCreditPurchaseInvoicedPayment = append(c.hooks.ChargeCreditPurchaseInvoicedPayment, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFee = append(c.hooks.ChargeFlatFee, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeCostBasis = append(c.hooks.ChargeFlatFeeCostBasis, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeOverride = append(c.hooks.ChargeFlatFeeOverride, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeRun = append(c.hooks.ChargeFlatFeeRun, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeRunCreditAllocations = append(c.hooks.ChargeFlatFeeRunCreditAllocations, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeRunDetailedLine = append(c.hooks.ChargeFlatFeeRunDetailedLine, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeRunInvoicedUsage = append(c.hooks.ChargeFlatFeeRunInvoicedUsage, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeRunOverageCreditAllocations = append(c.hooks.ChargeFlatFeeRunOverageCreditAllocations, entutils.WriteObserverHook)
-	c.hooks.ChargeFlatFeeRunPayment = append(c.hooks.ChargeFlatFeeRunPayment, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBased = append(c.hooks.ChargeUsageBased, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedCostBasis = append(c.hooks.ChargeUsageBasedCostBasis, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedOverride = append(c.hooks.ChargeUsageBasedOverride, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedRunCreditAllocations = append(c.hooks.ChargeUsageBasedRunCreditAllocations, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedRunDetailedLine = append(c.hooks.ChargeUsageBasedRunDetailedLine, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedRunInvoicedUsage = append(c.hooks.ChargeUsageBasedRunInvoicedUsage, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedRunOverageCreditAllocations = append(c.hooks.ChargeUsageBasedRunOverageCreditAllocations, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedRunPayment = append(c.hooks.ChargeUsageBasedRunPayment, entutils.WriteObserverHook)
-	c.hooks.ChargeUsageBasedRuns = append(c.hooks.ChargeUsageBasedRuns, entutils.WriteObserverHook)
-	c.hooks.CreditRealizationLineage = append(c.hooks.CreditRealizationLineage, entutils.WriteObserverHook)
-	c.hooks.CreditRealizationLineageSegment = append(c.hooks.CreditRealizationLineageSegment, entutils.WriteObserverHook)
-	c.hooks.CurrencyCostBasis = append(c.hooks.CurrencyCostBasis, entutils.WriteObserverHook)
-	c.hooks.CustomCurrency = append(c.hooks.CustomCurrency, entutils.WriteObserverHook)
-	c.hooks.Customer = append(c.hooks.Customer, entutils.WriteObserverHook)
-	c.hooks.CustomerSubjects = append(c.hooks.CustomerSubjects, entutils.WriteObserverHook)
-	c.hooks.Entitlement = append(c.hooks.Entitlement, entutils.WriteObserverHook)
-	c.hooks.EventOutbox = append(c.hooks.EventOutbox, entutils.WriteObserverHook)
-	c.hooks.Feature = append(c.hooks.Feature, entutils.WriteObserverHook)
-	c.hooks.Grant = append(c.hooks.Grant, entutils.WriteObserverHook)
-	c.hooks.LLMCostPrice = append(c.hooks.LLMCostPrice, entutils.WriteObserverHook)
-	c.hooks.LedgerAccount = append(c.hooks.LedgerAccount, entutils.WriteObserverHook)
-	c.hooks.LedgerBreakageRecord = append(c.hooks.LedgerBreakageRecord, entutils.WriteObserverHook)
-	c.hooks.LedgerCreditVoidRecord = append(c.hooks.LedgerCreditVoidRecord, entutils.WriteObserverHook)
-	c.hooks.LedgerCustomerAccount = append(c.hooks.LedgerCustomerAccount, entutils.WriteObserverHook)
-	c.hooks.LedgerEntry = append(c.hooks.LedgerEntry, entutils.WriteObserverHook)
-	c.hooks.LedgerSubAccount = append(c.hooks.LedgerSubAccount, entutils.WriteObserverHook)
-	c.hooks.LedgerSubAccountRoute = append(c.hooks.LedgerSubAccountRoute, entutils.WriteObserverHook)
-	c.hooks.LedgerTransaction = append(c.hooks.LedgerTransaction, entutils.WriteObserverHook)
-	c.hooks.LedgerTransactionGroup = append(c.hooks.LedgerTransactionGroup, entutils.WriteObserverHook)
-	c.hooks.Meter = append(c.hooks.Meter, entutils.WriteObserverHook)
-	c.hooks.NotificationChannel = append(c.hooks.NotificationChannel, entutils.WriteObserverHook)
-	c.hooks.NotificationEvent = append(c.hooks.NotificationEvent, entutils.WriteObserverHook)
-	c.hooks.NotificationEventDeliveryStatus = append(c.hooks.NotificationEventDeliveryStatus, entutils.WriteObserverHook)
-	c.hooks.NotificationRule = append(c.hooks.NotificationRule, entutils.WriteObserverHook)
-	c.hooks.OrganizationDefaultTaxCodes = append(c.hooks.OrganizationDefaultTaxCodes, entutils.WriteObserverHook)
-	c.hooks.Plan = append(c.hooks.Plan, entutils.WriteObserverHook)
-	c.hooks.PlanAddon = append(c.hooks.PlanAddon, entutils.WriteObserverHook)
-	c.hooks.PlanPhase = append(c.hooks.PlanPhase, entutils.WriteObserverHook)
-	c.hooks.PlanRateCard = append(c.hooks.PlanRateCard, entutils.WriteObserverHook)
-	c.hooks.RTECreditBalance = append(c.hooks.RTECreditBalance, entutils.WriteObserverHook)
-	c.hooks.RTEDemand = append(c.hooks.RTEDemand, entutils.WriteObserverHook)
-	c.hooks.RTEDemandLock = append(c.hooks.RTEDemandLock, entutils.WriteObserverHook)
-	c.hooks.RTEMeteredEntitlementBalance = append(c.hooks.RTEMeteredEntitlementBalance, entutils.WriteObserverHook)
-	c.hooks.Subject = append(c.hooks.Subject, entutils.WriteObserverHook)
-	c.hooks.Subscription = append(c.hooks.Subscription, entutils.WriteObserverHook)
-	c.hooks.SubscriptionAddon = append(c.hooks.SubscriptionAddon, entutils.WriteObserverHook)
-	c.hooks.SubscriptionAddonQuantity = append(c.hooks.SubscriptionAddonQuantity, entutils.WriteObserverHook)
-	c.hooks.SubscriptionCostBasisPin = append(c.hooks.SubscriptionCostBasisPin, entutils.WriteObserverHook)
-	c.hooks.SubscriptionItem = append(c.hooks.SubscriptionItem, entutils.WriteObserverHook)
-	c.hooks.SubscriptionPhase = append(c.hooks.SubscriptionPhase, entutils.WriteObserverHook)
-	c.hooks.SubscriptionSyncState = append(c.hooks.SubscriptionSyncState, entutils.WriteObserverHook)
-	c.hooks.TaxCode = append(c.hooks.TaxCode, entutils.WriteObserverHook)
-	c.hooks.UsageReset = append(c.hooks.UsageReset, entutils.WriteObserverHook)
-	c.inters.Addon = append(c.inters.Addon, entutils.WriteObserverInterceptor(TypeAddon))
-	c.inters.AddonRateCard = append(c.inters.AddonRateCard, entutils.WriteObserverInterceptor(TypeAddonRateCard))
-	c.inters.App = append(c.inters.App, entutils.WriteObserverInterceptor(TypeApp))
-	c.inters.AppCustomInvoicing = append(c.inters.AppCustomInvoicing, entutils.WriteObserverInterceptor(TypeAppCustomInvoicing))
-	c.inters.AppCustomInvoicingCustomer = append(c.inters.AppCustomInvoicingCustomer, entutils.WriteObserverInterceptor(TypeAppCustomInvoicingCustomer))
-	c.inters.AppCustomer = append(c.inters.AppCustomer, entutils.WriteObserverInterceptor(TypeAppCustomer))
-	c.inters.AppStripe = append(c.inters.AppStripe, entutils.WriteObserverInterceptor(TypeAppStripe))
-	c.inters.AppStripeCustomer = append(c.inters.AppStripeCustomer, entutils.WriteObserverInterceptor(TypeAppStripeCustomer))
-	c.inters.AppStripeInvoiceGeneration = append(c.inters.AppStripeInvoiceGeneration, entutils.WriteObserverInterceptor(TypeAppStripeInvoiceGeneration))
-	c.inters.BalanceSnapshot = append(c.inters.BalanceSnapshot, entutils.WriteObserverInterceptor(TypeBalanceSnapshot))
-	c.inters.BillingCustomerLock = append(c.inters.BillingCustomerLock, entutils.WriteObserverInterceptor(TypeBillingCustomerLock))
-	c.inters.BillingCustomerOverride = append(c.inters.BillingCustomerOverride, entutils.WriteObserverInterceptor(TypeBillingCustomerOverride))
-	c.inters.BillingGatheringInvoiceLine = append(c.inters.BillingGatheringInvoiceLine, entutils.WriteObserverInterceptor(TypeBillingGatheringInvoiceLine))
-	c.inters.BillingInvoice = append(c.inters.BillingInvoice, entutils.WriteObserverInterceptor(TypeBillingInvoice))
-	c.inters.BillingInvoiceLine = append(c.inters.BillingInvoiceLine, entutils.WriteObserverInterceptor(TypeBillingInvoiceLine))
-	c.inters.BillingInvoiceLineUsageDiscount = append(c.inters.BillingInvoiceLineUsageDiscount, entutils.WriteObserverInterceptor(TypeBillingInvoiceLineUsageDiscount))
-	c.inters.BillingInvoiceSplitLineGroup = append(c.inters.BillingInvoiceSplitLineGroup, entutils.WriteObserverInterceptor(TypeBillingInvoiceSplitLineGroup))
-	c.inters.BillingInvoiceUsageBasedLineConfig = append(c.inters.BillingInvoiceUsageBasedLineConfig, entutils.WriteObserverInterceptor(TypeBillingInvoiceUsageBasedLineConfig))
-	c.inters.BillingInvoiceValidationIssue = append(c.inters.BillingInvoiceValidationIssue, entutils.WriteObserverInterceptor(TypeBillingInvoiceValidationIssue))
-	c.inters.BillingInvoiceWriteSchemaLevel = append(c.inters.BillingInvoiceWriteSchemaLevel, entutils.WriteObserverInterceptor(TypeBillingInvoiceWriteSchemaLevel))
-	c.inters.BillingProfile = append(c.inters.BillingProfile, entutils.WriteObserverInterceptor(TypeBillingProfile))
-	c.inters.BillingSequenceNumbers = append(c.inters.BillingSequenceNumbers, entutils.WriteObserverInterceptor(TypeBillingSequenceNumbers))
-	c.inters.BillingStandardInvoiceDetailedLine = append(c.inters.BillingStandardInvoiceDetailedLine, entutils.WriteObserverInterceptor(TypeBillingStandardInvoiceDetailedLine))
-	c.inters.BillingStandardInvoiceDetailedLineAmountDiscount = append(c.inters.BillingStandardInvoiceDetailedLineAmountDiscount, entutils.WriteObserverInterceptor(TypeBillingStandardInvoiceDetailedLineAmountDiscount))
-	c.inters.BillingWorkflowConfig = append(c.inters.BillingWorkflowConfig, entutils.WriteObserverInterceptor(TypeBillingWorkflowConfig))
-	c.inters.Charge = append(c.inters.Charge, entutils.WriteObserverInterceptor(TypeCharge))
-	c.inters.ChargeCreditPurchase = append(c.inters.ChargeCreditPurchase, entutils.WriteObserverInterceptor(TypeChargeCreditPurchase))
-	c.inters.ChargeCreditPurchaseCostBasis = append(c.inters.ChargeCreditPurchaseCostBasis, entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseCostBasis))
-	c.inters.ChargeCreditPurchaseCreditGrant = append(c.inters.ChargeCreditPurchaseCreditGrant, entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseCreditGrant))
-	c.inters.ChargeCreditPurchaseExternalPayment = append(c.inters.ChargeCreditPurchaseExternalPayment, entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseExternalPayment))
-	c.inters.ChargeCreditPurchaseInvoicedPayment = append(c.inters.ChargeCreditPurchaseInvoicedPayment, entutils.WriteObserverInterceptor(TypeChargeCreditPurchaseInvoicedPayment))
-	c.inters.ChargeFlatFee = append(c.inters.ChargeFlatFee, entutils.WriteObserverInterceptor(TypeChargeFlatFee))
-	c.inters.ChargeFlatFeeCostBasis = append(c.inters.ChargeFlatFeeCostBasis, entutils.WriteObserverInterceptor(TypeChargeFlatFeeCostBasis))
-	c.inters.ChargeFlatFeeOverride = append(c.inters.ChargeFlatFeeOverride, entutils.WriteObserverInterceptor(TypeChargeFlatFeeOverride))
-	c.inters.ChargeFlatFeeRun = append(c.inters.ChargeFlatFeeRun, entutils.WriteObserverInterceptor(TypeChargeFlatFeeRun))
-	c.inters.ChargeFlatFeeRunCreditAllocations = append(c.inters.ChargeFlatFeeRunCreditAllocations, entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunCreditAllocations))
-	c.inters.ChargeFlatFeeRunDetailedLine = append(c.inters.ChargeFlatFeeRunDetailedLine, entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunDetailedLine))
-	c.inters.ChargeFlatFeeRunInvoicedUsage = append(c.inters.ChargeFlatFeeRunInvoicedUsage, entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunInvoicedUsage))
-	c.inters.ChargeFlatFeeRunOverageCreditAllocations = append(c.inters.ChargeFlatFeeRunOverageCreditAllocations, entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunOverageCreditAllocations))
-	c.inters.ChargeFlatFeeRunPayment = append(c.inters.ChargeFlatFeeRunPayment, entutils.WriteObserverInterceptor(TypeChargeFlatFeeRunPayment))
-	c.inters.ChargeUsageBased = append(c.inters.ChargeUsageBased, entutils.WriteObserverInterceptor(TypeChargeUsageBased))
-	c.inters.ChargeUsageBasedCostBasis = append(c.inters.ChargeUsageBasedCostBasis, entutils.WriteObserverInterceptor(TypeChargeUsageBasedCostBasis))
-	c.inters.ChargeUsageBasedOverride = append(c.inters.ChargeUsageBasedOverride, entutils.WriteObserverInterceptor(TypeChargeUsageBasedOverride))
-	c.inters.ChargeUsageBasedRunCreditAllocations = append(c.inters.ChargeUsageBasedRunCreditAllocations, entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunCreditAllocations))
-	c.inters.ChargeUsageBasedRunDetailedLine = append(c.inters.ChargeUsageBasedRunDetailedLine, entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunDetailedLine))
-	c.inters.ChargeUsageBasedRunInvoicedUsage = append(c.inters.ChargeUsageBasedRunInvoicedUsage, entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunInvoicedUsage))
-	c.inters.ChargeUsageBasedRunOverageCreditAllocations = append(c.inters.ChargeUsageBasedRunOverageCreditAllocations, entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunOverageCreditAllocations))
-	c.inters.ChargeUsageBasedRunPayment = append(c.inters.ChargeUsageBasedRunPayment, entutils.WriteObserverInterceptor(TypeChargeUsageBasedRunPayment))
-	c.inters.ChargeUsageBasedRuns = append(c.inters.ChargeUsageBasedRuns, entutils.WriteObserverInterceptor(TypeChargeUsageBasedRuns))
-	c.inters.ChargesSearchV1 = append(c.inters.ChargesSearchV1, entutils.WriteObserverInterceptor(TypeChargesSearchV1))
-	c.inters.CreditRealizationLineage = append(c.inters.CreditRealizationLineage, entutils.WriteObserverInterceptor(TypeCreditRealizationLineage))
-	c.inters.CreditRealizationLineageSegment = append(c.inters.CreditRealizationLineageSegment, entutils.WriteObserverInterceptor(TypeCreditRealizationLineageSegment))
-	c.inters.CurrencyCostBasis = append(c.inters.CurrencyCostBasis, entutils.WriteObserverInterceptor(TypeCurrencyCostBasis))
-	c.inters.CustomCurrency = append(c.inters.CustomCurrency, entutils.WriteObserverInterceptor(TypeCustomCurrency))
-	c.inters.Customer = append(c.inters.Customer, entutils.WriteObserverInterceptor(TypeCustomer))
-	c.inters.CustomerSubjects = append(c.inters.CustomerSubjects, entutils.WriteObserverInterceptor(TypeCustomerSubjects))
-	c.inters.Entitlement = append(c.inters.Entitlement, entutils.WriteObserverInterceptor(TypeEntitlement))
-	c.inters.EventOutbox = append(c.inters.EventOutbox, entutils.WriteObserverInterceptor(TypeEventOutbox))
-	c.inters.Feature = append(c.inters.Feature, entutils.WriteObserverInterceptor(TypeFeature))
-	c.inters.Grant = append(c.inters.Grant, entutils.WriteObserverInterceptor(TypeGrant))
-	c.inters.LLMCostPrice = append(c.inters.LLMCostPrice, entutils.WriteObserverInterceptor(TypeLLMCostPrice))
-	c.inters.LedgerAccount = append(c.inters.LedgerAccount, entutils.WriteObserverInterceptor(TypeLedgerAccount))
-	c.inters.LedgerBreakageRecord = append(c.inters.LedgerBreakageRecord, entutils.WriteObserverInterceptor(TypeLedgerBreakageRecord))
-	c.inters.LedgerCreditVoidRecord = append(c.inters.LedgerCreditVoidRecord, entutils.WriteObserverInterceptor(TypeLedgerCreditVoidRecord))
-	c.inters.LedgerCustomerAccount = append(c.inters.LedgerCustomerAccount, entutils.WriteObserverInterceptor(TypeLedgerCustomerAccount))
-	c.inters.LedgerEntry = append(c.inters.LedgerEntry, entutils.WriteObserverInterceptor(TypeLedgerEntry))
-	c.inters.LedgerSubAccount = append(c.inters.LedgerSubAccount, entutils.WriteObserverInterceptor(TypeLedgerSubAccount))
-	c.inters.LedgerSubAccountRoute = append(c.inters.LedgerSubAccountRoute, entutils.WriteObserverInterceptor(TypeLedgerSubAccountRoute))
-	c.inters.LedgerTransaction = append(c.inters.LedgerTransaction, entutils.WriteObserverInterceptor(TypeLedgerTransaction))
-	c.inters.LedgerTransactionGroup = append(c.inters.LedgerTransactionGroup, entutils.WriteObserverInterceptor(TypeLedgerTransactionGroup))
-	c.inters.Meter = append(c.inters.Meter, entutils.WriteObserverInterceptor(TypeMeter))
-	c.inters.NotificationChannel = append(c.inters.NotificationChannel, entutils.WriteObserverInterceptor(TypeNotificationChannel))
-	c.inters.NotificationEvent = append(c.inters.NotificationEvent, entutils.WriteObserverInterceptor(TypeNotificationEvent))
-	c.inters.NotificationEventDeliveryStatus = append(c.inters.NotificationEventDeliveryStatus, entutils.WriteObserverInterceptor(TypeNotificationEventDeliveryStatus))
-	c.inters.NotificationRule = append(c.inters.NotificationRule, entutils.WriteObserverInterceptor(TypeNotificationRule))
-	c.inters.OrganizationDefaultTaxCodes = append(c.inters.OrganizationDefaultTaxCodes, entutils.WriteObserverInterceptor(TypeOrganizationDefaultTaxCodes))
-	c.inters.Plan = append(c.inters.Plan, entutils.WriteObserverInterceptor(TypePlan))
-	c.inters.PlanAddon = append(c.inters.PlanAddon, entutils.WriteObserverInterceptor(TypePlanAddon))
-	c.inters.PlanPhase = append(c.inters.PlanPhase, entutils.WriteObserverInterceptor(TypePlanPhase))
-	c.inters.PlanRateCard = append(c.inters.PlanRateCard, entutils.WriteObserverInterceptor(TypePlanRateCard))
-	c.inters.RTECreditBalance = append(c.inters.RTECreditBalance, entutils.WriteObserverInterceptor(TypeRTECreditBalance))
-	c.inters.RTEDemand = append(c.inters.RTEDemand, entutils.WriteObserverInterceptor(TypeRTEDemand))
-	c.inters.RTEDemandLock = append(c.inters.RTEDemandLock, entutils.WriteObserverInterceptor(TypeRTEDemandLock))
-	c.inters.RTEMeteredEntitlementBalance = append(c.inters.RTEMeteredEntitlementBalance, entutils.WriteObserverInterceptor(TypeRTEMeteredEntitlementBalance))
-	c.inters.Subject = append(c.inters.Subject, entutils.WriteObserverInterceptor(TypeSubject))
-	c.inters.Subscription = append(c.inters.Subscription, entutils.WriteObserverInterceptor(TypeSubscription))
-	c.inters.SubscriptionAddon = append(c.inters.SubscriptionAddon, entutils.WriteObserverInterceptor(TypeSubscriptionAddon))
-	c.inters.SubscriptionAddonQuantity = append(c.inters.SubscriptionAddonQuantity, entutils.WriteObserverInterceptor(TypeSubscriptionAddonQuantity))
-	c.inters.SubscriptionCostBasisPin = append(c.inters.SubscriptionCostBasisPin, entutils.WriteObserverInterceptor(TypeSubscriptionCostBasisPin))
-	c.inters.SubscriptionItem = append(c.inters.SubscriptionItem, entutils.WriteObserverInterceptor(TypeSubscriptionItem))
-	c.inters.SubscriptionPhase = append(c.inters.SubscriptionPhase, entutils.WriteObserverInterceptor(TypeSubscriptionPhase))
-	c.inters.SubscriptionSyncState = append(c.inters.SubscriptionSyncState, entutils.WriteObserverInterceptor(TypeSubscriptionSyncState))
-	c.inters.TaxCode = append(c.inters.TaxCode, entutils.WriteObserverInterceptor(TypeTaxCode))
-	c.inters.UsageReset = append(c.inters.UsageReset, entutils.WriteObserverInterceptor(TypeUsageReset))
+	*c.hooks = writeObserverHooks
+	*c.inters = writeObserverInters
 }
 
 // LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).

@@ -1,8 +1,10 @@
 package entexpose_test
 
 import (
+	"context"
 	"testing"
 
+	"entgo.io/ent"
 	"github.com/stretchr/testify/require"
 
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
@@ -72,4 +74,56 @@ func TestEagerLoadedRowLockReportsTheLockedEntity(t *testing.T) {
 	require.Equal(t, []transaction.WriteAttempt{
 		{Kind: transaction.WriteKindRowLock, Target: "Entitlement", Operation: "All"},
 	}, recorder.Attempts())
+}
+
+// The write observers are shared by every client of the package. Hooks and
+// interceptors that clients register on top must stay with the client they were
+// registered on, and must not replace the ones of another client.
+func TestRegisteredHooksStayWithTheirClient(t *testing.T) {
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
+	t.Cleanup(func() { testDB.Close(t) })
+
+	// given two clients, each with its own hook and interceptor
+	type calls struct{ hook, interceptor int }
+
+	register := func(client *entdb.Client, counted *calls) {
+		client.Feature.Use(func(next ent.Mutator) ent.Mutator {
+			return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+				counted.hook++
+
+				return next.Mutate(ctx, m)
+			})
+		})
+
+		client.Feature.Intercept(ent.InterceptFunc(func(next ent.Querier) ent.Querier {
+			return ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
+				counted.interceptor++
+
+				return next.Query(ctx, q)
+			})
+		}))
+	}
+
+	first := entdb.NewClient(entdb.Driver(testDB.EntDriver.Driver()))
+	second := entdb.NewClient(entdb.Driver(testDB.EntDriver.Driver()))
+
+	var firstCalls, secondCalls calls
+	register(first, &firstCalls)
+	register(second, &secondCalls)
+
+	recorder := &transactiontestutils.WriteRecorder{}
+	ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
+	require.NoError(t, err)
+
+	// when only the first client mutates and locks rows
+	_, err = first.Feature.Delete().Where(dbfeature.Namespace("write-observer-test")).Exec(ctx)
+	require.NoError(t, err)
+
+	_, err = first.Feature.Query().Where(dbfeature.Namespace("write-observer-test")).ForUpdate().All(ctx)
+	require.NoError(t, err)
+
+	// then only its own hook and interceptor ran, and the writes are still reported
+	require.Equal(t, calls{hook: 1, interceptor: 1}, firstCalls)
+	require.Equal(t, calls{}, secondCalls)
+	require.Len(t, recorder.Attempts(), 2)
 }
