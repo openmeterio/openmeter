@@ -3,8 +3,10 @@
 package periodicrealization
 
 import (
+	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -45,4 +47,50 @@ func (s RunStatus) Validate() error {
 	}
 
 	return nil
+}
+
+var _ models.Validator = (*Run)(nil)
+
+// Run is a namespace's realization run for one period.
+type Run struct {
+	models.NamespacedID
+	models.ManagedModel
+
+	// PreviousRunID is the namespace's latest run when this one was scheduled,
+	// or nil for the first run. Periods without a run are skipped, so the
+	// previous run is not always one period back.
+	PreviousRunID *string
+	// PeriodTo is the end of the period the run realizes usage in. The period
+	// excludes it.
+	PeriodTo time.Time
+	// RealizeAfter is the earliest time the run may realize its period: the
+	// period end plus the collection delay that applied when the run was created.
+	RealizeAfter time.Time
+	Status       RunStatus
+}
+
+func (r Run) Validate() error {
+	var errs []error
+
+	if err := r.NamespacedID.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	if r.PreviousRunID != nil && *r.PreviousRunID == "" {
+		errs = append(errs, errors.New("previous run id must not be empty when set"))
+	}
+
+	if r.PeriodTo.IsZero() {
+		errs = append(errs, errors.New("period to is required"))
+	}
+
+	if r.RealizeAfter.Before(r.PeriodTo) {
+		errs = append(errs, errors.New("realize after must not be before period to"))
+	}
+
+	if err := r.Status.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("status: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
