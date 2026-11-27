@@ -398,6 +398,10 @@ GET and HEAD operations run inside a read-only scope (`transaction.WithWriteObse
 so they can later be served from a read replica. In the `observe` mode
 (`server.readOnlyRequests.mode`) a write made by such a request is still executed,
 and reported through the `openmeter.database.read_only.writes` metric and a warning.
+In the `strict` mode, which the e2e suite runs with, the write fails the request
+instead, and transactions are opened `READ ONLY` so unreported SQL fails too.
+Code that ignores the error keeps the request green, so every rejection is also
+logged as an error.
 
 - Ent mutations, `ForUpdate` / `ForShare` and `lockr` advisory locks are detected
   automatically.

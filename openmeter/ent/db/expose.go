@@ -58,7 +58,7 @@ func (c *Client) HijackTx(ctx context.Context, opts *sql.TxOptions) (context.Con
 	}
 	tx, err := c.driver.(interface {
 		BeginTx(context.Context, *sql.TxOptions) (dialect.Tx, error)
-	}).BeginTx(ctx, opts)
+	}).BeginTx(ctx, entutils.TxOptionsForContext(ctx, opts))
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("ent: starting a transaction: %w", err)
 	}

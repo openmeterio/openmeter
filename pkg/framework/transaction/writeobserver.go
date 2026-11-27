@@ -31,9 +31,13 @@ type WriteAttempt struct {
 }
 
 // WriteObserver is told about every database write attempted with the context it
-// is attached to. Returning an error rejects the write.
+// is attached to.
 type WriteObserver interface {
+	// ObserveWrite is called before the write. Returning an error rejects it.
 	ObserveWrite(ctx context.Context, attempt WriteAttempt) error
+	// RejectsWrites says whether ObserveWrite rejects every write, so it can be
+	// known before one is attempted (see RejectsWrites).
+	RejectsWrites() bool
 }
 
 type writeObserverContextKey struct{}
@@ -48,6 +52,15 @@ func WithWriteObserver(ctx context.Context, observer WriteObserver) (context.Con
 	}
 
 	return context.WithValue(ctx, writeObserverContextKey{}, observer), nil
+}
+
+// RejectsWrites reports whether ctx has a write observer that rejects every
+// write. Transactions started with such a context are opened READ ONLY, so the
+// database also refuses the writes that nothing reports.
+func RejectsWrites(ctx context.Context) bool {
+	observer, ok := ctx.Value(writeObserverContextKey{}).(WriteObserver)
+
+	return ok && observer.RejectsWrites()
 }
 
 // ReportWrite must be called before any database write that Ent hooks cannot

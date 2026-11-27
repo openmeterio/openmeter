@@ -28,9 +28,17 @@ const (
 	attrKeyWriteOperation = attribute.Key("write.operation")
 )
 
+// ErrWriteRejected is returned for a write attempted by a read-only request when
+// the observer rejects writes.
+var ErrWriteRejected = errors.New("read-only request attempted a database write")
+
 type ObserverConfig struct {
 	Logger *slog.Logger
 	Meter  metric.Meter
+
+	// RejectWrites fails the writes instead of only reporting them. It is meant
+	// for tests: a read-only request that writes then fails where it is introduced.
+	RejectWrites bool
 }
 
 var _ models.Validator = (*ObserverConfig)(nil)
@@ -49,15 +57,17 @@ func (c ObserverConfig) Validate() error {
 	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
-// Observer records the writes attempted by read-only requests without stopping them.
+// Observer records the writes attempted by read-only requests. It only stops
+// them when it is configured to reject writes.
 type Observer struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	rejectWrites bool
 
 	requests metric.Int64Counter
 	writes   metric.Int64Counter
 
-	// logged holds the writes that were already logged, so a hot path logs once
-	// per process instead of once per request.
+	// logged holds the writes that were already logged when only observing, so a
+	// hot path logs once per process instead of once per request.
 	logged sync.Map
 }
 
@@ -83,9 +93,10 @@ func NewObserver(config ObserverConfig) (*Observer, error) {
 	}
 
 	return &Observer{
-		logger:   config.Logger,
-		requests: requests,
-		writes:   writes,
+		logger:       config.Logger,
+		rejectWrites: config.RejectWrites,
+		requests:     requests,
+		writes:       writes,
 	}, nil
 }
 
@@ -106,10 +117,21 @@ type operationObserver struct {
 	operation string
 }
 
+var _ transaction.WriteObserver = operationObserver{}
+
 func (o operationObserver) ObserveWrite(ctx context.Context, attempt transaction.WriteAttempt) error {
 	o.observer.observe(ctx, o.operation, attempt)
 
+	if o.observer.rejectWrites {
+		return fmt.Errorf("%w: %s by %q (target %q, operation %q)",
+			ErrWriteRejected, attempt.Kind, o.operation, attempt.Target, attempt.Operation)
+	}
+
 	return nil
+}
+
+func (o operationObserver) RejectsWrites() bool {
+	return o.observer.rejectWrites
 }
 
 func (o *Observer) observe(ctx context.Context, operation string, attempt transaction.WriteAttempt) {
@@ -127,18 +149,30 @@ func (o *Observer) observe(ctx context.Context, operation string, attempt transa
 		attrKeyWriteOperation.String(attempt.Operation),
 	))
 
+	attrs := []any{
+		slog.String("operation", operation),
+		slog.String("write_kind", string(attempt.Kind)),
+		slog.String("write_target", attempt.Target),
+		slog.String("write_operation", attempt.Operation),
+		slog.Bool("rejected", o.rejectWrites),
+		slog.String("caller", writeSite()),
+	}
+
+	// The caller may ignore the rejection and carry on, like a balance read that
+	// skips its snapshot when it cannot lock. Then this log is the only trace of
+	// it, so every rejection is logged.
+	if o.rejectWrites {
+		o.logger.ErrorContext(ctx, "read-only request attempted a database write", attrs...)
+
+		return
+	}
+
 	key := strings.Join([]string{operation, string(attempt.Kind), target, attempt.Operation}, "|")
 	if _, alreadyLogged := o.logged.LoadOrStore(key, struct{}{}); alreadyLogged {
 		return
 	}
 
-	o.logger.WarnContext(ctx, "read-only request wrote to the database",
-		slog.String("operation", operation),
-		slog.String("write_kind", string(attempt.Kind)),
-		slog.String("write_target", attempt.Target),
-		slog.String("write_operation", attempt.Operation),
-		slog.String("caller", writeSite()),
-	)
+	o.logger.WarnContext(ctx, "read-only request attempted a database write", attrs...)
 }
 
 // writeSite returns the first caller outside of the database plumbing, which is

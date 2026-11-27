@@ -201,6 +201,47 @@ func TestWriteObserverDetection(t *testing.T) {
 		require.False(t, exists)
 	})
 
+	t.Run("a rejecting observer makes transactions read-only", func(t *testing.T) {
+		// Hand-written SQL bypasses the hook, so nothing reports this insert.
+		rawInsert := func(ctx context.Context, id string) error {
+			return transaction.RunWithNoValue(ctx, adapter, func(ctx context.Context) error {
+				tx, err := entutils.GetDriverFromContext(ctx)
+				if err != nil {
+					return err
+				}
+
+				return tx.GetConfig().Driver.Exec(ctx,
+					"INSERT INTO example1s (id, example_value_1, created_at, updated_at) VALUES ($1, 'v', now(), now())",
+					[]any{id}, nil,
+				)
+			})
+		}
+
+		// given an observer that only records, and one that rejects writes
+		recording := &transactiontestutils.WriteRecorder{}
+		recordingCtx, err := transaction.WithWriteObserver(t.Context(), recording)
+		require.NoError(t, err)
+
+		rejecting := &transactiontestutils.WriteRecorder{Reject: errors.New("writes are not allowed")}
+		rejectingCtx, err := transaction.WithWriteObserver(t.Context(), rejecting)
+		require.NoError(t, err)
+
+		// when both run an unreported insert in a transaction
+		recordedID, rejectedID := ulid.Make().String(), ulid.Make().String()
+		recordingErr := rawInsert(recordingCtx, recordedID)
+		rejectingErr := rawInsert(rejectingCtx, rejectedID)
+
+		// then neither observer hears about it, but the database refuses the rejecting one
+		require.NoError(t, recordingErr)
+		require.ErrorContains(t, rejectingErr, "read-only transaction")
+		require.Empty(t, recording.Attempts())
+		require.Empty(t, rejecting.Attempts())
+
+		ids, err := client.Example1.Query().Where(example1.IDIn(recordedID, rejectedID)).IDs(t.Context())
+		require.NoError(t, err)
+		require.Equal(t, []string{recordedID}, ids)
+	})
+
 	t.Run("writes without an observer are untouched", func(t *testing.T) {
 		id := ulid.Make().String()
 

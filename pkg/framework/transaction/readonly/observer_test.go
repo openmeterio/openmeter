@@ -99,9 +99,49 @@ func TestObserver(t *testing.T) {
 	}
 
 	require.Equal(t, []logLine{
-		{Message: "read-only request wrote to the database", Operation: "get-entitlement-value", WriteKind: "mutation", WriteTarget: "BalanceSnapshot"},
-		{Message: "read-only request wrote to the database", Operation: "get-entitlement-value", WriteKind: "advisory_lock", WriteTarget: "customer:01A"},
+		{Message: "read-only request attempted a database write", Operation: "get-entitlement-value", WriteKind: "mutation", WriteTarget: "BalanceSnapshot"},
+		{Message: "read-only request attempted a database write", Operation: "get-entitlement-value", WriteKind: "advisory_lock", WriteTarget: "customer:01A"},
 	}, logged)
+}
+
+func TestObserverRejectsWrites(t *testing.T) {
+	provider := sdkmetric.NewMeterProvider()
+	t.Cleanup(func() { require.NoError(t, provider.Shutdown(t.Context())) })
+
+	var logs bytes.Buffer
+
+	newObserver := func(rejectWrites bool) *readonly.Observer {
+		observer, err := readonly.NewObserver(readonly.ObserverConfig{
+			Logger:       slog.New(slog.NewJSONHandler(&logs, &slog.HandlerOptions{Level: slog.LevelError})),
+			Meter:        provider.Meter("read-only-test"),
+			RejectWrites: rejectWrites,
+		})
+		require.NoError(t, err)
+
+		return observer
+	}
+
+	attempt := transaction.WriteAttempt{Kind: transaction.WriteKindMutation, Target: "BalanceSnapshot", Operation: "OpCreate"}
+
+	// given a request marked by an observing observer and one marked by a rejecting observer
+	observed := newObserver(false).MarkReadOnly(t.Context(), "get-entitlement-value")
+	rejected := newObserver(true).MarkReadOnly(t.Context(), "get-entitlement-value")
+
+	// when both attempt a write, and the rejected one ignores the error and tries again
+	observedErr := transaction.ReportWrite(observed, attempt)
+	rejectedErr := transaction.ReportWrite(rejected, attempt)
+	require.Error(t, transaction.ReportWrite(rejected, attempt))
+
+	// then only the rejecting one fails it, and says which request wrote what
+	require.NoError(t, observedErr)
+	require.False(t, transaction.RejectsWrites(observed))
+
+	require.ErrorIs(t, rejectedErr, readonly.ErrWriteRejected)
+	require.ErrorContains(t, rejectedErr, `mutation by "get-entitlement-value" (target "BalanceSnapshot", operation "OpCreate")`)
+	require.True(t, transaction.RejectsWrites(rejected), "transactions of the request are opened READ ONLY")
+
+	// and every rejection is logged as an error, since the caller may ignore it
+	require.Equal(t, 2, bytes.Count(logs.Bytes(), []byte(`"level":"ERROR","msg":"read-only request attempted a database write"`)), logs.String())
 }
 
 func TestObserverConfigValidation(t *testing.T) {

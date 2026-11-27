@@ -2,6 +2,7 @@ package entutils
 
 import (
 	"context"
+	"database/sql"
 
 	"entgo.io/ent"
 
@@ -58,4 +59,20 @@ func WriteObserverInterceptor(entType string) ent.Interceptor {
 
 		return transaction.ReportWrite(ctx, attempt)
 	})
+}
+
+// TxOptionsForContext makes the transaction READ ONLY when the write observer of
+// ctx rejects every write. The hook and the interceptor only see what goes
+// through Ent, so this is what stops hand-written SQL that nobody reported.
+func TxOptionsForContext(ctx context.Context, opts *sql.TxOptions) *sql.TxOptions {
+	if !transaction.RejectsWrites(ctx) {
+		return opts
+	}
+
+	readOnly := sql.TxOptions{ReadOnly: true}
+	if opts != nil {
+		readOnly.Isolation = opts.Isolation
+	}
+
+	return &readOnly
 }

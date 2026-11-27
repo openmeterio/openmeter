@@ -9,6 +9,11 @@ telemetry:
         enabled: true
         prettyprint: true
 
+# A GET that writes to the database fails here, before it is found in production.
+server:
+  readOnlyRequests:
+    mode: strict
+
 ingest:
   kafka:
     broker: kafka:9092
