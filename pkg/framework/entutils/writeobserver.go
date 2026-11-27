@@ -35,26 +35,27 @@ type rowLockingQuery interface {
 // UPDATE / FOR SHARE) to the write observer of the context. A read replica
 // rejects those, so they need the primary just like mutations do.
 //
+// It reports while the query is prepared, not when it is executed: a locked query
+// that is only the starting point of a traversal (Query().ForUpdate().QueryEdge())
+// is never executed on its own, but its lock is still part of the statement.
+//
 // The generated clients install one per entity, because the query context cannot
-// tell which rows are locked: an eager-loaded query inherits its parent's, so it
-// would name the parent entity.
+// tell which rows are locked: an eager-loaded or traversed query inherits it from
+// the query that runs it, so it would name the wrong entity.
 func WriteObserverInterceptor(entType string) ent.Interceptor {
-	return ent.InterceptFunc(func(next ent.Querier) ent.Querier {
-		return ent.QuerierFunc(func(ctx context.Context, q ent.Query) (ent.Value, error) {
-			if locking, ok := q.(rowLockingQuery); ok && locking.LocksRows() {
-				attempt := transaction.WriteAttempt{Kind: transaction.WriteKindRowLock, Target: entType}
+	return ent.TraverseFunc(func(ctx context.Context, q ent.Query) error {
+		locking, ok := q.(rowLockingQuery)
+		if !ok || !locking.LocksRows() {
+			return nil
+		}
 
-				// For an eager-loaded query this is the operation of the query that loads it.
-				if qc := ent.QueryFromContext(ctx); qc != nil {
-					attempt.Operation = qc.Op
-				}
+		attempt := transaction.WriteAttempt{Kind: transaction.WriteKindRowLock, Target: entType}
 
-				if err := transaction.ReportWrite(ctx, attempt); err != nil {
-					return nil, err
-				}
-			}
+		// For an eager-loaded or traversed query this is the operation of the query that runs it.
+		if qc := ent.QueryFromContext(ctx); qc != nil {
+			attempt.Operation = qc.Op
+		}
 
-			return next.Query(ctx, q)
-		})
+		return transaction.ReportWrite(ctx, attempt)
 	})
 }

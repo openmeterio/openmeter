@@ -76,6 +76,32 @@ func TestEagerLoadedRowLockReportsTheLockedEntity(t *testing.T) {
 	}, recorder.Attempts())
 }
 
+// A locked query that is only the starting point of a traversal is never executed
+// on its own: its lock ends up in a subquery of the query that is traversed to.
+func TestLockedTraversalParentIsReported(t *testing.T) {
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
+	t.Cleanup(func() { testDB.Close(t) })
+
+	client := entdb.NewClient(entdb.Driver(testDB.EntDriver.Driver()))
+
+	recorder := &transactiontestutils.WriteRecorder{}
+	ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
+	require.NoError(t, err)
+
+	// when features are locked and only their entitlements are read
+	_, err = client.Feature.Query().
+		Where(dbfeature.Namespace("write-observer-test")).
+		ForUpdate().
+		QueryEntitlement().
+		All(ctx)
+	require.NoError(t, err)
+
+	// then the lock is reported on the features, although no feature query ran
+	require.Equal(t, []transaction.WriteAttempt{
+		{Kind: transaction.WriteKindRowLock, Target: "Feature", Operation: "All"},
+	}, recorder.Attempts())
+}
+
 // The write observers are shared by every client of the package. Hooks and
 // interceptors that clients register on top must stay with the client they were
 // registered on, and must not replace the ones of another client.

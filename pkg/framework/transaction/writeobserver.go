@@ -50,12 +50,6 @@ func WithWriteObserver(ctx context.Context, observer WriteObserver) (context.Con
 	return context.WithValue(ctx, writeObserverContextKey{}, observer), nil
 }
 
-func HasWriteObserver(ctx context.Context) bool {
-	_, ok := ctx.Value(writeObserverContextKey{}).(WriteObserver)
-
-	return ok
-}
-
 // ReportWrite must be called before any database write that Ent hooks cannot
 // see, such as raw SQL or advisory locks. It does nothing when ctx has no write
 // observer.
