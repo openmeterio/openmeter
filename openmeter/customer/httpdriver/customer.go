@@ -460,7 +460,7 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 		commonhttp.JSONResponseEncoderWithStatus[GetCustomerEntitlementValueResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("getCustomer"),
+			httptransport.WithOperationName("getCustomerEntitlementValue"),
 			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
 			httptransport.WithPrimaryDatabase(),
 		)...,

@@ -36,7 +36,6 @@ func TestObserver(t *testing.T) {
 	snapshotCreate := transaction.WriteAttempt{Kind: transaction.WriteKindMutation, Target: "BalanceSnapshot", Operation: "OpCreate"}
 
 	// when the same write happens in both requests, and each locks a different customer
-	require.True(t, transaction.HasWriteObserver(first))
 	require.NoError(t, transaction.ReportWrite(first, snapshotCreate), "observing never fails the request")
 	require.NoError(t, transaction.ReportWrite(second, snapshotCreate))
 	require.NoError(t, transaction.ReportWrite(first, transaction.WriteAttempt{Kind: transaction.WriteKindAdvisoryLock, Target: "customer:01A"}))

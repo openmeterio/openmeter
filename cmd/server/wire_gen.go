@@ -897,7 +897,23 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		return Application{}, nil, err
 	}
 	telemetryMiddlewareHook := common.NewTelemetryRouterHook(meterProvider, tracerProvider)
-	routerHooks := common.NewRouterHooks(telemetryMiddlewareHook)
+	serverConfig := conf.Server
+	readOnlyRequestsConfig := serverConfig.ReadOnlyRequests
+	readOnlyRequests, err := common.NewReadOnlyRequests(readOnlyRequestsConfig, logger, meter)
+	if err != nil {
+		cleanup10()
+		cleanup9()
+		cleanup8()
+		cleanup7()
+		cleanup6()
+		cleanup5()
+		cleanup4()
+		cleanup3()
+		cleanup2()
+		cleanup()
+		return Application{}, nil, err
+	}
+	routerHooks := common.NewRouterHooks(telemetryMiddlewareHook, readOnlyRequests)
 	productCatalogConfiguration := conf.ProductCatalog
 	subscriptionConfiguration := productCatalogConfiguration.Subscription
 	namespaceDecoder := common.NewStaticNamespaceDecoder(namespaceConfiguration)
@@ -980,7 +996,6 @@ func initializeApplication(ctx context.Context, conf config.Configuration) (Appl
 		cleanup()
 		return Application{}, nil, err
 	}
-	serverConfig := conf.Server
 	clientIPMiddlewareConfig := serverConfig.ClientIPMiddleware
 	clientIPMiddleware, err := common.NewClientIPMiddleware(clientIPMiddlewareConfig)
 	if err != nil {

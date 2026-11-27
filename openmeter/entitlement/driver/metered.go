@@ -148,6 +148,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 		commonhttp.JSONResponseEncoderWithStatus[apiv1models.EntitlementGrant](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("createGrant"),
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
@@ -210,6 +211,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 		commonhttp.JSONResponseEncoder[[]apiv1models.EntitlementGrant],
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("listEntitlementGrants"),
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
@@ -270,6 +272,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("resetEntitlementUsage"),
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)
@@ -371,6 +374,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 		commonhttp.JSONResponseEncoder[apiv1models.WindowedBalanceHistory],
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("getEntitlementHistory"),
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
 			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
 			httptransport.WithPrimaryDatabase(),

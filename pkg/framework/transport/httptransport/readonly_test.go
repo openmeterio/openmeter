@@ -65,11 +65,13 @@ func TestReadOnlyScopeMarking(t *testing.T) {
 			// given a marker that records the operations it marks
 			var opened []string
 
+			recorder := &transactiontestutils.WriteRecorder{}
+
 			if !test.noMarker {
 				SetReadOnlyMarker(func(ctx context.Context, operation string) context.Context {
 					opened = append(opened, operation)
 
-					ctx, err := transaction.WithWriteObserver(ctx, &transactiontestutils.WriteRecorder{})
+					ctx, err := transaction.WithWriteObserver(ctx, recorder)
 					require.NoError(t, err)
 
 					return ctx
@@ -77,17 +79,25 @@ func TestReadOnlyScopeMarking(t *testing.T) {
 				t.Cleanup(func() { SetReadOnlyMarker(nil) })
 			}
 
+			// A context is read-only when a write reported with it reaches the observer.
+			isReadOnly := func(ctx context.Context) bool {
+				before := len(recorder.Attempts())
+				require.NoError(t, transaction.ReportWrite(ctx, transaction.WriteAttempt{Kind: transaction.WriteKindMutation}))
+
+				return len(recorder.Attempts()) > before
+			}
+
 			var decoderReadOnly, operationReadOnly bool
 
 			// The args variant copies the handler, so it has to carry the opt-out too.
 			handler := NewHandlerWithArgs(
 				func(ctx context.Context, _ *http.Request, _ struct{}) (struct{}, error) {
-					decoderReadOnly = transaction.HasWriteObserver(ctx)
+					decoderReadOnly = isReadOnly(ctx)
 
 					return struct{}{}, nil
 				},
 				func(ctx context.Context, _ struct{}) (struct{}, error) {
-					operationReadOnly = transaction.HasWriteObserver(ctx)
+					operationReadOnly = isReadOnly(ctx)
 
 					return struct{}{}, nil
 				},

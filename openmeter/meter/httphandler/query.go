@@ -73,7 +73,7 @@ func (h *handler) ListSubjects() ListSubjectsHandler {
 		commonhttp.JSONResponseEncoderWithStatus[ListSubjectsResponse](http.StatusOK),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("queryMeter"),
+			httptransport.WithOperationName("listMeterSubjects"),
 		)...,
 	)
 }

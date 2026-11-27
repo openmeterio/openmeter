@@ -548,7 +548,7 @@ func (h *entitlementHandler) GetEntitlementById() GetEntitlementByIdHandler {
 		commonhttp.JSONResponseEncoder[GetEntitlementByIdHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithOperationName("getEntitlement"),
+			httptransport.WithOperationName("getEntitlementById"),
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
 		)...,
 	)

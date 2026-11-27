@@ -150,6 +150,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 		commonhttp.JSONResponseEncoder[ListGrantsHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("listGrants"),
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {
 				if models.IsGenericValidationError(err) {
 					commonhttp.NewHTTPError(
@@ -206,6 +207,7 @@ func (h *grantHandler) VoidGrant() VoidGrantHandler {
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("voidGrant"),
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {
 				if models.IsGenericValidationError(err) {
 					commonhttp.NewHTTPError(
@@ -330,6 +332,7 @@ func (h *grantHandler) ListGrantsV2() ListGrantsV2Handler {
 		commonhttp.JSONResponseEncoder[ListGrantsV2HandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
+			httptransport.WithOperationName("listGrantsV2"),
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {
 				if models.IsGenericValidationError(err) {
 					commonhttp.NewHTTPError(
