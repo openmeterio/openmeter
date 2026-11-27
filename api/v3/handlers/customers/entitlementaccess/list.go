@@ -57,6 +57,8 @@ func (h *handler) ListCustomerEntitlementAccess() ListCustomerEntitlementAccessH
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("list-customer-entitlement-access"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

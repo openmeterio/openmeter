@@ -461,6 +461,8 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomer"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 		)...,
 	)
 }
@@ -524,6 +526,8 @@ func (h *handler) GetCustomerEntitlementValueV2() GetCustomerEntitlementValueV2H
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomerEntitlementValueV2"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 		)...,
 	)
 }
@@ -589,6 +593,8 @@ func (h *handler) GetCustomerAccess() GetCustomerAccessHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomerAccess"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 		)...,
 	)
 }
@@ -639,6 +645,8 @@ func (h *handler) GetCustomerAccessV2() GetCustomerAccessV2Handler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getCustomerAccessV2"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 		)...,
 	)
 }

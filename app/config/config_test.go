@@ -471,6 +471,9 @@ func TestComplete(t *testing.T) {
 			ResponseValidation: ResponseValidationConfig{
 				Mode: ResponseValidationModeUnstable,
 			},
+			ReadOnlyRequests: ReadOnlyRequestsConfig{
+				Mode: ReadOnlyRequestsModeOff,
+			},
 			ClientIPMiddleware: ClientIPMiddlewareConfig{
 				Source: ClientIPSourceXFF,
 				Header: "X-Real-IP",

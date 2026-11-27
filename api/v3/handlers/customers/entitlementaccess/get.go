@@ -79,6 +79,8 @@ func (h *handler) GetCustomerEntitlementValue() GetCustomerEntitlementValueHandl
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("get-customer-entitlement-value"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)
@@ -138,6 +140,8 @@ func (h *handler) GetCustomerEntitlementValueByFeatureKey() GetCustomerEntitleme
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("get-customer-entitlement-value-by-feature-key"),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 			httptransport.WithErrorEncoder(apierrors.GenericErrorEncoder()),
 		)...,
 	)

@@ -372,6 +372,8 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(GetErrorEncoder()),
+			// Reading a metered balance saves a snapshot, so this GET cannot be read-only.
+			httptransport.WithPrimaryDatabase(),
 		)...,
 	)
 }

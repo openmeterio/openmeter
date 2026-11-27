@@ -39,6 +39,27 @@ func EnableOperationSpans(enabled bool) {
 	operationSpansEnabled.Store(enabled)
 }
 
+// ReadOnlyMarker marks the context of a read-only request, see transaction.WithWriteObserver.
+// The operation name is empty for handlers that do not declare one.
+type ReadOnlyMarker func(ctx context.Context, operation string) context.Context
+
+// readOnlyMarker is nil until SetReadOnlyMarker is called, which leaves
+// every request unmarked.
+var readOnlyMarker atomic.Pointer[ReadOnlyMarker]
+
+// SetReadOnlyMarker makes every GET and HEAD operation run inside a read-only
+// scope, unless the handler opts out with WithPrimaryDatabase. Intended to be called
+// once during startup; passing nil turns the marking off again.
+func SetReadOnlyMarker(marker ReadOnlyMarker) {
+	if marker == nil {
+		readOnlyMarker.Store(nil)
+
+		return
+	}
+
+	readOnlyMarker.Store(&marker)
+}
+
 type Handler[Request any, Response any] interface {
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 	Chain(outer operation.Middleware[Request, Response], others ...operation.Middleware[Request, Response]) Handler[Request, Response]
@@ -85,6 +106,8 @@ type handler[Request any, Response any] struct {
 	errorEncoders  []encoder.ErrorEncoder
 
 	errorHandler ErrorHandler
+
+	primaryDatabase bool
 }
 
 type RequestDecoder[Request any] func(ctx context.Context, r *http.Request) (Request, error)
@@ -98,9 +121,12 @@ type ErrorHandler interface {
 func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	var operationName string
+
 	// TODO: rewrite this as a generic hook
 	if h.operationNameFunc != nil {
 		name := h.operationNameFunc(ctx)
+		operationName = name
 		ctx = contextx.WithAttr(ctx, string(semconv.HTTPRouteKey), name)
 
 		// When enabled globally (EnableOperationSpans), start an application-level span
@@ -113,6 +139,13 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 			var span trace.Span
 			ctx, span = tracer.Start(ctx, name)
 			defer span.End()
+		}
+	}
+
+	// Marked before decoding, because decoders read from the database too.
+	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && !h.primaryDatabase {
+		if marker := readOnlyMarker.Load(); marker != nil {
+			ctx = (*marker)(ctx, operationName)
 		}
 	}
 

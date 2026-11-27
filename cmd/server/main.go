@@ -25,6 +25,8 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction/readonly"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/log"
 	pkgserver "github.com/openmeterio/openmeter/pkg/server"
 )
@@ -153,6 +155,19 @@ func main() {
 	if err != nil {
 		logger.Error("failed to initialize meters from config", "error", err)
 		os.Exit(1)
+	}
+
+	if conf.Server.ReadOnlyRequests.Mode.Enabled() {
+		readOnlyObserver, err := readonly.NewObserver(readonly.ObserverConfig{
+			Logger: logger,
+			Meter:  app.MetricMeter,
+		})
+		if err != nil {
+			logger.Error("failed to create read-only request observer", "error", err)
+			os.Exit(1)
+		}
+
+		httptransport.SetReadOnlyMarker(readOnlyObserver.MarkReadOnly)
 	}
 
 	s, err := server.NewServer(&server.Config{

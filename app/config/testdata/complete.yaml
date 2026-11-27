@@ -195,6 +195,8 @@ server:
   idleTimeout: 60s
   responseValidation:
     mode: "unstable" # "off" | "unstable" | "all"
+  readOnlyRequests:
+    mode: "off" # "off" | "observe"
   clientIPMiddleware:
     source: "x-forwarded-for" # "remote-address" | "header" | "x-forwarded-for"
     header: "X-Real-IP"

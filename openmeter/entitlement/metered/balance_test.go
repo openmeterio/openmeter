@@ -23,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/datetime"
 	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	transactiontestutils "github.com/openmeterio/openmeter/pkg/framework/transaction/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
@@ -362,15 +363,33 @@ func TestGetEntitlementBalance(t *testing.T) {
 					At:      g1.EffectiveAt,
 				}, snap1)
 
+				// Both reads run in a read-only scope to record what they write.
+				shadowWrites := &transactiontestutils.WriteRecorder{}
+				shadowCtx, err := transaction.WithWriteObserver(ctx, shadowWrites)
+				require.NoError(t, err)
+
+				productionWrites := &transactiontestutils.WriteRecorder{}
+				productionCtx, err := transaction.WithWriteObserver(ctx, productionWrites)
+				require.NoError(t, err)
+
 				// A shadow read sees the same usage without advancing the production checkpoint.
-				shadowBalance, err := connector.GetEntitlementBalance(credit.WithoutBalanceSnapshotWrites(ctx), owner, queryTime)
+				shadowBalance, err := connector.GetEntitlementBalance(credit.WithoutBalanceSnapshotWrites(shadowCtx), owner, queryTime)
 				require.NoError(t, err)
 				afterShadow, err := deps.balanceSnapshotService.GetLatestValidAt(ctx, owner, queryTime)
 				require.NoError(t, err)
 				require.Equal(t, snap1, afterShadow)
+				require.Empty(t, shadowWrites.Attempts(), "a shadow read must be servable by a read replica")
 
-				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
+				entBalance, err := connector.GetEntitlementBalance(productionCtx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
 				require.NoError(t, err)
+
+				// The production read saves a checkpoint, which is why the handlers serving
+				// it opt out of the read-only scope with httptransport.WithPrimaryDatabase.
+				require.Contains(t, productionWrites.Attempts(), transaction.WriteAttempt{
+					Kind:      transaction.WriteKindMutation,
+					Target:    "BalanceSnapshot",
+					Operation: "OpCreate",
+				})
 
 				require.Equal(t, entBalance, shadowBalance)
 
