@@ -116,8 +116,10 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// when: the invoice default is snapshotted into the lines
 			require.NoError(t, SnapshotTaxConfigIntoLines(&tt.invoice, tt.deps))
 
+			// then: the line carries the expected merged tax config
 			lines := tt.invoice.Lines.OrEmpty()
 			require.Len(t, lines, 1)
 			assert.Equal(t, tt.wantTC, lines[0].TaxConfig)
@@ -255,9 +257,13 @@ func TestStampInvoicingAppTaxCodes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// given: the invoice default is already snapshotted into the lines, as the calculator does first
 			require.NoError(t, SnapshotTaxConfigIntoLines(&tt.invoice, tt.deps))
 
+			// when: the invoicing app tax codes are stamped
 			err := StampInvoicingAppTaxCodes(&tt.invoice, tt.deps)
+
+			// then: the stamp is as expected, or the call fails for an unknown tax code
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 				return

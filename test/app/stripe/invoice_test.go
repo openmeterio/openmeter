@@ -2030,7 +2030,7 @@ func (s *StripeInvoiceTestSuite) TestIssuedInvoiceKeepsBilledTaxCode() {
 	s.Require().Len(s.lastUpdatedInvoiceLines, 1)
 	s.Equal("txcd_10000000", lo.FromPtr(s.lastUpdatedInvoiceLines[0].TaxCode))
 
-	// and: the stored line still carries the billed code, not the new mapping
+	// then: the stored line still carries the billed code, not the new mapping
 	refetched, err := s.BillingService.GetStandardInvoiceById(ctx, billing.GetStandardInvoiceByIdInput{
 		Invoice: invoice.GetInvoiceID(),
 		Expand:  billing.StandardInvoiceExpandAll,

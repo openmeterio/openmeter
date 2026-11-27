@@ -172,11 +172,11 @@ func TestToAPIEventInvoiceStripeCodeFromEventLines(t *testing.T) {
 		var event billing.StandardInvoiceCreatedEvent
 		require.NoError(t, json.Unmarshal(raw, &event))
 
-		// when
+		// when: the event is rendered to the v1 invoice
 		got, err := ToAPIEventInvoice(event.EventStandardInvoice, taxCodes)
 		require.NoError(t, err)
 
-		// then
+		// then: the line shows the stamp, not the live mapping
 		require.NotNil(t, got.Lines)
 		require.Len(t, *got.Lines, 1)
 		require.Equal(t, &apiv1models.StripeTaxConfig{Code: "txcd_stamped"}, (*got.Lines)[0].TaxConfig.Stripe)
@@ -380,7 +380,7 @@ func TestToAPIStandardInvoiceGatheringPreviewShowsLiveStripeCode(t *testing.T) {
 			line.LegacyStripeTaxCode = ""
 			line.DetailedLines = billing.DetailedLines{{}}
 
-			// when
+			// when: the invoice is mapped to v1
 			got, err := ToAPIStandardInvoice(invoice, taxCodes, app.AppTypeStripe)
 			require.NoError(t, err)
 

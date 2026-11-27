@@ -307,8 +307,11 @@ func TestStandardLineBaseBilledTaxCode(t *testing.T) {
 				LegacyStripeTaxCode: tt.legacyStripeTaxCode,
 			}
 
-			// when / then: the billed tax code follows the stamp, then the Stripe legacy code
-			require.Equal(t, tt.want, line.BilledTaxCode(tt.invoicingAppType))
+			// when: the billed tax code is resolved for the invoicing app
+			got := line.BilledTaxCode(tt.invoicingAppType)
+
+			// then: it follows the stamp, then the Stripe legacy code
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

@@ -320,7 +320,7 @@ func TestEventStandardInvoiceReencode(t *testing.T) {
 		raw, err := json.Marshal(event)
 		require.NoError(t, err)
 
-		// when
+		// when: it is decoded and encoded again
 		var decoded StandardInvoiceUpdatedEvent
 		require.NoError(t, json.Unmarshal(raw, &decoded))
 
@@ -334,28 +334,29 @@ func TestEventStandardInvoiceReencode(t *testing.T) {
 	})
 
 	t.Run("a decoded gathering event encodes to the same JSON", func(t *testing.T) {
-		// given
+		// given: a created event for a gathering invoice whose line references a Tax Code
 		event, err := NewGatheringInvoiceCreatedEvent(eventTestGatheringInvoice(eventTestTaxConfig()), taxCodes)
 		require.NoError(t, err)
 
 		raw, err := json.Marshal(event)
 		require.NoError(t, err)
 
-		// when
+		// when: it is decoded and encoded again
 		var decoded GatheringInvoiceCreatedEvent
 		require.NoError(t, json.Unmarshal(raw, &decoded))
 
 		again, err := json.Marshal(decoded)
 		require.NoError(t, err)
 
-		// then
+		// then: the JSON is identical
 		require.Equal(t, string(raw), string(again))
 	})
 
 	t.Run("an event built without a constructor encodes the Tax Code ID and behavior only", func(t *testing.T) {
-		// given: struct-literal events whose lines reference a Tax Code nobody loaded
+		// given: invoices whose lines reference a Tax Code nobody loaded
 		invoice := eventTestStandardInvoice(eventTestTaxConfig())
 
+		// when: events built as struct literals, without a constructor, are encoded
 		standard, err := json.Marshal(EventStandardInvoice{Invoice: invoice})
 		require.NoError(t, err)
 
@@ -368,7 +369,7 @@ func TestEventStandardInvoiceReencode(t *testing.T) {
 		gathering, err := json.Marshal(GatheringInvoiceCreatedEvent{Invoice: eventTestGatheringInvoice(eventTestTaxConfig())})
 		require.NoError(t, err)
 
-		// when/then: encoding does not fail and the legacy payload has no looked-up parts
+		// then: encoding does not fail and the legacy payload has no looked-up parts
 		wantOverrides := map[string]any{"behavior": "inclusive", "tax_code_id": eventTestTaxCodeID}
 
 		for name, payload := range map[string][]byte{"standard": standard, "gathering": gathering} {
@@ -403,14 +404,61 @@ func TestEventStandardInvoiceReencode(t *testing.T) {
 		raw, err := json.Marshal(event)
 		require.NoError(t, err)
 
-		// when
+		// when: it is decoded
 		var decoded StandardInvoiceCreatedEvent
 		require.NoError(t, json.Unmarshal(raw, &decoded))
 
-		// then
+		// then: the line has no legacy stripe code and no stamp
 		line := decoded.Invoice.Lines.OrEmpty()[0]
 		require.Empty(t, line.LegacyStripeTaxCode)
 		require.Nil(t, line.InvoicingAppTaxCode)
+	})
+
+	t.Run("a decoded event gives each line its own legacy stripe code", func(t *testing.T) {
+		// given: an event with a line on a Stripe-mapped Tax Code, a line on a Tax Code with
+		// another mapping, and a line without a Tax Code
+		otherTaxCode := &taxcode.TaxCode{
+			NamespacedID: models.NamespacedID{Namespace: eventTestNamespace, ID: "01JTAXCODE00000000000000001"},
+			Key:          "txcd_20000000",
+			Name:         "Other",
+			AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_20000000"}},
+		}
+		twoTaxCodes := map[string]*taxcode.TaxCode{
+			eventTestTaxCodeID: eventTestTaxCode(true),
+			otherTaxCode.ID:    otherTaxCode,
+		}
+
+		invoice := eventTestStandardInvoice(eventTestTaxConfig())
+		now := time.Now().UTC().Truncate(time.Second)
+
+		other := NewFlatFeeLine(NewFlatFeeLineInput{Namespace: eventTestNamespace, ID: "line-2", CreatedAt: now, UpdatedAt: now, Name: "other"})
+		other.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: otherTaxCode.ID}
+
+		untaxed := NewFlatFeeLine(NewFlatFeeLineInput{Namespace: eventTestNamespace, ID: "line-3", CreatedAt: now, UpdatedAt: now, Name: "untaxed"})
+
+		invoice.Lines = NewStandardInvoiceLines(append(invoice.Lines.OrEmpty(), other, untaxed))
+
+		event, err := NewStandardInvoiceCreatedEvent(invoice, twoTaxCodes)
+		require.NoError(t, err)
+
+		raw, err := json.Marshal(event)
+		require.NoError(t, err)
+
+		// when: it is decoded
+		var decoded StandardInvoiceCreatedEvent
+		require.NoError(t, json.Unmarshal(raw, &decoded))
+
+		// then: every line has the stripe code of its own taxOverrides, matched by line ID
+		codes := make(map[string]string)
+		for _, line := range decoded.Invoice.Lines.OrEmpty() {
+			codes[line.ID] = line.LegacyStripeTaxCode
+		}
+
+		require.Equal(t, map[string]string{
+			"line-1": "txcd_10000000",
+			"line-2": "txcd_20000000",
+			"line-3": "",
+		}, codes)
 	})
 }
 

@@ -183,7 +183,7 @@ func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices(
 	})
 	s.Require().Len(linesByName, 3)
 
-	// and: the lines on the second and third Tax Codes predate the stamp, and the second one
+	// given: the lines on the second and third Tax Codes predate the stamp, and the second one
 	// carries the legacy tax_config that new lines no longer get
 	for _, name := range []string{"Legacy fee with a code", "Legacy fee without a code"} {
 		s.Require().NoError(s.DBClient.BillingInvoiceLine.
@@ -211,10 +211,10 @@ func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices(
 	// then: the stamped line shows the code it was billed with
 	s.requireV1LineStripeCode(apiLines["Stamped fee"], stampedTaxCode.ID, "txcd_10000000")
 
-	// and: the line from before the stamp shows the code stored on it
+	// then: the line from before the stamp shows the code stored on it
 	s.requireV1LineStripeCode(apiLines["Legacy fee with a code"], legacyStoredTaxCode.ID, "txcd_30000000")
 
-	// and: the line that never had a code shows none, though the Tax Code maps to one now
+	// then: the line that never had a code shows none, though the Tax Code maps to one now
 	s.requireV1LineStripeCode(apiLines["Legacy fee without a code"], providerDefault.ID, "")
 }
 

@@ -124,61 +124,57 @@ func (s *LineTaxConfigTestSuite) TestNewLinesAreCreatedWithoutTaxConfig() {
 	mappedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
 	unmappedTaxCode := s.TaxCodeEnv.CreateTaxCode(s.T(), namespace)
 
-	var pending *billing.CreatePendingInvoiceLinesResult
-
-	s.Run("when: pending lines are created", func() {
-		pending = s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
-			"mapped":        {Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior), TaxCodeID: mappedTaxCode.ID},
-			"unmapped":      {TaxCodeID: unmappedTaxCode.ID},
-			"behavior-only": {Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
-		})
+	// when: pending lines are created
+	pending := s.createPendingLines(namespace, cust, now, map[string]*productcatalog.TaxCodeConfig{
+		"mapped":        {Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior), TaxCodeID: mappedTaxCode.ID},
+		"unmapped":      {TaxCodeID: unmappedTaxCode.ID},
+		"behavior-only": {Behavior: lo.ToPtr(productcatalog.InclusiveTaxBehavior)},
 	})
 
-	s.Run("then: gathering lines have the columns set and no tax_config", func() {
-		gatheringByName := lo.KeyBy(pending.Lines, func(line billing.GatheringLine) string { return line.Name })
+	// then: gathering lines have the columns set and no tax_config
+	gatheringByName := lo.KeyBy(pending.Lines, func(line billing.GatheringLine) string { return line.Name })
 
-		mapped := s.storedLine(gatheringByName["mapped"].ID)
-		s.Equal(mappedTaxCode.ID, lo.FromPtr(mapped.TaxCodeID))
-		s.Equal(productcatalog.ExclusiveTaxBehavior, lo.FromPtr(mapped.TaxBehavior))
-		s.requireNullTaxConfig(mapped.ID)
+	gatheringMapped := s.storedLine(gatheringByName["mapped"].ID)
+	s.Equal(mappedTaxCode.ID, lo.FromPtr(gatheringMapped.TaxCodeID))
+	s.Equal(productcatalog.ExclusiveTaxBehavior, lo.FromPtr(gatheringMapped.TaxBehavior))
+	s.requireNullTaxConfig(gatheringMapped.ID)
 
-		unmapped := s.storedLine(gatheringByName["unmapped"].ID)
-		s.Equal(unmappedTaxCode.ID, lo.FromPtr(unmapped.TaxCodeID))
-		s.Nil(unmapped.TaxBehavior)
-		s.requireNullTaxConfig(unmapped.ID)
+	gatheringUnmapped := s.storedLine(gatheringByName["unmapped"].ID)
+	s.Equal(unmappedTaxCode.ID, lo.FromPtr(gatheringUnmapped.TaxCodeID))
+	s.Nil(gatheringUnmapped.TaxBehavior)
+	s.requireNullTaxConfig(gatheringUnmapped.ID)
 
-		behaviorOnly := s.storedLine(gatheringByName["behavior-only"].ID)
-		s.Nil(behaviorOnly.TaxCodeID)
-		s.Equal(productcatalog.InclusiveTaxBehavior, lo.FromPtr(behaviorOnly.TaxBehavior))
-		s.requireNullTaxConfig(behaviorOnly.ID)
+	gatheringBehaviorOnly := s.storedLine(gatheringByName["behavior-only"].ID)
+	s.Nil(gatheringBehaviorOnly.TaxCodeID)
+	s.Equal(productcatalog.InclusiveTaxBehavior, lo.FromPtr(gatheringBehaviorOnly.TaxBehavior))
+	s.requireNullTaxConfig(gatheringBehaviorOnly.ID)
+
+	// when: the pending lines are collected into a draft invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
 	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
 
-	s.Run("then: standard lines have the columns set and no tax_config", func() {
-		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: cust.GetID(),
-			AsOf:     &now,
-		})
-		s.Require().NoError(err)
-		s.Require().Len(invoices, 1)
+	// then: standard lines have the columns set and no tax_config
+	standardByName := lo.KeyBy(invoices[0].Lines.OrEmpty(), func(line *billing.StandardLine) string { return line.Name })
+	s.Require().Len(standardByName, 3)
 
-		standardByName := lo.KeyBy(invoices[0].Lines.OrEmpty(), func(line *billing.StandardLine) string { return line.Name })
-		s.Require().Len(standardByName, 3)
+	standardMapped := s.storedLine(standardByName["mapped"].ID)
+	s.Equal(mappedTaxCode.ID, lo.FromPtr(standardMapped.TaxCodeID))
+	s.Equal(productcatalog.ExclusiveTaxBehavior, lo.FromPtr(standardMapped.TaxBehavior))
+	s.requireNullTaxConfig(standardMapped.ID)
 
-		mapped := s.storedLine(standardByName["mapped"].ID)
-		s.Equal(mappedTaxCode.ID, lo.FromPtr(mapped.TaxCodeID))
-		s.Equal(productcatalog.ExclusiveTaxBehavior, lo.FromPtr(mapped.TaxBehavior))
-		s.requireNullTaxConfig(mapped.ID)
+	standardUnmapped := s.storedLine(standardByName["unmapped"].ID)
+	s.Equal(unmappedTaxCode.ID, lo.FromPtr(standardUnmapped.TaxCodeID))
+	s.Nil(standardUnmapped.TaxBehavior)
+	s.requireNullTaxConfig(standardUnmapped.ID)
 
-		unmapped := s.storedLine(standardByName["unmapped"].ID)
-		s.Equal(unmappedTaxCode.ID, lo.FromPtr(unmapped.TaxCodeID))
-		s.Nil(unmapped.TaxBehavior)
-		s.requireNullTaxConfig(unmapped.ID)
-
-		behaviorOnly := s.storedLine(standardByName["behavior-only"].ID)
-		s.Nil(behaviorOnly.TaxCodeID)
-		s.Equal(productcatalog.InclusiveTaxBehavior, lo.FromPtr(behaviorOnly.TaxBehavior))
-		s.requireNullTaxConfig(behaviorOnly.ID)
-	})
+	standardBehaviorOnly := s.storedLine(standardByName["behavior-only"].ID)
+	s.Nil(standardBehaviorOnly.TaxCodeID)
+	s.Equal(productcatalog.InclusiveTaxBehavior, lo.FromPtr(standardBehaviorOnly.TaxBehavior))
+	s.requireNullTaxConfig(standardBehaviorOnly.ID)
 }
 
 // TestStoredTaxConfigKeptOnLinePastDraftUpsert checks that a legacy tax_config stays as it is when
@@ -217,7 +213,7 @@ func (s *LineTaxConfigTestSuite) TestStoredTaxConfigKeptOnLinePastDraftUpsert() 
 	s.Require().Len(invoice.Lines.OrEmpty(), 1)
 	lineID := invoice.Lines.OrEmpty()[0].ID
 
-	// and: the line has a legacy tax_config from before a remap of the Tax Code (older stripe
+	// given: the line has a legacy tax_config from before a remap of the Tax Code (older stripe
 	// code and Tax Code state), with tax_code_id and tax_behavior matching it
 	legacySnapshot := billing.StoredLineTaxConfig{
 		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
@@ -252,7 +248,7 @@ func (s *LineTaxConfigTestSuite) TestStoredTaxConfigKeptOnLinePastDraftUpsert() 
 	s.Require().Len(synced.Lines.OrEmpty(), 1)
 	s.Equal("ext-line", synced.Lines.OrEmpty()[0].ExternalIDs.Invoicing)
 
-	// and: the legacy tax_config is untouched, the columns still hold the tax identity
+	// then: the legacy tax_config is untouched, the columns still hold the tax identity
 	s.Equal(legacyJSON, s.storedTaxConfigJSON(lineID))
 
 	row := s.storedLine(lineID)
@@ -279,47 +275,42 @@ func (s *LineTaxConfigTestSuite) TestDraftLineWithDeletedTaxCodeCanBeResaved() {
 	})
 	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: taxCode.NamespacedID}))
 
-	var invoice billing.StandardInvoice
+	// when: the line is collected into a draft invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
+	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
 
-	s.Run("when: the line is collected into a draft invoice", func() {
-		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: cust.GetID(),
-			AsOf:     &now,
-		})
-		s.Require().NoError(err)
-		s.Require().Len(invoices, 1)
-		invoice = invoices[0]
+	// then: the line row references the deleted Tax Code
+	collectedRow := s.storedLine(invoice.Lines.OrEmpty()[0].ID)
+	s.Equal(taxCode.ID, lo.FromPtr(collectedRow.TaxCodeID))
+	s.requireNullTaxConfig(collectedRow.ID)
+
+	// when: the draft line is edited and re-saved
+	edited, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoice.GetInvoiceID(),
+		ChangeSource: billing.ChangeSourceSystem,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			for _, line := range invoice.Lines.OrEmpty() {
+				line.Name = "edited name"
+			}
+
+			return nil
+		},
 	})
 
-	s.Run("then: the line row references the deleted Tax Code", func() {
-		row := s.storedLine(invoice.Lines.OrEmpty()[0].ID)
-		s.Equal(taxCode.ID, lo.FromPtr(row.TaxCodeID))
-		s.requireNullTaxConfig(row.ID)
-	})
+	// then: calculation and upsert succeed and the line still references the deleted Tax Code
+	s.Require().NoError(err)
+	s.Require().Len(edited.Lines.OrEmpty(), 1)
+	s.Equal("edited name", edited.Lines.OrEmpty()[0].Name)
+	s.Equal(taxCode.ID, edited.Lines.OrEmpty()[0].TaxConfig.TaxCodeID)
 
-	s.Run("when: the draft line is edited and re-saved", func() {
-		edited, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice:      invoice.GetInvoiceID(),
-			ChangeSource: billing.ChangeSourceSystem,
-			EditFn: func(invoice *billing.StandardInvoice) error {
-				for _, line := range invoice.Lines.OrEmpty() {
-					line.Name = "edited name"
-				}
-
-				return nil
-			},
-		})
-
-		// then: calculation and upsert succeed and the line still references the deleted Tax Code
-		s.Require().NoError(err)
-		s.Require().Len(edited.Lines.OrEmpty(), 1)
-		s.Equal("edited name", edited.Lines.OrEmpty()[0].Name)
-		s.Equal(taxCode.ID, edited.Lines.OrEmpty()[0].TaxConfig.TaxCodeID)
-
-		row := s.storedLine(edited.Lines.OrEmpty()[0].ID)
-		s.Equal(taxCode.ID, lo.FromPtr(row.TaxCodeID))
-		s.requireNullTaxConfig(row.ID)
-	})
+	editedRow := s.storedLine(edited.Lines.OrEmpty()[0].ID)
+	s.Equal(taxCode.ID, lo.FromPtr(editedRow.TaxCodeID))
+	s.requireNullTaxConfig(editedRow.ID)
 }
 
 // TestLegacyTaxConfigKeptWhenTaxCodeChanges checks that editing the Tax Code of a line that has a
@@ -368,50 +359,45 @@ func (s *LineTaxConfigTestSuite) TestLegacyTaxConfigKeptWhenTaxCodeChanges() {
 	s.Require().NoError(err)
 	s.Require().JSONEq(string(legacyJSON), s.storedTaxConfigJSON(draftLineID), "precondition: the legacy tax_config is stored")
 
-	s.Run("when: the Tax Code of the draft standard line is changed", func() {
-		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice:      draftInvoiceID,
-			ChangeSource: billing.ChangeSourceSystem,
-			EditFn: func(invoice *billing.StandardInvoice) error {
-				for _, line := range invoice.Lines.OrEmpty() {
-					line.TaxConfig = &productcatalog.TaxCodeConfig{Behavior: line.TaxConfig.Behavior, TaxCodeID: otherTaxCode.ID}
-				}
+	// when: the Tax Code of the draft standard line is changed
+	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      draftInvoiceID,
+		ChangeSource: billing.ChangeSourceSystem,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			for _, line := range invoice.Lines.OrEmpty() {
+				line.TaxConfig = &productcatalog.TaxCodeConfig{Behavior: line.TaxConfig.Behavior, TaxCodeID: otherTaxCode.ID}
+			}
 
-				return nil
-			},
-		})
-		s.Require().NoError(err)
+			return nil
+		},
 	})
+	s.Require().NoError(err)
 
-	s.Run("then: the column changed and the legacy tax_config did not", func() {
-		s.Equal(otherTaxCode.ID, lo.FromPtr(s.storedLine(draftLineID).TaxCodeID))
-		s.JSONEq(string(legacyJSON), s.storedTaxConfigJSON(draftLineID))
+	// then: the column changed and the legacy tax_config did not
+	s.Equal(otherTaxCode.ID, lo.FromPtr(s.storedLine(draftLineID).TaxCodeID))
+	s.JSONEq(string(legacyJSON), s.storedTaxConfigJSON(draftLineID))
+
+	// then: the legacy Stripe code is still read from it
+	s.Equal("txcd_10000000", s.readStandardLine(draftInvoiceID, draftLineID).LegacyStripeTaxCode)
+
+	// when: the Tax Code of the gathering line is changed
+	_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      billing.InvoiceID{Namespace: namespace, ID: gatheringLine.InvoiceID},
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			edited, ok := invoice.Lines.GetByID(gatheringLine.ID)
+			s.Require().True(ok)
+
+			edited.TaxConfig = &productcatalog.TaxCodeConfig{Behavior: edited.TaxConfig.Behavior, TaxCodeID: otherTaxCode.ID}
+
+			return invoice.Lines.ReplaceByID(edited)
+		},
 	})
+	s.Require().NoError(err)
 
-	s.Run("then: the legacy Stripe code is still read from it", func() {
-		s.Equal("txcd_10000000", s.readStandardLine(draftInvoiceID, draftLineID).LegacyStripeTaxCode)
-	})
-
-	s.Run("when: the Tax Code of the gathering line is changed", func() {
-		_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-			Invoice:      billing.InvoiceID{Namespace: namespace, ID: gatheringLine.InvoiceID},
-			ChangeSource: billing.ChangeSourceAPIRequest,
-			EditFn: func(invoice *billing.GatheringInvoice) error {
-				edited, ok := invoice.Lines.GetByID(gatheringLine.ID)
-				s.Require().True(ok)
-
-				edited.TaxConfig = &productcatalog.TaxCodeConfig{Behavior: edited.TaxConfig.Behavior, TaxCodeID: otherTaxCode.ID}
-
-				return invoice.Lines.ReplaceByID(edited)
-			},
-		})
-		s.Require().NoError(err)
-	})
-
-	s.Run("then: the column changed and the legacy tax_config did not", func() {
-		s.Equal(otherTaxCode.ID, lo.FromPtr(s.storedLine(gatheringLine.ID).TaxCodeID))
-		s.JSONEq(string(legacyJSON), s.storedTaxConfigJSON(gatheringLine.ID))
-	})
+	// then: the column changed and the legacy tax_config did not
+	s.Equal(otherTaxCode.ID, lo.FromPtr(s.storedLine(gatheringLine.ID).TaxCodeID))
+	s.JSONEq(string(legacyJSON), s.storedTaxConfigJSON(gatheringLine.ID))
 }
 
 // TestInvoicingAppTaxCodeRoundTrip checks that a standard line reads back the invoicing app tax code
@@ -443,51 +429,46 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 	s.Require().Len(invoices[0].Lines.OrEmpty(), 1)
 	lineID := invoices[0].Lines.OrEmpty()[0].ID
 
-	s.Run("given: a line from before stamping, with a NULL stamp and a legacy stripe code", func() {
-		s.setStoredInvoicingAppTaxCode(lineID, nil)
-		s.seedLegacyTaxConfig(lineID, billing.StoredLineTaxConfig{
-			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-			TaxCodeID: lo.ToPtr(taxCode.ID),
-			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		})
+	// given: the line is turned into one from before stamping, with a NULL stamp and a legacy
+	// stripe code
+	s.setStoredInvoicingAppTaxCode(lineID, nil)
+	s.seedLegacyTaxConfig(lineID, billing.StoredLineTaxConfig{
+		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
+		TaxCodeID: lo.ToPtr(taxCode.ID),
+		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 	})
 
-	s.Run("then: the unstamped line reads NULL and exposes the legacy stripe code", func() {
-		s.Nil(s.storedLine(lineID).InvoicingAppTaxCode)
+	// then: the unstamped line reads NULL and exposes the legacy stripe code
+	s.Nil(s.storedLine(lineID).InvoicingAppTaxCode)
 
-		line := s.readStandardLine(invoiceID, lineID)
-		s.Nil(line.InvoicingAppTaxCode)
-		s.Equal("txcd_10000000", line.LegacyStripeTaxCode)
-		s.Equal("txcd_10000000", line.BilledTaxCode(app.AppTypeStripe))
-		s.Equal("", line.BilledTaxCode(app.AppTypeCustomInvoicing))
-	})
+	unstamped := s.readStandardLine(invoiceID, lineID)
+	s.Nil(unstamped.InvoicingAppTaxCode)
+	s.Equal("txcd_10000000", unstamped.LegacyStripeTaxCode)
+	s.Equal("txcd_10000000", unstamped.BilledTaxCode(app.AppTypeStripe))
+	s.Equal("", unstamped.BilledTaxCode(app.AppTypeCustomInvoicing))
 
-	s.Run("when: the line is saved with a stamp", func() {
-		s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr("txcd_20000000"))
-	})
+	// when: the line is saved with a stamp
+	s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr("txcd_20000000"))
 
-	s.Run("then: the stamp is persisted and read back, winning over the legacy code", func() {
-		s.Equal("txcd_20000000", lo.FromPtr(s.storedLine(lineID).InvoicingAppTaxCode))
+	// then: the stamp is persisted and read back, winning over the legacy code
+	s.Equal("txcd_20000000", lo.FromPtr(s.storedLine(lineID).InvoicingAppTaxCode))
 
-		line := s.readStandardLine(invoiceID, lineID)
-		s.Equal("txcd_20000000", lo.FromPtr(line.InvoicingAppTaxCode))
-		s.Equal("txcd_20000000", line.BilledTaxCode(app.AppTypeStripe))
-		s.Equal("txcd_10000000", line.LegacyStripeTaxCode, "the stored legacy JSON is not rewritten")
-	})
+	stamped := s.readStandardLine(invoiceID, lineID)
+	s.Equal("txcd_20000000", lo.FromPtr(stamped.InvoicingAppTaxCode))
+	s.Equal("txcd_20000000", stamped.BilledTaxCode(app.AppTypeStripe))
+	s.Equal("txcd_10000000", stamped.LegacyStripeTaxCode, "the stored legacy JSON is not rewritten")
 
-	s.Run("when: the line is saved with an empty stamp", func() {
-		s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr(""))
-	})
+	// when: the line is saved with an empty stamp
+	s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr(""))
 
-	s.Run("then: the empty stamp is kept apart from NULL and still wins over the legacy code", func() {
-		stored := s.storedLine(lineID).InvoicingAppTaxCode
-		s.Require().NotNil(stored)
-		s.Equal("", *stored)
+	// then: the empty stamp is kept apart from NULL and still wins over the legacy code
+	stored := s.storedLine(lineID).InvoicingAppTaxCode
+	s.Require().NotNil(stored)
+	s.Equal("", *stored)
 
-		line := s.readStandardLine(invoiceID, lineID)
-		s.Require().NotNil(line.InvoicingAppTaxCode)
-		s.Equal("", line.BilledTaxCode(app.AppTypeStripe))
-	})
+	emptyStamped := s.readStandardLine(invoiceID, lineID)
+	s.Require().NotNil(emptyStamped.InvoicingAppTaxCode)
+	s.Equal("", emptyStamped.BilledTaxCode(app.AppTypeStripe))
 }
 
 // TestGatheringLinesKeepInvoicingAppTaxCodeNull checks that gathering lines, which share the
@@ -509,31 +490,28 @@ func (s *LineTaxConfigTestSuite) TestGatheringLinesKeepInvoicingAppTaxCodeNull()
 	})
 	line := pending.Lines[0]
 
-	s.Run("then: the insert leaves the column NULL", func() {
-		s.Nil(s.storedLine(line.ID).InvoicingAppTaxCode)
+	// then: the insert leaves the column NULL
+	s.Nil(s.storedLine(line.ID).InvoicingAppTaxCode)
+
+	// when: the gathering line is upserted again
+	_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
+		Invoice:      billing.InvoiceID{Namespace: namespace, ID: line.InvoiceID},
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		EditFn: func(invoice *billing.GatheringInvoice) error {
+			edited, ok := invoice.Lines.GetByID(line.ID)
+			s.Require().True(ok)
+
+			edited.Name = "edited"
+
+			return invoice.Lines.ReplaceByID(edited)
+		},
 	})
+	s.Require().NoError(err)
 
-	s.Run("when: the gathering line is upserted again", func() {
-		_, err := s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
-			Invoice:      billing.InvoiceID{Namespace: namespace, ID: line.InvoiceID},
-			ChangeSource: billing.ChangeSourceAPIRequest,
-			EditFn: func(invoice *billing.GatheringInvoice) error {
-				edited, ok := invoice.Lines.GetByID(line.ID)
-				s.Require().True(ok)
-
-				edited.Name = "edited"
-
-				return invoice.Lines.ReplaceByID(edited)
-			},
-		})
-		s.Require().NoError(err)
-	})
-
-	s.Run("then: the column is still NULL", func() {
-		row := s.storedLine(line.ID)
-		s.Equal("edited", row.Name)
-		s.Nil(row.InvoicingAppTaxCode)
-	})
+	// then: the column is still NULL
+	row := s.storedLine(line.ID)
+	s.Equal("edited", row.Name)
+	s.Nil(row.InvoicingAppTaxCode)
 }
 
 // readStandardLine loads a standard line through the billing service.
@@ -603,33 +581,26 @@ func (s *LineTaxConfigTestSuite) TestDraftInvoiceStampsInvoicingAppTaxCode() {
 		"none":       nil,
 	})
 
-	var invoice billing.StandardInvoice
-
-	s.Run("when: the pending lines are collected into a draft invoice", func() {
-		invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
-			Customer: cust.GetID(),
-			AsOf:     &now,
-		})
-		s.Require().NoError(err)
-		s.Require().Len(invoices, 1)
-		invoice = invoices[0]
+	// when: the pending lines are collected into a draft invoice
+	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{
+		Customer: cust.GetID(),
+		AsOf:     &now,
 	})
+	s.Require().NoError(err)
+	s.Require().Len(invoices, 1)
+	invoice := invoices[0]
 
-	s.Run("then: every line carries the stamp of its Tax Code", func() {
-		lines := linesByName(invoice)
-		s.Require().Len(lines, 3)
+	// then: every line carries the stamp of its Tax Code
+	lines := linesByName(invoice)
+	s.Require().Len(lines, 3)
 
-		s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["mapped"].ID, lo.ToPtr("sandbox-code"))
-		s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["stripeOnly"].ID, lo.ToPtr(""))
-		s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["none"].ID, lo.ToPtr(""))
-	})
+	s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["mapped"].ID, lo.ToPtr("sandbox-code"))
+	s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["stripeOnly"].ID, lo.ToPtr(""))
+	s.requireInvoicingAppTaxCode(invoice.GetInvoiceID(), lines["none"].ID, lo.ToPtr(""))
 
-	s.Run("then: the invoice returned by the collection already has the stamps", func() {
-		lines := linesByName(invoice)
-
-		s.Equal("sandbox-code", lo.FromPtr(lines["mapped"].InvoicingAppTaxCode))
-		s.Equal("sandbox-code", lines["mapped"].BilledTaxCode(app.AppTypeSandbox))
-	})
+	// then: the invoice returned by the collection already has the stamps
+	s.Equal("sandbox-code", lo.FromPtr(lines["mapped"].InvoicingAppTaxCode))
+	s.Equal("sandbox-code", lines["mapped"].BilledTaxCode(app.AppTypeSandbox))
 }
 
 // TestDraftRecalculationStampsUnstampedLine checks that a draft line from before stamping (NULL in
@@ -686,7 +657,7 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRestampedInDraftAndFroze
 	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-freeze")
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
-	// given: a draft waiting for manual approval, with two lines whose Tax Codes only map Stripe
+	// given: a draft waiting for manual approval, with two lines whose Tax Codes only map Stripe, so both start stamped empty
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID(), WithBillingProfileEditFn(func(profile *billing.CreateProfileInput) {
 		profile.WorkflowConfig.Invoicing.AutoAdvance = false
@@ -717,40 +688,36 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRestampedInDraftAndFroze
 	s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr(""))
 	s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
 
-	s.Run("when: a sandbox mapping is added and the draft is recalculated", func() {
-		s.addSandboxMapping(editedInDraft, "sandbox-in-draft")
+	// when: a sandbox mapping is added and the draft is recalculated
+	s.addSandboxMapping(editedInDraft, "sandbox-in-draft")
 
-		_, err := s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
-			Invoice:      invoiceID,
-			ChangeSource: billing.ChangeSourceSystem,
-			EditFn: func(invoice *billing.StandardInvoice) error {
-				invoice.Description = lo.ToPtr("edited")
+	_, err = s.BillingService.UpdateStandardInvoice(ctx, billing.UpdateStandardInvoiceInput{
+		Invoice:      invoiceID,
+		ChangeSource: billing.ChangeSourceSystem,
+		EditFn: func(invoice *billing.StandardInvoice) error {
+			invoice.Description = lo.ToPtr("edited")
 
-				return nil
-			},
-		})
-		s.Require().NoError(err)
+			return nil
+		},
 	})
+	s.Require().NoError(err)
 
-	s.Run("then: the line picks the new mapping up, the other stays empty", func() {
-		s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr("sandbox-in-draft"))
-		s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
-	})
+	// then: the line picks the new mapping up, the other stays empty
+	s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr("sandbox-in-draft"))
+	s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
 
-	s.Run("when: the invoice leaves draft and a sandbox mapping is added afterwards", func() {
-		approved, err := s.BillingService.ApproveInvoice(ctx, invoiceID)
-		s.Require().NoError(err)
-		s.Require().Equal(billing.StandardInvoiceStatusPaid, approved.Status)
+	// when: the invoice leaves draft and a sandbox mapping is added afterwards
+	approved, err := s.BillingService.ApproveInvoice(ctx, invoiceID)
+	s.Require().NoError(err)
+	s.Require().Equal(billing.StandardInvoiceStatusPaid, approved.Status)
 
-		s.addSandboxMapping(editedAfterDraft, "sandbox-after-draft")
-	})
+	s.addSandboxMapping(editedAfterDraft, "sandbox-after-draft")
 
-	s.Run("then: both stamps are frozen, in the database and through the billing service", func() {
-		s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr("sandbox-in-draft"))
-		s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
+	// then: both stamps are frozen, in the database and through the billing service
+	s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr("sandbox-in-draft"))
+	s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
 
-		s.Equal("", s.readStandardLine(invoiceID, afterDraftLineID).BilledTaxCode(app.AppTypeSandbox))
-	})
+	s.Equal("", s.readStandardLine(invoiceID, afterDraftLineID).BilledTaxCode(app.AppTypeSandbox))
 }
 
 // addSandboxMapping adds a sandbox app mapping to a Tax Code; mappings can only be added.

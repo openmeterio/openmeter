@@ -991,7 +991,8 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 
 // TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies that for
 // flat-fee credit_then_invoice charges, after payment is settled, the standard invoice line
-// carries the TaxCodeID (FK) and is billed with the Stripe code of that Tax Code.
+// still references the Tax Code and is stamped with that Tax Code's mapping for the profile's
+// invoicing app.
 func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()
 	ns := s.GetUniqueNamespace("charges-taxcode-flatfee-invoice-settled")
@@ -1092,8 +1093,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	s.Require().NotNil(line.TaxConfig, "standard invoice line must have TaxConfig")
 	s.Equal(tc.ID, line.TaxConfig.TaxCodeID)
 
-	// The charge-backed line goes through the same draft calculation, so it carries the stamp of
-	// the custom invoicing app's mapping.
+	// then: the charge-backed line goes through the same draft calculation, so it also carries the
+	// stamp of the custom invoicing app's mapping.
 	s.Equal(lo.ToPtr(customInvoicingCode), line.InvoicingAppTaxCode)
 }
 
@@ -1440,7 +1441,7 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 
 // TestUsageBasedInvoiceSettlementPopulatesStripeCodeOnStandardInvoice verifies that for
 // usage-based credit_then_invoice charges, after payment is settled, the standard invoice line
-// carries the TaxCodeID (FK) and is billed with the Stripe code of that Tax Code.
+// still references the Tax Code and keeps the tax behavior.
 // Mirrors TestFlatFeeInvoiceSettlementPopulatesStripeCodeOnStandardInvoice for the usage-based path.
 func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesStripeCodeOnStandardInvoice() {
 	ctx := s.T().Context()

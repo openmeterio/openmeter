@@ -185,18 +185,13 @@ func (e *EventStandardInvoice) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	lines := decoded.Invoice.Lines.OrEmpty()
-	if len(lines) != len(wire.Invoice.Lines) {
-		return fmt.Errorf("invoice has %d lines but %d line tax overrides", len(lines), len(wire.Invoice.Lines))
-	}
+	decoded.taxOverrides = newLineTaxOverridesFromJSON(wire.Invoice.Lines)
 
-	for idx, line := range lines {
-		if overrides := wire.Invoice.Lines[idx].TaxConfig; overrides != nil && overrides.Stripe != nil {
+	for _, line := range decoded.Invoice.Lines.OrEmpty() {
+		if overrides, ok := decoded.taxOverrides[line.ID]; ok && overrides.Stripe != nil {
 			line.LegacyStripeTaxCode = overrides.Stripe.Code
 		}
 	}
-
-	decoded.taxOverrides = newLineTaxOverridesFromJSON(wire.Invoice.Lines)
 
 	*e = EventStandardInvoice(decoded)
 

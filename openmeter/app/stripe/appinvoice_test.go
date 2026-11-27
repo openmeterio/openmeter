@@ -64,6 +64,7 @@ func TestWouldStandardInvoiceBeEmpty(t *testing.T) {
 // The Stripe tax code is the parent line's billed code: the stamp, else the legacy stored
 // code. An empty code leaves it unset so Stripe applies its default.
 func TestLeafLinesCarryTheParentBilledTaxCode(t *testing.T) {
+	// given: lines in every stamp state
 	stamped := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			InvoicingAppTaxCode: lo.ToPtr("txcd_stamped"),
@@ -88,7 +89,6 @@ func TestLeafLinesCarryTheParentBilledTaxCode(t *testing.T) {
 		DetailedLines: billing.DetailedLines{{}},
 	}
 
-	// given: lines in every stamp state
 	invoice := billing.StandardInvoice{
 		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{stamped, stampedDefault, legacy, unstamped}),
 	}
@@ -106,20 +106,24 @@ func TestLeafLinesCarryTheParentBilledTaxCode(t *testing.T) {
 
 func TestApplyTaxSettingsToInvoiceItem(t *testing.T) {
 	t.Run("sends the billed code and the behavior", func(t *testing.T) {
+		// when: the tax settings of a line with a billed code and a behavior are applied to a Stripe invoice item
 		params := applyTaxSettingsToInvoiceItem(&stripe.InvoiceItemParams{}, billing.DetailedLineWithResolvedTaxConfig{
 			TaxConfig:     &productcatalog.TaxCodeConfig{Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior)},
 			BilledTaxCode: "txcd_billed",
 		})
 
+		// then: both are sent to Stripe
 		require.Equal(t, "txcd_billed", lo.FromPtr(params.TaxCode))
 		require.Equal(t, string(stripe.PriceCurrencyOptionsTaxBehaviorExclusive), lo.FromPtr(params.TaxBehavior))
 	})
 
 	t.Run("an empty billed code leaves the stripe tax code unset", func(t *testing.T) {
+		// when: the tax settings of a line with a Tax Code ID but an empty billed code are applied to a Stripe invoice item
 		params := applyTaxSettingsToInvoiceItem(&stripe.InvoiceItemParams{}, billing.DetailedLineWithResolvedTaxConfig{
 			TaxConfig: &productcatalog.TaxCodeConfig{TaxCodeID: "01JTAXCODE00000000000000000"},
 		})
 
+		// then: Stripe gets neither a tax code nor a behavior, so it applies its default
 		require.Nil(t, params.TaxCode)
 		require.Nil(t, params.TaxBehavior)
 	})
