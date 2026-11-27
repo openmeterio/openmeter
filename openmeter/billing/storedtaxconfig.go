@@ -12,10 +12,9 @@ import (
 )
 
 // StoredLineTaxConfig is the legacy tax config shape. It is the type of the frozen tax_config
-// column on invoice lines (never written for new lines; the adapter only reads the legacy
-// Stripe code from it) and the payload of the `taxOverrides` field in invoice events. Lines
-// carry productcatalog.TaxCodeConfig, and renderers rebuild stripe.code and tax_code from the
-// referenced Tax Code on the fly.
+// column on invoice lines (never written or read anymore) and the payload of the `taxOverrides`
+// field in invoice events. Lines carry productcatalog.TaxCodeConfig, and renderers rebuild
+// stripe.code and tax_code from the referenced Tax Code on the fly.
 type StoredLineTaxConfig struct {
 	Behavior  *productcatalog.TaxBehavior     `json:"behavior,omitempty"`
 	Stripe    *productcatalog.StripeTaxConfig `json:"stripe,omitempty"`

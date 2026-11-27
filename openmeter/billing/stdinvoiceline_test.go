@@ -9,7 +9,6 @@ import (
 	"github.com/samber/mo"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing/featuremeter"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/externalid"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/stddetailedline"
@@ -165,7 +164,6 @@ func TestStandardLineWithTargetStateKeepsInvoicingReferences(t *testing.T) {
 	existing := validStandardLineForValidation()
 	existing.ExternalIDs.Invoicing = "il_line"
 	existing.InvoicingAppTaxCode = lo.ToPtr("txcd_10000000")
-	existing.LegacyStripeTaxCode = "txcd_99999999"
 	existing.DetailedLines = DetailedLines{
 		{
 			DetailedLineBase: DetailedLineBase{Base: stddetailedline.Base{
@@ -192,7 +190,6 @@ func TestStandardLineWithTargetStateKeepsInvoicingReferences(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "il_line", mergedLine.ExternalIDs.Invoicing)
 	require.Equal(t, lo.ToPtr("txcd_10000000"), mergedLine.InvoicingAppTaxCode)
-	require.Equal(t, "txcd_99999999", mergedLine.LegacyStripeTaxCode)
 	require.Len(t, mergedLine.DetailedLines, 1)
 	require.Equal(t, "detailed_123", mergedLine.DetailedLines[0].ID)
 	require.Equal(t, "il_detailed", mergedLine.DetailedLines[0].ExternalIDs.Invoicing)
@@ -251,66 +248,33 @@ func TestStandardLineBaseBilledTaxCode(t *testing.T) {
 	tests := []struct {
 		name                string
 		invoicingAppTaxCode *string
-		legacyStripeTaxCode string
-		invoicingAppType    app.AppType
 		want                string
 	}{
 		{
-			name:                "stamped value wins",
+			name:                "stamped value is the billed code",
 			invoicingAppTaxCode: lo.ToPtr("txcd_20000000"),
-			invoicingAppType:    app.AppTypeStripe,
 			want:                "txcd_20000000",
-		},
-		{
-			name:                "stamped value is used on non-Stripe invoices too",
-			invoicingAppTaxCode: lo.ToPtr("custom-code"),
-			invoicingAppType:    app.AppTypeCustomInvoicing,
-			want:                "custom-code",
 		},
 		{
 			name:                "stamped empty means provider default",
 			invoicingAppTaxCode: lo.ToPtr(""),
-			invoicingAppType:    app.AppTypeStripe,
 			want:                "",
 		},
 		{
-			name:                "stamped empty wins over the legacy code",
-			invoicingAppTaxCode: lo.ToPtr(""),
-			legacyStripeTaxCode: "txcd_10000000",
-			invoicingAppType:    app.AppTypeStripe,
-			want:                "",
-		},
-		{
-			name:                "unstamped Stripe line falls back to the legacy code",
-			legacyStripeTaxCode: "txcd_10000000",
-			invoicingAppType:    app.AppTypeStripe,
-			want:                "txcd_10000000",
-		},
-		{
-			name:             "unstamped Stripe line without a legacy code uses the provider default",
-			invoicingAppType: app.AppTypeStripe,
-			want:             "",
-		},
-		{
-			name:                "unstamped non-Stripe line ignores the legacy code",
-			legacyStripeTaxCode: "txcd_10000000",
-			invoicingAppType:    app.AppTypeCustomInvoicing,
-			want:                "",
+			name: "unstamped means provider default",
+			want: "",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// given: a line with the stamp and legacy code of the test case
-			line := StandardLineBase{
-				InvoicingAppTaxCode: tt.invoicingAppTaxCode,
-				LegacyStripeTaxCode: tt.legacyStripeTaxCode,
-			}
+			// given: a line with the stamp of the test case
+			line := StandardLineBase{InvoicingAppTaxCode: tt.invoicingAppTaxCode}
 
-			// when: the billed tax code is resolved for the invoicing app
-			got := line.BilledTaxCode(tt.invoicingAppType)
+			// when: the billed tax code is resolved
+			got := line.BilledTaxCode()
 
-			// then: it follows the stamp, then the Stripe legacy code
+			// then: it is the stamp, or the provider default when there is none
 			require.Equal(t, tt.want, got)
 		})
 	}

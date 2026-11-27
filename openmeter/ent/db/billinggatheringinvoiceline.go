@@ -53,6 +53,8 @@ type BillingGatheringInvoiceLine struct {
 	// ServicePeriodEnd holds the value of the "service_period_end" field.
 	ServicePeriodEnd time.Time `json:"service_period_end,omitempty"`
 	// TaxConfig holds the value of the "tax_config" field.
+	//
+	// Deprecated: Field "tax_config" was marked as deprecated in the schema.
 	TaxConfig billing.StoredLineTaxConfig `json:"tax_config,omitempty"`
 	// PriceType holds the value of the "price_type" field.
 	PriceType productcatalog.PriceType `json:"price_type,omitempty"`

@@ -412,7 +412,7 @@ func toAPIStandardLineTaxConfig(line *billing.StandardLine, taxCodes productcata
 
 	out.Stripe = nil
 
-	if code := line.BilledTaxCode(invoicingAppType); code != "" {
+	if code := line.BilledTaxCode(); code != "" {
 		out.Stripe = &apiv1models.StripeTaxConfig{Code: code}
 	}
 

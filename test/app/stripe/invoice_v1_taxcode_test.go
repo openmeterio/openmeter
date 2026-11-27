@@ -98,8 +98,9 @@ func (s *StripeInvoiceTestSuite) requireV1LineStripeCode(line apiv1models.Invoic
 }
 
 // v1 shows the Stripe code a line was billed with on Stripe invoices, never the Tax Code's live
-// mapping: a stamped line keeps its stamp when the mapping changes, and a line from before the
-// stamp shows the code stored on it, or none if it never had one.
+// mapping: a stamped line keeps its stamp when the mapping changes, and a line without a stamp
+// shows none (the provider default), though its Tax Code maps to a code now. Backfilling the
+// stamp of old lines is covered by the migration test.
 func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("stripe-v1-billed-code")
@@ -138,13 +139,13 @@ func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices(
 	defer s.StripeAppClient.Restore()
 
 	stampedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_10000000")
-	legacyStoredTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_30000000")
+	unstampedTaxCode := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), namespace, app.AppTypeStripe, "txcd_30000000")
 	providerDefault := s.TaxCodeEnv.ProvisionProviderDefaultTaxCode(s.T(), namespace)
 
 	gatheringLines := lo.MapToSlice(map[string]string{
-		"Stamped fee":               stampedTaxCode.ID,
-		"Legacy fee with a code":    legacyStoredTaxCode.ID,
-		"Legacy fee without a code": providerDefault.ID,
+		"Stamped fee":          stampedTaxCode.ID,
+		"Unstamped fee":        unstampedTaxCode.ID,
+		"Provider default fee": providerDefault.ID,
 	}, func(name string, taxCodeID string) billing.GatheringLine {
 		line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 			Namespace:     namespace,
@@ -183,27 +184,15 @@ func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices(
 	})
 	s.Require().Len(linesByName, 3)
 
-	// given: the lines on the second and third Tax Codes predate the stamp, and the second one
-	// carries the legacy tax_config that new lines no longer get
-	for _, name := range []string{"Legacy fee with a code", "Legacy fee without a code"} {
-		s.Require().NoError(s.DBClient.BillingInvoiceLine.
-			UpdateOneID(linesByName[name].ID).
-			ClearInvoicingAppTaxCode().
-			Exec(ctx))
-	}
-
+	// given: the second line has no stamp, like a line from before stamping that was not backfilled
 	s.Require().NoError(s.DBClient.BillingInvoiceLine.
-		UpdateOneID(linesByName["Legacy fee with a code"].ID).
-		SetTaxConfig(billing.StoredLineTaxConfig{
-			Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-			TaxCodeID: lo.ToPtr(legacyStoredTaxCode.ID),
-			Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_30000000"},
-		}).
+		UpdateOneID(linesByName["Unstamped fee"].ID).
+		ClearInvoicingAppTaxCode().
 		Exec(ctx))
 
 	// when: every mapping changes, or appears, after the invoices were billed
 	s.remapStripeTaxCode(ctx, stampedTaxCode, "txcd_20000000")
-	s.remapStripeTaxCode(ctx, legacyStoredTaxCode, "txcd_40000000")
+	s.remapStripeTaxCode(ctx, unstampedTaxCode, "txcd_40000000")
 	s.remapStripeTaxCode(ctx, providerDefault, "txcd_60000000")
 
 	apiLines := s.renderInvoiceLinesToV1(ctx, invoiceID)
@@ -211,11 +200,11 @@ func (s *StripeInvoiceTestSuite) TestV1ShowsTheBilledStripeCodeOnStripeInvoices(
 	// then: the stamped line shows the code it was billed with
 	s.requireV1LineStripeCode(apiLines["Stamped fee"], stampedTaxCode.ID, "txcd_10000000")
 
-	// then: the line from before the stamp shows the code stored on it
-	s.requireV1LineStripeCode(apiLines["Legacy fee with a code"], legacyStoredTaxCode.ID, "txcd_30000000")
+	// then: the line without a stamp shows none, though the Tax Code maps to one now
+	s.requireV1LineStripeCode(apiLines["Unstamped fee"], unstampedTaxCode.ID, "")
 
-	// then: the line that never had a code shows none, though the Tax Code maps to one now
-	s.requireV1LineStripeCode(apiLines["Legacy fee without a code"], providerDefault.ID, "")
+	// then: the line stamped with the provider default shows none
+	s.requireV1LineStripeCode(apiLines["Provider default fee"], providerDefault.ID, "")
 }
 
 // A gathering invoice has no billed code yet, so its v1 preview shows the Tax Code's current

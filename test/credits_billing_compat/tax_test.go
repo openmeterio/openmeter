@@ -260,7 +260,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(stripeTaxCode.ID, *dbLine.TaxCodeID)
 	s.Require().NotNil(dbLine.TaxBehavior, "gathering line tax_behavior column must be populated")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior)
-	s.Zero(dbLine.TaxConfig, "the legacy tax_config is not written for gathering lines")
 
 	// Let's create a partial invoice
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute))

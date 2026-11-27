@@ -1,0 +1,2 @@
+-- Data repair migration; intentionally irreversible. The stamps equal what the legacy fallback
+-- returned for these lines, so leaving them in place is safe.

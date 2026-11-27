@@ -75,7 +75,7 @@ func (a appOperations) UpsertStandardInvoice(ctx context.Context, invoice billin
 // WouldStandardInvoiceBeEmpty reports invoices that would reach Stripe without line items or with
 // nothing to pay.
 func (a appOperations) WouldStandardInvoiceBeEmpty(invoice billing.StandardInvoice) (bool, error) {
-	return len(invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)) == 0 || invoice.Totals.Total.IsZero(), nil
+	return len(invoice.GetLeafLinesWithResolvedTaxConfig()) == 0 || invoice.Totals.Total.IsZero(), nil
 }
 
 // DeleteStandardInvoice deletes the invoice for the app
@@ -220,7 +220,7 @@ func (a appOperations) createInvoice(ctx context.Context, invoice billing.Standa
 		createInvoiceParams.DaysUntilDue = lo.ToPtr(daysUntilDue)
 	}
 
-	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
 
 	stripeInvoice, err := a.createStripeInvoice(ctx, stripeClient, invoice.GetInvoiceID(), createInvoiceParams)
 	if err != nil {
@@ -375,7 +375,7 @@ func (a appOperations) updateInvoice(ctx context.Context, invoice billing.Standa
 		return nil, fmt.Errorf("failed to get stripe customer data: %w", err)
 	}
 
-	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
 
 	// Update the invoice in Stripe
 	stripeInvoice, err := stripeClient.UpdateInvoice(ctx, stripeclient.UpdateInvoiceInput{

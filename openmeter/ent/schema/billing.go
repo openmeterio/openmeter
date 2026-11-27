@@ -340,7 +340,8 @@ func (InvoiceLineBaseMixin) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional(),
+			Optional().
+			Deprecated("frozen legacy column, never written or read; the billed code is invoicing_app_tax_code and the Tax Code is tax_code_id"),
 	}
 }
 
@@ -379,7 +380,8 @@ func (StandardInvoiceLineIntentMixin) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}).
-			Optional(),
+			Optional().
+			Deprecated("frozen legacy column, never written or read; the billed code is invoicing_app_tax_code and the Tax Code is tax_code_id"),
 
 		field.Enum("price_type").
 			GoType(productcatalog.PriceType("")),

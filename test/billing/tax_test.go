@@ -688,8 +688,7 @@ func (s *InvoicingTaxTestSuite) requireLinesReferenceTaxCode(invoice billing.Sta
 
 // requirePersistedLinesReferenceTaxCode checks the stored rows directly: lines returned by the
 // service are re-read through the adapter, which backfills the Tax Code entity from the
-// tax_code_id edge, so only the row shows what was persisted. The legacy tax_config JSON is
-// never written for new lines, so it must stay NULL.
+// tax_code_id edge, so only the row shows what was persisted.
 func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx context.Context, invoice billing.StandardInvoice, taxCodeID string) {
 	s.T().Helper()
 
@@ -700,7 +699,6 @@ func (s *InvoicingTaxTestSuite) requirePersistedLinesReferenceTaxCode(ctx contex
 		s.Require().NoError(err)
 
 		s.Equal(lo.ToPtr(taxCodeID), dbLine.TaxCodeID)
-		s.Zero(dbLine.TaxConfig, "the legacy tax_config is not written")
 	}
 }
 
@@ -830,7 +828,6 @@ func (s *InvoicingTaxTestSuite) TestLineSplittingRetainsTaxConfig() {
 	s.Equal(createdTC.ID, *dbLine.TaxCodeID)
 	s.Require().NotNil(dbLine.TaxBehavior, "gathering line tax_behavior column must be populated")
 	s.Equal(productcatalog.ExclusiveTaxBehavior, *dbLine.TaxBehavior)
-	s.Zero(dbLine.TaxConfig, "the legacy tax_config is not written for gathering lines")
 
 	// Let's create a partial invoice
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 100, now.Add(time.Minute))

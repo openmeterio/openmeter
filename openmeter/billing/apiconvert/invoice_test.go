@@ -134,25 +134,6 @@ func TestToAPIEventInvoiceStripeCodeFromEventLines(t *testing.T) {
 		AppMappings:  taxcode.TaxCodeAppMappings{{AppType: app.AppTypeStripe, TaxCode: "txcd_live"}},
 	}}
 
-	t.Run("an event from before the stamp shows the stripe code of its line taxOverrides", func(t *testing.T) {
-		// given: a main-format event JSON, decoded like the notification consumer does
-		var event billing.StandardInvoiceCreatedEvent
-		require.NoError(t, json.Unmarshal([]byte(mainFormatInvoiceEvent), &event))
-
-		line := event.Invoice.Lines.OrEmpty()[0]
-		require.Nil(t, line.InvoicingAppTaxCode)
-		require.Equal(t, "txcd_main", line.LegacyStripeTaxCode)
-
-		// when: the event is rendered to the v1 invoice
-		got, err := ToAPIEventInvoice(event.EventStandardInvoice, taxCodes)
-		require.NoError(t, err)
-
-		// then: the line shows the code it was billed with, not the live mapping
-		require.NotNil(t, got.Lines)
-		require.Len(t, *got.Lines, 1)
-		require.Equal(t, &apiv1models.StripeTaxConfig{Code: "txcd_main"}, (*got.Lines)[0].TaxConfig.Stripe)
-	})
-
 	t.Run("an event with a stamped line shows the stamp even when the live mapping differs", func(t *testing.T) {
 		// given: a new event, built from the same invoice with the line stamped, and sent over JSON
 		var old billing.StandardInvoiceCreatedEvent
@@ -212,20 +193,12 @@ func TestToAPIEventInvoiceTaxOverridesStripeCode(t *testing.T) {
 		name             string
 		invoicingAppType app.AppType
 		stamp            *string
-		legacyCode       string
 
 		// wantEventCode is the stripe.code in the JSON of the event, nil for no stripe object.
 		wantEventCode *string
 		// wantRenderedCode is the stripe.code of the line in the rendered notification.
 		wantRenderedCode *string
 	}{
-		{
-			name:             "an unstamped line sends the code it was billed with, not the live mapping",
-			invoicingAppType: app.AppTypeStripe,
-			legacyCode:       "txcd_billed",
-			wantEventCode:    lo.ToPtr("txcd_billed"),
-			wantRenderedCode: lo.ToPtr("txcd_billed"),
-		},
 		{
 			name:             "an unstamped line billed without a code sends no stripe object",
 			invoicingAppType: app.AppTypeStripe,
@@ -236,7 +209,6 @@ func TestToAPIEventInvoiceTaxOverridesStripeCode(t *testing.T) {
 			name:             "a stamped line sends its stamp",
 			invoicingAppType: app.AppTypeStripe,
 			stamp:            lo.ToPtr("txcd_stamped"),
-			legacyCode:       "txcd_billed",
 			wantEventCode:    lo.ToPtr("txcd_stamped"),
 			wantRenderedCode: lo.ToPtr("txcd_stamped"),
 		},
@@ -244,14 +216,12 @@ func TestToAPIEventInvoiceTaxOverridesStripeCode(t *testing.T) {
 			name:             "a line stamped without a code sends no stripe object",
 			invoicingAppType: app.AppTypeStripe,
 			stamp:            lo.ToPtr(""),
-			legacyCode:       "txcd_billed",
 			wantEventCode:    nil,
 			wantRenderedCode: nil,
 		},
 		{
 			name:             "a non-stripe invoice keeps the live mapping",
 			invoicingAppType: app.AppTypeSandbox,
-			legacyCode:       "txcd_billed",
 			wantEventCode:    lo.ToPtr("txcd_live"),
 			wantRenderedCode: lo.ToPtr("txcd_live"),
 		},
@@ -269,7 +239,6 @@ func TestToAPIEventInvoiceTaxOverridesStripeCode(t *testing.T) {
 			line := invoice.Lines.OrEmpty()[0]
 			line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID}
 			line.InvoicingAppTaxCode = tt.stamp
-			line.LegacyStripeTaxCode = tt.legacyCode
 
 			invoicingApp := eventTestApp{base: app.AppBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -358,7 +327,7 @@ func TestToAPIStandardInvoiceGatheringPreviewShowsLiveStripeCode(t *testing.T) {
 			wantCode: "txcd_live",
 		},
 		{
-			// The line was never stamped and has no legacy code, so it was billed without one.
+			// The line was never stamped, so it was billed without a code.
 			name:     "an issued invoice shows the billed code, which is none",
 			status:   billing.StandardInvoiceStatusIssued,
 			wantCode: "",
@@ -377,7 +346,6 @@ func TestToAPIStandardInvoiceGatheringPreviewShowsLiveStripeCode(t *testing.T) {
 			line := invoice.Lines.OrEmpty()[0]
 			line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID}
 			line.InvoicingAppTaxCode = nil
-			line.LegacyStripeTaxCode = ""
 			line.DetailedLines = billing.DetailedLines{{}}
 
 			// when: the invoice is mapped to v1
