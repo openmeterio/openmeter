@@ -12,7 +12,7 @@ require (
 	github.com/AppsFlyer/go-sundheit v0.6.0
 	github.com/ClickHouse/ch-go v0.76.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.51.0
-	github.com/IBM/sarama v1.61.1
+	github.com/IBM/sarama v1.62.0
 	github.com/ThreeDotsLabs/watermill v1.5.3
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.1.4
 	github.com/XSAM/otelsql v0.44.0
