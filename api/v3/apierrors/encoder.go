@@ -6,6 +6,7 @@ import (
 
 	"github.com/samber/lo"
 
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -20,7 +21,8 @@ func GenericErrorEncoder() encoder.ErrorEncoder {
 			return true
 		}
 
-		return commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
+		return commonhttp.HandleErrorIfTypeMatches[*entitlement.AlreadyExistsError](ctx, http.StatusConflict, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*feature.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*meter.MeterNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleIssueIfHTTPStatusKnown(ctx, err, w)
 	}
