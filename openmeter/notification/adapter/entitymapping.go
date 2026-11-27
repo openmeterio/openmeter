@@ -159,7 +159,7 @@ func eventPayloadFromJSON(data []byte, eventType notification.EventType) (notifi
 	// A bare Invoice has its own "type" discriminator (standard/credit_note).
 	// Only Notification's discriminator identifies the old storage envelope.
 	if meta.Type.Validate() != nil {
-		return eventpayload.FromCanonicalJSON(data, eventType)
+		return eventpayload.FromDBRawMessage(data, eventType)
 	}
 
 	if meta.Type != eventType {

@@ -162,7 +162,10 @@ func (b *EntitlementSnapshotHandler) handleRule(ctx context.Context, balSnapshot
 			return fmt.Errorf("failed to calculate actual value from last event: %w", err)
 		}
 
-		if lastEventActualValue.BalanceThreshold != *threshold {
+		previousThreshold := notification.CanonicalBalanceThreshold(lastEventActualValue.BalanceThreshold)
+		currentThreshold := notification.CanonicalBalanceThreshold(*threshold)
+
+		if previousThreshold != currentThreshold {
 			// The last event was triggered by a different threshold, so we need to trigger a new event
 			err = b.createEvent(ctx, createEventInput)
 			if err != nil {

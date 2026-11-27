@@ -236,7 +236,8 @@ entitlements with a complete balance and usage snapshot. Within each threshold
 kind, the most advanced active threshold is selected. Deduplication is scoped
 to the rule, entitlement, feature, usage period, measurement start, and
 threshold kind. It suppresses repeated snapshots at the same active threshold,
-not events from another rule.
+not events from another rule. Legacy and canonical threshold names compare as
+equivalent types without changing historical Event payloads.
 
 This deduplication belongs to the balance-threshold handler; `CreateEvent` has
 no generic source-event idempotency contract. Its hashes are persisted with the

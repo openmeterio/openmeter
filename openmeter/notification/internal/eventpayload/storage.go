@@ -8,9 +8,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
-// FromCanonicalJSON reconstructs the V1 payload from the immutable stored snapshot.
+// FromDBRawMessage reconstructs the V1 payload from the immutable stored snapshot.
 // Event identity and timestamp stay on the Event and are added by the wire mappers.
-func FromCanonicalJSON(data json.RawMessage, eventType notification.EventType) (notification.EventPayload, error) {
+func FromDBRawMessage(data json.RawMessage, eventType notification.EventType) (notification.EventPayload, error) {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return notification.EventPayload{}, fmt.Errorf("invalid notification event payload: %w", err)

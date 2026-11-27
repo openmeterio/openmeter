@@ -453,11 +453,6 @@ func toDBRuleConfig(config notification.RuleConfig) (json.RawMessage, error) {
 
 func normalizeThresholdTypes(thresholds []notification.BalanceThreshold) {
 	for i, threshold := range thresholds {
-		switch threshold.Type {
-		case notification.BalanceThresholdTypeNumber:
-			thresholds[i].Type = notification.BalanceThresholdTypeUsageValue
-		case notification.BalanceThresholdTypePercent:
-			thresholds[i].Type = notification.BalanceThresholdTypeUsagePercentage
-		}
+		thresholds[i] = notification.CanonicalBalanceThreshold(threshold)
 	}
 }
