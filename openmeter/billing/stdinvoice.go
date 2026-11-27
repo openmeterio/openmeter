@@ -546,9 +546,9 @@ type DetailedLineWithResolvedTaxConfig struct {
 // GetLeafLinesWithResolvedTaxConfig returns invoice leaf lines together with the effective tax
 // config inherited from the parent standard line.
 //
-// The invoice default carries no Stripe code. That's fine here: invoice calculation already merged
-// the default, Stripe code included, into every line (SnapshotTaxConfigIntoLines), so merging it
-// again only matters for lines that never went through calculation.
+// Calculation already merged the invoice default (TaxCodeID included) into every line
+// (SnapshotTaxConfigIntoLines), so merging it again only matters for lines that never went
+// through calculation. Invoicing apps look the tax code up by the merged config's TaxCodeID.
 func (i *StandardInvoice) GetLeafLinesWithResolvedTaxConfig() []DetailedLineWithResolvedTaxConfig {
 	out := make([]DetailedLineWithResolvedTaxConfig, 0)
 
