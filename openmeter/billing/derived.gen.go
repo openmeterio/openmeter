@@ -96,7 +96,6 @@ func deriveEqualLineBase(this, that *StandardLineBase) bool {
 			((this.ChildUniqueReferenceID == nil && that.ChildUniqueReferenceID == nil) || (this.ChildUniqueReferenceID != nil && that.ChildUniqueReferenceID != nil && *(this.ChildUniqueReferenceID) == *(that.ChildUniqueReferenceID))) &&
 			this.TaxConfig.Equal(that.TaxConfig) &&
 			((this.InvoicingAppTaxCode == nil && that.InvoicingAppTaxCode == nil) || (this.InvoicingAppTaxCode != nil && that.InvoicingAppTaxCode != nil && *(this.InvoicingAppTaxCode) == *(that.InvoicingAppTaxCode))) &&
-			this.LegacyStripeTaxCode == that.LegacyStripeTaxCode &&
 			this.RateCardDiscounts.Equal(that.RateCardDiscounts) &&
 			deriveEqual_2(this.CreditsApplied, that.CreditsApplied) &&
 			this.ExternalIDs.Equal(that.ExternalIDs) &&

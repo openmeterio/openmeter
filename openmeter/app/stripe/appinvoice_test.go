@@ -9,7 +9,6 @@ import (
 	"github.com/stripe/stripe-go/v80"
 	"github.com/stripe/stripe-go/v80/form"
 
-	"github.com/openmeterio/openmeter/openmeter/app"
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/models/totals"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
@@ -63,27 +62,19 @@ func TestWouldStandardInvoiceBeEmpty(t *testing.T) {
 	}
 }
 
-// The Stripe tax code is the parent line's billed code: the stamp, else the legacy stored
-// code. An empty code leaves it unset so Stripe applies its default.
+// The Stripe tax code is the parent line's billed code, the stamp. An empty code leaves it
+// unset so Stripe applies its default.
 func TestLeafLinesCarryTheParentBilledTaxCode(t *testing.T) {
 	// given: lines in every stamp state
 	stamped := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			InvoicingAppTaxCode: lo.ToPtr("txcd_stamped"),
-			LegacyStripeTaxCode: "txcd_legacy",
 		},
 		DetailedLines: billing.DetailedLines{{}},
 	}
 	stampedDefault := &billing.StandardLine{
 		StandardLineBase: billing.StandardLineBase{
 			InvoicingAppTaxCode: lo.ToPtr(""),
-			LegacyStripeTaxCode: "txcd_legacy",
-		},
-		DetailedLines: billing.DetailedLines{{}},
-	}
-	legacy := &billing.StandardLine{
-		StandardLineBase: billing.StandardLineBase{
-			LegacyStripeTaxCode: "txcd_legacy",
 		},
 		DetailedLines: billing.DetailedLines{{}},
 	}
@@ -92,18 +83,17 @@ func TestLeafLinesCarryTheParentBilledTaxCode(t *testing.T) {
 	}
 
 	invoice := billing.StandardInvoice{
-		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{stamped, stampedDefault, legacy, unstamped}),
+		Lines: billing.NewStandardInvoiceLines([]*billing.StandardLine{stamped, stampedDefault, unstamped}),
 	}
 
 	// when: the leaf lines are collected for Stripe
-	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig(app.AppTypeStripe)
+	leafLines := invoice.GetLeafLinesWithResolvedTaxConfig()
 
 	// then: each carries its parent's billed code
-	require.Len(t, leafLines, 4)
+	require.Len(t, leafLines, 3)
 	require.Equal(t, "txcd_stamped", leafLines[0].BilledTaxCode)
 	require.Equal(t, "", leafLines[1].BilledTaxCode)
-	require.Equal(t, "txcd_legacy", leafLines[2].BilledTaxCode)
-	require.Equal(t, "", leafLines[3].BilledTaxCode)
+	require.Equal(t, "", leafLines[2].BilledTaxCode)
 }
 
 func TestApplyTaxSettingsToInvoiceItem(t *testing.T) {

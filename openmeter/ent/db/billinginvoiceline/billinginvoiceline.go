@@ -277,7 +277,6 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 	FieldCurrency,
-	FieldTaxConfig,
 	FieldTaxCodeID,
 	FieldTaxBehavior,
 	FieldAmount,
@@ -328,6 +327,11 @@ func ValidColumn(column string) bool {
 	}
 	for i := range ForeignKeys {
 		if column == ForeignKeys[i] {
+			return true
+		}
+	}
+	for _, f := range [...]string{FieldTaxConfig} {
+		if column == f {
 			return true
 		}
 	}

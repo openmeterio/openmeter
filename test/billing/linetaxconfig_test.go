@@ -27,8 +27,8 @@ import (
 
 // LineTaxConfigTestSuite covers the legacy tax_config JSON column of invoice lines. The domain
 // only carries the Tax Code ID and behavior (tax_code_id/tax_behavior columns); tax_config is
-// frozen: never written for new lines, never changed on existing ones, and only read for the
-// legacy Stripe code of unstamped lines.
+// frozen and deprecated: never written for new lines, never changed on existing ones, and never
+// read by the domain.
 type LineTaxConfigTestSuite struct {
 	BaseSuite
 }
@@ -80,14 +80,22 @@ func (s *LineTaxConfigTestSuite) storedLine(lineID string) *db.BillingInvoiceLin
 	return row
 }
 
-// storedTaxConfigJSON returns the legacy tax_config JSON stored on a line.
+// storedTaxConfigJSON returns the legacy tax_config JSON stored on a line. The field is
+// deprecated, so ent leaves it out of the default select and it has to be asked for.
 func (s *LineTaxConfigTestSuite) storedTaxConfigJSON(lineID string) string {
 	s.T().Helper()
 
-	raw, err := json.Marshal(s.storedLine(lineID).TaxConfig)
-	s.Require().NoError(err)
+	var rows []struct {
+		TaxConfig []byte `json:"tax_config"`
+	}
 
-	return string(raw)
+	s.Require().NoError(s.DBClient.BillingInvoiceLine.Query().
+		Where(billinginvoicelinedb.ID(lineID)).
+		Select(billinginvoicelinedb.FieldTaxConfig).
+		Scan(s.T().Context(), &rows))
+	s.Require().Len(rows, 1)
+
+	return string(rows[0].TaxConfig)
 }
 
 // requireNullTaxConfig requires the line's tax_config to be SQL NULL. The ent field is a value
@@ -315,7 +323,7 @@ func (s *LineTaxConfigTestSuite) TestDraftLineWithDeletedTaxCodeCanBeResaved() {
 
 // TestLegacyTaxConfigKeptWhenTaxCodeChanges checks that editing the Tax Code of a line that has a
 // legacy tax_config (a draft standard line and a gathering line) changes the columns but leaves
-// the JSON as it was, and that the legacy Stripe code is still read from it.
+// the JSON as it was.
 func (s *LineTaxConfigTestSuite) TestLegacyTaxConfigKeptWhenTaxCodeChanges() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("ns-line-tax-legacy-kept")
@@ -377,9 +385,6 @@ func (s *LineTaxConfigTestSuite) TestLegacyTaxConfigKeptWhenTaxCodeChanges() {
 	s.Equal(otherTaxCode.ID, lo.FromPtr(s.storedLine(draftLineID).TaxCodeID))
 	s.JSONEq(string(legacyJSON), s.storedTaxConfigJSON(draftLineID))
 
-	// then: the legacy Stripe code is still read from it
-	s.Equal("txcd_10000000", s.readStandardLine(draftInvoiceID, draftLineID).LegacyStripeTaxCode)
-
 	// when: the Tax Code of the gathering line is changed
 	_, err = s.BillingService.UpdateGatheringInvoice(ctx, billing.UpdateGatheringInvoiceInput{
 		Invoice:      billing.InvoiceID{Namespace: namespace, ID: gatheringLine.InvoiceID},
@@ -401,14 +406,14 @@ func (s *LineTaxConfigTestSuite) TestLegacyTaxConfigKeptWhenTaxCodeChanges() {
 }
 
 // TestInvoicingAppTaxCodeRoundTrip checks that a standard line reads back the invoicing app tax code
-// stamp as stored (a code, or "" for "stamped, provider default"), that a line that was never
-// stamped reads NULL, and that its legacy stored stripe code is exposed for the unstamped fallback.
+// stamp as stored (a code, or "" for "stamped, provider default") and that a line that was never
+// stamped reads NULL, which bills like the provider default whatever its legacy tax_config holds.
 func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 	ctx := s.T().Context()
 	namespace := s.GetUniqueNamespace("ns-line-tax-app-code-roundtrip")
 	now := time.Now().Truncate(time.Microsecond).In(time.UTC)
 
-	// given: a draft invoice whose standard line is a legacy one: a stored stripe code, no stamp
+	// given: a draft invoice with a standard line
 	sandboxApp := s.InstallSandboxApp(s.T(), namespace)
 	s.ProvisionBillingProfile(ctx, namespace, sandboxApp.GetID())
 	cust := s.CreateTestCustomer(namespace, "test")
@@ -438,37 +443,34 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRoundTrip() {
 		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
 	})
 
-	// then: the unstamped line reads NULL and exposes the legacy stripe code
+	// then: the unstamped line reads NULL and bills with the provider default
 	s.Nil(s.storedLine(lineID).InvoicingAppTaxCode)
 
 	unstamped := s.readStandardLine(invoiceID, lineID)
 	s.Nil(unstamped.InvoicingAppTaxCode)
-	s.Equal("txcd_10000000", unstamped.LegacyStripeTaxCode)
-	s.Equal("txcd_10000000", unstamped.BilledTaxCode(app.AppTypeStripe))
-	s.Equal("", unstamped.BilledTaxCode(app.AppTypeCustomInvoicing))
+	s.Equal("", unstamped.BilledTaxCode())
 
 	// when: the line is saved with a stamp
 	s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr("txcd_20000000"))
 
-	// then: the stamp is persisted and read back, winning over the legacy code
+	// then: the stamp is persisted and read back
 	s.Equal("txcd_20000000", lo.FromPtr(s.storedLine(lineID).InvoicingAppTaxCode))
 
 	stamped := s.readStandardLine(invoiceID, lineID)
 	s.Equal("txcd_20000000", lo.FromPtr(stamped.InvoicingAppTaxCode))
-	s.Equal("txcd_20000000", stamped.BilledTaxCode(app.AppTypeStripe))
-	s.Equal("txcd_10000000", stamped.LegacyStripeTaxCode, "the stored legacy JSON is not rewritten")
+	s.Equal("txcd_20000000", stamped.BilledTaxCode())
 
 	// when: the line is saved with an empty stamp
 	s.setStoredInvoicingAppTaxCode(lineID, lo.ToPtr(""))
 
-	// then: the empty stamp is kept apart from NULL and still wins over the legacy code
+	// then: the empty stamp is kept apart from NULL
 	stored := s.storedLine(lineID).InvoicingAppTaxCode
 	s.Require().NotNil(stored)
 	s.Equal("", *stored)
 
 	emptyStamped := s.readStandardLine(invoiceID, lineID)
 	s.Require().NotNil(emptyStamped.InvoicingAppTaxCode)
-	s.Equal("", emptyStamped.BilledTaxCode(app.AppTypeStripe))
+	s.Equal("", emptyStamped.BilledTaxCode())
 }
 
 // TestGatheringLinesKeepInvoicingAppTaxCodeNull checks that gathering lines, which share the
@@ -600,7 +602,7 @@ func (s *LineTaxConfigTestSuite) TestDraftInvoiceStampsInvoicingAppTaxCode() {
 
 	// then: the invoice returned by the collection already has the stamps
 	s.Equal("sandbox-code", lo.FromPtr(lines["mapped"].InvoicingAppTaxCode))
-	s.Equal("sandbox-code", lines["mapped"].BilledTaxCode(app.AppTypeSandbox))
+	s.Equal("sandbox-code", lines["mapped"].BilledTaxCode())
 }
 
 // TestDraftRecalculationStampsUnstampedLine checks that a draft line from before stamping (NULL in
@@ -717,7 +719,7 @@ func (s *LineTaxConfigTestSuite) TestInvoicingAppTaxCodeRestampedInDraftAndFroze
 	s.requireInvoicingAppTaxCode(invoiceID, inDraftLineID, lo.ToPtr("sandbox-in-draft"))
 	s.requireInvoicingAppTaxCode(invoiceID, afterDraftLineID, lo.ToPtr(""))
 
-	s.Equal("", s.readStandardLine(invoiceID, afterDraftLineID).BilledTaxCode(app.AppTypeSandbox))
+	s.Equal("", s.readStandardLine(invoiceID, afterDraftLineID).BilledTaxCode())
 }
 
 // addSandboxMapping adds a sandbox app mapping to a Tax Code; mappings can only be added.

@@ -646,7 +646,7 @@ func (s *StripeInvoiceTestSuite) TestComplexInvoice() {
 		}
 
 		getLine := func(description string) *billing.DetailedLine {
-			for _, lineWithTax := range invoice.GetLeafLinesWithResolvedTaxConfig(app.GetType()) {
+			for _, lineWithTax := range invoice.GetLeafLinesWithResolvedTaxConfig() {
 				line := lineWithTax.DetailedLine
 				name := line.Name
 				if line.Description != nil {
@@ -2130,7 +2130,7 @@ func (s *StripeInvoiceTestSuite) TestIssuedInvoiceKeepsBilledTaxCode() {
 	s.Require().NoError(err)
 	s.Require().Len(refetched.Lines.OrEmpty(), 1)
 	s.Equal("txcd_10000000", lo.FromPtr(refetched.Lines.OrEmpty()[0].InvoicingAppTaxCode))
-	s.Equal("txcd_10000000", refetched.Lines.OrEmpty()[0].BilledTaxCode(app.AppTypeStripe))
+	s.Equal("txcd_10000000", refetched.Lines.OrEmpty()[0].BilledTaxCode())
 }
 
 // A line referencing a soft-deleted Tax Code still sends the deleted code's Stripe mapping:

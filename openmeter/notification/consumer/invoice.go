@@ -21,8 +21,7 @@ type InvoiceEventHandler struct {
 	// TaxCodeResolver loads the Tax Codes the payload still renders live: the invoice default's
 	// stripe.code, which the event doesn't carry, the lines' Tax Code references, and the lines'
 	// stripe.code on non-Stripe invoices. On Stripe invoices a line's stripe.code is the code it
-	// was billed with, which comes from the event itself (the stamp, or the stripe.code of events
-	// from before stamps existed).
+	// was billed with, which comes from the stamp in the event itself.
 	TaxCodeResolver productcatalog.TaxCodeResolver
 	Logger          *slog.Logger
 }

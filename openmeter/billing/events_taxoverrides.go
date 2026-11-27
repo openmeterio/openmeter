@@ -64,12 +64,12 @@ func newStandardLineTaxOverrides(in newStandardLineTaxOverridesInput) (lineTaxOv
 		}
 
 		if stored != nil {
-			// Decoding copies stripe.code back into the line's legacy fallback, so it must
-			// be what Stripe received, or nothing if the line was billed without a code.
+			// On Stripe invoices stripe.code must be what Stripe received, or nothing if the
+			// line was billed without a code.
 			if in.InvoicingAppType == app.AppTypeStripe {
 				stored.Stripe = nil
 
-				if code := line.BilledTaxCode(in.InvoicingAppType); code != "" {
+				if code := line.BilledTaxCode(); code != "" {
 					stored.Stripe = &productcatalog.StripeTaxConfig{Code: code}
 				}
 			}
@@ -164,9 +164,7 @@ func (e EventStandardInvoice) MarshalJSON() ([]byte, error) {
 	}{Invoice: out, Apps: e.Apps})
 }
 
-// UnmarshalJSON keeps each line's legacy taxOverrides payload for encoding. It also fills
-// LegacyStripeTaxCode from its stripe.code, which is how events published before lines carried
-// the invoicing app tax code still show the code the invoice was billed with.
+// UnmarshalJSON keeps each line's legacy taxOverrides payload for encoding.
 func (e *EventStandardInvoice) UnmarshalJSON(data []byte) error {
 	// plain has no methods, so decoding it does not recurse into this function.
 	type plain EventStandardInvoice
@@ -186,12 +184,6 @@ func (e *EventStandardInvoice) UnmarshalJSON(data []byte) error {
 	}
 
 	decoded.taxOverrides = newLineTaxOverridesFromJSON(wire.Invoice.Lines)
-
-	for _, line := range decoded.Invoice.Lines.OrEmpty() {
-		if overrides, ok := decoded.taxOverrides[line.ID]; ok && overrides.Stripe != nil {
-			line.LegacyStripeTaxCode = overrides.Stripe.Code
-		}
-	}
 
 	*e = EventStandardInvoice(decoded)
 

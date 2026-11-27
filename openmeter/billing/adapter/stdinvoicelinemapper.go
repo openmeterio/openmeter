@@ -90,12 +90,6 @@ func (a *adapter) mapStandardInvoiceLineWithoutReferences(dbLine *db.BillingInvo
 		},
 	}
 
-	// Only the stripe code of the legacy JSON is needed, as the billed code of lines that were
-	// never stamped.
-	if dbLine.TaxConfig.Stripe != nil {
-		invoiceLine.LegacyStripeTaxCode = dbLine.TaxConfig.Stripe.Code
-	}
-
 	if dbLine.SubscriptionID != nil && dbLine.SubscriptionPhaseID != nil && dbLine.SubscriptionItemID != nil {
 		invoiceLine.Subscription = &billing.SubscriptionReference{
 			SubscriptionID: *dbLine.SubscriptionID,

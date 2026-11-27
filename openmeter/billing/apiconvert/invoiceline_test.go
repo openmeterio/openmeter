@@ -28,31 +28,22 @@ func TestMapInvoiceLineToAPIStripeCode(t *testing.T) {
 		name           string
 		invoicingApp   app.AppType
 		stamp          *string
-		legacyCode     string
 		wantStripeCode string
 	}{
 		{
 			name:           "a stamped line on a Stripe invoice shows the stamp, not the live mapping",
 			invoicingApp:   app.AppTypeStripe,
 			stamp:          lo.ToPtr("txcd_stamped"),
-			legacyCode:     "txcd_legacy",
 			wantStripeCode: "txcd_stamped",
 		},
 		{
 			name:           "a line stamped without a code on a Stripe invoice shows no code",
 			invoicingApp:   app.AppTypeStripe,
 			stamp:          lo.ToPtr(""),
-			legacyCode:     "txcd_legacy",
 			wantStripeCode: "",
 		},
 		{
-			name:           "an unstamped line on a Stripe invoice shows its stored legacy code",
-			invoicingApp:   app.AppTypeStripe,
-			legacyCode:     "txcd_legacy",
-			wantStripeCode: "txcd_legacy",
-		},
-		{
-			name:           "an unstamped line without a stored code shows no code though the Tax Code maps to one now",
+			name:           "an unstamped line on a Stripe invoice shows no code though the Tax Code maps to one now",
 			invoicingApp:   app.AppTypeStripe,
 			wantStripeCode: "",
 		},
@@ -86,7 +77,6 @@ func TestMapInvoiceLineToAPIStripeCode(t *testing.T) {
 						TaxCodeID: taxCode.ID,
 					},
 					InvoicingAppTaxCode: tt.stamp,
-					LegacyStripeTaxCode: tt.legacyCode,
 				},
 				UsageBased: &billing.UsageBasedLine{
 					Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
