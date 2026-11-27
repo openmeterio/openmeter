@@ -157,7 +157,7 @@ func buildInvoiceCreditPurchaseGatheringLine(charge creditpurchase.Charge) (bill
 			Currency:      fiatCurrency.GetFiatCode(),
 			ServicePeriod: intent.ServicePeriod,
 			InvoiceAt:     intent.CalculateEffectiveAt(),
-			TaxConfig:     lo.ToPtr(intent.TaxConfig.ToTaxConfig()),
+			TaxConfig:     intent.TaxConfig.EmptyAsNilPtr(),
 			ChargeID:      lo.ToPtr(charge.ID),
 			Engine:        billing.LineEngineTypeChargeCreditPurchase,
 		},

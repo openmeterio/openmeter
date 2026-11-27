@@ -4856,12 +4856,8 @@ func (s *SubscriptionHandlerTestSuite) TestRateCardTaxSync() {
 		TaxCodeID: tc.ID,
 	}
 
-	// Lines carry the legacy shape, with the Stripe code filled in from the Tax Code's mapping.
-	expectedLineTaxConfig := &productcatalog.TaxConfig{
-		Behavior:  lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
-		TaxCodeID: lo.ToPtr(tc.ID),
-	}
+	// Lines reference the rate card's Tax Code by ID.
+	expectedLineTaxConfig := taxConfig
 
 	subsView := s.createSubscriptionFromPlanPhases([]productcatalog.Phase{
 		{

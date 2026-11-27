@@ -85,8 +85,8 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		expected.UpdatedAt = line.UpdatedAt
 		expected.UBPConfigID = line.UBPConfigID
 		expected.ChargeID = line.ChargeID
-		expected.TaxConfig = &productcatalog.TaxConfig{
-			TaxCodeID: lo.ToPtr(defaultTaxCodes.InvoicingTaxCodeID),
+		expected.TaxConfig = &productcatalog.TaxCodeConfig{
+			TaxCodeID: defaultTaxCodes.InvoicingTaxCodeID,
 		}
 
 		s.RequireChargeBasedGatheringLine(line, expected.ChargeID)

@@ -94,10 +94,7 @@ func intentFromManualCreatedLine(
 		invoiceAt = invoiceAtAccessor.GetInvoiceAt()
 	}
 
-	taxConfig := productcatalog.TaxCodeConfig{}
-	if lineTaxConfig := line.GetTaxConfig(); lineTaxConfig != nil {
-		taxConfig = productcatalog.TaxCodeConfigFrom(lineTaxConfig.ToProductCatalog())
-	}
+	taxConfig := lo.FromPtr(line.GetTaxConfig())
 
 	var unitConfig *productcatalog.UnitConfig
 	if config := line.GetUnitConfig(); config != nil {

@@ -189,62 +189,6 @@ func (s *InvoicableChargesTestSuite) TestInvoicePendingLinesAllGatedReturnsError
 	}
 }
 
-// The v1 handler turns stripe.code into a Tax Code ID before calling the charges service. A line
-// that reaches the service with an unresolved Stripe code is rejected, not stored without its code.
-func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsUnresolvedStripeTaxCode() {
-	ctx := s.T().Context()
-	ns := s.GetUniqueNamespace("charges-service-create-pending-lines-stripe-tax")
-	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
-
-	customInvoicing := s.SetupCustomInvoicing(ns)
-	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
-	cust := s.CreateTestCustomer(ns, "test-subject")
-
-	servicePeriod := timeutil.ClosedPeriod{
-		From: datetime.MustParseTimeInLocation(s.T(), "2026-01-01T00:00:00Z", time.UTC).AsTime(),
-		To:   datetime.MustParseTimeInLocation(s.T(), "2026-02-01T00:00:00Z", time.UTC).AsTime(),
-	}
-	clock.FreezeTime(servicePeriod.From)
-	defer clock.UnFreeze()
-
-	// given: a manual line that carries only a Stripe code
-	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
-		Namespace:     ns,
-		Period:        servicePeriod,
-		InvoiceAt:     servicePeriod.To,
-		ManagedBy:     billing.ManuallyManagedLine,
-		Name:          "manual flat",
-		Currency:      currencyx.FiatCode(USD),
-		PerUnitAmount: alpacadecimal.NewFromInt(10),
-		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
-	})
-	line.Engine = billing.LineEngineTypeInvoice
-	line.TaxConfig = &productcatalog.TaxConfig{
-		Behavior: lo.ToPtr(productcatalog.ExclusiveTaxBehavior),
-		Stripe:   &productcatalog.StripeTaxConfig{Code: "txcd_40010001"},
-	}
-
-	// when: it reaches the charges service without a Tax Code ID
-	_, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		ChangeSource: billing.ChangeSourceAPIRequest,
-		Customer:     cust.GetID(),
-		Currency:     currencyx.FiatCode(USD),
-		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
-	})
-
-	// then: the request is rejected and no Tax Code is created for the code
-	var validationErr billing.ValidationError
-	s.Require().ErrorAs(err, &validationErr)
-	s.ErrorContains(err, "must be resolved to a tax code id")
-
-	_, err = s.TaxCodeEnv.Service.GetTaxCodeByAppMapping(ctx, taxcode.GetTaxCodeByAppMappingInput{
-		Namespace: ns,
-		AppType:   app.AppTypeStripe,
-		TaxCode:   "txcd_40010001",
-	})
-	s.True(taxcode.IsTaxCodeNotFoundError(err), "expected no tax code, got: %v", err)
-}
-
 // TestCreatePendingInvoiceLinesTaxCodeAuthoredVsInherited verifies the ChangeSource split on the
 // charge-backed pending-line entry point: an api_request create rejects a deleted Tax Code ID
 // the caller sent, while the same lines as a system create are inherited and keep it.
@@ -302,8 +246,7 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesTaxCodeAuthore
 		s.Require().NoError(err)
 		s.Require().Len(result.Lines, 1)
 		s.Require().NotNil(result.Lines[0].TaxConfig)
-		s.Equal(lo.ToPtr(deleted.ID), result.Lines[0].TaxConfig.TaxCodeID)
-		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, result.Lines[0].TaxConfig.Stripe)
+		s.Equal(deleted.ID, result.Lines[0].TaxConfig.TaxCodeID)
 
 		charge := s.mustGetChargeByID(meta.ChargeID{Namespace: ns, ID: lo.FromPtr(result.Lines[0].ChargeID)})
 		flatFee, err := charge.AsFlatFeeCharge()
@@ -324,7 +267,7 @@ func (s *InvoicableChargesTestSuite) newDeletedTaxChargeLine(ns string, serviceP
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 	})
 	line.Engine = billing.LineEngineTypeInvoice
-	line.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(taxCodeID)}
+	line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: taxCodeID}
 
 	return line
 }

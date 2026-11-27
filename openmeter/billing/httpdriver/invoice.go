@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 
@@ -430,7 +431,13 @@ func (h *handler) deleteStandardInvoice(ctx context.Context, request DeleteInvoi
 }
 
 type (
-	SimulateInvoiceRequest  = billing.SimulateInvoiceInput
+	SimulateInvoiceRequest struct {
+		Input billing.SimulateInvoiceInput
+		// UnresolvedStripeCodes holds, by line ID, the stripe.code of lines whose code no Tax
+		// Code maps to yet. Simulation can't create the Tax Code, so these lines are rendered
+		// with the requested code instead of the invoice default they inherit.
+		UnresolvedStripeCodes map[string]string
+	}
 	SimulateInvoiceResponse = apiv1models.Invoice
 	SimulateInvoiceParams   struct {
 		CustomerID string
@@ -452,7 +459,8 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				return SimulateInvoiceRequest{}, err
 			}
 
-			if err := resolveSimulationLineTaxConfigs(ctx, h.taxCodeResolver, ns, body.Lines); err != nil {
+			unresolvedByIndex, err := resolveSimulationLineTaxConfigs(ctx, h.taxCodeResolver, ns, body.Lines)
+			if err != nil {
 				return SimulateInvoiceRequest{}, err
 			}
 
@@ -463,22 +471,43 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 				}
 			}
 
-			return SimulateInvoiceRequest{
-				Namespace:  ns,
-				CustomerID: &params.CustomerID,
+			// The simulation keeps the line IDs it is given, so an ID is how the rendered line
+			// is matched back to its unresolved code.
+			unresolvedStripeCodes := make(map[string]string, len(unresolvedByIndex))
+			for idx, stripeCode := range unresolvedByIndex {
+				if lines[idx].ID == "" {
+					lines[idx].ID = ulid.Make().String()
+				}
 
-				Number:   body.Number,
-				Currency: currencyx.FiatCode(body.Currency),
-				Lines:    billing.NewStandardInvoiceLines(lines),
+				unresolvedStripeCodes[lines[idx].ID] = stripeCode
+			}
+
+			return SimulateInvoiceRequest{
+				Input: billing.SimulateInvoiceInput{
+					Namespace:  ns,
+					CustomerID: &params.CustomerID,
+
+					Number:   body.Number,
+					Currency: currencyx.FiatCode(body.Currency),
+					Lines:    billing.NewStandardInvoiceLines(lines),
+				},
+				UnresolvedStripeCodes: unresolvedStripeCodes,
 			}, nil
 		},
 		func(ctx context.Context, request SimulateInvoiceRequest) (SimulateInvoiceResponse, error) {
-			invoice, err := h.service.SimulateInvoice(ctx, request)
+			invoice, err := h.service.SimulateInvoice(ctx, request.Input)
 			if err != nil {
 				return SimulateInvoiceResponse{}, err
 			}
 
-			return h.mapStandardInvoiceWithTaxCodesToAPI(ctx, invoice)
+			out, err := h.mapStandardInvoiceWithTaxCodesToAPI(ctx, invoice)
+			if err != nil {
+				return SimulateInvoiceResponse{}, err
+			}
+
+			renderUnresolvedSimulationStripeCodes(&out, request.UnresolvedStripeCodes)
+
+			return out, nil
 		},
 		commonhttp.JSONResponseEncoderWithStatus[SimulateInvoiceResponse](http.StatusOK),
 		httptransport.AppendOptions(
@@ -487,6 +516,45 @@ func (h *handler) SimulateInvoice() SimulateInvoiceHandler {
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
+}
+
+// renderUnresolvedSimulationStripeCodes shows the requested stripe.code on simulated lines whose
+// code no Tax Code maps to yet. Those lines carry no Tax Code ID, so the calculation filled in
+// the invoice default's; creating the line would instead create a Tax Code for the requested
+// code, so the preview shows that code and no Tax Code ID. The tax behavior stays as calculated.
+func renderUnresolvedSimulationStripeCodes(invoice *apiv1models.Invoice, unresolvedStripeCodes map[string]string) {
+	if len(unresolvedStripeCodes) == 0 || invoice.Lines == nil {
+		return
+	}
+
+	for i := range *invoice.Lines {
+		line := &(*invoice.Lines)[i]
+
+		stripeCode, ok := unresolvedStripeCodes[line.Id]
+		if !ok {
+			continue
+		}
+
+		taxConfig := &apiv1models.TaxConfig{
+			Stripe: &apiv1models.StripeTaxConfig{Code: stripeCode},
+		}
+		if line.TaxConfig != nil {
+			taxConfig.Behavior = line.TaxConfig.Behavior
+		}
+
+		line.TaxConfig = taxConfig
+		if line.RateCard != nil {
+			line.RateCard.TaxConfig = taxConfig
+		}
+
+		for j := range lo.FromPtr(line.Children) {
+			child := &(*line.Children)[j]
+			child.TaxConfig = taxConfig
+			if child.RateCard != nil {
+				child.RateCard.TaxConfig = taxConfig
+			}
+		}
+	}
 }
 
 type (

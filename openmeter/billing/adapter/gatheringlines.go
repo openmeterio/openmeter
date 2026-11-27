@@ -209,9 +209,20 @@ func diffGatheringInvoiceLines(lines billing.GatheringLines) (gatheringLineDiff,
 }
 
 func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.GatheringLines) error {
+	if len(lines) == 0 {
+		return nil
+	}
+
 	diff, err := diffGatheringInvoiceLines(lines)
 	if err != nil {
 		return err
+	}
+
+	taxCodes, err := a.resolveTaxCodeSnapshots(ctx, lines[0].Namespace, lo.Map(lines, func(line billing.GatheringLine, _ int) *productcatalog.TaxCodeConfig {
+		return line.TaxConfig
+	}))
+	if err != nil {
+		return fmt.Errorf("resolving line tax codes: %w", err)
 	}
 
 	err = upsertWithOptions(ctx, a.db, diff.Line, upsertInput[*billing.GatheringLine, *db.BillingInvoiceUsageBasedLineConfigCreate]{
@@ -300,8 +311,13 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 			}
 
 			if line.TaxConfig != nil {
-				create = create.SetNillableTaxConfig(billing.FromProductCatalog(line.TaxConfig)).
-					SetNillableTaxCodeID(line.TaxConfig.TaxCodeID).
+				storedTaxConfig, err := billing.NewStoredGatheringLineTaxConfig(line.TaxConfig, taxCodes)
+				if err != nil {
+					return nil, fmt.Errorf("building tax config snapshot [line_id=%s]: %w", line.ID, err)
+				}
+
+				create = create.SetNillableTaxConfig(storedTaxConfig).
+					SetNillableTaxCodeID(lo.EmptyableToPtr(line.TaxConfig.TaxCodeID)).
 					SetNillableTaxBehavior(line.TaxConfig.Behavior)
 			}
 
@@ -323,6 +339,8 @@ func (a *adapter) updateGatheringLines(ctx context.Context, lines billing.Gather
 						u.SetIgnore(billinginvoiceline.FieldCreatedAt)
 					})).
 				UpdateChildUniqueReferenceID().
+				// Gathering invoices never leave draft, so the JSON snapshot always tracks the
+				// columns and needs no history guard.
 				UpdateTaxConfig().
 				UpdateTaxCodeID().
 				UpdateTaxBehavior().
@@ -368,11 +386,6 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) (
 		return billing.GatheringLine{}, fmt.Errorf("usage based line data is missing [line_id=%s]", dbLine.ID)
 	}
 
-	lineTaxCode, err := taxCodeFromInvoiceLineEdge(dbLine)
-	if err != nil {
-		return billing.GatheringLine{}, fmt.Errorf("mapping tax code [line_id=%s]: %w", dbLine.ID, err)
-	}
-
 	line := billing.GatheringLine{
 		GatheringLineBase: billing.GatheringLineBase{
 			ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -404,11 +417,7 @@ func (a *adapter) mapGatheringInvoiceLineFromDB(dbLine *db.BillingInvoiceLine) (
 
 			Currency: dbLine.Currency,
 
-			TaxConfig: productcatalog.BackfillTaxConfig(
-				lo.EmptyableToPtr(dbLine.TaxConfig).ToProductCatalog(),
-				dbLine.TaxBehavior,
-				lineTaxCode,
-			),
+			TaxConfig:         productcatalog.FromDBTaxColumns(dbLine.TaxCodeID, dbLine.TaxBehavior),
 			RateCardDiscounts: lo.FromPtr(dbLine.RatecardDiscounts),
 
 			UBPConfigID: ubpLine.ID,

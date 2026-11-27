@@ -98,7 +98,7 @@ func (h *handler) CreateProfile() CreateProfileHandler {
 				// or created; only behavior can get through.
 				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, billingconvert.ResolveProfileDefaultTaxConfigInput{
 					Namespace: input.Namespace,
-					Raw:       mapTaxConfigToEntity(request.DefaultTaxConfig),
+					Raw:       mapLegacyTaxConfigToEntity(request.DefaultTaxConfig),
 				})
 				if err != nil {
 					return err
@@ -273,7 +273,7 @@ func (h *handler) UpdateProfile() UpdateProfileHandler {
 
 				defaultTaxConfig, err := billingconvert.ResolveProfileDefaultTaxConfig(ctx, resolver, billingconvert.ResolveProfileDefaultTaxConfigInput{
 					Namespace: input.Namespace,
-					Raw:       mapTaxConfigToEntity(request.DefaultTaxConfig),
+					Raw:       mapLegacyTaxConfigToEntity(request.DefaultTaxConfig),
 					Stored:    storedDefaultTaxConfig,
 				})
 				if err != nil {

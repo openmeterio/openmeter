@@ -9,6 +9,7 @@ import (
 
 	appcustominvoicing "github.com/openmeterio/openmeter/openmeter/app/custominvoicing"
 	"github.com/openmeterio/openmeter/openmeter/billing"
+	billingconvert "github.com/openmeterio/openmeter/openmeter/billing/apiconvert"
 	billingtest "github.com/openmeterio/openmeter/test/billing"
 )
 
@@ -35,8 +36,14 @@ func (s *CustomInvoicingEventTestSuite) TestCreateInvoiceEvent() {
 		Customer:  s.CreateTestCustomer(namespace, "test-customer"),
 	})
 
+	taxCodes, err := billingconvert.ResolveInvoiceTaxCodes(ctx, s.TaxCodeResolver, billingconvert.ResolveInvoiceTaxCodesInput{
+		Namespace:     namespace,
+		StandardLines: invoice.Lines.OrEmpty(),
+	})
+	s.NoError(err)
+
 	// When we create an invoice created event
-	event, err := billing.NewStandardInvoiceCreatedEvent(invoice)
+	event, err := billing.NewStandardInvoiceCreatedEvent(invoice, taxCodes)
 	s.NoError(err)
 
 	// Then the event should be be JSON marshallable

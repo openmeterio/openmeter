@@ -235,25 +235,16 @@ func ResolveInvoiceTaxCodes(ctx context.Context, resolver productcatalog.TaxCode
 			return id, id != ""
 		}),
 		lo.FilterMap(input.StandardLines, func(line *billing.StandardLine, _ int) (string, bool) {
-			id := taxCodeIDFromConfig(line.TaxConfig.ToProductCatalog())
+			id := lo.FromPtr(line.TaxConfig).TaxCodeID
 			return id, id != ""
 		}),
 		lo.FilterMap(input.GatheringLines, func(line billing.GatheringLine, _ int) (string, bool) {
-			id := taxCodeIDFromConfig(line.TaxConfig)
+			id := lo.FromPtr(line.TaxConfig).TaxCodeID
 			return id, id != ""
 		}),
 	))
 
 	return resolveTaxCodesByIDs(ctx, resolver, input.Namespace, ids)
-}
-
-// taxCodeIDFromConfig returns the Tax Code reference of the config, or "" when there is none.
-func taxCodeIDFromConfig(cfg *productcatalog.TaxConfig) string {
-	if cfg == nil || cfg.TaxCodeID == nil {
-		return ""
-	}
-
-	return *cfg.TaxCodeID
 }
 
 func resolveTaxCodesByIDs(ctx context.Context, resolver productcatalog.TaxCodeResolver, namespace string, ids []string) (productcatalog.TaxCodesByID, error) {

@@ -134,13 +134,13 @@ func (_u *BillingInvoiceLineUpdate) ClearDescription() *BillingInvoiceLineUpdate
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpdate {
+func (_u *BillingInvoiceLineUpdate) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingInvoiceLineUpdate {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineUpdate {
+func (_u *BillingInvoiceLineUpdate) SetNillableTaxConfig(v *billing.StoredLineTaxConfig) *BillingInvoiceLineUpdate {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}
@@ -1109,11 +1109,6 @@ func (_u *BillingInvoiceLineUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingInvoiceLineUpdate) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := billinginvoiceline.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_behavior": %w`, err)}
@@ -2009,13 +2004,13 @@ func (_u *BillingInvoiceLineUpdateOne) ClearDescription() *BillingInvoiceLineUpd
 }
 
 // SetTaxConfig sets the "tax_config" field.
-func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v billing.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (_u *BillingInvoiceLineUpdateOne) SetTaxConfig(v billing.StoredLineTaxConfig) *BillingInvoiceLineUpdateOne {
 	_u.mutation.SetTaxConfig(v)
 	return _u
 }
 
 // SetNillableTaxConfig sets the "tax_config" field if the given value is not nil.
-func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *billing.TaxConfig) *BillingInvoiceLineUpdateOne {
+func (_u *BillingInvoiceLineUpdateOne) SetNillableTaxConfig(v *billing.StoredLineTaxConfig) *BillingInvoiceLineUpdateOne {
 	if v != nil {
 		_u.SetTaxConfig(*v)
 	}
@@ -2997,11 +2992,6 @@ func (_u *BillingInvoiceLineUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_u *BillingInvoiceLineUpdateOne) check() error {
-	if v, ok := _u.mutation.TaxConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "tax_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_config": %w`, err)}
-		}
-	}
 	if v, ok := _u.mutation.TaxBehavior(); ok {
 		if err := billinginvoiceline.TaxBehaviorValidator(v); err != nil {
 			return &ValidationError{Name: "tax_behavior", err: fmt.Errorf(`db: validator failed for field "BillingInvoiceLine.tax_behavior": %w`, err)}

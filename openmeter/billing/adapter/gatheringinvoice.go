@@ -429,8 +429,7 @@ func (a *adapter) expandGatheringInvoiceLines(q *db.BillingInvoiceQuery, expand 
 			Where(billinginvoiceline.ParentLineIDIsNil()).                              // Only include top-level lines (there are some detailed lines existing for gathering invoices)
 			WithUsageBasedLine(func(q *db.BillingInvoiceUsageBasedLineConfigQuery) {
 				q.Where(billinginvoiceusagebasedlineconfig.Namespace(namespace))
-			}).
-			WithTaxCode(taxCodeInNamespace(namespace))
+			})
 	})
 }
 

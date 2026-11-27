@@ -18,15 +18,15 @@ import (
 // resolveLineTaxConfig resolves one line's v1 tax config inside the request's transaction,
 // replacing the input's stripe.code with the referenced Tax Code's ID. The input's stripe.code
 // is dropped: the stored config references the Tax Code, and responses render stripe.code from
-// its current mapping. raw is the config as the request mapper produced it.
-func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, raw *productcatalog.TaxConfig) (*productcatalog.TaxConfig, error) {
+// its current mapping. raw is the config as the request sent it.
+func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, raw *apiv1models.TaxConfig) (*productcatalog.TaxCodeConfig, error) {
 	if raw == nil {
 		return nil, nil
 	}
 
 	// FromAPITaxConfig carries the stripe.code format check, the empty-ID rejection and
 	// taxCodeId-wins; non-resolution errors keep the 400 class through the wrapper below.
-	cfg, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, namespace, productcataloghttp.FromTaxConfig(*raw))
+	cfg, err := productcataloghttp.FromAPITaxConfig(ctx, resolver, namespace, *raw)
 	if err != nil {
 		if isTaxCodeResolutionError(err) {
 			return nil, err
@@ -35,14 +35,7 @@ func resolveLineTaxConfig(ctx context.Context, resolver productcatalog.TaxCodeBa
 		return nil, billing.ValidationError{Err: err}
 	}
 
-	// cfg is nil only for a config with no behavior, ID or code; keep it as the request sent it.
-	if cfg == nil {
-		return raw, nil
-	}
-
-	out := cfg.ToTaxConfig()
-
-	return &out, nil
+	return cfg, nil
 }
 
 // isTaxCodeResolutionError reports whether the error is a resolution failure (a 500), not bad
@@ -67,8 +60,8 @@ func lineTaxConfig(rateCard *apiv1models.InvoiceUsageBasedRateCard, taxConfig *a
 // resolveUpdateLineTaxConfigs resolves every edited line's tax config up front, so the update's
 // EditFn (which has no context) can apply the already-resolved IDs. The result has one entry per
 // request line, in the same order; an entry is nil when the line sent no tax config.
-func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxConfig, error) {
-	resolved := make([]*productcatalog.TaxConfig, 0, len(lines))
+func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.TaxCodeBackfillResolver, namespace string, lines []apiv1models.InvoiceLineReplaceUpdate) ([]*productcatalog.TaxCodeConfig, error) {
+	resolved := make([]*productcatalog.TaxCodeConfig, 0, len(lines))
 
 	for _, line := range lines {
 		raw := lineTaxConfig(line.RateCard, line.TaxConfig)
@@ -78,8 +71,7 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 			continue
 		}
 
-		rawConfig := productcataloghttp.AsTaxConfig(*raw)
-		cfg, err := resolveLineTaxConfig(ctx, resolver, namespace, &rawConfig)
+		cfg, err := resolveLineTaxConfig(ctx, resolver, namespace, raw)
 		if err != nil {
 			return nil, err
 		}
@@ -92,10 +84,11 @@ func resolveUpdateLineTaxConfigs(ctx context.Context, resolver productcatalog.Ta
 
 // resolveSimulationLineTaxConfigs replaces each simulation line's stripe.code with the ID of the
 // Tax Code it maps to. Simulation must not write, so the lookup is read-only: an unknown code
-// leaves the line as sent, and the response shows it without stripe.code. A taxCodeId the
-// request sent must name a live Tax Code, like on create and update; otherwise rendering the
-// response would fail on it.
-func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalog.TransactionalTaxCodeResolver, namespace string, lines []apiv1models.InvoiceSimulationLine) error {
+// leaves the line as sent and is returned by line index, so the response can show the code the
+// request asked for. A taxCodeId the request sent must name a live Tax Code, like on create and
+// update; otherwise rendering the response would fail on it.
+func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalog.TransactionalTaxCodeResolver, namespace string, lines []apiv1models.InvoiceSimulationLine) (map[int]string, error) {
+	unresolved := map[int]string{}
 	var requestRefs []billing.RequestTaxCodeRef
 
 	for i := range lines {
@@ -103,7 +96,7 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 		// would hide a mismatch from the mapper's own check.
 		if lines[i].TaxConfig != nil && lines[i].RateCard != nil && lines[i].RateCard.TaxConfig != nil &&
 			!reflect.DeepEqual(*lines[i].TaxConfig, *lines[i].RateCard.TaxConfig) {
-			return billing.ValidationError{Err: fmt.Errorf("lines/%d: %w", i, errTaxConfigMismatch)}
+			return nil, billing.ValidationError{Err: fmt.Errorf("lines/%d: %w", i, errTaxConfigMismatch)}
 		}
 
 		raw := lineTaxConfig(lines[i].RateCard, lines[i].TaxConfig)
@@ -113,7 +106,7 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 
 		cfg, stripeCode, err := productcataloghttp.ParseAPITaxConfig(*raw)
 		if err != nil {
-			return billing.ValidationError{Err: err}
+			return nil, billing.ValidationError{Err: err}
 		}
 
 		// ParseAPITaxConfig leaves the stripe code empty when the request sent a taxCodeId, so
@@ -132,9 +125,10 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 			})
 			switch {
 			case taxcode.IsTaxCodeNotFoundError(err):
+				unresolved[i] = stripeCode
 				continue
 			case err != nil:
-				return &productcataloghttp.TaxCodeResolutionError{Err: err}
+				return nil, &productcataloghttp.TaxCodeResolutionError{Err: err}
 			}
 
 			cfg.TaxCodeID = tc.ID
@@ -151,9 +145,13 @@ func resolveSimulationLineTaxConfigs(ctx context.Context, resolver productcatalo
 		}
 	}
 
-	return billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
+	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
 		Namespace:  namespace,
 		Resolver:   resolver,
 		References: requestRefs,
-	})
+	}); err != nil {
+		return nil, err
+	}
+
+	return unresolved, nil
 }

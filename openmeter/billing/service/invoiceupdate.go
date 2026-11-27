@@ -182,15 +182,14 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 
 	defaultTaxCodeResolvers := s.defaultTaxCodeResolversForInvoiceUpdate(after)
 	if source == billing.ChangeSourceAPIRequest {
-		// Sanitize both sides with deleted codes allowed so the diff compares the same
-		// resolved representation, and an edit that leaves a line's Tax Code untouched can
-		// keep a deleted one. Deleted codes the edit newly sets are rejected below.
+		// Sanitize both sides the same way so the diff compares the same normalized state, and
+		// an edit that leaves a line's Tax Code untouched can keep a deleted one. Deleted codes
+		// the edit newly sets are rejected below.
 		var err error
 		before, err = s.invoiceWithSanitizedTaxConfigForDiff(
 			ctx,
 			defaultTaxCodeResolvers,
 			before,
-			productcatalog.AllowDeletedTaxCodeByID(),
 		)
 		if err != nil {
 			return mutableInvoiceLineDiff{}, fmt.Errorf("sanitizing persisted invoice line tax configs for diff: %w", err)
@@ -200,7 +199,6 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 			ctx,
 			defaultTaxCodeResolvers,
 			after,
-			productcatalog.AllowDeletedTaxCodeByID(),
 		)
 		if err != nil {
 			return mutableInvoiceLineDiff{}, fmt.Errorf("sanitizing expected invoice line tax configs for diff: %w", err)
@@ -234,14 +232,12 @@ func (s *Service) diffMutableInvoiceLines(ctx context.Context, before billing.Ge
 // invoiceWithSanitizedTaxConfigForDiff returns an invoice clone whose line tax
 // configs are normalized for API edit diffing. The diff is the source of truth
 // for line-engine inputs, so both the persisted and expected invoice states are
-// compared in the same resolved representation: nil or identity-less tax configs
-// use the provider-default tax code, explicit provider codes resolve to
-// TaxCodeID, and diff equality ignores resolved TaxCode object snapshots.
+// compared in the same normalized representation: nil or identity-less tax configs
+// use the provider-default tax code.
 func (s *Service) invoiceWithSanitizedTaxConfigForDiff(
 	ctx context.Context,
 	defaultTaxCodeResolvers billing.DefaultTaxCodeResolvers,
 	invoice billing.GenericInvoiceReader,
-	opts ...productcatalog.ResolveTaxConfigOption,
 ) (billing.GenericInvoice, error) {
 	if err := defaultTaxCodeResolvers.Validate(); err != nil {
 		return nil, fmt.Errorf("default tax code resolvers: %w", err)
@@ -263,7 +259,7 @@ func (s *Service) invoiceWithSanitizedTaxConfigForDiff(
 	namespace := sanitizedInvoice.GetInvoiceID().Namespace
 	lines := sanitizedInvoice.GetGenericLines().OrEmpty()
 	for i, line := range lines {
-		sanitizedLine, err := s.sanitizeInvoiceLineTaxConfigForDiff(ctx, namespace, line, opts...)
+		sanitizedLine, err := s.sanitizeInvoiceLineTaxConfigForDiff(ctx, namespace, line)
 		if err != nil {
 			return nil, fmt.Errorf("line[%s]: %w", line.GetID(), err)
 		}
@@ -282,9 +278,8 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 	ctx context.Context,
 	namespace string,
 	line billing.GenericInvoiceLine,
-	opts ...productcatalog.ResolveTaxConfigOption,
 ) (billing.GenericInvoiceLine, error) {
-	taxConfig, err := s.sanitizeTaxConfigForDiff(ctx, namespace, line.GetTaxConfig(), opts...)
+	taxConfig, err := s.sanitizeTaxConfigForDiff(ctx, namespace, line.GetTaxConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +302,7 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 			return nil, err
 		}
 
-		gatheringLine.TaxConfig = taxConfig.ToProductCatalog()
+		gatheringLine.TaxConfig = taxConfig
 
 		return gatheringLine.AsGenericLine(), nil
 
@@ -319,19 +314,14 @@ func (s *Service) sanitizeInvoiceLineTaxConfigForDiff(
 func (s *Service) sanitizeTaxConfigForDiff(
 	ctx context.Context,
 	namespace string,
-	taxConfig *billing.TaxConfig,
-	opts ...productcatalog.ResolveTaxConfigOption,
-) (*billing.TaxConfig, error) {
-	var sanitized billing.TaxConfig
+	taxConfig *productcatalog.TaxCodeConfig,
+) (*productcatalog.TaxCodeConfig, error) {
+	var sanitized productcatalog.TaxCodeConfig
 	if taxConfig != nil {
 		sanitized = taxConfig.Clone()
 	}
 
-	if sanitized.TaxCodeID != nil && *sanitized.TaxCodeID == "" {
-		sanitized.TaxCodeID = nil
-	}
-
-	if sanitized.TaxCodeID == nil && (sanitized.Stripe == nil || sanitized.Stripe.Code == "") {
+	if sanitized.TaxCodeID == "" {
 		// A new API line without tax identity gets the provider default. It is not checked
 		// for deletion, which is fine because the provider default cannot be deleted today.
 		providerDefaultTaxCode, err := s.taxCodeService.GetTaxCodeByKey(ctx, taxcode.GetTaxCodeByKeyInput{
@@ -342,30 +332,24 @@ func (s *Service) sanitizeTaxConfigForDiff(
 			return nil, fmt.Errorf("resolving provider default tax code: %w", err)
 		}
 
-		sanitized.TaxCodeID = lo.ToPtr(providerDefaultTaxCode.ID)
+		sanitized.TaxCodeID = providerDefaultTaxCode.ID
 
-		if err := validateTaxConfigTaxCodeIDResolvedForDiff(&sanitized); err != nil {
+		if err := requireTaxCodeIDForDiff(&sanitized); err != nil {
 			return nil, err
 		}
 
 		return &sanitized, nil
 	}
 
-	productCatalogTaxConfig := sanitized.ToProductCatalog()
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, namespace, productCatalogTaxConfig, opts...); err != nil {
-		return nil, err
-	}
-
-	sanitized.TaxConfig = productCatalogTaxConfig.Clone()
-	if err := validateTaxConfigTaxCodeIDResolvedForDiff(&sanitized); err != nil {
+	if err := requireTaxCodeIDForDiff(&sanitized); err != nil {
 		return nil, err
 	}
 
 	return &sanitized, nil
 }
 
-func validateTaxConfigTaxCodeIDResolvedForDiff(taxConfig *billing.TaxConfig) error {
-	if taxConfig != nil && taxConfig.TaxCodeID != nil && *taxConfig.TaxCodeID != "" {
+func requireTaxCodeIDForDiff(taxConfig *productcatalog.TaxCodeConfig) error {
+	if taxConfig != nil && taxConfig.TaxCodeID != "" {
 		return nil
 	}
 
@@ -386,16 +370,17 @@ func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after
 		return line.GetID()
 	})
 
-	// One reference per changed line; the validator looks each distinct ID up once.
+	// One reference per changed line; the validator looks each distinct ID up once. A line without
+	// a tax config has an empty ID; the sanitizer normalized missing IDs the same way on both sides.
 	var refs []billing.RequestTaxCodeRef
 	for idx, afterLine := range after.GetGenericLines().OrEmpty() {
-		taxCodeID := taxCodeIDFromTaxConfig(afterLine.GetTaxConfig())
+		taxCodeID := lo.FromPtr(afterLine.GetTaxConfig()).TaxCodeID
 		if taxCodeID == "" {
 			continue
 		}
 
 		if beforeLine, ok := beforeByLineID[afterLine.GetID()]; ok {
-			if beforeTaxCodeID := taxCodeIDFromTaxConfig(beforeLine.GetTaxConfig()); beforeTaxCodeID == taxCodeID {
+			if lo.FromPtr(beforeLine.GetTaxConfig()).TaxCodeID == taxCodeID {
 				continue
 			}
 		}
@@ -410,23 +395,13 @@ func (s *Service) validateChangedLineTaxCodes(ctx context.Context, before, after
 		return nil
 	}
 
-	// The sanitizer already rejects IDs the namespace cannot resolve, so only the
-	// deleted case can fail here.
+	// This batched check is what rejects changed IDs pointing at missing or deleted Tax Codes.
+	// The sanitizer only fills an empty ID with the provider default.
 	return billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
 		Namespace:  after.GetInvoiceID().Namespace,
 		Resolver:   s.taxCodeResolver,
 		References: refs,
 	})
-}
-
-// taxCodeIDFromTaxConfig returns "" for no Tax Code; the sanitizer already normalized nil and
-// empty IDs the same way on both sides.
-func taxCodeIDFromTaxConfig(taxConfig *billing.TaxConfig) string {
-	if taxConfig == nil || taxConfig.TaxCodeID == nil {
-		return ""
-	}
-
-	return *taxConfig.TaxCodeID
 }
 
 func validateInvoiceReaderForDiff(invoice billing.GenericInvoiceReader) error {
@@ -461,7 +436,7 @@ func diffInvoiceLine(before, after billing.GenericInvoiceLineReader, source bill
 		Description: comparablePtrOverride(before.GetDescription(), after.GetDescription()),
 		Metadata:    metadataOverride(before.GetMetadata(), after.GetMetadata()),
 		Period:      equalerOverride(before.GetServicePeriod(), after.GetServicePeriod()),
-		TaxConfig:   taxConfigOverride(before.GetTaxConfig(), after.GetTaxConfig(), source),
+		TaxConfig:   taxConfigOverride(before.GetTaxConfig(), after.GetTaxConfig()),
 		Price:       equalerOverride(before.GetPrice(), after.GetPrice()),
 		FeatureKey:  comparableOverride(before.GetFeatureKey(), after.GetFeatureKey()),
 		Discounts:   equalerOverride(before.GetRateCardDiscounts(), after.GetRateCardDiscounts()),
@@ -508,40 +483,17 @@ func equalerOverride[T equal.Equaler[T]](a, b T) mo.Option[T] {
 	return mo.None[T]()
 }
 
-func taxConfigOverride(a, b *billing.TaxConfig, source billing.ChangeSource) mo.Option[*billing.TaxConfig] {
-	if source == billing.ChangeSourceAPIRequest {
-		if taxConfigsEqualForInvoiceLineDiff(a, b) {
-			return mo.None[*billing.TaxConfig]()
-		}
-
-		return mo.Some(b)
-	}
-
+func taxConfigOverride(a, b *productcatalog.TaxCodeConfig) mo.Option[*productcatalog.TaxCodeConfig] {
 	if taxConfigsEqual(a, b) {
-		return mo.None[*billing.TaxConfig]()
+		return mo.None[*productcatalog.TaxCodeConfig]()
 	}
 
 	return mo.Some(b)
 }
 
-func taxConfigsEqual(a, b *billing.TaxConfig) bool {
-	if a == nil && b == nil {
-		return true
-	}
-
-	if a == nil || b == nil {
-		return false
-	}
-
-	return a.Equal(b)
-}
-
-// taxConfigsEqualForInvoiceLineDiff compares only the fields that represent an
-// invoice-line tax edit after diff normalization. Both sides have already had
-// provider-specific tax code intent resolved into TaxCodeID, so Behavior and
-// TaxCodeID fully describe the editable state; resolved TaxCode snapshots are
-// ignored because they are invoice snapshot metadata, not edit intent.
-func taxConfigsEqualForInvoiceLineDiff(a, b *billing.TaxConfig) bool {
+// taxConfigsEqual compares only the fields that represent an
+// invoice-line tax edit after diff normalization: Behavior and TaxCodeID.
+func taxConfigsEqual(a, b *productcatalog.TaxCodeConfig) bool {
 	if a == nil && b == nil {
 		return true
 	}
@@ -554,7 +506,7 @@ func taxConfigsEqualForInvoiceLineDiff(a, b *billing.TaxConfig) bool {
 		return false
 	}
 
-	return equal.ComparablePtrEqual(a.TaxCodeID, b.TaxCodeID)
+	return a.TaxCodeID == b.TaxCodeID
 }
 
 func metadataOverride(a, b models.Metadata) mo.Option[models.Metadata] {

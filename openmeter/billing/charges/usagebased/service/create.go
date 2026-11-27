@@ -200,7 +200,7 @@ func gatheringLineFromUsageBasedChargeForPeriod(charge usagebased.Charge, servic
 			ServicePeriod: servicePeriod,
 			InvoiceAt:     invoiceAt,
 
-			TaxConfig: lo.ToPtr(intent.TaxConfig.ToTaxConfig()),
+			TaxConfig: intent.TaxConfig.EmptyAsNilPtr(),
 
 			ChargeID:     lo.ToPtr(charge.ID),
 			Engine:       billing.LineEngineTypeChargeUsageBased,

@@ -93,8 +93,11 @@ func (i *invoiceLineRateCardItems) ValidateRateCard() error {
 }
 
 type invoiceLineRateCardParsed struct {
-	Price      *productcatalog.Price
-	TaxConfig  *productcatalog.TaxConfig
+	Price *productcatalog.Price
+	// TaxConfig is the line's raw v1 tax config. Handlers resolve it to a Tax Code reference
+	// inside the request's transaction, so it stays unresolved here: mapping it to the domain
+	// reference first would drop an unresolved stripe.code.
+	TaxConfig  *apiv1models.TaxConfig
 	FeatureKey string
 	Discounts  productcatalog.Discounts
 }
@@ -119,7 +122,7 @@ func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardIte
 
 		return &invoiceLineRateCardParsed{
 			Price:      price,
-			TaxConfig:  mapTaxConfigToEntity(in.TaxConfig),
+			TaxConfig:  in.TaxConfig,
 			FeatureKey: lo.FromPtr(in.FeatureKey),
 		}, nil
 	}
@@ -157,7 +160,7 @@ func mapAndValidateInvoiceLineRateCardDeprecatedFields(in invoiceLineRateCardIte
 
 	return &invoiceLineRateCardParsed{
 		Price:      price,
-		TaxConfig:  mapTaxConfigToEntity(in.RateCard.TaxConfig),
+		TaxConfig:  in.RateCard.TaxConfig,
 		FeatureKey: lo.FromPtr(in.RateCard.FeatureKey),
 		Discounts:  discounts,
 	}, nil

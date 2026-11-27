@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/ledger"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clone"
 	"github.com/openmeterio/openmeter/pkg/equal"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
@@ -73,9 +74,7 @@ func (i Intent) Clone() Intent {
 		out.Subscription = lo.ToPtr(*i.Subscription)
 	}
 
-	if i.TaxConfig.Behavior != nil {
-		out.TaxConfig.Behavior = lo.ToPtr(*i.TaxConfig.Behavior)
-	}
+	out.TaxConfig.Behavior = clone.CloneEnumPtr(i.TaxConfig.Behavior)
 
 	return out
 }

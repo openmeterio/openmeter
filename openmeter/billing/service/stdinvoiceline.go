@@ -92,12 +92,6 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 			return nil, err
 		}
 
-		for i := range input.Lines {
-			if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Customer.Namespace, input.Lines[i].TaxConfig, productcatalog.AllowDeletedTaxCodeByID()); err != nil {
-				return nil, fmt.Errorf("resolving line[%d] tax config: %w", i, err)
-			}
-		}
-
 		// let's resolve the customer's settings
 		customerProfile, err := s.GetCustomerBillingProfile(ctx, billing.GetCustomerBillingProfileInput{
 			Customer: input.Customer,
@@ -175,7 +169,17 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 		// Publish system event for newly created invoices
 		if gatheringInvoiceUpsertResult.IsInvoiceNew {
-			event := billing.NewGatheringInvoiceCreatedEvent(gatheringInvoice)
+			taxCodes, err := s.lineTaxCodes(ctx, gatheringInvoice.Namespace, lo.Map(gatheringInvoice.Lines.OrEmpty(), func(l billing.GatheringLine, _ int) *productcatalog.TaxCodeConfig {
+				return l.TaxConfig
+			})...)
+			if err != nil {
+				return nil, fmt.Errorf("loading gathering invoice[%s] tax codes: %w", gatheringInvoiceID, err)
+			}
+
+			event, err := billing.NewGatheringInvoiceCreatedEvent(gatheringInvoice, taxCodes)
+			if err != nil {
+				return nil, fmt.Errorf("creating gathering invoice[%s] created event: %w", gatheringInvoiceID, err)
+			}
 
 			if err := s.publisher.Publish(ctx, event); err != nil {
 				return nil, fmt.Errorf("publishing gathering invoice[%s] created event: %w", gatheringInvoiceID, err)
@@ -192,7 +196,7 @@ func (s *Service) CreatePendingInvoiceLines(ctx context.Context, input billing.C
 
 // validatePendingLinesTaxCodes rejects deleted or missing Tax Code IDs the caller sent in this
 // request. System-created lines (subscription sync, charges) may reference a deleted Tax Code and
-// pass; a missing or foreign-namespace ID fails on every source through ResolveTaxConfig.
+// pass: their IDs were validated when authored and the foreign key keeps them pointing at a row.
 func (s *Service) validatePendingLinesTaxCodes(ctx context.Context, input billing.CreatePendingInvoiceLinesInput) error {
 	if input.ChangeSource != billing.ChangeSourceAPIRequest {
 		return nil
@@ -200,12 +204,12 @@ func (s *Service) validatePendingLinesTaxCodes(ctx context.Context, input billin
 
 	refs := make([]billing.RequestTaxCodeRef, 0, len(input.Lines))
 	for i := range input.Lines {
-		if input.Lines[i].TaxConfig == nil || input.Lines[i].TaxConfig.TaxCodeID == nil {
+		if input.Lines[i].TaxConfig == nil || input.Lines[i].TaxConfig.TaxCodeID == "" {
 			continue
 		}
 
 		refs = append(refs, billing.RequestTaxCodeRef{
-			TaxCodeID: *input.Lines[i].TaxConfig.TaxCodeID,
+			TaxCodeID: input.Lines[i].TaxConfig.TaxCodeID,
 			FieldPath: fmt.Sprintf("lines/%d/tax_config/tax_code", i),
 		})
 	}

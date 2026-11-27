@@ -89,7 +89,7 @@ func (s *ProfileTaxConfigTestSuite) TestInvoiceListResolvesTaxCodesOnce() {
 		ChangeSource: billing.ChangeSourceSystem,
 		EditFn: func(invoice *billing.StandardInvoice) error {
 			lines, err := invoice.Lines.MapWithErr(func(line *billing.StandardLine) (*billing.StandardLine, error) {
-				line.TaxConfig = billing.FromProductCatalog(&productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(lineTaxCode.ID)})
+				line.TaxConfig = &productcatalog.TaxCodeConfig{TaxCodeID: lineTaxCode.ID}
 
 				return line, nil
 			})

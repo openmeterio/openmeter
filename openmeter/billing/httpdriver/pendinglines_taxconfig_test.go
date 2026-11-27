@@ -170,6 +170,38 @@ func (s *PendingLineTaxConfigTestSuite) TestCreatePendingLineResolvesStripeCodeI
 	})
 }
 
+// A v1 pending line that only carries stripe.code must end up referencing the Tax Code mapped to
+// that code: the domain line cannot carry a Stripe code, so the handler has to resolve it.
+func (s *PendingLineTaxConfigTestSuite) TestCreatePendingLineStripeCodeOnlyReusesMappedTaxCode() {
+	ctx := s.T().Context()
+
+	// given: a customer and a tax code already mapped to the stripe code
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), s.namespace)
+	s.ProvisionBillingProfile(ctx, s.namespace, s.appID)
+	cust := s.CreateTestCustomer(s.namespace, "create-stripe-code-reuse")
+	mapped := s.TaxCodeEnv.GetOrCreateByAppMapping(s.T(), s.namespace, app.AppTypeStripe, "txcd_50000000")
+	taxCodesBefore := s.taxCodeCount()
+
+	// when: a pending line with only a stripe.code is created
+	rec := s.createPendingLines(cust.ID, []apiv1models.InvoicePendingLineCreate{
+		s.flatLine("line", &apiv1models.TaxConfig{Stripe: &apiv1models.StripeTaxConfig{Code: "txcd_50000000"}}),
+	})
+	s.Require().Equal(http.StatusCreated, rec.Code, rec.Body.String())
+
+	// then: no tax code is created and the response renders the mapped one
+	s.Equal(taxCodesBefore, s.taxCodeCount())
+
+	created := s.createResponse(rec)
+	s.Require().Len(created.Lines, 1)
+	s.Equal(&apiv1models.TaxConfig{
+		Stripe:    &apiv1models.StripeTaxConfig{Code: "txcd_50000000"},
+		TaxCodeId: lo.ToPtr(mapped.ID),
+	}, created.Lines[0].TaxConfig)
+
+	// and: the stored line references the mapped tax code
+	s.Equal(mapped.ID, s.storedLineTaxCodeID(created.Invoice.Id))
+}
+
 func (s *PendingLineTaxConfigTestSuite) TestCreatePendingLineTaxCodeIDWins() {
 	// given: a customer and a tax code with a stripe mapping
 	s.ProvisionBillingProfile(s.T().Context(), s.namespace, s.appID)
@@ -278,7 +310,7 @@ func (s *PendingLineTaxConfigTestSuite) storedLineTaxCodeID(invoiceID string) st
 	s.Require().Len(storedLines, 1)
 	s.Require().NotNil(storedLines[0].TaxConfig)
 
-	return lo.FromPtr(storedLines[0].TaxConfig.TaxCodeID)
+	return storedLines[0].TaxConfig.TaxCodeID
 }
 
 func (s *PendingLineTaxConfigTestSuite) TestUpdateInvoiceResolvesStripeCode() {
