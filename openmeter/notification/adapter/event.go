@@ -198,7 +198,7 @@ func (a *adapter) GetEvent(ctx context.Context, params notification.GetEventInpu
 
 func (a *adapter) CreateEvent(ctx context.Context, params notification.CreateEventInput) (*notification.Event, error) {
 	fn := func(ctx context.Context, a *adapter) (*notification.Event, error) {
-		payloadJSON, err := eventpayload.ToCanonicalJSON(params.Payload)
+		payloadJSON, err := eventpayload.ToDBRawMessage(params.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
 		}

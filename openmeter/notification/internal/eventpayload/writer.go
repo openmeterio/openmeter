@@ -9,9 +9,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/notification"
 )
 
-// ToCanonicalJSON stores only the type-specific snapshot. Envelope metadata comes
+// ToDBRawMessage stores only the type-specific snapshot. Envelope metadata comes
 // from the Event row when serving V1 or delivering its webhook representation.
-func ToCanonicalJSON(payload notification.EventPayload) (json.RawMessage, error) {
+func ToDBRawMessage(payload notification.EventPayload) (json.RawMessage, error) {
 	if err := payload.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid notification event payload: %w", err)
 	}
