@@ -95,9 +95,8 @@ entitlements and metering still start at `ActiveFrom`. It exists for
 subscriptions imported from another billing system, where the earlier time was
 already billed there.
 
-- It can only be set on create, by namespaces listed in
-  `productCatalog.subscription.billingStartsAtNamespaces`, and never changes
-  afterwards. Edits and in-place migrations keep it.
+- It can only be set on create and never changes afterwards. Edits and
+  in-place migrations keep it.
 - A plan change copies it to the replacement while it is not before the
   replacement's start. After that there is nothing left to skip, so the
   replacement has none.

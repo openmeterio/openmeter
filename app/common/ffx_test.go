@@ -17,19 +17,15 @@ import (
 
 func TestFFXConfigContextMiddleware(t *testing.T) {
 	subsConfig := config.SubscriptionConfiguration{
-		MultiSubscriptionNamespaces: []string{"multi-subscription", "both"},
-		BillingStartsAtNamespaces:   []string{"billing-starts-at", "both"},
+		MultiSubscriptionNamespaces: []string{"multi-subscription"},
 	}
 
 	for _, tc := range []struct {
-		namespace       string
-		multiSub        bool
-		billingStartsAt bool
+		namespace string
+		multiSub  bool
 	}{
-		{namespace: "multi-subscription", multiSub: true, billingStartsAt: false},
-		{namespace: "billing-starts-at", multiSub: false, billingStartsAt: true},
-		{namespace: "both", multiSub: true, billingStartsAt: true},
-		{namespace: "neither", multiSub: false, billingStartsAt: false},
+		{namespace: "multi-subscription", multiSub: true},
+		{namespace: "other", multiSub: false},
 	} {
 		t.Run(tc.namespace, func(t *testing.T) {
 			middleware := common.NewFFXConfigContextMiddleware(subsConfig, namespacedriver.StaticNamespaceDecoder(tc.namespace), slog.New(slog.DiscardHandler))
@@ -46,7 +42,6 @@ func TestFFXConfigContextMiddleware(t *testing.T) {
 			// Every feature has a value, as looking up a missing one is an error.
 			require.Equal(t, ffx.AccessConfig{
 				subscription.MultiSubscriptionEnabledFF: tc.multiSub,
-				subscription.BillingStartsAtEnabledFF:   tc.billingStartsAt,
 			}, access)
 		})
 	}

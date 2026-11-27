@@ -30,7 +30,6 @@ func NewFFXConfigContextMiddleware(
 	return func(next http.Handler) http.Handler {
 		namespacesByFeature := map[ffx.Feature][]string{
 			subscription.MultiSubscriptionEnabledFF: subsConfig.MultiSubscriptionNamespaces,
-			subscription.BillingStartsAtEnabledFF:   subsConfig.BillingStartsAtNamespaces,
 		}
 
 		// Looking up a feature that is missing from the access config is an error,
