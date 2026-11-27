@@ -154,7 +154,8 @@ func (s *BaseSuite) invoiceUnitConfigChargesScenario() ([]billing.StandardInvoic
 	}
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),

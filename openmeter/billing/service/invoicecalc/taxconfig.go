@@ -8,8 +8,9 @@ import (
 
 // SnapshotTaxConfigIntoLines merges the invoice's default tax config (deps.DefaultTaxConfig) into each line and
 // stamps the resolved TaxCode entity (and its ID) onto the line's TaxConfig. Lines referencing the
-// default get its Tax Code by ID; others are resolved by Stripe code. A line only ever carries the
-// Tax Code its ID points at.
+// default get its Tax Code by ID; lines carrying their own TaxCodeID get the Tax Code from
+// deps.TaxCodesByID (an unresolved ID keeps the ID with no entity attached); only lines
+// without an ID fall back to the Stripe-code lookup.
 // Skipped for gathering invoices — snapshotting only applies to standard invoices.
 func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardInvoiceCalculatorDependencies) error {
 	if invoice.Status == billing.StandardInvoiceStatusGathering {
@@ -30,6 +31,17 @@ func SnapshotTaxConfigIntoLines(invoice *billing.StandardInvoice, deps StandardI
 
 		if deps.DefaultTaxCode != nil && cfg.TaxCodeID != nil && *cfg.TaxCodeID == deps.DefaultTaxCode.ID {
 			cfg.TaxCode = lo.ToPtr(*deps.DefaultTaxCode)
+
+			continue
+		}
+
+		if cfg.TaxCodeID != nil && *cfg.TaxCodeID != "" {
+			tc, ok := deps.TaxCodesByID.Get(*cfg.TaxCodeID)
+			if !ok {
+				continue
+			}
+
+			cfg.TaxCode = tc
 
 			continue
 		}

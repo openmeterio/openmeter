@@ -900,6 +900,12 @@ type CreatePendingInvoiceLinesInput struct {
 	Currency currencyx.FiatCode  `json:"currency"`
 
 	Lines CreatePendingInvoiceLines `json:"lines"`
+
+	// ChangeSource says where the lines' Tax Code references come from.
+	// ChangeSourceAPIRequest: the caller sent them in this request, so a deleted Tax Code
+	// ID is rejected. ChangeSourceSystem: they are inherited from stored data
+	// (subscription items, charges) and may point at a Tax Code deleted since.
+	ChangeSource ChangeSource `json:"changeSource,omitempty"`
 }
 
 func (c CreatePendingInvoiceLinesInput) Validate() error {
@@ -911,6 +917,10 @@ func (c CreatePendingInvoiceLinesInput) Validate() error {
 
 	if err := c.Currency.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf("currency: %w", err))
+	}
+
+	if err := c.ChangeSource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
 	}
 
 	for id, createLine := range c.Lines {

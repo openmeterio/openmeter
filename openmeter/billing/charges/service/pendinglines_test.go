@@ -106,8 +106,9 @@ func (s *InvoicableChargesTestSuite) TestInvoicePendingLinesAllGatedReturnsError
 			featureMeters := s.createFeatureMeters(ctx, ns, featureKey)
 			meters := []meter.Meter{*featureMeters.ByKey[featureKey].Meter}
 			pending, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-				Customer: cust.GetID(),
-				Currency: currencyx.FiatCode(USD),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     cust.GetID(),
+				Currency:     currencyx.FiatCode(USD),
 				Lines: billing.CreatePendingInvoiceLines{{
 					GatheringLine: billing.GatheringLine{
 						GatheringLineBase: billing.GatheringLineBase{
@@ -221,9 +222,10 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesResolvesStripe
 	}
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
-		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
+		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(result.Lines, 1)
@@ -244,6 +246,90 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesResolvesStripe
 	flatFee, err := charge.AsFlatFeeCharge()
 	s.Require().NoError(err)
 	s.Equal(resolved.ID, flatFee.Intent.GetTaxConfig().TaxCodeID)
+}
+
+// TestCreatePendingInvoiceLinesTaxCodeAuthoredVsInherited verifies the ChangeSource split on the
+// charge-backed pending-line entry point: an api_request create rejects a deleted Tax Code ID
+// the caller sent, while the same lines as a system create are inherited and keep it.
+func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesTaxCodeAuthoredVsInherited() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("charges-service-pending-lines-deleted-tax")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+
+	customInvoicing := s.SetupCustomInvoicing(ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, customInvoicing.App.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: datetime.MustParseTimeInLocation(s.T(), "2026-03-01T00:00:00Z", time.UTC).AsTime(),
+		To:   datetime.MustParseTimeInLocation(s.T(), "2026-04-01T00:00:00Z", time.UTC).AsTime(),
+	}
+	// The freeze must precede the deletion: IsDeleted compares DeletedAt against clock.Now().
+	clock.FreezeTime(servicePeriod.From)
+	defer clock.UnFreeze()
+
+	deleted := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key: "deleted-pending-lines-tax",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+		},
+	})
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	s.Run("when an api_request create references the deleted tax code", func() {
+		_, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     cust.GetID(),
+			Currency:     currencyx.FiatCode(USD),
+			Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{s.newDeletedTaxChargeLine(ns, servicePeriod, deleted.ID)}),
+		})
+
+		// then: the authored deleted reference is rejected with the shared error
+		s.Require().Error(err)
+		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+		s.ErrorAs(err, &billing.ValidationError{})
+		// and: the issue is addressed by the lines the client sent, not by internal intents
+		s.ErrorContains(err, "lines/0/tax_config/tax_code")
+		s.NotContains(err.Error(), "intents/")
+	})
+
+	s.Run("when a system create carries the same deleted reference", func() {
+		result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
+			ChangeSource: billing.ChangeSourceSystem,
+			Customer:     cust.GetID(),
+			Currency:     currencyx.FiatCode(USD),
+			Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{s.newDeletedTaxChargeLine(ns, servicePeriod, deleted.ID)}),
+		})
+
+		// then: the inherited reference passes and the line and charge keep the deleted ID
+		s.Require().NoError(err)
+		s.Require().Len(result.Lines, 1)
+		s.Require().NotNil(result.Lines[0].TaxConfig)
+		s.Equal(lo.ToPtr(deleted.ID), result.Lines[0].TaxConfig.TaxCodeID)
+		s.Equal(&productcatalog.StripeTaxConfig{Code: "txcd_10000000"}, result.Lines[0].TaxConfig.Stripe)
+
+		charge := s.mustGetChargeByID(meta.ChargeID{Namespace: ns, ID: lo.FromPtr(result.Lines[0].ChargeID)})
+		flatFee, err := charge.AsFlatFeeCharge()
+		s.Require().NoError(err)
+		s.Equal(deleted.ID, flatFee.Intent.GetTaxConfig().TaxCodeID)
+	})
+}
+
+func (s *InvoicableChargesTestSuite) newDeletedTaxChargeLine(ns string, servicePeriod timeutil.ClosedPeriod, taxCodeID string) billing.GatheringLine {
+	line := billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
+		Namespace:     ns,
+		Period:        servicePeriod,
+		InvoiceAt:     servicePeriod.To,
+		ManagedBy:     billing.ManuallyManagedLine,
+		Name:          "manual flat with deleted tax code",
+		Currency:      currencyx.FiatCode(USD),
+		PerUnitAmount: alpacadecimal.NewFromInt(10),
+		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
+	})
+	line.Engine = billing.LineEngineTypeInvoice
+	line.TaxConfig = &productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(taxCodeID)}
+
+	return line
 }
 
 func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeBackedGatheringLines() {
@@ -322,8 +408,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesCreatesChargeB
 	flatLine.ChildUniqueReferenceID = lo.ToPtr("manual-flat")
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			usageLine,
 			flatLine,
@@ -513,9 +600,10 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesResolve
 			}
 
 			result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-				Customer: cust.GetID(),
-				Currency: currencyx.FiatCode(USD),
-				Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
+				ChangeSource: billing.ChangeSourceAPIRequest,
+				Customer:     cust.GetID(),
+				Currency:     currencyx.FiatCode(USD),
+				Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
 			})
 
 			s.Nil(result)
@@ -584,8 +672,9 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesBypasse
 	// when:
 	// - both lines are created in one mixed batch and only the meterless line bypasses dependency validation
 	result, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
 		Lines: billing.CreatePendingInvoiceLines{
 			{
 				GatheringLine:                meterlessLine,
@@ -606,8 +695,9 @@ func (s *InvoicableChargesTestSuite) TestBillingCreatePendingInvoiceLinesBypasse
 	// and:
 	// - bypassing one line does not disable validation for another line in the same batch
 	result, err = s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
 		Lines: billing.CreatePendingInvoiceLines{
 			{
 				GatheringLine:                meterlessLine,
@@ -667,9 +757,10 @@ func (s *InvoicableChargesTestSuite) TestChargeCreatePendingInvoiceLinesRequires
 	}
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
-		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
+		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{line}),
 	})
 
 	s.Nil(result)
@@ -722,8 +813,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackCreat
 	zeroFlatLine.ChildUniqueReferenceID = lo.ToPtr("manual-zero-flat")
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			zeroFlatLine,
 		}),
@@ -764,8 +856,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 	})
 
 	_, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			systemLine,
 		}),
@@ -791,8 +884,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRejectsNonManu
 	}
 
 	_, err = s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			subscriptionLine,
 		}),
@@ -853,8 +947,9 @@ func (s *InvoicableChargesTestSuite) TestCreatePendingInvoiceLinesRollsBackParti
 	zeroFlatLine.Engine = billing.LineEngineTypeInvoice
 
 	result, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			usageLine,
 			zeroFlatLine,
@@ -931,9 +1026,10 @@ func (s *InvoicableChargesTestSuite) TestInvoiceCustomerChargesAPIUsesChargeEngi
 		PaymentTerm:   productcatalog.InAdvancePaymentTerm,
 	})
 	pending, err := s.Charges.CreatePendingInvoiceLines(ctx, charges.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: currencyx.FiatCode(USD),
-		Lines:    billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{dueLine, futureLine}),
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     currencyx.FiatCode(USD),
+		Lines:        billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{dueLine, futureLine}),
 	})
 	s.Require().NoError(err)
 	s.Require().NotNil(pending)

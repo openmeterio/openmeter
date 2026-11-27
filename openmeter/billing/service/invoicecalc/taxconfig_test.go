@@ -329,6 +329,49 @@ func TestSnapshotTaxConfigIntoLines(t *testing.T) {
 			wantNoErr: true,
 		},
 		{
+			// An inherited ID the batch could not resolve (outside the namespace or gone) keeps
+			// the ID on the line without an entity instead of failing calculation.
+			name: "line TaxCodeID missing from deps.TaxCodesByID keeps the ID with no entity",
+			invoice: newSnapshotTestInvoice(
+				billing.StandardInvoiceStatusDraftCollecting,
+				newSnapshotTestLine(&productcatalog.TaxConfig{
+					TaxCodeID: lo.ToPtr("tc-missing"),
+				}),
+			),
+			deps: StandardInvoiceCalculatorDependencies{
+				TaxCodesByID: productcatalog.TaxCodesByID{"tc-1": &tc1},
+			},
+			wantTC: &billing.TaxConfig{
+				TaxConfig: productcatalog.TaxConfig{
+					TaxCodeID: lo.ToPtr("tc-missing"),
+				},
+			},
+			wantNoErr: true,
+		},
+		{
+			// The line's own ID wins over the live Tax Code the Stripe mapping would pick.
+			name: "line's own deleted TaxCodeID resolves by ID even when a live Tax Code shares its Stripe code",
+			invoice: newSnapshotTestInvoice(
+				billing.StandardInvoiceStatusDraftCollecting,
+				newSnapshotTestLine(&productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr(deletedDefault.ID),
+				}),
+			),
+			deps: StandardInvoiceCalculatorDependencies{
+				TaxCodes:     TaxCodes{"txcd_10000000": tc1},
+				TaxCodesByID: productcatalog.TaxCodesByID{deletedDefault.ID: &deletedDefault},
+			},
+			wantTC: &billing.TaxConfig{
+				TaxConfig: productcatalog.TaxConfig{
+					Stripe:    &productcatalog.StripeTaxConfig{Code: "txcd_10000000"},
+					TaxCodeID: lo.ToPtr(deletedDefault.ID),
+				},
+				TaxCode: &deletedDefault,
+			},
+			wantNoErr: true,
+		},
+		{
 			name: "nil TaxConfig line with no DefaultTaxConfig stays nil",
 			invoice: newSnapshotTestInvoice(
 				billing.StandardInvoiceStatusDraftCollecting,

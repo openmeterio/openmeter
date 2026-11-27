@@ -41,7 +41,7 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 	}
 
 	taxConfig := input.TaxConfig.Clone()
-	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Namespace, &taxConfig); err != nil {
+	if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Namespace, &taxConfig, productcatalog.AllowDeletedTaxCodeByID()); err != nil {
 		return charges.CustomerCharge{}, fmt.Errorf("resolving charge tax config: %w", err)
 	}
 
@@ -76,6 +76,9 @@ func (s *service) CreateCustomerCharge(ctx context.Context, input charges.Create
 	created, err := s.Create(ctx, charges.CreateInput{
 		Namespace: input.Namespace,
 		Intents:   charges.NewCreateChargeIntents(chargeIntent),
+
+		// The caller sent this tax config, so a deleted Tax Code ID is rejected.
+		ChangeSource: billing.ChangeSourceAPIRequest,
 	})
 	if err != nil {
 		return charges.CustomerCharge{}, err

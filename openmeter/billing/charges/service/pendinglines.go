@@ -39,7 +39,7 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 
 	return transaction.Run(ctx, s.adapter, func(ctx context.Context) (*charges.CreatePendingInvoiceLinesResult, error) {
 		for i := range input.Lines {
-			if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Customer.Namespace, input.Lines[i].TaxConfig); err != nil {
+			if err := productcatalog.ResolveTaxConfig(ctx, s.taxCodeService, input.Customer.Namespace, input.Lines[i].TaxConfig, productcatalog.AllowDeletedTaxCodeByID()); err != nil {
 				return nil, fmt.Errorf("resolving line.%d tax config: %w", i, err)
 			}
 		}
@@ -52,6 +52,12 @@ func (s *service) CreatePendingInvoiceLines(ctx context.Context, input charges.C
 		result, err := s.create(ctx, charges.CreateInput{
 			Namespace: input.Customer.Namespace,
 			Intents:   charges.NewCreateChargeIntents(intents...),
+			// Passed through: the lines' Tax Code IDs are checked only when the request
+			// itself came from an API caller.
+			ChangeSource: input.ChangeSource,
+			// Intents map 1:1 to the request's lines, so a rejected Tax Code is reported
+			// under the lines the client sent.
+			RequestListFieldPath: "lines",
 		})
 		if err != nil {
 			return nil, err

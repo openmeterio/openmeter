@@ -179,7 +179,8 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestFlatFeeCustomCurrencyCha
 	)
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(flatfee.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,
@@ -352,7 +353,8 @@ func (s *CustomerChargeCustomCurrencyListTestSuite) TestUsageBasedCustomCurrency
 	s.UsageBasedTestHandler.onCreditsOnlyUsageAccrued, _ = newCappedCreditAllocator(0)
 
 	created, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(usagebased.Intent{
 			Intent: meta.Intent{
 				ManagedBy:         billing.SubscriptionManagedLine,

@@ -23,7 +23,7 @@ type CountingTaxCodeResolver struct {
 	Calls    [][]string
 }
 
-func (r *CountingTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (r *CountingTaxCodeResolver) BatchResolve(_ context.Context, _ string, ids ...string) (productcatalog.TaxCodesByID, error) {
 	r.Calls = append(r.Calls, ids)
 
 	return lo.PickByKeys(r.TaxCodes, ids), nil
@@ -37,7 +37,7 @@ type CountingProductionTaxCodeResolver struct {
 	BatchResolveCalls int
 }
 
-func (r *CountingProductionTaxCodeResolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (r *CountingProductionTaxCodeResolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (productcatalog.TaxCodesByID, error) {
 	r.BatchResolveCalls++
 
 	return r.TransactionalTaxCodeResolver.BatchResolve(ctx, namespace, ids...)

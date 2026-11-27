@@ -2419,7 +2419,7 @@ func (n NoopTaxCodeResolver) Resolve(ctx context.Context, namespace string, id s
 	return &taxcode.TaxCode{}, nil
 }
 
-func (n NoopTaxCodeResolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (n NoopTaxCodeResolver) BatchResolve(ctx context.Context, namespace string, ids ...string) (productcatalog.TaxCodesByID, error) {
 	return map[string]*taxcode.TaxCode{}, nil
 }
 
@@ -2443,7 +2443,7 @@ func (n noopNamespacedTaxCodeResolver) Resolve(ctx context.Context, id string) (
 	return &taxcode.TaxCode{}, nil
 }
 
-func (n noopNamespacedTaxCodeResolver) BatchResolve(ctx context.Context, ids ...string) (map[string]*taxcode.TaxCode, error) {
+func (n noopNamespacedTaxCodeResolver) BatchResolve(ctx context.Context, ids ...string) (productcatalog.TaxCodesByID, error) {
 	return map[string]*taxcode.TaxCode{}, nil
 }
 

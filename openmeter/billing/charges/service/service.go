@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/currencies"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ledger/recognizer"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
@@ -35,7 +36,10 @@ type service struct {
 	usageBasedService     usagebased.Service
 	recognizerService     recognizer.Service
 	taxCodeService        taxcode.Service
-	currencyResolver      currencies.CurrencyResolver
+	// taxCodeResolver looks Tax Codes up by ID including soft-deleted ones, so the
+	// request check can tell a deleted Tax Code from a missing one.
+	taxCodeResolver  productcatalog.TaxCodeResolver
+	currencyResolver currencies.CurrencyResolver
 
 	// customerService and subscriptionService side-load full entities for the
 	// customer-charge API facade's expands.
@@ -60,7 +64,9 @@ type Config struct {
 
 	BillingService billing.Service
 
-	TaxCodeService   taxcode.Service
+	TaxCodeService taxcode.Service
+	// TaxCodeResolver looks Tax Codes up by ID, soft-deleted ones included.
+	TaxCodeResolver  productcatalog.TaxCodeResolver
 	CurrencyResolver currencies.CurrencyResolver
 
 	CustomerService     customer.Service
@@ -115,6 +121,10 @@ func (c Config) Validate() error {
 		errs = append(errs, errors.New("tax code service cannot be null"))
 	}
 
+	if c.TaxCodeResolver == nil {
+		errs = append(errs, errors.New("tax code resolver cannot be null"))
+	}
+
 	if c.CurrencyResolver == nil {
 		errs = append(errs, errors.New("currency resolver cannot be null"))
 	}
@@ -155,6 +165,7 @@ func New(config Config) (*service, error) {
 		usageBasedService:             config.UsageBasedService,
 		recognizerService:             config.RecognizerService,
 		taxCodeService:                config.TaxCodeService,
+		taxCodeResolver:               config.TaxCodeResolver,
 		currencyResolver:              config.CurrencyResolver,
 		customerService:               config.CustomerService,
 		subscriptionService:           config.SubscriptionService,

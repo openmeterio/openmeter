@@ -333,7 +333,8 @@ func (s *SanitySuite) TestExpiringCreditBreakageImmediatelyReleasesAdvanceBackfi
 		usageAt,
 	)
 	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
-		Namespace: setup.namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    setup.namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       customerID,
@@ -442,7 +443,8 @@ func (s *SanitySuite) TestExpiringCreditBreakageReopensAdvanceBackfillReleaseOnU
 		usageAt,
 	)
 	chargeRes, err := s.Charges.Create(setup.ctx, charges.CreateInput{
-		Namespace: setup.namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    setup.namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       customerID,
@@ -1545,6 +1547,7 @@ func (s *SanitySuite) createAndAdvanceCreditOnlyFlatFeeCharge(input createCredit
 				FeatureKey:        input.featureKey,
 			}),
 		),
+		ChangeSource: billing.ChangeSourceSystem,
 	})
 	s.Require().NoError(err)
 	s.Require().Len(res, 1)
@@ -1574,7 +1577,8 @@ func (s *SanitySuite) createPromotionalCreditGrant(ctx context.Context, input Cr
 	s.T().Helper()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: input.Namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    input.Namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer:      input.Customer,
@@ -1794,7 +1798,8 @@ func (s *SanitySuite) createFinalizedUsageBasedCreditOnlyCharge(setup creditOnly
 	s.T().Helper()
 
 	res, err := s.Charges.Create(setup.ctx, charges.CreateInput{
-		Namespace: setup.namespace,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    setup.namespace,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       setup.customer.GetID(),
@@ -1972,7 +1977,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 	)
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -2036,7 +2042,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithPartialBackfil
 
 	// When a later external credit purchase backfills part of that earlier advance-backed usage.
 	creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			creditPurchaseIntent,
 		),
@@ -2159,7 +2166,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 	)
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -2214,7 +2222,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyDeleteCorrectionWithMixedFeatureAd
 
 	// When feature-A restricted purchased credit is granted after the advances.
 	creditPurchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
@@ -2404,7 +2413,8 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				intent,
 			),
@@ -2502,7 +2512,8 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceSanity() {
 
 	s.Run("create new upcoming charge for flat fee", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -2888,7 +2899,8 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoicePaymentLifecycle() {
 		)
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -3179,7 +3191,8 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				intent,
 			),
@@ -3264,7 +3277,8 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 
 	s.Run("create new upcoming charge for flat fee", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -3427,7 +3441,8 @@ func (s *SanitySuite) TestFlatFeeCreditOnlySanity() {
 		})
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				intent,
 			),
@@ -3591,7 +3606,8 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 		{name: "tax-b-advance", amount: 5, taxID: taxB.ID, behavior: productcatalog.ExclusiveTaxBehavior},
 	} {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -3645,7 +3661,8 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionAcrossTaxCodeBuckets()
 	purchaseAmount := int64(5)
 	clock.FreezeTime(purchaseAt)
 	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
@@ -3778,7 +3795,8 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 		},
 	} {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -3853,7 +3871,8 @@ func (s *SanitySuite) TestCreditPurchaseAdvanceAttributionClearsLegacyNilSpendFe
 	purchaseAt := servicePeriod.From.Add(time.Hour)
 	clock.FreezeTime(purchaseAt)
 	purchaseRes, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateCreditPurchaseIntent(CreateCreditPurchaseIntentInput{
 				Customer: cust.GetID(),
@@ -3950,7 +3969,8 @@ func (s *SanitySuite) TestFlatFeeCreditOnlyTaxConfigFlowsToEarnings() {
 	// given:
 	// - a charge is created before tax-configured credit is available
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -4076,7 +4096,8 @@ func (s *SanitySuite) TestFlatFeeCreditThenInvoiceTaxConfigFlowsThroughCreditBac
 	// given:
 	// - a tax-configured flat-fee charge has partial promotional-credit coverage
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -4224,7 +4245,8 @@ func (s *SanitySuite) TestUsageBasedCreditOnlyTaxConfigFlowsToEarnings() {
 	// given:
 	// - a usage-based charge is created before credit funding and meter realization
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -4372,7 +4394,8 @@ func (s *SanitySuite) TestUsageBasedCreditThenInvoiceTaxConfigFlowsThroughCredit
 		datetime.MustParseTimeInLocation(s.T(), "2026-01-15T00:00:00Z", time.UTC).AsTime(),
 	)
 	createdCharges, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -4585,7 +4608,8 @@ func (s *SanitySuite) TestTaxCodeFlowsFromCreditPurchaseToEarnings() {
 	var flatFeeChargeID string
 	s.Run("create and advance flat fee credit-only charge", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -4710,7 +4734,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigFlowsToEarnings() {
 
 	s.Run("create and advance flat-fee credit-only charge with matching TaxConfig on intent", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -4801,7 +4826,8 @@ func (s *SanitySuite) TestChargeIntentTaxBehaviorFlowsToAdvanceAccrualCreditOnly
 	defer clock.UnFreeze()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 				Customer:       cust.GetID(),
@@ -4909,7 +4935,8 @@ func (s *SanitySuite) TestChargeIntentTaxConfigOverridesFundingTaxCodeCreditOnly
 
 	s.Run("create and advance flat-fee credit-only charge with TaxConfig=B (different from funding)", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),
@@ -5022,7 +5049,8 @@ func (s *SanitySuite) TestTaxCodeFlowsFromInvoicedChargeToAccrued() {
 		)
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.CreateMockChargeIntent(CreateMockChargeIntentInput{
 					Customer:       cust.GetID(),

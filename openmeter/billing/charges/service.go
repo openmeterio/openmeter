@@ -45,6 +45,40 @@ type ChargeService interface {
 type CreateInput struct {
 	Namespace string
 	Intents   CreateChargeIntents
+
+	// ChangeSource says where the intents' Tax Code references come from.
+	// ChangeSourceAPIRequest: the caller sent them in this request, so a deleted Tax Code
+	// ID is rejected before defaults are applied. ChangeSourceSystem: they are inherited
+	// from stored data or are stamped defaults, and may point at a Tax Code deleted since.
+	// The zero value is rejected by Validate.
+	ChangeSource billing.ChangeSource
+
+	// RequestListFieldPath is the request field the intents were sent under, when the request
+	// carried its items as a list (pending invoice lines set "lines"). A rejected Tax Code is
+	// then reported at <path>/<index>/tax_config/tax_code, so the client sees the path it sent.
+	// Leave it empty for single-item requests (customer charge, credit grant): their rejected
+	// Tax Code is reported at tax_config/tax_code, because the client never sent a list.
+	RequestListFieldPath string
+}
+
+func (i CreateInput) Validate() error {
+	var errs []error
+
+	if i.Namespace == "" {
+		errs = append(errs, fmt.Errorf("namespace is required"))
+	}
+
+	// Every caller must say where its references come from, because the deleted Tax Code
+	// check only runs for API requests.
+	if err := i.ChangeSource.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("change source: %w", err))
+	}
+
+	if err := i.Intents.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf("intents: %w", err))
+	}
+
+	return models.NewNillableGenericValidationError(errors.Join(errs...))
 }
 
 type CreateChargeIntent struct {
@@ -144,20 +178,6 @@ type (
 	CreatePendingInvoiceLinesInput  = billing.CreatePendingInvoiceLinesInput
 	CreatePendingInvoiceLinesResult = billing.CreatePendingInvoiceLinesResult
 )
-
-func (i CreateInput) Validate() error {
-	var errs []error
-
-	if i.Namespace == "" {
-		errs = append(errs, fmt.Errorf("namespace is required"))
-	}
-
-	if err := i.Intents.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf("intents: %w", err))
-	}
-
-	return models.NewNillableGenericValidationError(errors.Join(errs...))
-}
 
 type GetByIDInput struct {
 	ChargeID meta.ChargeID

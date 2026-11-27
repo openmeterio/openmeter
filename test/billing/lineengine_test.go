@@ -132,8 +132,9 @@ func (s *LineEngineTestSuite) TestBillabilityValidationIssuesPreventInvoiceAdvan
 	customerEntity := s.CreateTestCustomer(namespace, "test-subject")
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
-		Customer: customerEntity.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
+		ChangeSource: ombilling.ChangeSourceAPIRequest,
+		Customer:     customerEntity.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
 		Lines: ombilling.NewCreatePendingInvoiceLines(ombilling.GatheringLines{{
 			GatheringLineBase: ombilling.GatheringLineBase{
 				ManagedResource: models.NewManagedResource(models.ManagedResourceInput{
@@ -397,9 +398,10 @@ func (s *LineEngineTestSuite) TestGateInvoiceAssignmentDuringCollection() {
 		allowedLine.Currency = currencyx.FiatCode(currency.EUR)
 		allowedLine.Engine = mockEngine.GetLineEngineType()
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
-			Customer: customerID,
-			Currency: currencyx.FiatCode(currency.EUR),
-			Lines:    ombilling.NewCreatePendingInvoiceLines([]ombilling.GatheringLine{allowedLine}),
+			ChangeSource: ombilling.ChangeSourceAPIRequest,
+			Customer:     customerID,
+			Currency:     currencyx.FiatCode(currency.EUR),
+			Lines:        ombilling.NewCreatePendingInvoiceLines([]ombilling.GatheringLine{allowedLine}),
 		})
 		s.Require().NoError(err)
 		mockEngine.gateInvoiceAssignment = func(_ context.Context, input ombilling.GateInvoiceAssignmentInput) (ombilling.GateInvoiceAssignmentResult, error) {
@@ -481,9 +483,10 @@ func (s *LineEngineTestSuite) createInvoiceAssignmentGateFixture(
 	})
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
-		Customer: customerEntity.GetID(),
-		Currency: currencyx.FiatCode(currency.USD),
-		Lines:    ombilling.NewCreatePendingInvoiceLines(lines),
+		ChangeSource: ombilling.ChangeSourceAPIRequest,
+		Customer:     customerEntity.GetID(),
+		Currency:     currencyx.FiatCode(currency.USD),
+		Lines:        ombilling.NewCreatePendingInvoiceLines(lines),
 	})
 	s.Require().NoError(err)
 	s.Require().Len(pendingLines.Lines, len(lines))
@@ -547,6 +550,7 @@ func (s *LineEngineTestSuite) createMeteredDraftInvoiceWaitingForCollectionForAp
 	s.MockStreamingConnector.AddSimpleEvent(meterSlug, 10, periodStart.Add(-time.Minute))
 
 	pendingLines, err := s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		ChangeSource: ombilling.ChangeSourceAPIRequest,
 		Customer: customer.CustomerID{
 			Namespace: customerEntity.Namespace,
 			ID:        customerEntity.ID,
@@ -702,6 +706,7 @@ func (s *LineEngineTestSuite) TestGatheringPreviewUsesPreviewLineEngineCallback(
 
 	customerEntity := s.CreateTestCustomer(namespace, "test-subject-1")
 	_, err = s.BillingService.CreatePendingInvoiceLines(ctx, ombilling.CreatePendingInvoiceLinesInput{
+		ChangeSource: ombilling.ChangeSourceAPIRequest,
 		Customer: customer.CustomerID{
 			Namespace: customerEntity.Namespace,
 			ID:        customerEntity.ID,

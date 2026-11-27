@@ -71,7 +71,7 @@ func (s *CreditThenInvoiceTestSuite) setupChargeBookingInvoice(chargeType meta.C
 		}))
 	}
 
-	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...)})
+	created, err := s.Charges.Create(ctx, charges.CreateInput{Namespace: ns, Intents: charges.NewCreateChargeIntents(intents...), ChangeSource: billing.ChangeSourceSystem})
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 	invoices, err := s.BillingService.InvoicePendingLines(ctx, billing.InvoicePendingLinesInput{

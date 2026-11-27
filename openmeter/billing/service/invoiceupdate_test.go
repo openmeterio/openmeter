@@ -3,6 +3,7 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog/taxcoderesolver"
 	"github.com/openmeterio/openmeter/openmeter/taxcode"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/framework/transaction"
@@ -386,7 +388,7 @@ func TestDiffMutableInvoiceLinesAllowsReplacingDeletedTaxCode(t *testing.T) {
 	require.Equal(t, replacementTaxCodeID, *updatedTaxConfig.TaxCodeID)
 }
 
-func TestDiffMutableInvoiceLinesRejectsDeletedTaxCodeInExpectedState(t *testing.T) {
+func TestDiffMutableInvoiceLinesAllowsUnchangedDeletedTaxCode(t *testing.T) {
 	deletedTaxCodeID := "deleted-tax-code-id"
 	taxConfig := &billing.TaxConfig{
 		TaxConfig: productcatalog.TaxConfig{
@@ -402,9 +404,103 @@ func TestDiffMutableInvoiceLinesRejectsDeletedTaxCodeInExpectedState(t *testing.
 		Name:         "Deleted Tax Code",
 	}
 
+	lineDiff, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+
+	// The edit leaves the line's Tax Code untouched, so the stored deleted reference
+	// passes; only deleted IDs the edit newly sets are rejected.
+	require.NoError(t, err)
+	require.True(t, lineDiff.IsEmpty())
+}
+
+func TestDiffMutableInvoiceLinesRejectsNewlyReferencedDeletedTaxCode(t *testing.T) {
+	unchangedTaxCodeID := "unchanged-tax-code-id"
+	deletedTaxCodeID := "deleted-tax-code-id"
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(unchangedTaxCodeID),
+			},
+		},
+		&billing.TaxConfig{
+			TaxConfig: productcatalog.TaxConfig{
+				TaxCodeID: lo.ToPtr(deletedTaxCodeID),
+			},
+		},
+	)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	taxCodes := svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes
+	taxCodes[unchangedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: unchangedTaxCodeID},
+		Key:          "unchanged",
+		Name:         "Unchanged Tax Code",
+	}
+	taxCodes[deletedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: deletedTaxCodeID},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		Key:          "deleted",
+		Name:         "Deleted Tax Code",
+	}
+
 	_, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
-	require.ErrorContains(t, err, "sanitizing expected invoice line tax configs for diff")
-	require.ErrorContains(t, err, "tax code deleted-tax-code-id not found")
+
+	require.ErrorIs(t, err, billing.ErrTaxCodeDeleted)
+}
+
+func TestDiffMutableInvoiceLinesReportsNewLineWithDeletedTaxCodeByIndex(t *testing.T) {
+	deletedTaxCodeID := "deleted-tax-code-id"
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(nil, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[deletedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: deletedTaxCodeID},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		Key:          "deleted",
+		Name:         "Deleted Tax Code",
+	}
+
+	// given: an edit that keeps line-1 and appends a new line, which has no ID yet
+	newLine := newStandardLineForLineEngineTest("", billing.LineEngineTypeInvoice, false)
+	newLine.TaxConfig = &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deletedTaxCodeID)},
+	}
+	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{edited.Lines.OrEmpty()[0], newLine})
+
+	// when: diffing the edit
+	_, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+
+	// then: the new line is addressed by its position in the submitted lines
+	require.ErrorIs(t, err, billing.ErrTaxCodeDeleted)
+	require.ErrorContains(t, err, "lines/1/tax_config/tax_code")
+	require.NotContains(t, err.Error(), "lines//")
+}
+
+func TestDiffMutableInvoiceLinesReportsEveryLineReferencingSameDeletedTaxCode(t *testing.T) {
+	deletedTaxCodeID := "deleted-tax-code-id"
+	invoice, edited := standardInvoicePairForTaxConfigDiffTest(nil, nil)
+	svc := serviceForInvoiceTaxConfigDiffTest()
+	svc.taxCodeService.(*invoiceUpdateTaxCodeService).taxCodes[deletedTaxCodeID] = taxcode.TaxCode{
+		NamespacedID: models.NamespacedID{Namespace: "ns", ID: deletedTaxCodeID},
+		ManagedModel: models.ManagedModel{DeletedAt: lo.ToPtr(time.Now())},
+		Key:          "deleted",
+		Name:         "Deleted Tax Code",
+	}
+
+	// given: an edit where an existing line and a new line both newly reference the same deleted code
+	deletedTaxConfig := &billing.TaxConfig{
+		TaxConfig: productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deletedTaxCodeID)},
+	}
+	changedLine := edited.Lines.OrEmpty()[0]
+	changedLine.TaxConfig = cloneBillingTaxConfigForTest(deletedTaxConfig)
+	newLine := newStandardLineForLineEngineTest("", billing.LineEngineTypeInvoice, false)
+	newLine.TaxConfig = cloneBillingTaxConfigForTest(deletedTaxConfig)
+	edited.Lines = billing.NewStandardInvoiceLines(billing.StandardLines{changedLine, newLine})
+
+	// when: diffing the edit
+	_, err := svc.diffMutableInvoiceLines(t.Context(), &invoice, &edited, billing.ChangeSourceAPIRequest)
+
+	// then: each referencing line gets its own issue
+	require.ErrorIs(t, err, billing.ErrTaxCodeDeleted)
+	require.ErrorContains(t, err, "lines/0/tax_config/tax_code")
+	require.ErrorContains(t, err, "lines/1/tax_config/tax_code")
 }
 
 func TestInvoiceWithSanitizedTaxConfigForDiffNormalizesExplicitTaxCodeIdentity(t *testing.T) {
@@ -1161,21 +1257,26 @@ func cloneBillingTaxConfigForTest(taxConfig *billing.TaxConfig) *billing.TaxConf
 }
 
 func serviceForInvoiceTaxConfigDiffTest() *Service {
-	return &Service{
-		adapter:     preallocatingInvoiceLineAdapter{},
-		lineEngines: newEngineRegistry(),
-		taxCodeService: &invoiceUpdateTaxCodeService{
-			taxCodes: map[string]taxcode.TaxCode{
-				invoiceUpdateDefaultTaxCodeID: {
-					NamespacedID: models.NamespacedID{
-						Namespace: "ns",
-						ID:        invoiceUpdateDefaultTaxCodeID,
-					},
-					Key:  taxcode.ProviderDefaultTaxCodeKey,
-					Name: "Default Tax Code",
+	taxCodeService := &invoiceUpdateTaxCodeService{
+		taxCodes: map[string]taxcode.TaxCode{
+			invoiceUpdateDefaultTaxCodeID: {
+				NamespacedID: models.NamespacedID{
+					Namespace: "ns",
+					ID:        invoiceUpdateDefaultTaxCodeID,
 				},
+				Key:  taxcode.ProviderDefaultTaxCodeKey,
+				Name: "Default Tax Code",
 			},
 		},
+	}
+
+	taxCodeResolver := lo.Must(taxcoderesolver.New(taxCodeService))
+
+	return &Service{
+		adapter:         preallocatingInvoiceLineAdapter{},
+		lineEngines:     newEngineRegistry(),
+		taxCodeService:  taxCodeService,
+		taxCodeResolver: taxCodeResolver,
 	}
 }
 
@@ -1193,8 +1294,37 @@ func (s *invoiceUpdateTaxCodeService) UpdateTaxCode(context.Context, taxcode.Upd
 	return taxcode.TaxCode{}, errors.New("UpdateTaxCode is not supported in this test")
 }
 
-func (s *invoiceUpdateTaxCodeService) ListTaxCodes(context.Context, taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
-	return pagination.Result[taxcode.TaxCode]{}, errors.New("ListTaxCodes is not supported in this test")
+func (s *invoiceUpdateTaxCodeService) ListTaxCodes(_ context.Context, input taxcode.ListTaxCodesInput) (pagination.Result[taxcode.TaxCode], error) {
+	if input.Page.PageNumber > 1 {
+		return pagination.Result[taxcode.TaxCode]{}, nil
+	}
+
+	var items []taxcode.TaxCode
+
+	for _, tc := range s.taxCodes {
+		if tc.Namespace != input.Namespace {
+			continue
+		}
+
+		if tc.DeletedAt != nil && !input.IncludeDeleted {
+			continue
+		}
+
+		if len(input.IDs) > 0 && !slices.Contains(input.IDs, tc.ID) {
+			continue
+		}
+
+		items = append(items, tc)
+	}
+
+	return pagination.Result[taxcode.TaxCode]{
+		Items: items,
+		Page: pagination.Page{
+			PageNumber: 1,
+			PageSize:   len(items),
+		},
+		TotalCount: len(items),
+	}, nil
 }
 
 func (s *invoiceUpdateTaxCodeService) GetTaxCode(_ context.Context, input taxcode.GetTaxCodeInput) (taxcode.TaxCode, error) {

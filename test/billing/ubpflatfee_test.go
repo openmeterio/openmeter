@@ -58,8 +58,9 @@ func (s *UBPFlatFeeLineTestSuite) TestPendingLineCreation() {
 		})
 
 		res, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     cust.GetID(),
+			Currency:     "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				lineIn,
 			}),
@@ -158,8 +159,9 @@ func (s *UBPFlatFeeLineTestSuite) TestPercentageDiscount() {
 	}
 
 	_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-		Customer: cust.GetID(),
-		Currency: "USD",
+		ChangeSource: billing.ChangeSourceAPIRequest,
+		Customer:     cust.GetID(),
+		Currency:     "USD",
 		Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 			billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 				Period:    period,
@@ -237,8 +239,9 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 
 	s.Run("should not create line with usage discount", func() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     cust.GetID(),
+			Currency:     "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period:    period,
@@ -263,8 +266,9 @@ func (s *UBPFlatFeeLineTestSuite) TestValidations() {
 
 	s.Run("empty period is allowed", func() {
 		_, err := s.BillingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
-			Customer: cust.GetID(),
-			Currency: "USD",
+			ChangeSource: billing.ChangeSourceAPIRequest,
+			Customer:     cust.GetID(),
+			Currency:     "USD",
 			Lines: billing.NewCreatePendingInvoiceLines([]billing.GatheringLine{
 				billing.NewFlatFeeGatheringLine(billing.NewFlatFeeLineInput{
 					Period: timeutil.ClosedPeriod{

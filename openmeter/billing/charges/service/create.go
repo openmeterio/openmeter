@@ -101,10 +101,13 @@ func (s *service) applyDefaultTaxCodes(ctx context.Context, namespace string, in
 }
 
 // validateTaxCodesExist verifies every distinct non-empty tax code referenced by the intents
-// exists.
+// exists. Deleted Tax Codes pass: IDs from the request were already rejected by
+// validateRequestTaxCodes, and inherited ones (stamped defaults, sync creates) may point at a
+// code deleted since.
 func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, intents charges.CreateChargeIntents) error {
+	// Keep the first-seen order so errors are reported in intent order.
+	var taxCodeIDs []string
 	seen := make(map[string]struct{}, len(intents))
-
 	for _, createIntent := range intents {
 		taxCodeID, err := createIntent.TaxCodeID()
 		if err != nil {
@@ -120,21 +123,69 @@ func (s *service) validateTaxCodesExist(ctx context.Context, namespace string, i
 		}
 
 		seen[taxCodeID] = struct{}{}
+		taxCodeIDs = append(taxCodeIDs, taxCodeID)
+	}
 
-		_, err = s.taxCodeService.GetTaxCode(ctx, taxcode.GetTaxCodeInput{
-			Namespace: namespace,
-			ID:        taxCodeID,
-		})
+	if len(taxCodeIDs) == 0 {
+		return nil
+	}
+
+	taxCodes, err := s.taxCodeResolver.BatchResolve(ctx, namespace, taxCodeIDs...)
+	if err != nil {
+		return fmt.Errorf("resolving tax codes: %w", err)
+	}
+
+	var errs []error
+	for _, taxCodeID := range taxCodeIDs {
+		if _, ok := taxCodes.Get(taxCodeID); ok {
+			continue
+		}
+
+		errs = append(errs, models.NewGenericValidationError(
+			models.NewValidationError("tax_code_not_found", fmt.Sprintf("referenced tax code %q does not exist", taxCodeID)).
+				WithPathString("tax_config", "tax_code"),
+		))
+	}
+
+	return errors.Join(errs...)
+}
+
+// validateRequestTaxCodes rejects Tax Code IDs the caller sent in this request when they
+// reference a missing or deleted Tax Code. It runs before applyDefaultTaxCodes so stamped
+// defaults, which may be deleted, are not checked. Each failing intent gets its own issue.
+func (s *service) validateRequestTaxCodes(ctx context.Context, input charges.CreateInput) error {
+	refs := make([]billing.RequestTaxCodeRef, 0, len(input.Intents))
+	for idx, createIntent := range input.Intents {
+		taxCodeID, err := createIntent.TaxCodeID()
 		if err != nil {
-			if taxcode.IsTaxCodeNotFoundError(err) {
-				return models.NewGenericValidationError(
-					models.NewValidationError("tax_code_not_found", fmt.Sprintf("referenced tax code %q does not exist", taxCodeID)).
-						WithPathString("tax_config", "tax_code"),
-				)
-			}
-
 			return err
 		}
+
+		if taxCodeID == "" {
+			continue
+		}
+
+		fieldPath := "tax_config/tax_code"
+		if input.RequestListFieldPath != "" {
+			fieldPath = fmt.Sprintf("%s/%d/%s", input.RequestListFieldPath, idx, fieldPath)
+		}
+
+		refs = append(refs, billing.RequestTaxCodeRef{
+			TaxCodeID: taxCodeID,
+			FieldPath: fieldPath,
+		})
+	}
+
+	if len(refs) == 0 {
+		return nil
+	}
+
+	if err := billing.ValidateRequestTaxCodeIDs(ctx, billing.ValidateRequestTaxCodeIDsInput{
+		Namespace:  input.Namespace,
+		Resolver:   s.taxCodeResolver,
+		References: refs,
+	}); err != nil {
+		return err
 	}
 
 	return nil
@@ -168,6 +219,19 @@ func (s *service) create(ctx context.Context, input charges.CreateInput) (*charg
 
 	if err := s.validateNamespaceLockdown(input.Namespace); err != nil {
 		return nil, err
+	}
+
+	// Checked before the full Validate below: an unset source would silently skip the request
+	// Tax Code check, and Validate only runs once defaults are applied.
+	if err := input.ChangeSource.Validate(); err != nil {
+		return nil, models.NewGenericValidationError(fmt.Errorf("change source: %w", err))
+	}
+
+	// Only API requests carry Tax Code IDs the caller sent.
+	if input.ChangeSource == billing.ChangeSourceAPIRequest {
+		if err := s.validateRequestTaxCodes(ctx, input); err != nil {
+			return nil, err
+		}
 	}
 
 	intentsWithDefaults, err := s.applyDefaultTaxCodes(ctx, input.Namespace, input.Intents)
@@ -511,6 +575,9 @@ func (s *service) createGatheringLines(ctx context.Context, gatheringLinesToCrea
 					BypassFeatureMeterValidation: item.bypassFeatureMeterValidation,
 				}
 			}),
+			// The charge intents were already validated; the lines' Tax Code IDs are
+			// copied from them.
+			ChangeSource: billing.ChangeSourceSystem,
 		})
 		if err != nil {
 			return createGatheringLinesResult{}, fmt.Errorf("creating pending invoice lines for charges: %w", err)

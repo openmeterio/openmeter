@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -249,7 +250,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 
 	s.Run("persists both behavior and tax code id", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -288,7 +290,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeChargePersistsTaxConfig() {
 
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -345,7 +348,8 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 
 	s.Run("persists both behavior and tax code id", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -384,7 +388,8 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedChargePersistsTaxConfig() {
 
 	s.Run("nil tax config gets default invoicing tax code stamped", func() {
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(
 				s.createMockChargeIntent(createMockChargeIntentInput{
 					customer:       cust.GetID(),
@@ -440,7 +445,8 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = callback.Handler(s.T())
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
@@ -484,7 +490,8 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseChargePersistsTaxConfig(
 		s.CreditPurchaseTestHandler.onPromotionalCreditPurchase = callback.Handler(s.T())
 
 		res, err := s.Charges.Create(ctx, charges.CreateInput{
-			Namespace: ns,
+			ChangeSource: billing.ChangeSourceSystem,
+			Namespace:    ns,
 			Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 				Intent: meta.Intent{
 					ManagedBy:  billing.ManuallyManagedLine,
@@ -558,7 +565,8 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementPropaga
 	}
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: meta.Intent{
 				ManagedBy:  billing.ManuallyManagedLine,
@@ -674,7 +682,8 @@ func (s *TaxCodePersistenceTestSuite) TestCreditPurchaseInvoiceSettlementNilTaxC
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(creditpurchase.Intent{
 			Intent: meta.Intent{
 				ManagedBy:  billing.ManuallyManagedLine,
@@ -740,7 +749,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeCreditOnlyHandlerReceivesTaxCon
 	defer clock.UnFreeze()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -816,7 +826,8 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditOnlyHandlerReceivesTax
 	defer clock.UnFreeze()
 
 	res, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -903,7 +914,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPopulatesStrip
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1010,7 +1022,8 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 	}
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1046,7 +1059,8 @@ func (s *TaxCodePersistenceTestSuite) TestTaxConfigInListCharges() {
 
 	// Also seed a flat-fee charge without tax config to verify nil round-trips correctly.
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1139,7 +1153,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementPropagatesTaxC
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1203,7 +1218,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeInvoiceSettlementNilTaxConfigGe
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1275,7 +1291,8 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedCreditThenInvoicePropagatesT
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1354,7 +1371,8 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedInvoiceSettlementPopulatesSt
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
@@ -1464,7 +1482,8 @@ func (s *TaxCodePersistenceTestSuite) TestFlatFeeBehaviorOnlyTaxConfigGetsDefaul
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1539,7 +1558,8 @@ func (s *TaxCodePersistenceTestSuite) TestUsageBasedBehaviorOnlyTaxConfigGetsDef
 	clock.SetTime(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC))
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:          cust.GetID(),
@@ -1599,7 +1619,8 @@ func (s *TaxCodePersistenceTestSuite) TestCreateFlatFeeChargeWithMissingTaxCodeF
 	defer clock.UnFreeze()
 
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
 		Intents: charges.NewCreateChargeIntents(
 			s.createMockChargeIntent(createMockChargeIntentInput{
 				customer:       cust.GetID(),
@@ -1662,18 +1683,120 @@ func (s *TaxCodePersistenceTestSuite) TestCreateChargeWithDuplicateReferenceIsCo
 
 	// given: a charge already persisted with a unique_reference_id.
 	_, err := s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
-		Intents:   charges.NewCreateChargeIntents(newIntent()),
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
+		Intents:      charges.NewCreateChargeIntents(newIntent()),
 	})
 	s.Require().NoError(err)
 
 	// when: creating a second charge with the same reference for the same customer.
 	_, err = s.Charges.Create(ctx, charges.CreateInput{
-		Namespace: ns,
-		Intents:   charges.NewCreateChargeIntents(newIntent()),
+		ChangeSource: billing.ChangeSourceSystem,
+		Namespace:    ns,
+		Intents:      charges.NewCreateChargeIntents(newIntent()),
 	})
 
 	// then: the uniqueness collision surfaces as a conflict, not a precondition or raw DB error.
 	s.Require().Error(err)
 	s.True(models.IsGenericConflictError(err), "a duplicate charge reference must be a conflict error, got: %v", err)
+}
+
+// TestCreateCustomerChargeWithDeletedTaxCode covers the customer-charge API facade: a deleted
+// Tax Code ID in the request is rejected with the shared deleted-specific validation error
+// (400-class), while a missing ID stays a plain not-found rejection.
+func (s *TaxCodePersistenceTestSuite) TestCreateCustomerChargeWithDeletedTaxCode() {
+	ctx := s.T().Context()
+	ns := s.GetUniqueNamespace("customer-charge-deleted-tax-code")
+	s.TaxCodeEnv.ProvisionDefaultTaxCodes(s.T(), ns)
+
+	sandboxApp := s.InstallSandboxApp(s.T(), ns)
+	_ = s.ProvisionBillingProfile(ctx, ns, sandboxApp.GetID())
+	cust := s.CreateTestCustomer(ns, "test-subject")
+
+	servicePeriod := timeutil.ClosedPeriod{
+		From: time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC),
+		To:   time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
+	}
+	// The freeze must precede the deletion: IsDeleted compares DeletedAt against clock.Now().
+	clock.FreezeTime(servicePeriod.From.Add(-time.Hour))
+	defer clock.UnFreeze()
+
+	deleted := s.TaxCodeEnv.CreateTaxCode(s.T(), ns, taxcode.CreateTaxCodeInput{
+		Key: "deleted-customer-charge-tax",
+		AppMappings: taxcode.TaxCodeAppMappings{
+			{AppType: app.AppTypeStripe, TaxCode: "txcd_10000000"},
+		},
+	})
+	s.Require().NoError(s.TaxCodeEnv.Service.DeleteTaxCode(ctx, taxcode.DeleteTaxCodeInput{NamespacedID: deleted.NamespacedID}))
+
+	s.Run("when the caller references a deleted tax code", func() {
+		input := charges.CreateCustomerChargeInput{
+			Namespace:    ns,
+			CustomerID:   cust.ID,
+			CurrencyCode: USD,
+			TaxConfig:    productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(deleted.ID)},
+			FlatFee:      s.newCustomerChargeFlatFeeInput(servicePeriod),
+		}
+
+		_, err := s.Charges.CreateCustomerCharge(ctx, input)
+
+		// then: the authored deleted reference is rejected with the shared error
+		s.Require().Error(err)
+		s.ErrorIs(err, billing.ErrTaxCodeDeleted)
+		s.True(billing.IsValidationIssueOnly(err), "expected a validation error, got: %v", err)
+		// and: the issue is addressed at the single tax_config the client sent, with no list or index
+		s.True(strings.HasPrefix(err.Error(), "tax_config/tax_code:"), "expected the issue at tax_config/tax_code, got: %v", err)
+		s.NotContains(err.Error(), "intents/")
+	})
+
+	s.Run("when the caller references a missing tax code", func() {
+		input := charges.CreateCustomerChargeInput{
+			Namespace:    ns,
+			CustomerID:   cust.ID,
+			CurrencyCode: USD,
+			TaxConfig:    productcatalog.TaxConfig{TaxCodeID: lo.ToPtr(ulid.Make().String())},
+			FlatFee:      s.newCustomerChargeFlatFeeInput(servicePeriod),
+		}
+
+		_, err := s.Charges.CreateCustomerCharge(ctx, input)
+
+		// then: the missing reference is still rejected as not found
+		s.Require().Error(err)
+		s.True(models.IsGenericValidationError(err), "expected a validation error, got: %v", err)
+		s.ErrorContains(err, "not found")
+	})
+
+	s.Run("when the caller omits the tax config the profile default applies", func() {
+		input := charges.CreateCustomerChargeInput{
+			Namespace:    ns,
+			CustomerID:   cust.ID,
+			CurrencyCode: USD,
+			FlatFee:      s.newCustomerChargeFlatFeeInput(servicePeriod),
+		}
+
+		created, err := s.Charges.CreateCustomerCharge(ctx, input)
+
+		// then: the charge is created with the organization default, untouched by the deleted code
+		s.Require().NoError(err)
+		flatFee, err := created.AsFlatFeeCharge()
+		s.Require().NoError(err)
+		s.NotEqual(deleted.ID, flatFee.Intent.GetTaxConfig().TaxCodeID)
+	})
+}
+
+func (s *TaxCodePersistenceTestSuite) newCustomerChargeFlatFeeInput(servicePeriod timeutil.ClosedPeriod) *charges.CreateCustomerChargeFlatFeeInput {
+	return &charges.CreateCustomerChargeFlatFeeInput{
+		IntentMutableFields: flatfee.IntentMutableFields{
+			IntentMutableFields: meta.IntentMutableFields{
+				Name:              "customer charge deleted tax code",
+				ServicePeriod:     servicePeriod,
+				FullServicePeriod: servicePeriod,
+				BillingPeriod:     servicePeriod,
+			},
+			InvoiceAt:             servicePeriod.From,
+			PaymentTerm:           productcatalog.InAdvancePaymentTerm,
+			AmountBeforeProration: alpacadecimal.NewFromInt(10),
+		},
+		SettlementMode: productcatalog.CreditThenInvoiceSettlementMode,
+	}
 }

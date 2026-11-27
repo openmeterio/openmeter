@@ -389,6 +389,7 @@ func (s *CustomerHandlerTestSuite) TestMultiSubjectIntegrationFlow(ctx context.C
 	}, billing.WithFeatureKey(featureOne.Key))
 
 	result, err := billingService.CreatePendingInvoiceLines(ctx, billing.CreatePendingInvoiceLinesInput{
+		ChangeSource: billing.ChangeSourceAPIRequest,
 		Customer: customer.CustomerID{
 			Namespace: s.namespace,
 			ID:        createdCustomer.ID,

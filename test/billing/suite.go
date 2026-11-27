@@ -535,6 +535,7 @@ func (s *BaseSuite) CreateGatheringInvoice(t *testing.T, ctx context.Context, in
 					},
 				),
 			}),
+			ChangeSource: billing.ChangeSourceAPIRequest,
 		})
 
 	require.NoError(s.T(), err)
