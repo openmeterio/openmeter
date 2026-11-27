@@ -109,7 +109,7 @@ func (c *config) installWriteObservers() {
         c.hooks.{{ $n.Name }} = append(c.hooks.{{ $n.Name }}, entutils.WriteObserverHook)
     {{- end }}
     {{- range $n := $.Nodes }}
-        c.inters.{{ $n.Name }} = append(c.inters.{{ $n.Name }}, entutils.WriteObserverInterceptor)
+        c.inters.{{ $n.Name }} = append(c.inters.{{ $n.Name }}, entutils.WriteObserverInterceptor(Type{{ $n.Name }}))
     {{- end }}
 }
 

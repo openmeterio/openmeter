@@ -38,3 +38,38 @@ func TestGeneratedClientReportsWrites(t *testing.T) {
 		{Kind: transaction.WriteKindRowLock, Target: "Feature", Operation: "All"},
 	}, recorder.Attempts())
 }
+
+// An eager-loaded query runs with the query context of the query that loads it,
+// so the reported entity must come from the locked query itself.
+func TestEagerLoadedRowLockReportsTheLockedEntity(t *testing.T) {
+	testDB := testutils.InitPostgresDB(t, testutils.PostgresDBStateEntMigrated)
+	t.Cleanup(func() { testDB.Close(t) })
+
+	client := entdb.NewClient(entdb.Driver(testDB.EntDriver.Driver()))
+
+	// given a feature, so the query has a parent row to load entitlements for
+	_, err := client.Feature.Create().
+		SetNamespace("write-observer-test").
+		SetName("feature").
+		SetKey("feature").
+		Save(t.Context())
+	require.NoError(t, err)
+
+	recorder := &transactiontestutils.WriteRecorder{}
+	ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
+	require.NoError(t, err)
+
+	// when only the eager-loaded entitlements are locked
+	_, err = client.Feature.Query().
+		Where(dbfeature.Namespace("write-observer-test")).
+		WithEntitlement(func(q *entdb.EntitlementQuery) {
+			q.ForUpdate()
+		}).
+		All(ctx)
+	require.NoError(t, err)
+
+	// then the lock is reported on the entitlements, not on the features that load them
+	require.Equal(t, []transaction.WriteAttempt{
+		{Kind: transaction.WriteKindRowLock, Target: "Entitlement", Operation: "All"},
+	}, recorder.Attempts())
+}

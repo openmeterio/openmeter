@@ -102,7 +102,7 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 // the package can build, so no caller has to remember to register it.
 func (c *config) installWriteObservers() {
 	c.hooks.Example1 = append(c.hooks.Example1, entutils.WriteObserverHook)
-	c.inters.Example1 = append(c.inters.Example1, entutils.WriteObserverInterceptor)
+	c.inters.Example1 = append(c.inters.Example1, entutils.WriteObserverInterceptor(TypeExample1))
 }
 
 // LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
