@@ -2,6 +2,7 @@ package ingest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -18,18 +19,13 @@ type DeduplicatingCollector struct {
 
 // Ingest implements the {Collector} interface wrapping an existing {Collector} and deduplicating events.
 //
-// The event is only recorded in the deduplication index after it was ingested
-// successfully. Marking it before ingestion would make a failed delivery
-// (e.g. a Kafka delivery error) permanently invisible and retries of the same
-// event would be silently skipped even though it was never delivered.
+// IsUnique atomically reserves the event key before forwarding to the downstream
+// collector so concurrent requests for the same event cannot both publish. If
+// downstream delivery fails (and was not canceled, in which case an async
+// producer may still deliver the queued message), the reservation is released so
+// retries can succeed.
 func (d DeduplicatingCollector) Ingest(ctx context.Context, namespace string, ev event.Event) error {
-	item := dedupe.Item{
-		Namespace: namespace,
-		ID:        ev.ID(),
-		Source:    ev.Source(),
-	}
-
-	isUnique, err := d.Deduplicator.CheckUnique(ctx, item)
+	isUnique, err := d.Deduplicator.IsUnique(ctx, namespace, ev)
 	if err != nil {
 		return fmt.Errorf("checking event uniqueness: %w", err)
 	}
@@ -39,11 +35,18 @@ func (d DeduplicatingCollector) Ingest(ctx context.Context, namespace string, ev
 	}
 
 	if err := d.Collector.Ingest(ctx, namespace, ev); err != nil {
-		return err
-	}
+		if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+			item := dedupe.Item{
+				Namespace: namespace,
+				ID:        ev.ID(),
+				Source:    ev.Source(),
+			}
+			if delErr := d.Deduplicator.Delete(ctx, item); delErr != nil {
+				return errors.Join(err, fmt.Errorf("releasing event deduplication key: %w", delErr))
+			}
+		}
 
-	if _, err := d.Deduplicator.Set(ctx, item); err != nil {
-		return fmt.Errorf("recording event in deduplicator: %w", err)
+		return err
 	}
 
 	return nil
