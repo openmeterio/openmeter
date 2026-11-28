@@ -112,7 +112,7 @@ Generate the token with `SVIX_JWT_SECRET=<signingSecret> svix-server jwt generat
 
 Each OpenMeter component reads its own `resources`, `nodeSelector`, `tolerations`, and `affinity` values. A component value replaces the equivalent chart-wide value. If you do not set a component value, the chart-wide value applies.
 
-The components are `api`, `balanceWorker`, `rte`, `notificationService`, `sinkWorker`, `billingWorker`, `svix`, `jobs.subscriptionSync`, `jobs.billingCollectInvoices`, and `jobs.billingAdvanceInvoices`.
+The components are `api`, `balanceWorker`, `rte`, `notificationService`, `sinkWorker`, `billingWorker`, `svix`, `jobs.subscriptionSync`, `jobs.billingCollectInvoices`, `jobs.billingAdvanceInvoices`, and `jobs.billingAdvanceCharges`.
 
 ```yaml
 # Chart-wide default for every component.
@@ -269,3 +269,9 @@ jobs:
 | jobs.billingAdvanceInvoices.nodeSelector | object | The chart-wide `nodeSelector` value. | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the advance invoices job. |
 | jobs.billingAdvanceInvoices.tolerations | list | The chart-wide `tolerations` value. | [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the advance invoices job. |
 | jobs.billingAdvanceInvoices.affinity | object | The chart-wide `affinity` value. | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the advance invoices job. |
+| jobs.billingAdvanceCharges | object | `{"affinity":{},"nodeSelector":{},"resources":{},"schedule":"* * * * *","tolerations":[]}` | Advance charges job advances non-final charges. It is the backup for charge advancement that otherwise only happens while a charge is created. The job is created only when charges are enabled (`config.credits.enabled: true`). |
+| jobs.billingAdvanceCharges.schedule | string | `"* * * * *"` | Schedule for the advance charges job. Default is every minute, the same interval the quickstart scheduler uses. |
+| jobs.billingAdvanceCharges.resources | object | The chart-wide `resources` value. | Container resource [requests and limits](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) for the advance charges job. |
+| jobs.billingAdvanceCharges.nodeSelector | object | The chart-wide `nodeSelector` value. | [Node selector](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector) for the advance charges job. |
+| jobs.billingAdvanceCharges.tolerations | list | The chart-wide `tolerations` value. | [Tolerations](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) for the advance charges job. |
+| jobs.billingAdvanceCharges.affinity | object | The chart-wide `affinity` value. | [Affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity) for the advance charges job. |

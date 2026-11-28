@@ -86,7 +86,7 @@ Generate the token with `SVIX_JWT_SECRET=<signingSecret> svix-server jwt generat
 
 Each OpenMeter component reads its own `resources`, `nodeSelector`, `tolerations`, and `affinity` values. A component value replaces the equivalent chart-wide value. If you do not set a component value, the chart-wide value applies.
 
-The components are `api`, `balanceWorker`, `rte`, `notificationService`, `sinkWorker`, `billingWorker`, `svix`, `jobs.subscriptionSync`, `jobs.billingCollectInvoices`, and `jobs.billingAdvanceInvoices`.
+The components are `api`, `balanceWorker`, `rte`, `notificationService`, `sinkWorker`, `billingWorker`, `svix`, `jobs.subscriptionSync`, `jobs.billingCollectInvoices`, `jobs.billingAdvanceInvoices`, and `jobs.billingAdvanceCharges`.
 
 ```yaml
 # Chart-wide default for every component.

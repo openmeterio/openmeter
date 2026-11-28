@@ -238,3 +238,85 @@ spec:
           tolerations:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+{{- if dig "credits" "enabled" false .Values.config }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "openmeter.componentName" (list . "billing-advance-charges") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "billing-advance-charges") | nindent 4 }}
+spec:
+  schedule: "{{ .Values.jobs.billingAdvanceCharges.schedule }}"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "openmeter.componentLabels" (list . "billing-advance-charges") | nindent 8 }}
+        {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      template:
+        metadata:
+          annotations:
+            {{- with .Values.podAnnotations }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+          labels:
+            {{- include "openmeter.componentLabels" (list . "billing-advance-charges") | nindent 12 }}
+            {{- with .Values.podLabels }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: Never # next run is fine
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 10 }}
+          {{- end }}
+          serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          {{- include "openmeter.initContainers" . | nindent 10 }}
+          containers:
+            - name: billing-advance-charges
+              securityContext:
+                {{- include "openmeter.securityContext" . | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["openmeter-jobs"]
+              args: [ "--config", "/etc/openmeter/config.yaml", "billing", "advance-charges", "all"]
+              ports:
+                - name: telemetry-http
+                  containerPort: 10000
+                  protocol: TCP
+              resources:
+                {{- toYaml (.Values.jobs.billingAdvanceCharges.resources | default .Values.resources) | nindent 16 }}
+              volumeMounts:
+                - name: config
+                  mountPath: /etc/openmeter
+                {{- include "openmeter.caBundleMount" . | nindent 16 }}
+          volumes:
+            - name: config
+              configMap:
+                name: {{ include "openmeter.fullname" . }}
+            {{- include "openmeter.caVolumes" . | nindent 12 }}
+          {{- with (.Values.jobs.billingAdvanceCharges.nodeSelector | default .Values.nodeSelector) }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with (.Values.jobs.billingAdvanceCharges.affinity | default .Values.affinity) }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with (.Values.jobs.billingAdvanceCharges.tolerations | default .Values.tolerations) }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
