@@ -433,6 +433,8 @@ type (
 // newConfig creates a new config for the client.
 func newConfig(opts ...Option) config {
 	cfg := config{log: log.Println, hooks: &hooks{}, inters: &inters{}}
+	cfg.installWriteObservers()
+
 	cfg.options(opts...)
 	return cfg
 }

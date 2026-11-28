@@ -14,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 var (
@@ -120,6 +121,16 @@ func (l *SessionLocker) Start(ctx context.Context) error {
 func (l *SessionLocker) lock(ctx context.Context, key Key, nonblocking bool) (Releaser, error) {
 	if l.closed.Load() {
 		return nil, ErrSessionLockerDone
+	}
+
+	// Like LockForTX: a read replica would grant this lock without coordinating
+	// with the primary, so the database will not reject it.
+	err := transaction.ReportWrite(ctx, transaction.WriteAttempt{
+		Kind:   transaction.WriteKindAdvisoryLock,
+		Target: key.String(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	lockFunc := "pg_advisory_lock"

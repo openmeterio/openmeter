@@ -45,6 +45,17 @@ var ErrLockTimeout = errors.New("lock operation timed out")
 // LockForTX locks the key for the duration of the transaction.
 func (l *Locker) LockForTX(ctx context.Context, key Key) error {
 	l.cfg.Logger.DebugContext(ctx, "locking for tx", "key", key.String(), "hash", key.Hash64())
+
+	// A read replica would grant this lock without coordinating with the primary,
+	// so it has to be reported here: the database will not reject it.
+	err := transaction.ReportWrite(ctx, transaction.WriteAttempt{
+		Kind:   transaction.WriteKindAdvisoryLock,
+		Target: key.String(),
+	})
+	if err != nil {
+		return err
+	}
+
 	client, err := l.getTxClient(ctx)
 	if err != nil {
 		return err

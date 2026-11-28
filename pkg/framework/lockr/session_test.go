@@ -11,6 +11,8 @@ import (
 
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	transactiontestutils "github.com/openmeterio/openmeter/pkg/framework/transaction/testutils"
 )
 
 func newTestSessionLocker(t *testing.T, dbConn string, opts ...pgdriver.Option) *SessionLocker {
@@ -58,6 +60,39 @@ func Test_SessionLocker(t *testing.T) {
 
 		err = releaser(t.Context())
 		require.NoError(t, err)
+	})
+
+	t.Run("Should report the locks to the write observer", func(t *testing.T) {
+		// given a context with a write observer
+		locker := newTestSessionLocker(t, testDB.URL)
+
+		require.NoError(t, locker.Start(t.Context()))
+		defer locker.Close()
+
+		recorder := &transactiontestutils.WriteRecorder{}
+		ctx, err := transaction.WithWriteObserver(t.Context(), recorder)
+		require.NoError(t, err)
+
+		blocking, err := NewKey("test", "reported-lock")
+		require.NoError(t, err)
+
+		nonblocking, err := NewKey("test", "reported-try-lock")
+		require.NoError(t, err)
+
+		// when a blocking and a non-blocking lock are taken
+		release, err := locker.Lock(ctx, blocking)
+		require.NoError(t, err)
+		require.NoError(t, release(t.Context()))
+
+		release, err = locker.TryLock(ctx, nonblocking)
+		require.NoError(t, err)
+		require.NoError(t, release(t.Context()))
+
+		// then both are reported: a read replica would grant them without protecting anything
+		require.Equal(t, []transaction.WriteAttempt{
+			{Kind: transaction.WriteKindAdvisoryLock, Target: blocking.String()},
+			{Kind: transaction.WriteKindAdvisoryLock, Target: nonblocking.String()},
+		}, recorder.Attempts())
 	})
 
 	t.Run("TryLock and release", func(t *testing.T) {

@@ -84,6 +84,10 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 		inters: &inters{},
 	}
 
+	// Hooks registered on the originating client are not carried over (see RawEntConfig),
+	// so the write observers have to be installed again.
+	config.installWriteObservers()
+
 	return &Tx{
 		ctx:    ctx,
 		config: config,
@@ -91,4 +95,37 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Example1: NewExample1Client(config),
 	}
+}
+
+// The write observers are built once and shared by every client: a transactional client
+// is created for each repository call, so building them per client would allocate for
+// every entity on every call.
+//
+// Sharing is safe because each slice is full: a client that registers its own hooks or
+// interceptors appends into a new array and leaves these untouched.
+var (
+	writeObserverHooks = hooks{
+		Example1: []Hook{entutils.WriteObserverHook},
+	}
+
+	writeObserverInters = inters{
+		Example1: []Interceptor{entutils.WriteObserverInterceptor(TypeExample1)},
+	}
+)
+
+// installWriteObservers makes every client report the writes it attempts to the write
+// observer of the context (see transaction.WithWriteObserver). It runs for every client
+// the package can build, so no caller has to remember to register it.
+//
+// It replaces the hooks and interceptors of the config, so it must run before any other
+// is registered.
+func (c *config) installWriteObservers() {
+	*c.hooks = writeObserverHooks
+	*c.inters = writeObserverInters
+}
+
+// LocksRows reports whether the query takes row locks (FOR UPDATE / FOR SHARE).
+// Lock clauses are the only selector modifiers the builders accept.
+func (_m *Example1Query) LocksRows() bool {
+	return len(_m.modifiers) > 0
 }
