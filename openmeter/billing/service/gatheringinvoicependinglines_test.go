@@ -3,19 +3,25 @@ package billingservice
 import (
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/charges/usagebased"
 	billingtestutils "github.com/openmeterio/openmeter/openmeter/billing/testutils"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/currencyx"
 	"github.com/openmeterio/openmeter/pkg/datetime"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/timeutil"
 )
 
@@ -422,4 +428,139 @@ func newGateTestGatheringLine(id string, engineType billing.LineEngineType) gath
 		Line:           line,
 		BillablePeriod: period,
 	}
+}
+
+func TestPrepareBillableLinesDoesNotReacquireCustomerLock(t *testing.T) {
+	// given: one billable flat-fee line on a single gathering invoice, and a
+	// service backed by a counting adapter. UpsertCustomerLock stands in for
+	// the pool connection the real adapter takes outside the transaction.
+	customerID := customer.CustomerID{Namespace: "default", ID: "customer-1"}
+	line := newGateTestGatheringLine("line-1", billing.LineEngineTypeInvoice)
+	line.Line.InvoiceID = "gathering-1"
+
+	adapter := &countingBillingAdapter{
+		profile: billing.Profile{
+			BaseProfile: billing.BaseProfile{
+				ID:             "profile-1",
+				Namespace:      "default",
+				Name:           "test-profile",
+				WorkflowConfig: billing.DefaultWorkflowConfig,
+				Supplier: billing.SupplierContact{
+					Name: "Test Supplier",
+					Address: models.Address{
+						Country: lo.ToPtr(models.CountryCode("US")),
+					},
+				},
+			},
+			Apps: &billing.ProfileApps{},
+		},
+		invoices: []billing.GatheringInvoice{
+			{
+				GatheringInvoiceBase: billing.GatheringInvoiceBase{
+					ManagedResource: models.ManagedResource{
+						NamespacedModel: models.NamespacedModel{Namespace: "default"},
+						ID:              "gathering-1",
+						Name:            "gathering-1",
+					},
+					CustomerID:    "customer-1",
+					Currency:      currencyx.FiatCode("USD"),
+					ServicePeriod: line.BillablePeriod,
+					SchemaLevel:   2,
+				},
+				Lines: billing.NewGatheringInvoiceLines(billing.GatheringLines{line.Line}),
+			},
+		},
+	}
+
+	service := &Service{
+		adapter: adapter,
+		customerService: &stubCustomerService{
+			customer: &customer.Customer{
+				ManagedResource: models.ManagedResource{
+					NamespacedModel: models.NamespacedModel{Namespace: "default"},
+					ID:              "customer-1",
+					Name:            "customer-1",
+				},
+			},
+		},
+		lineEngines: newEngineRegistry(),
+		logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
+	}
+	require.NoError(t, service.lineEngines.Register(billingtestutils.NoopLineEngine{EngineType: billing.LineEngineTypeInvoice}))
+
+	asOf := time.Date(2026, 2, 1, 0, 0, 0, 0, time.UTC)
+	input := billing.PrepareBillableLinesInput{
+		Customer: customerID,
+		AsOf:     &asOf,
+	}
+	options := billing.NewInvoicePendingLinesOptions(billing.WithBypassCollectionAlignment())
+
+	// when: prepare the lines the way InvoicePendingLines does, inside the
+	// outer manipulation transaction.
+	result, err := transactionForInvoiceManipulation(t.Context(), service, customerID, func(ctx context.Context) (*billing.PrepareBillableLinesResult, error) {
+		return service.prepareBillableLines(ctx, input, options)
+	})
+
+	// then: the lines are prepared, and the customer lock was taken exactly
+	// once, by the outer wrapper. A second upsert here would grab another
+	// pool connection while the transaction holds the first one, which is
+	// what deadlocks collection once customers outnumber connections (#5571).
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.LinesByCurrency, 1)
+	require.Equal(t, 1, adapter.upsertCustomerLocks)
+}
+
+// countingBillingAdapter counts how many times the customer lock row is
+// upserted, standing in for the pool connections the real adapter takes.
+type countingBillingAdapter struct {
+	billing.Adapter
+
+	upsertCustomerLocks int
+	profile             billing.Profile
+	invoices            []billing.GatheringInvoice
+}
+
+func (a *countingBillingAdapter) UpsertCustomerLock(context.Context, billing.UpsertCustomerLockAdapterInput) error {
+	a.upsertCustomerLocks++
+
+	return nil
+}
+
+func (a *countingBillingAdapter) LockCustomerForUpdate(context.Context, billing.LockCustomerForUpdateAdapterInput) error {
+	return nil
+}
+
+func (a *countingBillingAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
+	return ctx, &noopTxDriver{}, nil
+}
+
+func (a *countingBillingAdapter) GetCustomerBillingProfile(context.Context, billing.GetCustomerBillingProfileInput) (billing.CustomerBillingProfileAdapterResult, error) {
+	return billing.CustomerBillingProfileAdapterResult{
+		AssignedProfile: &billing.CustomerBillingProfileAssignment{},
+		Profile:         &a.profile,
+	}, nil
+}
+
+func (a *countingBillingAdapter) ListGatheringInvoices(context.Context, billing.ListGatheringInvoicesInput) (pagination.Result[billing.GatheringInvoice], error) {
+	return pagination.Result[billing.GatheringInvoice]{
+		TotalCount: len(a.invoices),
+		Items:      a.invoices,
+	}, nil
+}
+
+type noopTxDriver struct{}
+
+func (noopTxDriver) Commit() error    { return nil }
+func (noopTxDriver) Rollback() error  { return nil }
+func (noopTxDriver) SavePoint() error { return nil }
+
+type stubCustomerService struct {
+	customer.Service
+
+	customer *customer.Customer
+}
+
+func (s *stubCustomerService) GetCustomer(context.Context, customer.GetCustomerInput) (*customer.Customer, error) {
+	return s.customer, nil
 }
