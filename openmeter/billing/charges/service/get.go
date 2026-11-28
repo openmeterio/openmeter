@@ -55,6 +55,13 @@ func (s *service) GetByIDs(ctx context.Context, input charges.GetByIDsInput) (ch
 	return s.expandChargesWithTypes(ctx, input.Namespace, chargesItems, input.Expands)
 }
 
+// chargeLoadBatchSize caps how many charge IDs one type-specific load gets.
+// Each load sends its IDs as query parameters, and the realization loads behind
+// it send one parameter per run, so a charge with partial invoices counts more
+// than once. PostgreSQL rejects queries with more than 65,535 parameters; 1,000
+// charges leaves room for 65 runs per charge.
+const chargeLoadBatchSize = 1000
+
 // expandChargesWithTypes fetches the charges by type and expands them with the given expands.
 func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, chargesItems charges.ChargeSearchItems, expands meta.Expands) (charges.Charges, error) {
 	chargesByType := lo.GroupByMap(chargesItems, func(chargeMeta charges.ChargeSearchItem) (meta.ChargeType, string) {
@@ -69,28 +76,34 @@ func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, 
 		}
 	}
 
-	usageBased, err := s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
-		Namespace: namespace,
-		IDs:       chargesByType[meta.ChargeTypeUsageBased],
-		Expands:   expands,
+	usageBased, err := getByIDsInBatches(chargesByType[meta.ChargeTypeUsageBased], func(ids []string) ([]usagebased.Charge, error) {
+		return s.usageBasedService.GetByIDs(ctx, usagebased.GetByIDsInput{
+			Namespace: namespace,
+			IDs:       ids,
+			Expands:   expands,
+		})
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	flatFees, err := s.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
-		Namespace: namespace,
-		IDs:       chargesByType[meta.ChargeTypeFlatFee],
-		Expands:   expands,
+	flatFees, err := getByIDsInBatches(chargesByType[meta.ChargeTypeFlatFee], func(ids []string) ([]flatfee.Charge, error) {
+		return s.flatFeeService.GetByIDs(ctx, flatfee.GetByIDsInput{
+			Namespace: namespace,
+			IDs:       ids,
+			Expands:   expands,
+		})
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	creditPurchases, err := s.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
-		Namespace: namespace,
-		IDs:       chargesByType[meta.ChargeTypeCreditPurchase],
-		Expands:   expands,
+	creditPurchases, err := getByIDsInBatches(chargesByType[meta.ChargeTypeCreditPurchase], func(ids []string) ([]creditpurchase.Charge, error) {
+		return s.creditPurchaseService.GetByIDs(ctx, creditpurchase.GetByIDsInput{
+			Namespace: namespace,
+			IDs:       ids,
+			Expands:   expands,
+		})
 	})
 	if err != nil {
 		return nil, err
@@ -115,4 +128,19 @@ func (s *service) expandChargesWithTypes(ctx context.Context, namespace string, 
 		}),
 		out,
 	)
+}
+
+// getByIDsInBatches calls load with at most chargeLoadBatchSize IDs at a time.
+func getByIDsInBatches[T any](ids []string, load func(ids []string) ([]T, error)) ([]T, error) {
+	out := make([]T, 0, len(ids))
+	for batch := range slices.Chunk(ids, chargeLoadBatchSize) {
+		items, err := load(batch)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, items...)
+	}
+
+	return out, nil
 }
