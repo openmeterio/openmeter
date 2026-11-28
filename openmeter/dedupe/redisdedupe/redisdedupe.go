@@ -170,6 +170,35 @@ func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.I
 	return existingItems, nil
 }
 
+// Delete removes events from redis.
+func (d Deduplicator) Delete(ctx context.Context, items ...dedupe.Item) error {
+	if d.Redis == nil {
+		return errors.New("redis client not initialized")
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+
+	keys := make([]string, 0, len(items))
+	for _, item := range items {
+		switch d.Mode {
+		case DedupeModeRawKey:
+			keys = append(keys, item.Key())
+		case DedupeModeKeyHash, DedupeModeKeyHashMigration:
+			keys = append(keys, GetKeyHash(item.Key()))
+		default:
+			return fmt.Errorf("invalid dedupe mode: %s", d.Mode)
+		}
+	}
+
+	if err := d.Redis.Del(ctx, keys...).Err(); err != nil {
+		return fmt.Errorf("failed to delete keys in redis: %w", err)
+	}
+
+	return nil
+}
+
 // Close closes underlying redis client
 func (d Deduplicator) Close() error {
 	if d.Redis != nil {

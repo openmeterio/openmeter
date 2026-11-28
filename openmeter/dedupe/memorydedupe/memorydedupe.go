@@ -58,6 +58,14 @@ func (d *Deduplicator) Set(ctx context.Context, items ...dedupe.Item) ([]dedupe.
 	return nil, nil
 }
 
+func (d *Deduplicator) Delete(ctx context.Context, items ...dedupe.Item) error {
+	for _, item := range items {
+		_ = d.store.Remove(item.Key())
+	}
+
+	return nil
+}
+
 func (d *Deduplicator) Close() error {
 	return nil
 }
