@@ -697,27 +697,21 @@ func (s *service) listPendingGrantCandidateCharges(ctx context.Context, customer
 	// only exclude charges that definitely cannot become ledger credit, and let
 	// isPendingCreditGrantAt handle lifecycle edge cases like final realized
 	// grants booked in the future.
-	items, err := pagination.CollectAll(
-		ctx,
-		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
-			return s.ChargesService.ListCharges(ctx, charges.ListChargesInput{
-				Page:        page,
-				Namespace:   customerID.Namespace,
-				CustomerIDs: []string{customerID.ID},
-				ChargeTypes: []meta.ChargeType{
-					meta.ChargeTypeCreditPurchase,
-				},
-				Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusDeleted)}},
-				Expands: meta.Expands{meta.ExpandRealizations},
-			})
-		}),
-		chargeListPageSize,
-	)
+	// Unpaged for the same reason as listChargeLiveBalanceCandidates.
+	result, err := s.ChargesService.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   customerID.Namespace,
+		CustomerIDs: []string{customerID.ID},
+		ChargeTypes: []meta.ChargeType{
+			meta.ChargeTypeCreditPurchase,
+		},
+		Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusDeleted)}},
+		Expands: meta.Expands{meta.ExpandRealizations},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list credit purchase charges: %w", err)
 	}
 
-	return items, nil
+	return result.Items, nil
 }
 
 // isPendingCreditGrantAt reports whether a credit purchase should contribute to
@@ -840,28 +834,25 @@ func (s *service) getChargeLiveBalanceCurrencies(ctx context.Context, customerID
 }
 
 func (s *service) listChargeLiveBalanceCandidates(ctx context.Context, customerID customer.CustomerID) ([]charges.Charge, error) {
-	items, err := pagination.CollectAll(
-		ctx,
-		pagination.NewPaginator(func(ctx context.Context, page pagination.Page) (pagination.Result[charges.Charge], error) {
-			return s.ChargesService.ListCharges(ctx, charges.ListChargesInput{
-				Page:        page,
-				Namespace:   customerID.Namespace,
-				CustomerIDs: []string{customerID.ID},
-				ChargeTypes: []meta.ChargeType{
-					meta.ChargeTypeFlatFee,
-					meta.ChargeTypeUsageBased,
-				},
-				Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusFinal)}},
-				Expands: meta.Expands{meta.ExpandRealizations},
-			})
-		}),
-		chargeListPageSize,
-	)
+	// Every candidate is needed, so list them without a page, as AdvanceCharges
+	// does: an unpaged list loads the rows in one query, while each page of a
+	// paged list also runs COUNT(*) over charges_search_v1s. This runs on every
+	// current balance read.
+	result, err := s.ChargesService.ListCharges(ctx, charges.ListChargesInput{
+		Namespace:   customerID.Namespace,
+		CustomerIDs: []string{customerID.ID},
+		ChargeTypes: []meta.ChargeType{
+			meta.ChargeTypeFlatFee,
+			meta.ChargeTypeUsageBased,
+		},
+		Status:  &filter.FilterString{Nin: &[]string{string(meta.ChargeStatusFinal)}},
+		Expands: meta.Expands{meta.ExpandRealizations},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("list charges: %w", err)
 	}
 
-	return items, nil
+	return result.Items, nil
 }
 
 func (s *service) chargeCurrencyReference(charge charges.Charge) (currencies.CurrencyReference, error) {
