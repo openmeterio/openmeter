@@ -282,6 +282,81 @@ func TestAddItem(t *testing.T) {
 				},
 				ExpectedError: nil,
 			},
+			{
+				Name: "Should not re-open previously ended item when adding item after a gap",
+				Patch: patch.PatchAddItem{
+					PhaseKey: "test_phase_2",
+					ItemKey:  "rate-card-2",
+					CreateInput: subscription.SubscriptionItemSpec{
+						CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+							CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+								ItemKey:  "reopened_item_key",
+								PhaseKey: "rate-card-2",
+								RateCard: &productcatalog.FlatFeeRateCard{
+									RateCardMeta: productcatalog.RateCardMeta{
+										Name: "Reopened Rate Card",
+										Key:  "reopened_item_key",
+										Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+											Amount:      alpacadecimal.NewFromInt(100),
+											PaymentTerm: productcatalog.InAdvancePaymentTerm,
+										}),
+									},
+								},
+							},
+							CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
+								ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.MustParseDuration(t, "P5D")),
+							},
+						},
+					},
+				},
+				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
+					s := getSpec(t)
+
+					// Set the existing item to have ended at P1D in the past
+					s.Phases["test_phase_2"].ItemsByKey["rate-card-2"][0].ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
+
+					return s
+				},
+				Ctx: subscription.ApplyContext{
+					// Current time is at day 3 of phase 2, which is after P1D (ended in the past) but before P5D
+					CurrentTime: now.AddDate(0, 1, 3),
+				},
+				GetExpectedSpec: func(t *testing.T) subscription.SubscriptionSpec {
+					s := getSpec(t)
+
+					endedRc := s.Phases["test_phase_2"].ItemsByKey["rate-card-2"][0]
+					// Past item must NOT have its ActiveToOverrideRelativeToPhaseStart extended to P5D
+					endedRc.ActiveToOverrideRelativeToPhaseStart = lo.ToPtr(datetime.MustParseDuration(t, "P1D"))
+
+					s.Phases["test_phase_2"].ItemsByKey["rate-card-2"] = []*subscription.SubscriptionItemSpec{
+						endedRc,
+						{
+							CreateSubscriptionItemInput: subscription.CreateSubscriptionItemInput{
+								CreateSubscriptionItemPlanInput: subscription.CreateSubscriptionItemPlanInput{
+									ItemKey:  "reopened_item_key",
+									PhaseKey: "rate-card-2",
+									RateCard: &productcatalog.FlatFeeRateCard{
+										RateCardMeta: productcatalog.RateCardMeta{
+											Name: "Reopened Rate Card",
+											Key:  "reopened_item_key",
+											Price: productcatalog.NewPriceFrom(productcatalog.FlatPrice{
+												Amount:      alpacadecimal.NewFromInt(100),
+												PaymentTerm: productcatalog.InAdvancePaymentTerm,
+											}),
+										},
+									},
+								},
+								CreateSubscriptionItemCustomerInput: subscription.CreateSubscriptionItemCustomerInput{
+									ActiveFromOverrideRelativeToPhaseStart: lo.ToPtr(datetime.MustParseDuration(t, "P5D")),
+								},
+							},
+						},
+					}
+
+					return *s
+				},
+				ExpectedError: nil,
+			},
 		},
 	}
 

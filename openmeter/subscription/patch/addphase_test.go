@@ -3,6 +3,7 @@ package patch_test
 import (
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/openmeter/subscription"
@@ -79,6 +80,45 @@ func TestAddPhase(t *testing.T) {
 						ItemsByKey: make(map[string][]*subscription.SubscriptionItemSpec),
 					}
 
+					return *s
+				},
+			},
+			{
+				Name: "Should handle zero duration gaps without shifting subsequent phases incorrectly",
+				Patch: patch.PatchAddPhase{
+					PhaseKey: "gap_filler_phase",
+					CreateInput: subscription.CreateSubscriptionPhaseInput{
+						Duration: lo.ToPtr(datetime.MustParseDuration(t, "P2M")),
+						CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+							PhaseKey:   "gap_filler_phase",
+							StartAfter: datetime.MustParseDuration(t, "P1M"),
+							Name:       "Gap Filler",
+						},
+					},
+				},
+				GetSpec: func(t *testing.T) *subscription.SubscriptionSpec {
+					s, _ := getDefaultSpec(t, now)
+					// In default spec, test_phase_2 starts at P1M and test_phase_3 starts at P3M.
+					// Let's create a 2-month gap after test_phase_1 (which ends at P1M) by setting
+					// test_phase_2 to start at P3M and test_phase_3 to start at P5M.
+					s.Phases["test_phase_2"].StartAfter = datetime.MustParseDuration(t, "P3M")
+					s.Phases["test_phase_3"].StartAfter = datetime.MustParseDuration(t, "P5M")
+					return s
+				},
+				Ctx: subscription.ApplyContext{CurrentTime: now},
+				GetExpectedSpec: func(t *testing.T) subscription.SubscriptionSpec {
+					s, _ := getDefaultSpec(t, now)
+					s.Phases["test_phase_2"].StartAfter = datetime.MustParseDuration(t, "P3M")
+					s.Phases["test_phase_3"].StartAfter = datetime.MustParseDuration(t, "P5M")
+					s.Phases["gap_filler_phase"] = &subscription.SubscriptionPhaseSpec{
+						CreateSubscriptionPhasePlanInput: subscription.CreateSubscriptionPhasePlanInput{
+							PhaseKey:   "gap_filler_phase",
+							StartAfter: datetime.MustParseDuration(t, "P1M"),
+							Name:       "Gap Filler",
+						},
+						ItemsByKey: make(map[string][]*subscription.SubscriptionItemSpec),
+					}
+					// Subsequent phases must NOT be shifted: test_phase_2 remains at P3M, test_phase_3 remains at P5M
 					return *s
 				},
 			},
